@@ -142,12 +142,14 @@ export function ArchiveOperationCard({
   operation,
   onArchive,
   onCancel,
+  scratchTitle,
 }: {
   headingRef?: RefObject<HTMLHeadingElement | null>;
   isLocked?: boolean;
   operation?: ArchiveOperationProjection;
   onArchive?: () => Promise<boolean>;
   onCancel: () => void;
+  scratchTitle?: string;
 }) {
   const internalHeadingRef = useRef<HTMLHeadingElement>(null);
   const headingRef = providedHeadingRef ?? internalHeadingRef;
@@ -244,6 +246,17 @@ export function ArchiveOperationCard({
         >
           {sentence}
         </h3>
+        {scratchTitle !== undefined ? (
+          <p
+            aria-hidden={operation === undefined ? undefined : true}
+            className="archive-confirmation-detail"
+            data-archive-detail={operation === undefined ? "visible" : "reserved"}
+            data-triage-role="archive-confirmation-detail"
+          >
+            Every idea segment in &ldquo;<strong>{scratchTitle}</strong>&rdquo; has
+            been successfully placed. File it to disk?
+          </p>
+        ) : null}
         <div className="archive-actions" data-triage-role="archive-actions">
           <div
             className="archive-current-action-slot"
@@ -2654,6 +2667,7 @@ export function BreakdownPanel({
                 ? cancelCompletion
                 : cancelArchiveResult
             }
+            scratchTitle={selectedScratch?.title}
           />
         </div>
       ) : null}

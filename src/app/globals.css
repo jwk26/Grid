@@ -4580,6 +4580,10 @@
   padding: 1rem;
 }
 
+.archive-confirmation-detail {
+  display: none;
+}
+
 .archive-card,
 .archive-card * {
   animation: none !important;
@@ -5706,4 +5710,117 @@
 
 .dark[data-color-theme="retro-mac"] {
   --triage-return-positive: 142 65% 65%;
+}
+
+/* L6 (Task 171, retro-mac): Breakdown-scoped system alert for completion and Archive. */
+:root[data-color-theme="retro-mac"] .triage-shell .archive-operation-overlay {
+  background: hsl(var(--background) / 0.7);
+  backdrop-filter: blur(1px);
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-card {
+  background: hsl(var(--background));
+  border: 4px double hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: 6px 6px 0 hsl(var(--foreground));
+  color: hsl(var(--foreground));
+  column-gap: 16px;
+  display: grid;
+  font-family: var(--triage-context-font);
+  grid-template-columns: 40px minmax(0, 1fr);
+  max-inline-size: 24rem;
+  min-block-size: 0;
+  padding: 24px;
+  text-align: start;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-status-mark {
+  align-self: start;
+  background: hsl(var(--background));
+  block-size: 40px;
+  border: 2px solid hsl(var(--foreground));
+  border-radius: 0;
+  color: hsl(var(--foreground));
+  font-size: 20px;
+  font-weight: 700;
+  grid-column: 1;
+  grid-row: 1;
+  inline-size: 40px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-status-mark[data-archive-status-mark="confirmation"]::before {
+  content: "!";
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-status {
+  font-size: 10px;
+  font-weight: 700;
+  grid-column: 2;
+  grid-row: 1;
+  letter-spacing: 0.05em;
+  line-height: 14px;
+  margin-block-start: 0;
+  max-inline-size: none;
+  min-block-size: 14px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-confirmation-detail {
+  display: block;
+  font-size: 10px;
+  grid-column: 2;
+  grid-row: 2;
+  letter-spacing: 0.05em;
+  line-height: 14px;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  text-align: start;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-confirmation-detail strong {
+  font-weight: 800;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-confirmation-detail[data-archive-detail="reserved"] {
+  visibility: hidden;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-actions {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  gap: 12px;
+  justify-content: flex-end;
+  min-block-size: 0;
+  padding-block-start: 24px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-current-action-slot {
+  min-block-size: 0;
+  min-inline-size: 0;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-card button {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: none;
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 12px;
+  font-weight: 700;
+  height: auto;
+  letter-spacing: 0.05em;
+  line-height: 16px;
+  padding: 6px 16px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-card button.archive-current-action {
+  border-width: 2px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-card button:hover:not([aria-disabled="true"]):not(:disabled),
+:root[data-color-theme="retro-mac"] .triage-shell .archive-card button:focus-visible {
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-card button:focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-card button:active:not([aria-disabled="true"]):not(:disabled) {
+  transform: translate(1px, 1px);
+}
+:root[data-color-theme="retro-mac"] .triage-shell .archive-status:focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
 }

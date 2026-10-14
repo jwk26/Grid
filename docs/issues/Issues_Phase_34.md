@@ -43,3 +43,15 @@ Read it at task start during Phases 34–35.
 - MI-7 [Open]: chrome-devtools MCP is disabled for GridDO. Claude Code keys every GridDO worktree to the `griddo2-claude` project entry, whose `disabledMcpServers` lists `chrome-devtools`. Enable it with `/mcp` in the worktree before Task 171. The MCP Chrome uses its own profile (`~/.cache/chrome-devtools-mcp/chrome-profile`), opens a visible window and closes when the session ends. Only one session can hold that profile at a time.
 - MI-2 [Closed]: closed by the user (2026-10-15).
 - Decision: the fixture guard keeps its two exceptions, first-load system Nodes and records the app creates under fixture data (user, 2026-10-15).
+
+## Task 171 — Realize completion and Archive
+
+### Current state
+- Status: In Progress
+- Next: Stage B (complete Context, Reopen, blockers, withdrawal), then the Archive state checks
+- Open: none
+
+### Log
+- Decision: MI-3/MI-4 stay with Task 172. Task 171 checks only the L6 Archive states (user, 2026-10-15).
+- Decision: the confirmation card shows `Every idea segment in "<Scratch title>" has been successfully placed. File it to disk?` below the heading, with the title in bold (user, 2026-10-15). Added as a hidden-by-default element that only retro-mac shows, so other themes are unchanged.
+- Stage A accepted by the user (2026-10-15): overlay and Archive card, with the first judgment being the Scratch-title body text and bold title. Reflected in the Stage A commit.
