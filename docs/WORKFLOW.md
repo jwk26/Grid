@@ -2,147 +2,43 @@
 
 > Recorded: 2026-03-27
 > Evolution: ANALYSIS_design_archaeology.md (2026-03-18) → Planning Standard (2026-03-26) → this document
-> **2026-10-03 amendment status:** **Draft — awaiting user approval.**
-> The current Codex continuation below derives from the approved selected
-> topic/map and design/execution/planning-standard receipts. It records direction
-> and authority boundaries, not implementation, cleanup, repair, acceptance,
-> Final Close or installed skill execution. Its own gate and final flow review
-> remain pending.
+> Current workflow: 3rd generation, Claude lightweight workflow (2026-10-15). See [Workflow Lineage](#workflow-lineage).
 
 ## Table of Contents
 
-- [Current Codex Continuation — 2026-10-03](#current-codex-continuation--2026-10-03)
-
-1. [Overall Workflow](#overall-workflow)
-2. [Post-PRD Ideation Topics](#post-prd-ideation-topics)
-3. [Two Parallel Tracks](#two-parallel-tracks)
-4. [Three Failure Modes](#three-failure-modes)
-5. [Phase Execution Record](#phase-execution-record)
-6. [Document Hierarchy](#document-hierarchy)
-7. [Skill Map](#skill-map)
-8. [Document Role Boundaries](#document-role-boundaries)
+1. [Workflow Lineage](#workflow-lineage)
+2. [Overall Workflow](#overall-workflow)
+3. [Post-PRD Ideation Topics](#post-prd-ideation-topics)
+4. [Two Parallel Tracks](#two-parallel-tracks)
+5. [Three Failure Modes](#three-failure-modes)
+6. [Phase Execution Record](#phase-execution-record)
+7. [Reference-Inspired Redesign](#reference-inspired-redesign)
+8. [Document Hierarchy](#document-hierarchy)
+9. [Skill Map](#skill-map)
+10. [Document Role Boundaries](#document-role-boundaries)
 
 ---
 
-## Current Codex Continuation — 2026-10-03
+## Workflow Lineage
 
-### Authority and historical-provider boundary
+1. **1st generation (through Phase 22):** Claude skills `writing-documents`, `execute-next-phase`, `execute-task` and `closing-phase`. Archived in `~/.claude/skills-archive/`.
+2. **2nd generation (Phase 23 to Phase 34 Task 170):** `codex-workflow` (`craft-docs`, `run-phase`, `run-task`, `end-phase`) with Project Adapter v2, JSON receipts and evidence fingerprints. Kept as a local repository.
+3. **3rd generation (from Phase 34 Task 171):** the same four stages rewritten as a global Claude workflow (`/Users/jwk/Documents/claude-workflow`), without adapters, receipts or fingerprints.
 
-The selected current input is
-[Inbox/Triage theme realization DECISION](brainstorming/2026-10-03-inbox_triage_theme_realization/DECISION.md)
-D01–D36 and its complete
-[approved promotion map](brainstorming/2026-10-03-inbox_triage_theme_realization/PROMOTION_MAP.md),
-especially C06 and D01–D10/D28–D36. This is the `craft-docs` Brainstorming Route,
-a targeted amendment during an open phase, not a new PRD or a phase restart.
-The approval chain is recorded in the
-[map receipt](receipts/Craft_Docs.inbox-triage-theme-realization-promotion-map.json),
-[design receipt](receipts/Craft_Docs.inbox-triage-theme-realization-design.json),
-[execution receipt](receipts/Craft_Docs.inbox-triage-theme-realization-execution.json)
-and [planning-standard receipt](receipts/Craft_Docs.inbox-triage-theme-realization-planning-standard.json).
-Their artifact hashes and receipts own acceptance; preserved Draft/Proposed
-headings remain approval-time snapshots, not conflicting current dispositions.
-This WORKFLOW draft and the final flow-review artifact still need their own
-user gates. No new storage or product behavior is introduced here.
+### Current division of authority
 
-For Codex, [AGENTS.md](../AGENTS.md) and the explicit
-[Project Adapter v2](CODEX_WORKFLOW_ADAPTER.json) select canonical authority and
-logical verification. `docs/prd.md` is historical context, not this campaign's
-selected product input. Installed `craft-docs`, `run-phase`, `run-task` and
-`end-phase` own procedure; this document supplies project direction and issue
-rules, not a second resolver, readiness, TDD, repair-budget, fingerprint or
-rollover procedure. Compatibility never supplies user approval.
+- The global skills own procedure. `CLAUDE.md` §Workflow holds the project facts they read: gates, ledger, merge method and archive paths. This document holds project direction, issue rules and document roles. It does not define a second procedure.
+- Phase start, phase close, `/craft-docs` and requirement-changing decisions run in a fresh Opus session. Each task runs in its own Sonnet working session through `/run-task`.
+- Sessions share state only through the plan, the phase ledger and Git.
+- Approval is the user's explicit statement in the conversation. The commit that follows records it. No receipt, hash or approval file is written.
+- A requirement-changing decision is settled in an Opus session, written into the plan and canonical documents, committed after the user approves the diff, and noted in the ledger.
+- Visible changes are checked in the running app with test data. Screenshots are shown in the conversation and never committed.
+- Prototype and reference source or assets are never copied, adapted or merged into production. [DESIGN_TOKENS](DESIGN_TOKENS.md), the execution plan and [PLANNING_STANDARD §5](PLANNING_STANDARD.md#51-regional-first-submission-quality) own the adopted appearance and behavior boundary.
 
-The older stage descriptions, provider orchestration, skill map and role tables
-below are retained legacy-provider reference. They do not authorize Codex to
-invoke Claude/OMC/provider workers, use CLAUDE gates, infer a model identity,
-create a reviewer session or publish from a closing-stage exception.
-`CLAUDE.md` and other provider entrypoints remain protected and unchanged.
-Current Codex execution follows the installed lifecycles and approved adapter,
-not an automatically active `/execute-*` or `/closing-phase` procedure.
+### Historical records
 
-### Phase 31 direction-change lineage
-
-This is responsibility transfer, not completion by renaming. The accepted
-[execution-plan transfer register](EXECUTION_PLAN.md#unaccepted-task-164165-transfer-register)
-and phase/task definitions own the exact new graph and file actions.
-
-| Existing scope | Current planning disposition and retained responsibility |
-|---|---|
-| Phase 30 / Tasks 159–162 | Closed/archive-only; no reopen or change to its markers, receipts, archives, evidence or Git history. Task 163 does not belong to Phase 30. |
-| Phase 31 / Task 163 | Accepted route integration, not yet merged into main. Phase 31 remains open for separately approved narrow corrections, issue dispositions and truthful technical close; it does not claim eight-theme visual completion. |
-| Task 164 `[ ]` | `Transferred / Superseded`, unaccepted. Its realization/conformance responsibility continues in Phases 34–39 and the Phase 40 full gate; no successful Task 164 evidence or acceptance is inferred. |
-| Task 165 `[ ]` | `Transferred / Superseded`, unaccepted. Its complete implementation/preservation all-nodes responsibility continues in Phase 40 / Task 208; transfer deletes no required check. |
-| Phases 32–33 | Reserved retired numbers; neither their meanings nor task IDs 164/165 are reused. |
-| Phases 34–40 / Tasks 166–208 | Approved planning, unstarted execution. Exact theme sets, regional predecessors, supported-mode completion and the retained full matrix live in EXECUTION_PLAN, not a second task list here. |
-
-The execution receipt makes the plan amendment effective; this draft does not
-write its disposition into the phase ledger or mark any task `[x]`. Earlier
-kickoff/checkpoint/closure records remain historical snapshots. The inherited
-pre-Task-164 visual audit is not retroactively accepted, and `P29-01 / D-CARD`
-and the five existing deferrals are not resolved by transfer. Neither a plan
-approval nor a visual score closes a technical failure or a phase issue.
-
-### Correction and experiment-discard boundaries
-
-The [Phase 31 technical-close prerequisites](EXECUTION_PLAN.md#phase-31-technical-close-prerequisites--not-new-task-acceptance)
-and map Q03–Q06 name the separate actions still requiring exact user scope.
-They are not repair or destructive-operation authority in this document.
-
-| Boundary | Required direction / authority |
-|---|---|
-| Q03 / NodeGridBody | Correct Task 163's forbidden route export under the narrow source/test repair gate in Phase 31, not Phase 30. Preserve original acceptance and record additive correction with fresh invalidated evidence. Cache deletion or ignored generated type errors is not the source repair. |
-| Q04 / canonical Test 2 delta | Derive the exact rejected net delta from `54d689275cefb5d24c70f562435bb82734c51631` to `d05140626a6e95d4f5ca4897f02f66594af4d753`; remove only those owned changes additively. Preserve Task 163, the separate 9/8–9 canonical audit, later approved Route documents and unrelated work. No branch reset, history rewrite or whole-ledger replacement. |
-| Q04 / disposable experiments | The new exact user discard disposition supersedes earlier experimental-asset retention only for its approved target set. Guard the eight identified worktrees/branches and attributed runtimes; protect main, canonical Phase 31, prototype, unrelated worktrees and the current session host. Current-tree cleanup is not Git commit purging or promotion of old experiment bytes. |
-| Q05 / mounted Staging reason | Diagnose against the accepted functional contract and obtain Blocking/Advisory tier and user disposition. A Blocking defect needs its own approved owner/repair; it cannot be silently folded into theme CSS or assumed deferred. |
-| Q06 / dependent close-output proof | The optional adapter freshness gate is absent, not an onboarding failure. Propose and obtain approval of the exact project-owned proof, then exercise it at the actual close candidate. A build pass, timestamps or prior generated/browser outputs alone do not establish freshness. |
-
-Under D30, later authorized ledger updates preserve Task 163 acceptance,
-other accepted functional records, canonical audits and named deferred workflow
-findings. Keep minimal experimental rejection/discard lineage, not obsolete
-experimental reports/assets.
-Under D31, do not create a standalone final Neumorphism result/closure report,
-ledger closure commit or detailed experiment archive merely to dispose of the
-user-terminated test. Reconcile termination and exact target guards in the
-integrated cleanup disposition; an obsolete active snapshot does not resume
-or succeed that experiment. These directions do not change ledger bytes here.
-Active issues still require permitted explicit user disposition, and known
-Blocking failures still prevent technical Final Close.
-
-### Delivery and post-close audit boundary
-
-Step 2 canonical replanning and Step 5 workflow/skill audit are directly owned
-by the current Control Tower under D33. Advisory facts or separately approved
-corrections may use Luna xhigh within a non-conflicting scope and single-writer
-boundary; they do not delegate those two judgments or create another active
-Control Tower/Working claimant. Actual continuity is recorded in the applicable
-receipt/ledger, not inferred from this document's historical records.
-
-Complete the approved document/flow chain, separately authorized Phase 31
-repair/correction and guarded disposal, then actual Final Close/publication and
-main sync. Perform the post-Final-Close workflow audit and obtain its
-disposition before fresh main-based Phase 34 execution. Each later phase uses
-its exact accepted predecessor and actual close/main-sync conditions.
-Experiment branches never become the real implementation base or merge input.
-
-The audit first compares retained deferred workflow findings with installed
-rules, distinguishing an existing-rule execution failure from a missing rule
-or evidence gap. Installed skill/resolver/shared-contract/workflow-test bytes
-remain unchanged during Phase 31; any later improvement has its own exact gate.
-Prototype-method integration follows D35's conditional reference and essential
-execution linkage, not a giant duplicated universal skill checklist. The
-external `/Users/jwk/Documents/docs/prototype-to-production.md` keeps abstract
-method/timeline/user-evaluation context only; Test 1–8 and prototype source or
-asset bytes are not copied, adapted, imported, reused or merged into production.
-
-[DESIGN_TOKENS](DESIGN_TOKENS.md), the execution plan and
-[PLANNING_STANDARD §5](PLANNING_STANDARD.md#51-regional-first-submission-quality)
-already own the adopted appearance/behavior boundary, first-submission method,
-region dispositions and incremental/full verification. Routine measurement
-and in-scope internal refinement stay in the coherent approved Working; new
-design/owner decisions and user task/phase acceptance retain their gates.
-This document adds no routine contract-only session, generic repeated approval,
-new numeric visual threshold or automatic acceptance. No product, browser,
-cleanup or Final Close pass is claimed by this amendment.
+Earlier-generation records stay as read-only history: `docs/handoffs/` (1st generation), and `docs/receipts/`, the adapter migration plans in `docs/plans/`, `docs/issues/Final_Close_*.json`, `docs/issues/*.gate-c.json` and the task receipt JSON files (2nd generation). New work does not read them as instructions and does not create receipts, gate files or handoff files.
+Phase 31's direction-change lineage and correction boundaries (Q03–Q06) are recorded in its [archive](execution-plan/archive/phase-31.md) and the execution plan's [transfer register](EXECUTION_PLAN.md#unaccepted-task-164165-transfer-register). The former "Current Codex Continuation — 2026-10-03" section of this document remains in Git history at `25eb6cd`.
 
 ---
 
@@ -227,7 +123,7 @@ Deliverables:
 `docs/DESIGN_ALIGNMENT.md`
 `docs/DESIGN_TOKENS.md` (final)
 
-Skill: `/extract-design`
+Skill: none in the current workflow. The archived `/extract-design` skill is not used; run this stage in an Opus session.
 
 Role:
 
@@ -256,7 +152,7 @@ Deliverables:
 `docs/DESIGN_TOKENS.md` (greenfield only)
 `docs/design-system-preview.html`
 
-Skill: `/writing-documents` (Steps 1–4c)
+Skill: `/craft-docs` (Clean route)
 
 Role:
 
@@ -290,21 +186,15 @@ Deliverables:
 `docs/reviews/[scope]-flow-review.md`
 `docs/PLANNING_STANDARD.md`
 
-Skill: `/writing-documents` (Steps 5–5c)
+Skill: `/craft-docs`
 
 Role:
 
 Break down all upstream documents into phased implementation tasks. Each task has file paths derived from SPEC, per-file actions with exact values, and verifiable acceptance criteria. User-facing tasks are tagged `Visibility: User-facing` with observable acceptance criteria.
 
-After the plan draft, a dedicated reviewer subagent runs a **Flow Ownership Review**: tracing every user-visible flow from PRD/SPEC through the plan to verify end-to-end task ownership. Gaps are resolved before implementation begins (amend plan, revise upstream docs, or add explicit defer notes). Max 3 review iterations.
+After the plan draft, the `expert` subagent runs a **Flow Ownership Review**: tracing every user-visible flow from PRD/SPEC through the plan to verify end-to-end task ownership. Gaps are resolved before implementation begins (amend plan, revise upstream docs, or add explicit defer notes), and the review repeats until no Gap remains.
 
-**Current Codex boundary:** the selected approved source and review owner follow
-PLANNING_STANDARD's current Flow-Trace Review rules. This user-directed campaign
-uses the Control Tower's separate direct inline review; the legacy subagent and
-review-iteration description above does not add a second Codex procedure or
-waive the final trace artifact and user gate.
-
-`PLANNING_STANDARD.md` is generated or updated to define the project's architecture conformance checklist and verification guidance. Both `writing-documents` and `closing-phase` consume it.
+`PLANNING_STANDARD.md` is generated or updated to define the project's architecture conformance checklist and verification guidance. `/craft-docs`, `/run-phase` and `/end-phase` consume it.
 
 Key Questions:
 
@@ -323,30 +213,20 @@ The flow ownership review is the strongest quality gate in the workflow. It prev
 
 Deliverables:
 
-Source code, tests, issue-doc updates, commits, checkpoints
+Source code, tests, ledger updates, commits, checkpoints
 
-Skills: `/execute-next-phase` (kickoff) → `/execute-task` (execution)
+Skills: `/run-phase` (kickoff) → `/run-task` (one task per session)
 
 Role:
 
-Translate the finalized execution plan into code using CCG orchestration:
+Translate the finalized execution plan into code:
 
-- **`/execute-next-phase`:** phase kickoff wrapper — reads the plan, verifies branch/base state, and hands off.
-- **`/execute-task`:** primary execution skill — batches tasks, prepares prompts, orchestrates providers, runs verification, updates the issue doc, commits implementation, and presents checkpoints.
+- **`/run-phase`** (Opus session): checks readiness and drift against the code, creates the phase branch and worktree from `origin/main`, runs the baseline gate and opens the phase ledger.
+- **`/run-task`** (Sonnet working session, one per task): shows a short work plan and waits for the go-ahead, implements, iterates on visual feedback directly with the user, runs the full gate, asks the `expert` subagent to review logic changes, and writes the checkpoint into the ledger. Fully specified work may go to the `worker` subagent.
 
-Each batch is classified before implementation (`logic-heavy` / `mixed` / `ui-heavy`). Classification determines Gemini authority, prompt structure, and whether optional subagent enhancement applies.
+Verification matches risk. Data, state, persistence, async and drag-and-drop logic get a failing test first. Layout, styling and copy are verified in the browser.
 
-- **Claude:** orchestrates — reads the plan, writes prompts, reviews output, runs verification.
-- **Codex:** writes all implementation code.
-- **Gemini:** audits UI/UX pre-code and post-code (skipped for non-UI phases).
-
-Claude does not originate implementation code — but refines and fixes quality issues in Codex's output during integration (naming, dead code, unnecessary abstractions, project conventions).
-
-`/execute-task` may also add classification-driven quality layers:
-- **Behavior-heavy batches:** parallel independent test authoring
-- **High blast-radius / weak-coverage batches:** optional reviewer subagents before checkpoint
-
-**User-visible verification** happens during this stage. When a task is tagged `Visibility: User-facing`, its observable acceptance criteria are verified per task or per small flow cluster — confirming that the change actually works as intended.
+**User-visible verification** happens during this stage. When a task is tagged `Visibility: User-facing`, its observable acceptance criteria are checked in the running app with test data before the checkpoint. The user's acceptance of the task is its visual acceptance.
 
 Key Questions:
 
@@ -360,29 +240,30 @@ Important Note:
 
 User-visible verification is not a standalone process. It happens close to implementation time and is confirmed (not duplicated) during closing.
 
-> Branch/base verification is enforced by `/execute-next-phase`. Prompt preview, provider routing, per-batch verification, checkpoint format, issue tracking, and implementation commits are enforced by `/execute-task`. Final close-out gates are enforced by `/closing-phase`.
+> Branch, worktree and baseline gate belong to `/run-phase`. Implementation, gates, review, checkpoint and ledger belong to `/run-task`. Push, PR and merge belong to `/end-phase`.
 
 ### 7. Closing (per phase)
 
 Deliverables:
 
-Updated `docs/issues/Issues_Phase_N.md` (if changed during close-out)
-Updated `docs/EXECUTION_PLAN.md` (phase notes; task statuses if not already committed)
+Close note in `docs/issues/Issues_Phase_N.md`
+Phase archive and Phase Index update in `docs/EXECUTION_PLAN.md`
+`docs/issues/Issues_Deferred.md` and `docs/execution-plan/LEARNINGS.md` updates, when applicable
 Pull request to main
 
-Skill: `/closing-phase`
+Skill: `/end-phase` (Opus session)
 
 Role:
 
-Final gate before integration. First performs a scope audit if dirty files remain, forcing mixed-scope work into separate commits before close-out. Then verifies three pillars:
+Final gate before integration. Confirms that every task is `[x]` and that no ledger item is still active, and reports phase changes that neither the plan nor the ledger explains. Then verifies three pillars:
 
-1. **Automated checks** pass (test, lint, typecheck, build).
-2. **User-visible verification** was completed for applicable tasks (confirmation, not duplication).
-3. **Architecture conformance review** satisfied — tiered:
+1. **Automated checks** pass (the full gate in `CLAUDE.md`).
+2. **User-visible verification** was completed for applicable tasks. Task acceptance already covers it; closing confirms and does not repeat it.
+3. **Architecture conformance review** satisfied. The closing Opus session reviews, not the session that wrote the code. Tiered:
    - Blocking violations must be fixed or the standard explicitly amended.
    - Advisory violations are surfaced, acknowledged, and recorded.
 
-Then: finalizes any remaining close-out issue updates and phase learnings, updates `EXECUTION_PLAN.md` as needed, makes the docs-only closing commit, pushes, and creates the PR.
+Then: archives the phase, records cross-phase learnings, commits the close documents, reruns the full gate, and asks once for approval to push, open the PR and merge.
 
 Key Questions:
 
@@ -405,7 +286,7 @@ Merged branch on main
 
 Role:
 
-PR review and merge. The branch is ready: implementation committed, docs committed, verification complete, PR created.
+After the user's approval, `/end-phase` merges the PR with a regular merge commit, syncs the integration worktree, and removes the phase branch and worktree.
 
 After merge, the next phase begins from a clean main.
 
@@ -423,6 +304,8 @@ Summary: Integration is the final hand-off. Stages 6–8 repeat per phase until 
 Post-PRD ideation topics handle product thinking that emerges after the PRD, during execution planning, or while implementation/prototyping reveals that an earlier assumption is incomplete.
 
 This mechanism exists because product direction often changes after initial documents are written. Without a structured place for these changes, decisions become scattered across chat history, prototype prompts, old planning documents, and temporary worktrees.
+
+**Current format:** [`docs/brainstorming/readme.md`](brainstorming/readme.md) owns the entry format, including the `Readiness: draft | code-ready` metadata that `/craft-docs` reads. Where the conventions and templates below differ from it, the readme wins. They remain as background for older topics.
 
 ### When To Use
 
@@ -547,45 +430,7 @@ This makes the document lineage explicit.
 
 ### `DECISION.md` Template
 
-```markdown
-# <Topic> Decision
-
-> Started: YYYY-MM-DD
-> Status: <current status>
-> Origin: <why this topic started>
-> Related phase: <phase/task/context>
-> Parent document: <source document, if any>
-
-## Status
-
-<One or two paragraphs describing whether this is settled, in ideation, blocked, or ready for planning.>
-
-## Current Decision
-
-<The current product direction that future work should follow.>
-
-## Product Language
-
-<Terms and definitions introduced or changed by this topic.>
-
-## Final Structure
-
-<Stable structure, layout, data model, or interaction model. Use diagrams/tables when useful.>
-
-## User Flow
-
-<The intended user path through the feature or decision.>
-
-## Implementation Notes
-
-<Constraints future implementation must respect. Keep this product-level unless concrete implementation details are already settled.>
-
-## Open Questions
-
-<Only unresolved questions that block planning or implementation. If none, say so.>
-```
-
-Section names can be adapted to the topic, but the document must still answer the same questions.
+Use the entry structure and `## Metadata` block in [`docs/brainstorming/readme.md`](brainstorming/readme.md#metadata); the body still answers the questions under Document Roles above.
 
 ### `NOTES.md` Template
 
@@ -627,18 +472,7 @@ The brainstorming folder remains as the decision history, but implementation sho
 
 ### Relationship To Skills
 
-This topic-folder structure is implemented as a reusable personal workflow skill: `/recording-ideas`.
-
-The skill:
-
-- Creates the dated topic folder.
-- Generates or updates `DECISION.md`.
-- Generates or updates `NOTES.md`.
-- Keeps `DECISION.md` focused on current decisions.
-- Keeps `NOTES.md` compact: history, prompt intent, discarded ideas, durable references.
-- Asks for or infers `Started`, `Origin`, `Related phase`, and `Parent document`.
-
-If the skill is not available, agents should follow this section directly.
+The archived `/recording-ideas` skill is not used. The brainstorming interview happens in an Opus conversation, and its result is written as a topic folder that follows `docs/brainstorming/readme.md`. When the topic is `code-ready`, `/craft-docs` (Promotion route) promotes its `DECISION.md` into the canonical documents and the execution plan.
 
 ---
 
@@ -677,7 +511,7 @@ PRD.md (user-written)             Reference / Prototype
 
 Track A derives from the PRD. Track B derives from the reference prototype. They are independent until the execution plan merges them.
 
-Track B is conditional. Greenfield projects skip it entirely — DESIGN_TOKENS.md is generated during Track A (writing-documents Step 4).
+Track B is conditional. Greenfield projects skip it entirely — DESIGN_TOKENS.md is generated during Track A (`/craft-docs` Clean route).
 
 **Parallelism:** SCHEMA + DESIGN_AUDIT can run in parallel (independent inputs). SPEC + DESIGN_TOKENS draft can run in parallel (after their respective prerequisites). Everything converges at EXECUTION_PLAN.
 
@@ -689,11 +523,11 @@ Track B is conditional. Greenfield projects skip it entirely — DESIGN_TOKENS.m
 
 The workflow distinguishes three failure modes. Each is caught by a different mechanism at a different stage:
 
-| Failure Mode             | Mechanism                       | Stage                 | Skill Step                    |
+| Failure Mode             | Mechanism                       | Stage                 | Skill                         |
 | ------------------------ | ------------------------------- | --------------------- | ----------------------------- |
-| Plan Omission            | Flow Ownership Review           | 5. Execution Planning | writing-documents 5b          |
-| False Completion         | User-Visible Verification       | 6. Implementation     | execute-task (per batch/task), confirmed by closing-phase 2.5 |
-| Implementation Deviation | Architecture Conformance Review | 7. Closing            | closing-phase 2.75            |
+| Plan Omission            | Flow Ownership Review           | 5. Execution Planning | `/craft-docs` (`expert` flow review) |
+| False Completion         | User-Visible Verification       | 6. Implementation     | `/run-task` (user acceptance per task), confirmed by `/end-phase` |
+| Implementation Deviation | Architecture Conformance Review | 7. Closing            | `/end-phase` conformance review |
 
 **Plan Omission:** A user-visible flow exists in PRD/SPEC but no task owns it clearly enough. Caught by the reviewer subagent tracing flows end-to-end.
 
@@ -709,15 +543,24 @@ These are not handled by the same mechanism. The distinction is deliberate.
 
 During implementation, work often emerges that was not pre-written in the execution plan — bug fixes, corrective adjustments, policy changes, or structural changes beyond planned scope. This section defines how to track and close that work.
 
-### Issue Document
+### Issue Document (Ledger)
 
-Record execution-time issues in the **phase issue document**:
+Record execution-time issues in the **phase ledger**:
 
 ```
 docs/issues/Issues_Phase_N.md
 ```
 
-This document is a **live execution record**, not a closing artifact. It is updated as work emerges during the phase — entries are opened during execution, statuses change during execution, and closure/disposition is finalized only when the user confirms or explicitly decides.
+The ledger is a **live execution record** and the **handoff between sessions**, not a closing artifact. It is updated as work emerges during the phase — entries are opened during execution, statuses change during execution, and closure/disposition is finalized only when the user confirms or explicitly decides.
+
+### Ledger Rules
+
+- Each task section starts with a **Current state** block: status, next step and open items. Overwrite it so that it is always current.
+- Below it, decisions, issues, checkpoints and review findings are **append-only**.
+- Keep evidence out: no command output, logs, pinned SHAs, file hashes, screenshot lists, restated plan text or receipt formats. When evidence is needed, point to one commit.
+- There is no line cap. A new session reads the Current state block and its own task section, plus the Open items of other tasks.
+- Only the user closes or defers an item.
+- Ledgers from the 2nd generation (Phases 23–34 Task 170) keep their own format as history. Do not rewrite them.
 
 ### Issue-Recording Trigger Rule
 
@@ -727,33 +570,9 @@ This document is a **live execution record**, not a closing artifact. It is upda
 - If work was done that is not described by any planned task in `EXECUTION_PLAN.md`, it must appear in the issue document.
 - Recording an issue is not the same as blocking on it — the agent can continue working while the issue is open. But the issue must exist in the document.
 
-### Issue Structure
+### Ledger Format
 
-```markdown
-# Issues — Phase N
-
-## Main Issues
-(execution issues discovered by the agent, architecture issues,
-structural changes beyond planned scope)
-
-### MI-1: [Title]
-- **Status:** [status]
-- **Discovered:** [when/how]
-- **Root cause:** [what]
-- **Beyond scope because:** [why no planned task covers this]
-- **Changes:** [files modified]
-- **Resolution:** [summary, when closed]
-
-## Minor Issues
-(issues reported directly by the user, or surfaced through
-user questioning or validation)
-
-### mi-1: [Title]
-- **Status:** [status]
-- **Reported:** [when/how]
-- **Changes:** [files modified, if any]
-- **Resolution:** [summary, when closed]
-```
+The ledger uses the `/run-phase` header and the `/run-task` task-section format (Current state, Log, Checkpoint). The project adds one convention: issue IDs are numbered per phase, `MI-n` for Main Issues and `mi-n` for Minor Issues. Each Log entry gives the status, the problem, its cause and fix, and the commit.
 
 ### Main Issues vs. Minor Issues
 
@@ -797,7 +616,7 @@ Without that signal, the correct state is one of:
 
 ### Unresolved Issues Block Phase Close
 
-The closing-phase workflow is blocked if any of the following remain in the phase issue document:
+`/end-phase` is blocked if any of the following remain in the phase ledger:
 - `Open` issues
 - `In Progress` issues
 - `Awaiting User Decision` issues
@@ -814,29 +633,23 @@ Every issue must reach a terminal disposition before the phase can close:
 During active-phase execution:
 
 - **Do not** mark a task `[x]` immediately after implementation, even if internal verification (build, test, typecheck) passes
-- **Do not** mark a batch or phase complete based only on code completion or internal verification
-- Before marking `[x]`, stop at the batch checkpoint and present the structured checkpoint contract:
-  - What was implemented
-  - Key changes made
-  - Verification results (the full gate from `CLAUDE.md`, e.g. test, lint, typecheck, build)
-  - Review findings (Gemini, self-review, or other)
-  - Visible now / Review now / Planned for later / Unowned items
+- **Do not** mark a phase complete based only on code completion or internal verification
+- Before marking `[x]`, stop at the task checkpoint, record it in the ledger, and present:
+  - What changed
+  - What was verified (the full gate from `CLAUDE.md`, plus browser checks)
+  - What the user should look at
+  - Unresolved items
+  - Every review finding and its disposition (fixed, or disputed with the reason)
 - Wait for explicit user approval
 - Only after that approval may the relevant task status be updated to `[x]`
 
 The checkpoint is a structured contract, not an abbreviated progress summary.
 
-During a batch, in-progress tasks may be described as "implemented" or "awaiting review" — but the execution plan status stays `[ ]` until the user approves.
+Until then the task may be described as "Implemented, awaiting acceptance", but the execution plan status stays `[ ]` until the user approves.
 
 This aligns with the Issue Close Rule: just as issues are not closed because code is complete, tasks are not marked done because code is written and tests pass. Both require explicit user acceptance.
 
-**Exception:** The `closing-phase` skill does not need this gate, because by the time it is invoked, the user has already explicitly indicated that the phase is ready to close.
-
-**Codex boundary:** that legacy-provider exception supplies no Codex task
-acceptance or Final Close authority. Readiness to review close is not `[x]` or
-permission to publish. Codex uses the adapter's logical verification, not the
-CLAUDE/provider gate named in the legacy checkpoint description above; exact
-user acceptance and the installed `end-phase` Final Close gate remain required.
+`/end-phase` never marks `[x]`. It stops if any task of the phase is not `[x]`.
 
 ### Issue-Level Sync
 
@@ -850,7 +663,7 @@ This prevents two failure modes: the agent silently closing issues the user hasn
 
 ### Document Role Clarification
 
-The phase issue document does **not** replace canonical product/spec documents:
+The phase ledger does **not** replace canonical product/spec documents:
 
 | Document | Role |
 |----------|------|
@@ -860,7 +673,7 @@ The phase issue document does **not** replace canonical product/spec documents:
 | `WORKFLOW.md` | Process stages, skill map, failure modes, issue tracking rules |
 | `EXECUTION_PLAN.md` | Phased task specs, acceptance criteria |
 | `PLANNING_STANDARD.md` | Planning / verification / conformance guardrails |
-| **`docs/issues/Issues_Phase_N.md`** | **Live phase execution record** — updated during execution, not just at close. Tracks what actually happened, what went beyond plan, what was opened / closed / deferred |
+| **`docs/issues/Issues_Phase_N.md`** | **Live phase execution record and session handoff** — updated during execution, not just at close. Tracks what actually happened, what went beyond plan, what was opened / closed / deferred |
 
 Large issues are promotable to a new task in `EXECUTION_PLAN.md` or updates to canonical docs.
 
@@ -873,7 +686,7 @@ Large issues are promotable to a new task in `EXECUTION_PLAN.md` or updates to c
 - **Keep it in sync.** When an issue is marked `Deferred`, add a row. When an indexed item later becomes `Closed`, `Dropped`, or `Promoted to Execution Plan`, update both the phase issue document and the index.
 - **Active close blockers stay put.** `Open`, `In Progress`, and `Awaiting User Decision` issues remain in the active phase issue document and still block phase close — they are not moved to the index.
 
-The `execute-task` and `closing-phase` skills keep this index in sync when it is present.
+`/end-phase` checks that every Deferred item has a row here and updates the index at phase close.
 
 ---
 
@@ -896,8 +709,8 @@ Both require user input, but they are different conversations. Skipping question
 
 ### Process
 
-For the already-approved Inbox/Triage realization, use the current receipt
-chain, retained nine recipes/DPs and the plan/standard's element-level intake.
+For the already-approved Inbox/Triage realization, use the approved execution
+plan, retained nine recipes/DPs and the plan/standard's element-level intake.
 Do not repeat the legacy seven-step product/recipe promotion below merely to
 measure an approved element, or rewrite recipes from a prototype. A genuinely
 new unsourced surface or owner expansion returns only the affected slice to
@@ -925,10 +738,7 @@ Steps 5–7 were added based on Phase 8 pilot evidence. Writing the recipe durab
 
 ### Entry Points
 
-- **Primary:** User invokes `/reference-redesign <image-path>` directly.
-- **Ad-hoc:** User invokes `/reference-redesign` without arguments; the skill asks which reference to use.
-
-> The reintegration process is defined by the `/reference-redesign` skill. See skill definition for enforcement details.
+There is no dedicated skill. The archived `/reference-redesign` skill is not used. Steps 1–4 run in an Opus session with the user, and Steps 5–7 are written there too. `/run-task` then implements against the durable recipe and follows its reference-fidelity rules.
 
 ---
 
@@ -963,7 +773,7 @@ Present only when inheriting a reference implementation.
 | Document                   | Stage                | Role During Planning       | Role During Implementation       |
 | -------------------------- | -------------------- | -------------------------- | -------------------------------- |
 | `docs/DESIGN_AUDIT.md`     | 3. Design Extraction | Input for tokens/alignment | Archive                          |
-| `docs/DESIGN_ALIGNMENT.md` | 3. Design Extraction | Input for execution plan   | Gemini reads as review guardrail |
+| `docs/DESIGN_ALIGNMENT.md` | 3. Design Extraction | Input for execution plan   | Reviewers read as guardrail      |
 
 Without ALIGNMENT during implementation, a reviewer would flag intentional removals as bugs.
 
@@ -999,25 +809,26 @@ Non-authoritative. Used for visual review, not as source of truth.
 
 ## Skill Map
 
-| Skill                 | Stages                       | Trigger                                               |
-| --------------------- | ---------------------------- | ----------------------------------------------------- |
-| `/recording-ideas` | 2.5 Product Direction Changes | "record this idea", "create brainstorming topic", "update topic decision", "document direction change" |
-| `/extract-design` | 3. Design Extraction         | Reference exists; "inherit design", "match reference" |
-| `/reference-redesign` | 6. Implementation (pre-code) | "redesign toward", "match this mockup", reference-driven surface redesign |
-| `/writing-documents`  | 4–5. System Rules → Planning | "PRD is ready", "generate docs", "create spec"        |
-| `/execute-next-phase` | 6. Implementation kickoff    | "start phase N", "execute phase"                      |
-| `/execute-task`       | 6. Implementation execution  | "execute tasks", "run batch", task-level or ad-hoc implementation |
-| `/closing-phase`      | 7. Closing                   | "phase done", "close phase"                           |
-| `/compaction-advisor` | Any (session / context mgmt) | "should I compact?", "is it time to clear?", a context %, "context is nearly full" |
+The skills are global (`~/.claude/skills`, sourced from `/Users/jwk/Documents/claude-workflow`). Project facts come from `CLAUDE.md` §Workflow.
+
+| Skill         | Stages                                        | Session | Trigger                                              |
+| ------------- | --------------------------------------------- | ------- | ---------------------------------------------------- |
+| `/craft-docs` | 4–5. System Rules → Planning; 2.5 promotion   | Opus    | "PRD is ready", "promote this topic into the plan"  |
+| `/run-phase`  | 6. Implementation kickoff                     | Opus    | "start phase N", "is phase N ready?"                 |
+| `/run-task`   | 6. Implementation, one task                   | Sonnet  | `/run-task N`, resuming a task in progress           |
+| `/end-phase`  | 7–8. Closing → Integration                    | Opus    | "phase done", "close phase"                          |
+
+| Subagent | Model           | Use                                                                    |
+| -------- | --------------- | ---------------------------------------------------------------------- |
+| `expert` | Opus, high      | Task review, diagnosis after repeated failure, hard logic, flow review |
+| `worker` | Sonnet, medium  | Fully specified implementation, mechanical edits, searches             |
 
 Stages 1–2 are user-driven (no skill).
-Stage 2.5 can be done with `/recording-ideas`, or manually from this document if the skill is unavailable.
-Stage 8 is handled by closing-phase's final steps (push + PR).
+Stage 2.5 interviews happen in an Opus conversation. The result follows `docs/brainstorming/readme.md`.
+Stage 3 and Steps 1–4 of a reference-inspired redesign have no dedicated skill.
+Stage 8 is handled by `/end-phase` after the user's approval.
 
-**Compaction handoffs:** Phase/batch handoff records live in `docs/handoffs/`, named
-`phase-N-batch-M.md`. Use the global `compaction-advisor` skill to decide
-keep-going / clean-clear / handoff-clear / handoff-compact and to generate handoffs.
-`docs/compaction-guide.md` is project-local background only — the skill is the active workflow.
+**Context and handoff:** the ledger carries state between sessions. When context grows heavy, record what was resolved in the ledger and resume with `/run-task N` in a fresh session. `docs/handoffs/` holds 1st-generation handoff records as history. `docs/compaction-guide.md` is retained background research, not part of the workflow.
 
 ---
 

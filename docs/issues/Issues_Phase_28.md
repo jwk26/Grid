@@ -72,9 +72,14 @@ No production implementation or Task 149 execution occurred.
 
 ## Workflow-Cost Pilot Handoff
 
-- External baseline:
+- External baseline at Phase 28 Gate C approval:
   `/Users/jwk/Documents/GridDO_Codex_Workflow_Phase_28_Audit.md`, SHA-256
   `13c47986ebbb9c3b098943132cb61b1fd9355476c86a7969fab70d61a5a33fda`.
+- Relocated after Phase 28 close on 2026-10-04 to
+  `docs/verification/inbox-triage/GridDO_Codex_Workflow_Phase_28_Audit.md`.
+  The file was moved without content changes and retains the SHA-256 above.
+  The Gate C receipt remains unchanged and records the original approval-time
+  path.
 - Approved tracked target:
   `docs/verification/inbox-triage/phase-28-workflow-pilot-audit.md`.
 - This `run-phase` lifecycle did not copy or promote the external audit. A

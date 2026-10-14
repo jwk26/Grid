@@ -3,16 +3,17 @@
 > **Purpose:** Prevent the three failure modes that cause document-driven development to break down:
 > plan omission, false completion, and implementation deviation.
 >
-> **Consumed by:** `$craft-docs`, `$run-phase`, `$run-task`, and `$end-phase`
+> **Consumed by:** `/craft-docs`, `/run-phase`, `/run-task`, and `/end-phase`
 > **Owned by:** The project — skills execute the process, this document defines it.
-> **2026-10-03 amendment status:** **Draft — awaiting user approval.**
-> The proposed regional-realization and staged-verification rules below derive
+> **2026-10-03 amendment status:** **User-approved 2026-10-03**, recorded in the
+> historical [planning-standard receipt](receipts/Craft_Docs.inbox-triage-theme-realization-planning-standard.json).
+> The regional-realization and staged-verification rules below derive
 > from the [approved current promotion map](brainstorming/2026-10-03-inbox_triage_theme_realization/PROMOTION_MAP.md),
 > [design receipt](receipts/Craft_Docs.inbox-triage-theme-realization-design.json)
 > and [execution-plan receipt](receipts/Craft_Docs.inbox-triage-theme-realization-execution.json).
-> This draft does not authorize implementation, cleanup, technical repair,
-> task acceptance, Final Close or installed skill changes. Its own acceptance,
-> the later WORKFLOW amendment and final flow-review gate remain separate.
+> **Workflow update — 2026-10-15:** §2 Enforcement, §3, §5.2–5.3 and §6 now name
+> the 3rd-generation skills and `CLAUDE.md` instead of the Codex adapter and
+> receipts. See [WORKFLOW](WORKFLOW.md#workflow-lineage).
 > **Prior Inbox/Triage amendment status:** **User-approved 2026-07-28.**
 > **Canonical-to-production parity amendment:** **User-approved 2026-07-28.**
 > The exact pre-receipt artifact is identified in the maintenance receipt
@@ -36,7 +37,7 @@
 5. [User-Visible Verification](#5-user-visible-verification)
    - [Regional first-submission quality](#51-regional-first-submission-quality)
    - [Applicable-theme verification and retained full gate](#52-applicable-theme-verification-and-retained-full-gate)
-   - [Evidence and independent dispositions](#53-evidence-and-independent-dispositions)
+   - [Visual checks and independent dispositions](#53-visual-checks-and-independent-dispositions)
 6. [Architecture Conformance Checklist](#6-architecture-conformance-checklist)
 
 ---
@@ -183,8 +184,9 @@ Five rules govern what may appear in an active execution plan:
 2. **Typed Decision prerequisites.** An unresolved user-owned decision appears
    as a named gate with its owner, missing decision, exact resume condition,
    and explicit dependency edge to the affected task or task slice. A runnable
-   non-code decision task may collect and record the matching receipt; the
-   dependent implementation remains non-runnable until that receipt exists.
+   non-code decision task may collect and record the matching decision in the
+   plan or ledger; the dependent implementation remains non-runnable until that
+   decision is recorded and committed.
    Silence never selects a fallback, and the gate may not hide unresolved
    architecture, persistence, product scope, or policy.
 
@@ -215,12 +217,11 @@ Five rules govern what may appear in an active execution plan:
    its production source; it need not be repeated in every table cell. Flow
    ownership PASS does not substitute for factual parity.
 
-**Enforcement:** `$craft-docs` records the targeted canonical-to-production
-parity evidence before the affected document gate. `$run-phase` checks the
-active plan, prerequisite graph, durable receipts, and adapter-declared
-readiness artifact before branch or worktree creation. `$run-task` rechecks the
-selected task/slice and refuses any implementation whose required receipt is
-missing.
+**Enforcement:** `/craft-docs` checks canonical-to-production parity before
+asking for the affected document's approval. `/run-phase` checks the active
+plan, the prerequisite graph, recorded decisions and drift against the code
+before creating the branch or worktree. `/run-task` rechecks the selected
+task/slice and stops when a required decision is missing.
 
 ---
 
@@ -236,14 +237,12 @@ Verify each segment's task/file/action, data effects and observable acceptance.
 
 ### When it runs
 
-After EXECUTION_PLAN.md is generated or materially amended by `$craft-docs`,
-with the required canonical approval chain. Ordinarily, a dedicated reviewer
-independent from the plan author performs it. For this explicitly user-directed
-2026-10-03 Control-Tower-owned amendment, the Control Tower reviews directly in
-a separate inline pass, setting aside the drafting perspective. That narrow
-review-owner exception follows selected D33 and does not waive full trace,
-gap repair, evidence or the user's review gate, or create a standing exception
-for other campaigns. A drafting audit is not the final flow-review pass.
+After EXECUTION_PLAN.md is generated or materially amended by `/craft-docs`,
+with the required canonical approval chain. The `expert` subagent, independent
+from the plan author, performs it, and the review repeats until no Gap remains.
+A drafting audit is not the final flow-review pass. (The 2026-10-03 amendment
+was reviewed directly by its Control Tower under D33. That exception was not
+standing.)
 
 ### Flow-trace table template
 
@@ -251,13 +250,13 @@ for other campaigns. A drafting audit is not the final flow-review pass.
 # Flow-Trace Review — [Phase/Scope]
 
 **Reviewed:** YYYY-MM-DD
-**Inputs:** selected approved source/map, adapter-declared canonical contracts, approved execution plan and actual affected diffs
-**Decision prerequisites:** [IDs, owners, receipt or scope-out status]
+**Inputs:** selected approved source/map, canonical contracts named in `CLAUDE.md`, approved execution plan and actual affected diffs
+**Decision prerequisites:** [IDs, owners, recorded decision or scope-out status]
 
 ## Flow-Trace Table
 
-| # | Flow / exact source citation | Entry / actor / authority | States and data effects | Task / file / action | Observable acceptance | Decision Prerequisite / Receipt | Boundary Cases | Ownership Status |
-|---|------------------------------|--------------------------|------------------------|----------------------|-----------------------|---------------------------------|----------------|------------------|
+| # | Flow / exact source citation | Entry / actor / authority | States and data effects | Task / file / action | Observable acceptance | Decision Prerequisite / Record | Boundary Cases | Ownership Status |
+|---|------------------------------|--------------------------|------------------------|----------------------|-----------------------|--------------------------------|----------------|------------------|
 
 Ownership Status: ✅ Owned | ⚠️ Weak | ❌ Gap | ⏸️ Deferred
 
@@ -366,7 +365,7 @@ new surface or measured contract conflict remains an affected-slice user
 decision, never a nearby card/dialog/chrome fallback.
 
 After the first implementation, inspect fresh original-size 1:1 comparisons,
-repair observable differences within the approved owners and lifecycle budget,
+repair observable differences within the approved owners,
 and compare again **before the first user submission**. Disclose any retained
 difference and reason; resizing, cropping away a difference or presenting only
 the most similar state does not prove fidelity. No numeric score or new pixel
@@ -384,7 +383,7 @@ regions/themes usable when extending shared semantic components or aliases.
 Routine correspondence, measurement, implementation and bounded internal
 refinement may stay in the same coherent approved Working scope; no separate
 contract-only session or extra generic approval sentence is required. New
-design decisions, owner expansion and installed lifecycle stop conditions
+design decisions, owner expansion and the `/run-task` stop conditions
 remain their own gates. A pending remainder cannot be hidden to advance.
 
 ### 5.2 Applicable-theme verification and retained full gate
@@ -397,44 +396,41 @@ invariants. The approved execution plan's transfer register moves unaccepted
 
 | Current scope | Applicable verification | Completion boundary |
 |---|---|---|
-| Phase 31 technical close | Accepted Task 163 integration, separately approved corrections, affected route/state/focus and unrelated-surface preservation; adapter logical technical gates and issue dispositions at the actual close candidate. | No eight-theme visual-completion or Task 165 pass is claimed. Transfer does not excuse a known failure. Q03 repair, Q04 correction/disposal guards, Q05 tier/disposition and Q06 dependent-output proof retain their exact approved-plan boundaries. |
+| Phase 31 technical close (completed) | Accepted Task 163 integration, separately approved corrections, affected route/state/focus and unrelated-surface preservation; adapter logical technical gates and issue dispositions at the actual close candidate. | No eight-theme visual-completion or Task 165 pass is claimed. Transfer does not excuse a known failure. Q03 repair, Q04 correction/disposal guards, Q05 tier/disposition and Q06 dependent-output proof retain their exact approved-plan boundaries. |
 | Phases 34–39 regional tasks | Assigned theme(s), light-first matched 1920×1080 / DPR 1 / zoom 100% region states. Direct semantic/behavior tests plus fresh rendered/interaction evidence. Verify prior accepted neighboring regions and other themes/modes affected by shared changes. | Per-region user visual disposition and technical results are separate. Do not substitute a prior experiment, light-only result or self-review for broader conformance. |
 | Supported-theme completion, plan L7 | Assigned theme(s) × supported light/dark × 1024px and 1920×1080 desktop viewports; all nine recipes, applicable DP/editor/reliability/recovery states, contrast/focus/non-color cues, reachability, touch targets, motion and theme-state preservation. Earlier themes/unrelated surfaces receive scope-appropriate regression checks. | Each assigned theme needs its own disposition. Light-only work is not a finished theme; a structural/behavior repair returns to its named owner rather than hiding in CSS conformance. |
 | Phase 40 / Task 208 | Retained 8 themes × light/dark × both desktop viewports, nine recipes, 29 UF, 10 AF, 21 NEG, 14 DP/12 VQ and migration/rollback/real transactions/three ABA sequences/aggregate retention/Archive recovery/unrelated-surface matrices. | Original complete implementation/preservation promise remains intact. No unknown result, skipped check, unresolved required decision or known failure is represented as completion. |
 
-Use the adapter/catalog's logical gates, with the approved task's actual direct
-targets and evidence modality. This section changes the applicable visual
-matrix, not test commands, repair budgets, fingerprint procedure or lifecycle
-authority. Reuse of non-volatile foundational evidence follows installed rules;
-generated/browser-dependent claims require fresh qualifying evidence. For the
-current Phase 31 close, the project-owned proof method remains Q06 until its
-exact approval and execution; optional adapter-gate absence is not an onboarding
-failure or permission to infer freshness from a build pass or timestamps.
+Use the full gate declared in `CLAUDE.md`, with the approved task's direct test
+targets. This section changes the applicable visual matrix, not the gate
+commands or the skill procedure. A browser-dependent claim needs a fresh check
+in the running app on the current code; a build pass, timestamps or an earlier
+capture do not establish it.
 
-### 5.3 Evidence and independent dispositions
+### 5.3 Visual checks and independent dispositions
 
-Use each task's declared record/assets, not a second generic report bundle.
-Record matched conditions and source correspondence limits, before-code
-differences, first-submit internal corrections, retained differences/reasons,
-the user's first judgment, any later followup, time and repair cycles. Keep
-first-submission quality separate from the eventual result after user feedback.
-Prototype native versus derived fixtures and production-only states remain
-explicit. New captures identify theme, region, state, comparison partner and
-browser inputs; no fixed capture count is imposed. Do not track runtime/cache/
-generated dependency output or reuse past experiment code/artifact bytes.
+Check visual work in the running app with test data, never the user's own data.
+Screenshots and browser output are shown to the user in the conversation and
+are not committed. There is no per-task evidence report, assets directory or
+capture count. The task's ledger checkpoint states briefly what was compared
+(theme, region, state, comparison partner), the differences retained and why,
+and the user's first judgment separately from the final disposition, so that
+first-submission quality stays visible. Keep prototype native versus derived
+fixtures and production-only states explicit. Never commit runtime, cache or
+generated output, and never reuse past experiment code or assets.
 
-Keep product/source disposition, implementation state, technical evidence and
-user visual acceptance as separate fields. Automated checks and implementer
-self-review never declare visual acceptance or `[x]`; visual acceptance does
-not turn a failed technical gate into a pass. A meaningful remaining difference
-requires explicit user disposition, and task/phase acceptance remains governed
-by the installed lifecycle. This document records no new acceptance itself.
+Keep product/source disposition, implementation state, technical results and
+user visual acceptance separate. Automated checks and implementer self-review
+never declare visual acceptance or `[x]`; visual acceptance does not turn a
+failed technical gate into a pass. A meaningful remaining difference requires
+explicit user disposition. Task and phase acceptance follow `/run-task` and
+`/end-phase`. This document records no new acceptance itself.
 
 ---
 
 ## 6. Architecture Conformance Checklist
 
-This checklist is **project-specific**. It is derived from the project's canonical documents, `AGENTS.md`, and project adapter. `$end-phase` reads this section and enforces checks at two levels.
+This checklist is **project-specific**. It is derived from the project's canonical documents and the architecture rules in `CLAUDE.md`. `/end-phase` reads this section and enforces checks at two levels.
 
 ### Tier: Blocking
 
@@ -545,7 +541,8 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   accumulating override patches are not the realization method.
 - [ ] **Decision-prerequisite no-fallback:** A user-owned visual/content gate
   does not authorize an exact effect, duration, copy, placement, layout, icon,
-  or per-theme value until its matching receipt. Adjacent dialogs, cards,
+  or per-theme value until its matching decision is recorded (a Phase 24 DP
+  receipt or a later decision committed to the plan). Adjacent dialogs, cards,
   search bodies, chrome, generic statuses, and existing global tokens are not
   substitutes.
 - [ ] **Source-only versus rendered evidence:** Source declarations, rendered
@@ -580,11 +577,9 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
 
 Important issues that should be surfaced and recorded, but do not automatically block closing. Closing continues with explicit acknowledgement.
 
-- [ ] **File organization:** New files follow `AGENTS.md`,
-  `docs/CODEX_WORKFLOW_ADAPTER.json`, SPEC Key File Paths, and the approved
-  EXECUTION_PLAN. Utilities, hooks, stores, components, tests, and review
-  artifacts stay with their declared owner rather than following a legacy
-  provider-specific entrypoint.
+- [ ] **File organization:** New files follow `CLAUDE.md` Key Paths, SPEC Key
+  File Paths, and the approved EXECUTION_PLAN. Utilities, hooks, stores,
+  components, tests, and review artifacts stay with their declared owner.
 - [ ] **Local-first presentation:** Routine local reads do not invent loading
   chrome. Genuine pending, transport-unknown, and reconciliation states
   preserve usable authoritative content rather than replacing whole surfaces
@@ -593,7 +588,7 @@ Important issues that should be surfaced and recorded, but do not automatically 
 
 ### Updating this checklist
 
-When canonical architecture or adapter rules change, update this checklist to match. The checklist should always reflect current approved intent. When adding new items, explicitly assign them to Blocking or Advisory.
+When canonical architecture or `CLAUDE.md` rules change, update this checklist to match. The checklist should always reflect current approved intent. When adding new items, explicitly assign them to Blocking or Advisory.
 
 ---
 
