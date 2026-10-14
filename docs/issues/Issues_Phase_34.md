@@ -25,9 +25,9 @@ Read it at task start during Phases 34–35.
 ## Carried over
 
 ### Current state
-- Status: Open (MI-7 blocks browser checks)
-- Next: enable chrome-devtools MCP (MI-7), then `/run-task 171`
-- Open: MI-1, MI-3, MI-4, MI-7
+- Status: Open
+- Next: `/run-task 172`
+- Open: MI-1, MI-3, MI-4, MI-9
 
 ### Log
 - Decision: carry-over dispositions below approved as proposed (user, 2026-10-15).
@@ -40,16 +40,16 @@ Read it at task start during Phases 34–35.
 - Decision: the six Phase 31 `WF-*` rows in `Issues_Deferred.md` are Dropped; the Codex post-close audit they wait for no longer exists (user, 2026-10-15). Reflected in the index at `/end-phase 34`.
 - Decision: test data comes from `scripts/dev-fixtures/inbox-triage.js` in the Chrome DevTools MCP browser, written new rather than ported (user, 2026-10-15). Reflected in 7ef0f87.
 - Decision: Tips handoff-prompt guidance removed (user, 2026-10-15). Reflected in 6e82f8b.
-- MI-7 [Open]: chrome-devtools MCP is disabled for GridDO. Claude Code keys every GridDO worktree to the `griddo2-claude` project entry, whose `disabledMcpServers` lists `chrome-devtools`. Enable it with `/mcp` in the worktree before Task 171. The MCP Chrome uses its own profile (`~/.cache/chrome-devtools-mcp/chrome-profile`), opens a visible window and closes when the session ends. Only one session can hold that profile at a time.
+- MI-7 [Closed]: chrome-devtools MCP is disabled for GridDO. Claude Code keys every GridDO worktree to the `griddo2-claude` project entry, whose `disabledMcpServers` lists `chrome-devtools`. Enable it with `/mcp` in the worktree before Task 171. The MCP Chrome uses its own profile (`~/.cache/chrome-devtools-mcp/chrome-profile`), opens a visible window and closes when the session ends. Only one session can hold that profile at a time.
 - MI-2 [Closed]: closed by the user (2026-10-15).
 - Decision: the fixture guard keeps its two exceptions, first-load system Nodes and records the app creates under fixture data (user, 2026-10-15).
 
 ## Task 171 — Realize completion and Archive
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: the user accepts Task 171, or sends remarks
-- Open: MI-8 (for Task 172)
+- Status: Accepted
+- Next: none; Task 172 is next
+- Open: MI-8 (for Task 172), MI-9 (for `/end-phase 34`)
 
 ### Log
 - Decision: MI-3/MI-4 stay with Task 172. Task 171 checks only the L6 Archive states (user, 2026-10-15).
@@ -64,5 +64,8 @@ Read it at task start during Phases 34–35.
 - Changed: `src/app/globals.css` (retro-mac rules for the Archive overlay and card, completed state, Reopen, blockers, withdrawal; the recovery boundary shares the card rules); `breakdown-panel.tsx` (a hidden-by-default confirmation body with the Scratch title, shown only by retro-mac) (f1e3a44, f76ce49).
 - Verified: `git diff --check`, `pnpm test` (1496 passed), `pnpm lint` (0 errors, 11 existing warnings), `pnpm typecheck`, `pnpm build`. Browser states listed in the Log above.
 - Please check: the confirmation card text and bold title, the completed state with Reopen, the Add/title blockers, the withdrawal bar, and the card after a forced reload.
-- Unresolved: MI-8 goes to Task 172 with MI-4. Not verified: rejected, previous-visible, filtered-null and true-empty handoff. The confirmation body text is not in `INBOX_TRIAGE_COPY`; decide at `/end-phase 34` whether it becomes canonical.
+- Unresolved: MI-8 goes to Task 172 with MI-4. MI-9 goes to `/end-phase 34`. Not verified: rejected, previous-visible, filtered-null and true-empty handoff.
 - Review: skipped; the only logic-adjacent change is a static hidden `<p>`.
+- Task 171 accepted by the user (2026-10-15).
+- MI-7 [Closed]: closed by the user (2026-10-15); chrome-devtools worked in this session.
+- MI-9 [Open]: the confirmation card body (`Every idea segment in "<Scratch title>" has been successfully placed. File it to disk?`) is written directly in `breakdown-panel.tsx` and only retro-mac shows it (hidden elsewhere by CSS) — cause: adopted from the prototype at the user's request in Task 171 (f1e3a44) — fix: at `/end-phase 34`, decide whether it moves into `INBOX_TRIAGE_COPY` and into the canonical documents, and whether a retro-mac-only visible string fits architecture rule 8 (one shared component tree, no theme-specific behavior), since other themes render it hidden.

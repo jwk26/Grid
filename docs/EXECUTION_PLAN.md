@@ -13,7 +13,7 @@
 > [Final Close Phase 31](issues/Final_Close_Phase_31.json).
 > **Task state:** Tasks 101–163 and 105A retain explicit user acceptance.
 > Tasks 164–165 are historical, unaccepted `[ ]` transfer records.
-> Tasks 166–170 are accepted `[x]`; Tasks 171–208 are `[ ]`, planned and
+> Tasks 166–171 are accepted `[x]`; Tasks 172–208 are `[ ]`, planned and
 > unstarted. Phases 32–33 remain reserved.
 > **Workflow:** from Task 171, tasks run under the lightweight workflow in
 > [WORKFLOW.md](WORKFLOW.md) (`/run-phase`, `/run-task`, `/end-phase`).
@@ -202,7 +202,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 31 | Completed | [Accepted route integration and technical close](execution-plan/archive/phase-31.md) | 163; 164/165 historical unaccepted transfer only | Technical corrections and fresh candidate verification are owned by Final Close; no theme completion or new task acceptance. |
 | Phase 32 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
-| Phase 34 | In progress | Retro Mac, region-by-region then supported-mode conformance | 166–172 | Tasks 166–170 accepted; Task 171 next. Subsequent tasks use exact predecessor edges. |
+| Phase 34 | In progress | Retro Mac, region-by-region then supported-mode conformance | 166–172 | Tasks 166–171 accepted; Task 172 next. Subsequent tasks use exact predecessor edges. |
 | Phase 35 | Planned / unstarted | Neumorphism, region-by-region then supported-mode conformance | 173–179 | 172 accepted + Phase 34 close/main sync. |
 | Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 accepted + Phase 35 close/main sync. |
 | Phase 37 | Planned / unstarted | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
@@ -2961,7 +2961,7 @@ Task171, Working/Tower closure, topology or publication.
 
 **Commit contract:** only L5's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize retro-mac placement-newly-undo`. No experimental bytes, broad staging or rewrite.
 
-### Task 171: [ ] Realize completion and Archive
+### Task 171: [x] Realize completion and Archive
 
 **Files and actions:** bind L6's exact per-file actions to `retro-mac` only. Conditional owner/decision gates remain in force.
 
