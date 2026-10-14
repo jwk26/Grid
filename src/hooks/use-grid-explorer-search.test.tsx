@@ -383,6 +383,25 @@ describe("useGridExplorerSearch", () => {
     expect(runner).toHaveBeenCalledTimes(2);
   });
 
+  it("requests a new input focus value on retry so the effect re-runs", async () => {
+    const runner = vi.fn<GridExplorerSearchRunner>()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useGridExplorerSearch({ runner }));
+    act(() => {
+      result.current.openSearch();
+      result.current.setQuery("alpha");
+    });
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    const before = result.current.focusTarget;
+    expect(before).toEqual({ kind: "input" });
+
+    act(() => result.current.retry());
+    expect(result.current.focusTarget).toEqual({ kind: "input" });
+    expect(result.current.focusTarget).not.toBe(before);
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+  });
+
   it("ends stale-selection feedback on query edit and retry before the next request status", async () => {
     const { result } = renderHook(() => useGridExplorerSearch());
     act(() => {

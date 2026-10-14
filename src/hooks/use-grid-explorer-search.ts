@@ -386,6 +386,9 @@ export function useGridExplorerSearch(
   const retry = useCallback(() => {
     selectionOperationIdRef.current += 1;
     setFeedback(null);
+    // A fresh object: the shared INPUT_FOCUS default would not re-run the
+    // input focus effect, and the Try again button unmounts with the error.
+    setFocusTarget({ kind: "input" });
     setRetryRevision((current) => current + 1);
   }, []);
 
