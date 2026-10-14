@@ -47,8 +47,8 @@ Read it at task start during Phases 34–35.
 ## Task 171 — Realize completion and Archive
 
 ### Current state
-- Status: In Progress
-- Next: Stage B awaits the user's first judgment; MI-8 awaits the user's decision
+- Status: Implemented, awaiting acceptance
+- Next: the user accepts Task 171, or sends remarks
 - Open: MI-8 (for Task 172)
 
 ### Log
@@ -59,3 +59,10 @@ Read it at task start during Phases 34–35.
 - Decision: MI-8 goes to Task 172 with MI-4 because it reproduces without Task 171 changes (user's rule, 2026-10-15).
 - Archive states checked in the browser at 1920×1080, retro-mac, light (2026-10-15): confirmation, pending, unknown, reconciling (held 20 s), not-applied, storage-failure, conflict, forced-reload recovery, success with next-visible handoff. The card height stayed 198px in each. Not verified: rejected (no way found to force it), previous-visible, filtered-null and true-empty handoff.
 - Stage B accepted by the user (2026-10-15): complete state, Reopen, blockers, withdrawal and the forced-reload recovery card. Reflected in the Stage B commit.
+
+### Checkpoint
+- Changed: `src/app/globals.css` (retro-mac rules for the Archive overlay and card, completed state, Reopen, blockers, withdrawal; the recovery boundary shares the card rules); `breakdown-panel.tsx` (a hidden-by-default confirmation body with the Scratch title, shown only by retro-mac) (f1e3a44, f76ce49).
+- Verified: `git diff --check`, `pnpm test` (1496 passed), `pnpm lint` (0 errors, 11 existing warnings), `pnpm typecheck`, `pnpm build`. Browser states listed in the Log above.
+- Please check: the confirmation card text and bold title, the completed state with Reopen, the Add/title blockers, the withdrawal bar, and the card after a forced reload.
+- Unresolved: MI-8 goes to Task 172 with MI-4. Not verified: rejected, previous-visible, filtered-null and true-empty handoff. The confirmation body text is not in `INBOX_TRIAGE_COPY`; decide at `/end-phase 34` whether it becomes canonical.
+- Review: skipped; the only logic-adjacent change is a static hidden `<p>`.
