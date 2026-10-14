@@ -666,8 +666,8 @@
   --triage-context-time-line: 13.5px;
   --triage-context-edit-size: 20px;
   --triage-context-sort-size: 8px;
-  --triage-context-sort-fill: #ffffd0;
-  --triage-context-sort-hover: #ffffe0;
+  --triage-context-sort-fill: color-mix(in srgb, hsl(var(--background)) 81.57%, yellow);
+  --triage-context-sort-hover: color-mix(in srgb, hsl(var(--background)) 87.84%, yellow);
   --triage-breakdown-font: var(--theme-font);
   --triage-breakdown-title-size: 11px;
   --triage-breakdown-painted-height: 40px;

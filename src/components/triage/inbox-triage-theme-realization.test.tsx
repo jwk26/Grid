@@ -379,3 +379,9 @@ it("Task170 green Return and red unavailable have independent color roles", () =
   expect(css).toContain("--triage-finder-feedback-surface: var(--triage-finder-unavailable-surface)");
   expect(css).not.toContain("--triage-finder-feedback-surface: var(--triage-return-hover-surface)");
 });
+
+it("Task172 retro-mac Context sort chip derives its fill from the mode background", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  expect(css).toMatch(/--triage-context-sort-fill:\s*color-mix\(in srgb, hsl\(var\(--background\)\)[^;]*yellow\);/);
+  expect(css).toMatch(/--triage-context-sort-hover:\s*color-mix\(in srgb, hsl\(var\(--background\)\)[^;]*yellow\);/);
+});

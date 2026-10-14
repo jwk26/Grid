@@ -68,3 +68,21 @@ Read it at task start during Phases 34–35.
 - Task 171 accepted by the user (2026-10-15).
 - MI-7 [Closed]: closed by the user (2026-10-15); chrome-devtools worked in this session.
 - MI-9 [Open]: the confirmation card body (`Every idea segment in "<Scratch title>" has been successfully placed. File it to disk?`) is written directly in `breakdown-panel.tsx` and only retro-mac shows it (hidden elsewhere by CSS) — cause: adopted from the prototype at the user's request in Task 171 (f1e3a44) — fix: at `/end-phase 34`, decide whether it moves into `INBOX_TRIAGE_COPY` and into the canonical documents, and whether a retro-mac-only visible string fits architecture rule 8 (one shared component tree, no theme-specific behavior), since other themes render it hidden.
+
+## Task 172 — Complete supported modes, accessibility and regression
+
+### Current state
+- Status: In Progress
+- Next: user decision on the MI-3/MI-4/MI-8 rechecks (see Checkpoint), then acceptance
+- Open: MI-3, MI-4, MI-8, MI-10
+
+### Log
+- Decision: work plan approved by the user; proceed in Korean (user, 2026-10-15).
+- MI-10 [Open]: in dark mode the Context sort chip (`OLD FIRST`) was unreadable, white text on a fixed `#ffffd0` fill — cause: `--triage-context-sort-fill/-hover` were hex literals that ignore the mode — fix: derive both from `--background` with `color-mix` as the Pool chip does; light values unchanged (uncommitted until this checkpoint commit).
+
+### Checkpoint
+- Changed: `globals.css` (two Context sort tokens), one CSS assertion in `inbox-triage-theme-realization.test.tsx`.
+- Verified: static retro-mac Inbox in light/dark × 1024×768 and 1920×1080 on existing fixture data; no horizontal scroll at 1024; light chip computed value unchanged; `git diff --check`, test (1497), lint (0 errors), typecheck, build pass.
+- Please check: the dark Context chip, and the 1024px Breakdown truncation (`ARCHI…`, title `Plan the field stud`), which I treated as the existing compact layout, not a defect.
+- Unresolved: MI-3, MI-4 and MI-8 rechecks (interactive keyboard/reduced-motion/Undo recovery states) and the other eight recipe surfaces in states beyond the default view were not run. The fixture was not re-seeded: the test browser holds one non-fixture node (`remote row`) that the guard refuses to clear, so data is the leftover fixture state.
+- Review: not run (CSS token change only).
