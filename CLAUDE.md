@@ -37,16 +37,18 @@
 
 ## Workflow
 
-- **Start:** `/execute-next-phase` (via EXECUTION_PLAN.md)
-- **Finish:** `/closing-phase`
-- **Branch:** `phase-N/<desc>` → `main` via PR
-- **Gates:** Branch verification + build + test enforced by skills. See skill definitions.
-- **Redesign:** Reference-inspired phases use `/reference-redesign`. See WORKFLOW.md.
-- **Compaction:** When context fills and you compact manually (`/compact`), read `docs/compaction-guide.md` first and build the compact prompt from its template. Auto-compact does not use this guide, so compact manually (~60-70% context) to keep control of what is preserved.
-- **Issue tracking:** Execution-time issues, fixes, and out-of-plan changes must be recorded in `docs/issues/Issues_Phase_N.md` during execution — not deferred to phase close. Unresolved issues block phase close. Issues may not be marked Closed without explicit user decision. See `docs/WORKFLOW.md` §Phase Execution Record for statuses, categories, and trigger examples.
-- **Task completion gate:** During an active phase, do not mark tasks or phases `[x]` in `docs/EXECUTION_PLAN.md` based only on implementation or internal verification. Update completion status only after checkpoint review and explicit user approval. See `docs/WORKFLOW.md` §Task Completion Gate.
+`/craft-docs` → `/run-phase` → `/run-task` → `/end-phase` own the procedure. This section overrides their defaults.
+
+- **Gates:** `git diff --check`, `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`.
+- **Ledger:** `docs/issues/Issues_Phase_N.md`, rules in `docs/WORKFLOW.md` §Phase Execution Record. Open, In Progress and Awaiting User Decision block phase close. Only the user closes or defers an item.
+- **Acceptance:** `[x]` in the plan means user-accepted, never just implemented or gate-green.
+- **Git:** `phase-N/<desc>` from `origin/main` → PR to `main`, regular merge commit (no squash).
+- **Close archive:** phase detail → `docs/execution-plan/archive/phase-N.md` plus its Phase Index row; deferred items → `docs/issues/Issues_Deferred.md`; cross-phase lessons → `docs/execution-plan/LEARNINGS.md`.
+- **Brainstorming:** topic folders follow `docs/brainstorming/readme.md`.
+- **References:** prototypes and visual references are view-only. Never copy their source or assets.
+- **Recovery:** restore state from documents, Git and rerun checks, not from chat memory.
 
 ## Planning Gate
 
-- **Before implementation:** Check `docs/reviews/phase-N-flow-review.md` exists for the phase you're about to start. If missing, run flow-trace review per `docs/PLANNING_STANDARD.md` §3 before writing code. Resolve any ❌ gaps first.
-- **During closing:** Run architecture conformance review (Blocking/Advisory tiers) from `docs/PLANNING_STANDARD.md` §6. Confirm user-visible verification per §5.
+- **Phase start (`/run-phase`):** a flow review in `docs/reviews/` must cover the phase (`phase-N-flow-review.md`, or the scope review the plan cites). If none does, stop. A new or materially amended plan gets its review through `/craft-docs` per `docs/PLANNING_STANDARD.md` §3. Resolve any ❌ Gap first.
+- **Phase close (`/end-phase`):** review conformance against `docs/PLANNING_STANDARD.md` §6 (Blocking / Advisory).
