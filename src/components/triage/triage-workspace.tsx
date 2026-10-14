@@ -818,7 +818,14 @@ export function TriageWorkspace({ node }: { node: Node }) {
     shownRestoredOperationId !== restoredOperationId;
   const showsRecoveryProjection =
     !archiveCoordinator.isProjectionReady ||
-    (!terminalSuccess && recoveryScratchIsNotSelected && restoredNotYetShown);
+    (!terminalSuccess && recoveryScratchIsNotSelected && restoredNotYetShown) ||
+    // A pre-dispatch storage failure of a Retry started from the projection
+    // has no recovery id; its card stays in the projection until shown.
+    (archiveState.phase === "storage_failed" &&
+      archiveState.recovery === null &&
+      restoredOperationId !== null &&
+      shownRestoredOperationId !== restoredOperationId &&
+      archiveOwnScratchId !== selectedScratchId);
 
   if (
     !showsRecoveryProjection &&
@@ -1755,6 +1762,9 @@ function TriageWorkspaceContent({
     const archiveFocus = pendingArchiveFocusRef.current;
     if (archiveFocus === null) return;
     pendingArchiveFocusRef.current = null;
+    // The removal-focus effect below must not override this destination.
+    preTransitionFocusRef.current = null;
+    previousRemovalIdRef.current = null;
     const target =
       document.querySelector<HTMLElement>(
         archiveHandoffFocusSelector(archiveFocus),

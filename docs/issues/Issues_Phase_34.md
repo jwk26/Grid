@@ -72,9 +72,9 @@ Read it at task start during Phases 34–35.
 ## Task 171A — Repair Archive handoff retention and Explorer Retry focus
 
 ### Current state
-- Status: Open
-- Next: `/run-task 171A`
-- Open: MI-8, MI-11, MI-12, MI-4 (Retry focus part)
+- Status: Implemented, awaiting acceptance (Stage A and Stage B accepted separately)
+- Next: user checks Stage A and Stage B; then Task 172 resumes
+- Open: MI-8, MI-11, MI-12, MI-4 (Retry focus part), until accepted
 
 ### Log
 - Decision: repair task 171A owns MI-8/MI-11 (Stage A, L6 owner) and the MI-4 Retry focus (Stage B, L4 owner); one task, Stage A and Stage B accepted separately; Tasks 169–171 stay accepted and are regression targets; scope review added (user, 2026-10-15).
@@ -83,6 +83,13 @@ Read it at task start during Phases 34–35.
 - MI-12 [Open]: a second Archive on the same mounted page silently does nothing — cause: after success the coordinator stays `terminal/applied`; only `dismissTerminal` returns to `idle` and it refuses success, while `archiveScratch` refuses any terminal phase (`use-archive-scratch.ts`) — fix: in Task 171A Stage A, keep the terminal-success commit and its one announcement, then accept a later Archive as a new operation (user, 2026-10-15, G4). Reproduced by the expert with a hook test; predates Phase 34.
 - Review fixes G1, G2, G3a, G5, G6 and W1 applied to SPEC, the Archive and Explorer recipes, DESIGN_TOKENS and the plan.
 - Scope review round 2 (expert, 2026-10-15) found R2-1 (pre-dispatch storage-failure card has no Scratch id), R2-2 (idle reset would drop the success announcement) and R2-3 (selection can change outside the Pool). Fixed as text within the existing decisions; no new user decision.
+
+### Checkpoint
+- Changed: `use-archive-scratch.ts` (second Archive after success, `attemptedScratchBitId`), `triage-workspace.tsx` (recovery gate limited to restored-and-unshown operations, card only on its own Scratch, parent-owned handoff focus in a layout effect, dismiss on leaving the card's Scratch), `use-grid-explorer-search.ts` (`retry` sets a new input focus value) (b2c53a1, 2fc5e25, plus the review-fix commit).
+- Verified: `git diff --check`, `pnpm test` (1508 passed), `pnpm lint` (0 errors, 11 existing warnings), `pnpm typecheck`, `pnpm build`. Workspace tests with the real coordinator fail on the old code. Browser (fixture-like data): retro-mac light/dark and griddo light, three consecutive Archives, no recovery boundary, region identity kept, focus never on BODY, last Scratch → `Add item`.
+- Please check: Stage A in your own browser (normal Archive, consecutive Archives, a failed result then a Scratch switch). Stage B: error → `Try again` → focus in the search input.
+- Unresolved: not verified in the browser: filtered-null handoff, search `Try again` (no way to force an error), Newly Placed marker/Undo and open Explorer search surviving Archive (only the workspace identity is asserted). One commit after Archive shows `Unknown Scratch` as the new title before it loads; not checked whether it predates this task.
+- Review: external-removal focus effect could override the Archive focus → fixed (review-fix commit); a pre-dispatch storage failure of a Retry started from the recovery projection left the card hidden → fixed with a test (review-fix commit). The expert lost file access midway and did not read `breakdown-panel.tsx` or the test diff.
 
 ## Task 172 — Complete supported modes, accessibility and regression
 

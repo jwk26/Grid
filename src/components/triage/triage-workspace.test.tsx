@@ -2878,8 +2878,8 @@ describe("TriageWorkspace Archive handoff with the real coordinator", () => {
         getStorage: () =>
           storageFailsOnSet
             ? ({
-                getItem: () => null,
-                removeItem: () => undefined,
+                getItem: (key: string) => window.sessionStorage.getItem(key),
+                removeItem: (key: string) => window.sessionStorage.removeItem(key),
                 setItem: () => {
                   throw new Error("quota");
                 },
@@ -3090,6 +3090,36 @@ describe("TriageWorkspace Archive handoff with the real coordinator", () => {
     expect(screen.getByTestId("triage-workspace")).toBe(region);
     expect(observed.samples.every((sample) => !sample.boundary)).toBe(true);
     expect(observed.samples.every((sample) => sample.active !== document.body)).toBe(true);
+  });
+
+  it("keeps the card in the recovery projection when a Retry started from it fails before dispatch", async () => {
+    useTriageStore.setState({ selectedScratchId: "scratch-2" });
+    window.sessionStorage.setItem(
+      RECOVERY_KEY,
+      JSON.stringify({
+        operationId: "00000000-0000-4000-8000-0000000000cc",
+        kind: "archive_scratch",
+        scratchBitId: ARCHIVE_SCRATCH_ID,
+        expectedVersion: 7,
+        startedAt: 100,
+      }),
+    );
+    reconcileArchiveMock.mockResolvedValue({
+      operationId: "00000000-0000-4000-8000-0000000000cc",
+      status: "not_applied",
+    });
+    render(<TriageWorkspace node={createNode()} />);
+    await act(async () => {});
+    storageFailsOnSet = true;
+    await act(async () => {
+      void lastCoordinator().retry();
+    });
+
+    expect(screen.queryByTestId("breakdown-panel")).not.toBeInTheDocument();
+    expect(screen.getByTestId("archive-recovery-card")).toHaveAttribute(
+      "data-phase",
+      "storage_failed",
+    );
   });
 
   it("does not dismiss a restored result held in the recovery projection on an unrelated selection change", async () => {
