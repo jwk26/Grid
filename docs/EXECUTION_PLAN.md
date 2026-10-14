@@ -125,7 +125,7 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
 | Headless/base UI | Tasks 127–163 accepted | Task 163 integration and bounded R01/I01 corrections are included in the Phase 31 Final Close transaction. Original task evidence is retained; correction/candidate evidence is separate. |
-| Theme realization | `IN PROGRESS` | Retro Mac Tasks 166–170 accepted. Named regional owners below; Q01/Q02/Q05 gate only their affected slices. No old experiment is evidence of canonical conformance. |
+| Theme realization | `IN PROGRESS` | Retro Mac Tasks 166–171 accepted; repair Task 171A precedes Task 172 acceptance. Named regional owners below; Q01/Q02/Q05 gate only their affected slices. No old experiment is evidence of canonical conformance. |
 | Phase 31 close | `COMPLETED / ARCHIVED` | R01/C01/I01 corrections are recorded in the archive; fresh candidate/output/browser checks and publication guards must pass before the Final Close receipt is created. No eight-theme-completion claim. |
 | Campaign full gate | `PLANNED / UNSTARTED` | Task 208 consumes every accepted foundation and new theme task plus the retained complete matrices. |
 
@@ -174,6 +174,7 @@ boundaries. No canonical Task 164 receipt or experiment fingerprint is reused.
                   └─163 accepted integration
                       ├─Phase 31 gated correction + technical Final Close
                       └─166→167→168→169→170→171→172  Retro Mac
+                                                  └171A┘ (repair; gates 172 acceptance)
                           →173→174→175→176→177→178→179  Neumorphism
                           →180→181→182→183→184→185→186  Terminal
                           →187→188→189→190→191→192→193  Claymorphism + Origami
@@ -202,7 +203,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 31 | Completed | [Accepted route integration and technical close](execution-plan/archive/phase-31.md) | 163; 164/165 historical unaccepted transfer only | Technical corrections and fresh candidate verification are owned by Final Close; no theme completion or new task acceptance. |
 | Phase 32 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
-| Phase 34 | In progress | Retro Mac, region-by-region then supported-mode conformance | 166–172 | Tasks 166–171 accepted; Task 172 next. Subsequent tasks use exact predecessor edges. |
+| Phase 34 | In progress | Retro Mac, region-by-region then supported-mode conformance | 166–172 + 171A | Tasks 166–171 accepted; repair Task 171A next, then Task 172 resumes. Subsequent tasks use exact predecessor edges. |
 | Phase 35 | Planned / unstarted | Neumorphism, region-by-region then supported-mode conformance | 173–179 | 172 accepted + Phase 34 close/main sync. |
 | Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 accepted + Phase 35 close/main sync. |
 | Phase 37 | Planned / unstarted | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
@@ -249,17 +250,17 @@ to the owners named in the inventories.
 | `UF-15` | Unstage through transient targets, restoring order/focus without success toast. | 121, 145, 148; STAGING, BREAKDOWN |
 | `UF-16` | Remote candidate arrival, orphan proof/cleanup, invalidation, alert, and drag release. | 122, 146, 147; STAGING |
 | `UF-17` | Explorer navigation/re-entry, full labels, anchoring, and valid fallback. | 127, 134, 150; EXPLORER |
-| `UF-18` | Dedicated whole-hierarchy search with pre-search/results/loading/stale/error/duplicates. | 114, 135, 151; EXPLORER |
+| `UF-18` | Dedicated whole-hierarchy search with pre-search/results/loading/stale/error/duplicates. | 114, 135, 151, 171A; EXPLORER |
 | `UF-19` | Search result reveal/navigation/close semantics, DnD interruption, and result Undo. | 151, 158; EXPLORER, PLACE |
 | `UF-20` | Staged placement through target-column confirmation and atomic mutation. | 123, 152, 153; PLACE |
 | `UF-21` | Direct type plus path selection and atomic placement. | 123, 152, 153; PLACE |
 | `UF-22` | Valid/invalid/full feedback, visible full reason, and valid-column edge scroll. | 149, 152; EXPLORER, PLACE |
 | `UF-23` | Staged Result Title and direct type-limit surfaces without truncation/fallback. | 116, 154; PLACE |
-| `UF-24` | Actual-card Newly marker, type pinning, normal navigation, mounted-page lifetime. | 155, 157; EXPLORER, PLACE |
+| `UF-24` | Actual-card Newly marker, type pinning, normal navigation, mounted-page lifetime. | 155, 157, 171A; EXPLORER, PLACE |
 | `UF-25` | Ordinary/search Undo, dependency reasons, child-first recovery, reconcile, focus. | 124, 156–158; EXPLORER, PLACE |
 | `UF-26` | Exact durable completion plus Add/title blocker reporting. | 125, 159, 160; BREAKDOWN, ARCHIVE |
 | `UF-27` | Section-scoped overlay, Cancel, complete Context, explicit reopen, switch/re-entry. | 159, 160; ARCHIVE |
-| `UF-28` | Archive pending/recovery/retry and next→previous→filtered-null/true-empty handoff. | 125, 126, 161, 162; ARCHIVE, POOL |
+| `UF-28` | Archive pending/recovery/retry and next→previous→filtered-null/true-empty handoff. | 125, 126, 161, 162, 171A; ARCHIVE, POOL |
 | `UF-29` | Theme/mode change preserves all work state and causes no mutation/navigation. | THEMES; complete matrix 208 |
 
 ## Architecture Flow Inventory
@@ -2977,11 +2978,113 @@ Task171, Working/Tower closure, topology or publication.
 
 **Commit message:** `feat(triage): realize retro-mac archive`.
 
+### Task 171A: [ ] Repair Archive handoff retention and Explorer Retry focus
+
+A bounded repair scope under L7's return rule: Task 172 found behavior defects
+that L7 may not fix. They are shared component/hook behavior, predate Phase 34
+(MI-8 reproduced at 8e5b1d4) and apply to every theme. Ledger items: MI-8,
+MI-11, MI-12 and the Retry part of MI-4 in `docs/issues/Issues_Phase_34.md`.
+Scope review: [Task 171A repair scope](reviews/phase-34-task-171A-scope-review.md).
+
+**Stage A — Archive handoff (L6 regional owner).** Files:
+`src/hooks/use-archive-scratch.ts` and `use-archive-scratch.test.ts`;
+`src/components/triage/triage-workspace.tsx` and `triage-workspace.test.tsx`.
+- Recovery gate: show the section-recovery projection only while the
+  projection is not ready, or for an operation restored after reload that has
+  not yet been shown in the workspace. Once an operation is shown in
+  `ReadyTriageWorkspace`, none of its later states (Retry, pending, success)
+  shows the recovery projection. The kept exception is a post-dispatch
+  recovery-storage failure, which keeps `blocksProjection`.
+- Card projection: pass the Archive operation only to the Breakdown of the
+  operation's own Scratch (`recovery.scratchBitId`), so no other Scratch shows
+  a pending or terminal card. A pre-dispatch storage failure has
+  `recovery: null`; its card shows in the Breakdown of the Scratch where
+  Archive was activated (the coordinator may keep the attempted Scratch id).
+- Focus: replace the one-shot `requestAnimationFrame` destination focus with a
+  parent-owned pending focus kind consumed in a layout effect in the commit
+  that renders the destination, following `pendingTerminalFocusRef`. Focus
+  never rests on BODY in any commit between dispatch and success.
+- Keep the coordinator order (handoff before terminal commit) and the
+  operation lock through handoff.
+- Non-success terminal (not applied, rejected, conflict) and pre-dispatch
+  storage failure: any change of the selected Scratch away from its Scratch
+  (Pool, external-removal handoff, Pool reconciliation) dismisses it like
+  Cancel, with no write (user decision 2026-10-15). Implement it in
+  `triage-workspace.tsx` by watching `selectedScratchId`, not in the Pool.
+  Retry never targets a Scratch other than the selected one.
+- Second Archive (MI-12): terminal success is still committed and announces
+  `Scratch archived.` once (keep the announce-once test). A later Archive on
+  the same mounted page is then accepted and dispatches once, either because
+  `archiveScratch` treats terminal success as idle or because the coordinator
+  returns to `idle` only after the success state has rendered.
+- No CSS, copy or visual change.
+
+**Stage B — Explorer Retry focus (L4 regional owner).** Files:
+`src/hooks/use-grid-explorer-search.ts` and `use-grid-explorer-search.test.tsx`;
+`src/components/triage/grid-explorer-search-results.tsx` and its test only if
+the focus target needs a presentation hook. `Try again` starts the next
+request and focuses the search input (user decision 2026-10-15, as in the
+P34-16 Undo repair). `INPUT_FOCUS` is a shared default object, so setting it
+again does not re-run the input focus effect; the focus request must be a new
+value. The error-only button lifetime stays as the recipe states.
+
+**Dependencies:** Task 171 accepted. Task 172 stays in progress and cannot be
+accepted before this task is accepted.
+
+**Authority / flows:** SPEC Inbox Archive success and recovery bullets, the
+Mounted Inbox page-session lifetime row and the `VQ-07` row; Archive recipe
+Focus and lifetime, Grid Explorer recipe Focus; DESIGN_TOKENS Archive Cancel
+and Explorer Navigation/focus rows; UF-17–19, UF-24–25 and UF-26–28;
+DP-VQ07/VQ10/VQ12 unchanged.
+
+**Observable acceptance:**
+- A normal Archive, including live unknown → Check again → applied, never
+  renders `archive-recovery-boundary`; the `Inbox triage workspace` region
+  keeps its element identity.
+- In no commit between dispatch and success does a Breakdown other than the
+  archiving Scratch's show the Archive card, or focus rest on BODY.
+- A Newly Placed marker with its Undo and an open Explorer search survive a
+  successful Archive. The Staging alert still clears on the Scratch switch, as
+  SPEC requires.
+- Focus reaches the next-visible, previous-visible, filtered-null (search
+  input/clear) and true-empty (primary Add) destinations.
+- Two Archives in a row on the same mounted page each dispatch once and hand
+  off correctly.
+- After a live not applied, rejected or conflict result, or a pre-dispatch
+  storage failure, a change of the selected Scratch by any path dismisses the
+  card with no write; Archive on the new Scratch works. The pre-dispatch
+  storage-failure card still shows, with Cancel, on the activated Scratch.
+  A restored terminal result held in the recovery projection is not dismissed
+  by an unrelated selection change (only a change away from its own Scratch).
+- Forced-reload recovery is unchanged: recovery projection, heading focus,
+  same card states and geometry. A restored not applied shown on the selected
+  Scratch → Retry → applied keeps the workspace region's identity.
+- After `Try again`, focus is on the search input, never BODY.
+
+**Verification:** direct tests above plus the existing Archive, recovery,
+Newly/Undo and Explorer search tests. At least one workspace test runs the
+real `useArchiveScratch` (or a mock that reproduces pending → selection change
+→ terminal), because the current mocks let identity and marker tests pass
+without the fix. For the per-commit bullet, hold the dispatch and
+`readTerminalSnapshot` promises open and flush each step with `act`; after each
+step assert focus is not BODY and only the archiving Scratch's Breakdown
+reports an Archive phase, and watch the container with a `MutationObserver`
+for `archive-recovery-boundary`. Full `CLAUDE.md` gates. Browser: retro-mac light/dark at
+1920×1080 and griddo light at 1920×1080 for the four handoff destinations,
+consecutive Archives and search Retry; regression of the Archive states
+checked in Task 171, Newly/Undo after Archive (Task 170) and search
+error/`Try again` presentation (Task 169). Any visual change returns to the
+user for a disposition of that region. Expert review is required (logic
+change). Stage A and Stage B are accepted separately.
+
+**Commit messages:** `fix(triage): keep workspace mounted through Archive handoff`
+and `fix(explorer): focus search input after Try again`.
+
 ### Task 172: [ ] Complete supported modes, accessibility and regression
 
 **Files and actions:** bind L7's exact per-file actions to `retro-mac` only. Conditional owner/decision gates remain in force.
 
-**Dependencies:** Task 171 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
+**Dependencies:** Task 171 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. Acceptance also requires Task 171A accepted; its remaining rechecks and final regression run on the repaired code. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
 **Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–29 preservation, its AF/NEG constraints and no-storage boundary.
 
@@ -3682,7 +3785,7 @@ This register covers every implementation/test path declared by two or more task
 | `triage-preferences` | `src/stores/triage-preferences-store.ts`; `src/stores/triage-preferences-store.test.ts` | 127, 130, 132 |
 | `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162; BREAKDOWN, ARCHIVE |
 | `breakdown-component-test` | `src/components/triage/breakdown-panel.test.tsx` | 101 plus every `breakdown-component` writer |
-| `workspace-component` | `src/components/triage/triage-workspace.tsx` | 129, 136, 137, 139, 140, 141, 145, 149, 152, 155, 159, 160, 161, 163; POOL, BREAKDOWN, STAGING, PLACE, ARCHIVE |
+| `workspace-component` | `src/components/triage/triage-workspace.tsx` | 129, 136, 137, 139, 140, 141, 145, 149, 152, 155, 159, 160, 161, 163, 171A; POOL, BREAKDOWN, STAGING, PLACE, ARCHIVE |
 | `workspace-component-test` | `src/components/triage/triage-workspace.test.tsx` | 101 plus every `workspace-component` writer |
 | `pool-component` | `src/components/triage/scratch-pool.tsx` | 130, 136, 141, 144, 161; POOL |
 | `pool-component-test` | `src/components/triage/scratch-pool.test.tsx` | 101 plus every `pool-component` writer |
@@ -3690,7 +3793,7 @@ This register covers every implementation/test path declared by two or more task
 | `drag-token` | `src/components/triage/triage-drag-token.tsx`; `src/components/triage/triage-drag-token.test.tsx` | 133, 142; STAGING |
 | `explorer-component` | `src/components/triage/hierarchy-explorer.tsx` | 134, 149–158; EXPLORER, PLACE |
 | `explorer-component-test` | `src/components/triage/hierarchy-explorer.test.tsx` | 101, 134, 149–158; EXPLORER, PLACE |
-| `explorer-results` | `src/components/triage/grid-explorer-search-results.tsx`; `src/components/triage/grid-explorer-search-results.test.tsx` | 151, 158; EXPLORER, PLACE |
+| `explorer-results` | `src/components/triage/grid-explorer-search-results.tsx`; `src/components/triage/grid-explorer-search-results.test.tsx` | 151, 158, 171A (conditional); EXPLORER, PLACE |
 | `actual-node-card` | `src/components/grid/node-card.tsx` | 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
 | `actual-node-card-test` | `src/components/grid/node-card.test.tsx` | 101, 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
 | `actual-bit-card` | `src/components/grid/bit-card.tsx` | 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
@@ -3703,24 +3806,24 @@ This register covers every implementation/test path declared by two or more task
 | `inbox-hook-test` | `src/hooks/use-inbox.test.tsx` | 101, 130 |
 | `candidate-hook` | `src/hooks/use-staged-candidates.ts`; `src/hooks/use-staged-candidates.test.tsx` | 131, 145, 146 |
 | `triage-dnd` | `src/hooks/use-dnd.ts`; `src/hooks/use-triage-dnd.test.ts` | 142, 145, 146, 149, 152, 163 |
-| `explorer-search-hook` | `src/hooks/use-grid-explorer-search.ts`; `src/hooks/use-grid-explorer-search.test.tsx` | 135, 151, 158 |
+| `explorer-search-hook` | `src/hooks/use-grid-explorer-search.ts`; `src/hooks/use-grid-explorer-search.test.tsx` | 135, 151, 158, 171A |
 | `placement-hook` | `src/hooks/use-triage-placement.ts`; `src/hooks/use-triage-placement.test.tsx` | 152, 153, 154, 161 |
 | `newly-hook` | `src/hooks/use-triage-newly-placed.ts`; `src/hooks/use-triage-newly-placed.test.tsx` | 155, 156, 157, 158, 161 |
 | `completion-hook` | `src/hooks/use-can-archive-scratch.ts` | 159, 160 |
 | `completion-hook-test` | `src/hooks/use-can-archive-scratch.test.ts` | 101, 159, 160 |
-| `archive-coordinator` | `src/hooks/use-archive-scratch.ts`; `src/hooks/use-archive-scratch.test.ts` | 161, 162 |
+| `archive-coordinator` | `src/hooks/use-archive-scratch.ts`; `src/hooks/use-archive-scratch.test.ts` | 161, 162, 171A |
 | `runtime-fixture-test` | `src/components/layout/grid-runtime.test.tsx` | 101, 163; proposed P31-R01 only after Q03 repair approval |
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 34 / Task 171. Phases 32
+- **Next planned implementation phase/task:** Phase 34 / Task 171A. Phases 32
   and 33 remain reserved with no tasks.
 - **Next unallocated numbers after this amendment:** Phase 41 / Task 209.
   Planned Phases 34–40 and Tasks 166–208 are already allocated; none may be
   reused for another meaning.
-- Graph reconciliation: 69 accepted tasks (101–163 plus 105A, 166–170), nine
+- Graph reconciliation: 70 accepted tasks (101–163 plus 105A, 166–171), nine
   completed archives (Phases 23–31), two historical unaccepted transfer records
-  (164/165), 38 unstarted tasks (171–208) in Phases 34–40, and two reserved
+  (164/165), 38 unaccepted tasks (171A, 172–208) in Phases 34–40, and two reserved
   phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

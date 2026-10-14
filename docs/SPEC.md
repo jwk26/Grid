@@ -868,6 +868,22 @@ AND staged candidate count == 0
   archived/removed, not-applied complete/reopen, or unresolved section recovery
   before the initial Inbox projection. `VQ-12` owns unsupported reliability
   realization.
+- Section recovery replaces the Inbox projection only while the projection is
+  not ready, or for an Archive restored after forced reload that has not yet
+  been shown in the workspace. An Archive started on the mounted page, or a
+  restored one already shown there, keeps the workspace mounted from dispatch
+  through selection handoff and terminal state, so mounted page-session state
+  such as Newly Placed/Undo and Explorer search survives. The one exception is
+  a recovery-storage failure after dispatch, which keeps its section
+  projection. The Archive card appears only in its own Scratch's Breakdown; a
+  pre-dispatch recovery-storage failure, which has no operation identity,
+  shows in the Breakdown of the Scratch where Archive was activated.
+- A non-success terminal result (not applied, rejected, conflict) or a
+  pre-dispatch storage failure ends on Cancel or when the selected Scratch
+  changes away from its Scratch by any path (Pool, external-removal handoff,
+  Pool reconciliation), which dismisses it like Cancel with no write.
+- Terminal success is committed and announced once. A later Archive on the
+  same mounted page is then accepted as a new operation.
 - After confirmed success, preserve current Pool search/sort and select the
   archived row's next-visible then previous-visible Scratch. If a filtered list
   has a visible successor, focus its Selected Scratch Context. If a filtered
@@ -875,6 +891,8 @@ AND staged candidate count == 0
   input/clear.
   If no active Scratch exists without a search filter, show true Inbox empty
   and focus its primary action. Never navigate automatically to Archive View.
+  Focus moves from the Archive slot to the destination in the render that
+  shows the destination; at no point does it rest on the document body.
 
 ### Archive View Surface (rendered for `systemRole: 'archive_view'`)
 
@@ -977,7 +995,7 @@ card, create form, or surrounding theme chrome is not a fallback.
 | `VQ-01` | External archive/delete of selected Scratch enters the five-second move/pause/resume/no-Cancel transition, revalidates visible destination, supports source-separated full-draft copy, and cancels only on authoritative archive restore | Announce lifecycle/timing once, not each tick; pause is a stable initial action; copy status preserves focus; stale work stays locked | **Decision prerequisite — no automatic fallback**: user owns replacement surface, wording, layout, appearance, icons, timing treatment, and theme realization |
 | `VQ-03` | Scratch/route departure with a non-empty Add draft offers continue-writing or discard-and-move after any required inline Save; it neither auto-Adds nor queues intents | Continue returns logical focus to Add; discard performs the original action once; native unload remains browser-exit only | **Decision prerequisite — no automatic fallback**: user owns app-internal confirmation realization and copy |
 | `VQ-04` | Scratch-title and row-content editors remain inline in their source surfaces across validation, saving, offline, retry, conflict/use-mine/use-latest, lifecycle invalidation, draft review/copy, Save, Cancel, Escape, and valid blur | Preserve editor/draft and logical focus through nonterminal states; never open generic/global conflict UI or steal IME focus; invalid source uses deterministic next-row/Add fallback | **Decision prerequisite — no automatic fallback**: user owns the complete inline replacement surfaces and content realization |
-| `VQ-07` | Opening dedicated full-hierarchy Explorer search replaces only the Explorer body; it owns pre-search/results/loading/stale/error/duplicates/reveal/Undo feedback and DnD interruption, while global search stays separate | Input/results support arrows, Enter, Escape; removed focused result returns to input; selection rebuilds path inside Inbox; result rows are not DnD sources | **Decision prerequisite — no automatic fallback**: user owns the complete replacement search body; active-column/global search and ordinary columns are prohibited substitutes |
+| `VQ-07` | Opening dedicated full-hierarchy Explorer search replaces only the Explorer body; it owns pre-search/results/loading/stale/error/duplicates/reveal/Undo feedback and DnD interruption, while global search stays separate | Input/results support arrows, Enter, Escape; removed focused result and `Try again` return focus to input; selection rebuilds path inside Inbox; result rows are not DnD sources | **Decision prerequisite — no automatic fallback**: user owns the complete replacement search body; active-column/global search and ordinary columns are prohibited substitutes |
 | `VQ-09` | Over-limit staged placement uses Result Title before confirmation; direct length gates expose allowed/unavailable type reasons and Cancel with no direct editor or truncation | Result Title starts at its input; unavailable types expose accessible reason; Cancel returns to source | **Decision prerequisite — no automatic fallback**: user owns Result Title and direct-limit surfaces; create dialogs and generic placement UI are prohibited substitutes |
 
 ### Existing-surface state gaps

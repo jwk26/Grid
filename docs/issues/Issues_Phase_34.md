@@ -69,12 +69,27 @@ Read it at task start during Phases 34–35.
 - MI-7 [Closed]: closed by the user (2026-10-15); chrome-devtools worked in this session.
 - MI-9 [Open]: the confirmation card body (`Every idea segment in "<Scratch title>" has been successfully placed. File it to disk?`) is written directly in `breakdown-panel.tsx` and only retro-mac shows it (hidden elsewhere by CSS) — cause: adopted from the prototype at the user's request in Task 171 (f1e3a44) — fix: at `/end-phase 34`, decide whether it moves into `INBOX_TRIAGE_COPY` and into the canonical documents, and whether a retro-mac-only visible string fits architecture rule 8 (one shared component tree, no theme-specific behavior), since other themes render it hidden.
 
+## Task 171A — Repair Archive handoff retention and Explorer Retry focus
+
+### Current state
+- Status: Open
+- Next: `/run-task 171A`
+- Open: MI-8, MI-11, MI-12, MI-4 (Retry focus part)
+
+### Log
+- Decision: repair task 171A owns MI-8/MI-11 (Stage A, L6 owner) and the MI-4 Retry focus (Stage B, L4 owner); one task, Stage A and Stage B accepted separately; Tasks 169–171 stay accepted and are regression targets; scope review added (user, 2026-10-15).
+- Scope review round 1 (expert, 2026-10-15) found G1–G6 and W1, recorded in `docs/reviews/phase-34-task-171A-scope-review.md`. The Staging alert is not part of MI-11: SPEC clears it on every Scratch switch, so it does not survive a successful Archive.
+- Decision: after a live not applied, rejected or conflict result, a Scratch switch dismisses the card like Cancel, with no write (user, 2026-10-15, G3b).
+- MI-12 [Open]: a second Archive on the same mounted page silently does nothing — cause: after success the coordinator stays `terminal/applied`; only `dismissTerminal` returns to `idle` and it refuses success, while `archiveScratch` refuses any terminal phase (`use-archive-scratch.ts`) — fix: in Task 171A Stage A, keep the terminal-success commit and its one announcement, then accept a later Archive as a new operation (user, 2026-10-15, G4). Reproduced by the expert with a hook test; predates Phase 34.
+- Review fixes G1, G2, G3a, G5, G6 and W1 applied to SPEC, the Archive and Explorer recipes, DESIGN_TOKENS and the plan.
+- Scope review round 2 (expert, 2026-10-15) found R2-1 (pre-dispatch storage-failure card has no Scratch id), R2-2 (idle reset would drop the success announcement) and R2-3 (selection can change outside the Pool). Fixed as text within the existing decisions; no new user decision.
+
 ## Task 172 — Complete supported modes, accessibility and regression
 
 ### Current state
-- Status: Awaiting User Decision
-- Next: user decision on MI-8/MI-11 repair owner and MI-4 Retry focus target (see Log), then remaining rechecks
-- Open: MI-3, MI-4, MI-8, MI-10, MI-11
+- Status: In Progress
+- Next: paused until Task 171A is accepted; then remaining MI-3 and MI-4 Undo recovery rechecks and final regression on the repaired code
+- Open: MI-3, MI-4 (Undo recovery recheck part), MI-10
 
 ### Log
 - Decision: work plan approved by the user; proceed in Korean (user, 2026-10-15).
@@ -86,7 +101,11 @@ Read it at task start during Phases 34–35.
 - MI-8 [Open, diagnosed by expert, code-read only]: root cause is not frame timing alone. `applyTerminal` (`use-archive-scratch.ts:178-194`) awaits `onApplied` before recording the terminal state; `handleArchiveApplied` calls `finishScratchArchive`, which changes `selectedScratchId` while the coordinator is still `pending`; the recovery gate (`triage-workspace.tsx:800-808`) then reads it as a forced-reload mismatch and unmounts `ReadyTriageWorkspace`, taking the focused Archive button with it. The one-shot rAF focus (`:881-891`) finds no target. Proposed fix: parent-owned pending focus kind consumed in a `useLayoutEffect` once `terminalSuccess` renders (like `pendingTerminalFocusRef`, `:1698-1711`), plus a gate change so a normal Archive never shows the recovery boundary. The gate change alters the coordinator contract.
 - MI-11 [Open, needs browser confirmation]: the same unmount appears to discard page-session state owned under `TriageWorkspaceContent` on every successful Archive (Newly Placed markers and Undo, Staging alerts), against `SPEC.md` 785-786 and 908.
 - MI-4 [Open, diagnosed]: the BODY focus loss on Retry 150/151 is the Explorer search "Try again" button (`grid-explorer-search-results.tsx:267-276`), removed when the next run starts; `retry` (`use-grid-explorer-search.ts:386-390`) sets no new focus target. Different mechanism from MI-8. Where focus should land after Retry is a product decision the plan does not make.
+- MI-8/MI-11 browser check (2026-10-15, retro-mac light 1920): on a normal Archive the recovery boundary (`archive-recovery-boundary`) renders for one mutation batch, the `Inbox triage workspace` region is replaced by a new element, and `document.activeElement` is BODY afterward. Confirms MI-8 and the unmount in MI-11. Direct loss of a Newly Placed marker was not observed: placing a Staged Bit through CDP pointer/keyboard drag did not complete, so marker loss stays inferred from the code (`useTriageNewlyPlaced` under the unmounted tree).
+- Decision: MI-4 Retry focus lands on the Explorer search input, as in the P34-16 Undo repair (user, 2026-10-15). Not yet implemented.
+- Decision: MI-8/MI-11 repair owner and scope are settled in an Opus session; no plan, canonical-document or commit change in this task until that decision is committed (user, 2026-10-15).
 - Awaiting User Decision: L7 forbids hiding component/hook repair in this task. MI-8/MI-11 need a repair owner and scope, MI-4 needs a focus destination.
+- Decision: MI-8, MI-11 and the MI-4 Retry focus move to repair Task 171A; the MI-4 Undo recovery recheck stays here; Task 172 acceptance waits for 171A (user, 2026-10-15). Marker loss in MI-11 is to be proven by a direct test in 171A, since CDP drag could not complete a placement.
 
 ### Checkpoint
 - Changed: `globals.css` (two Context sort tokens), one CSS assertion in `inbox-triage-theme-realization.test.tsx`.

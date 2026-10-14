@@ -128,13 +128,20 @@ are discarded by Task 161/126 and never produce a `DP-VQ12` card or mutation.
   focuses `Check again`; reconciling retains that position; `not_applied`
   focuses Retry; storage failure/rejected/conflict focuses Cancel. A forced
   reload focuses the recovery heading before any ordinary Inbox control.
+- Authoritative success hands focus from the current-action slot to the SPEC
+  visible-order destination in the render that shows it; focus never rests on
+  the document body. Only the archiving Scratch's Breakdown shows the card, and
+  an Archive started on the mounted page never shows the forced-reload
+  recovery projection.
 - One polite atomic announcement occurs for each new exact state sentence,
   never per rerender. The static mark plus full text carries meaning without
   color, motion, ellipsis animation, or spinner.
 - Pending/unknown/reconciling and valid forced-reload recovery last until the
   same descriptor reaches authoritative terminal classification. They do not
   end on a timer, Scratch switch, route intent, theme/mode change, or attempted
-  conflicting action. Terminal Cancel ends only its displayed terminal result.
+  conflicting action. Terminal Cancel ends only its displayed terminal result;
+  a change of the selected Scratch after a non-success terminal result or a
+  pre-dispatch storage failure dismisses it the same way.
 - Geometry, copy, actions, focus, announcement, and lifetime are identical in
   ordinary and reduced-motion modes. Card content and terminal removal change
   immediately/staticly; no fade, slide, scale, blur transition, skeleton,

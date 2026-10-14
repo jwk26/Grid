@@ -149,6 +149,8 @@ not from this receipt.
   Scrolling follows only the active result. Ordinary Tab order reaches the
   input, `Try again` when present, and eligible result `Undo` controls without
   turning result rows into drag sources.
+- `Try again` starts the next request and moves focus to the input, because
+  the control ends with the error state.
 - A current reachable result clears active and interrupted search state,
   restores the four columns, reconstructs the real ancestor chain inside
   Inbox, and focuses the revealed Node or Bit row. The actual row receives a
