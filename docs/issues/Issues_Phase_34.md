@@ -25,9 +25,9 @@ Read it at task start during Phases 34–35.
 ## Carried over
 
 ### Current state
-- Status: Awaiting User Decision (MI-2 close, MI-7 MCP enable)
+- Status: Open (MI-7 blocks browser checks)
 - Next: enable chrome-devtools MCP (MI-7), then `/run-task 171`
-- Open: MI-1, MI-2, MI-3, MI-4, MI-7
+- Open: MI-1, MI-3, MI-4, MI-7
 
 ### Log
 - Decision: carry-over dispositions below approved as proposed (user, 2026-10-15).
@@ -41,3 +41,5 @@ Read it at task start during Phases 34–35.
 - Decision: test data comes from `scripts/dev-fixtures/inbox-triage.js` in the Chrome DevTools MCP browser, written new rather than ported (user, 2026-10-15). Reflected in 7ef0f87.
 - Decision: Tips handoff-prompt guidance removed (user, 2026-10-15). Reflected in 6e82f8b.
 - MI-7 [Open]: chrome-devtools MCP is disabled for GridDO. Claude Code keys every GridDO worktree to the `griddo2-claude` project entry, whose `disabledMcpServers` lists `chrome-devtools`. Enable it with `/mcp` in the worktree before Task 171. The MCP Chrome uses its own profile (`~/.cache/chrome-devtools-mcp/chrome-profile`), opens a visible window and closes when the session ends. Only one session can hold that profile at a time.
+- MI-2 [Closed]: closed by the user (2026-10-15).
+- Decision: the fixture guard keeps its two exceptions, first-load system Nodes and records the app creates under fixture data (user, 2026-10-15).
