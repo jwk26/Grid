@@ -2978,7 +2978,7 @@ Task171, Working/Tower closure, topology or publication.
 
 **Commit message:** `feat(triage): realize retro-mac archive`.
 
-### Task 171A: [ ] Repair Archive handoff retention and Explorer Retry focus
+### Task 171A: [x] Repair Archive handoff retention and Explorer Retry focus
 
 A bounded repair scope under L7's return rule: Task 172 found behavior defects
 that L7 may not fix. They are shared component/hook behavior, predate Phase 34
