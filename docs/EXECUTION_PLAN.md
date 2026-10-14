@@ -2193,6 +2193,8 @@ AF-03/05/10; all applicable NEG. Preserve DP-VQ01 and DP-VQ06-POOL.
 **Recipe:** [Shell/chrome](recipes/inbox-triage-shell-section-chrome-visual-recipe.md)
 and [Scratch Pool](recipes/inbox-triage-scratch-pool-visual-recipe.md).
 
+**Shared creation-date contract:** Every current and subsequent L1 theme/phase binding must follow [SPEC — Scratch Pool and Context creation-date metadata](SPEC.md#scratch-pool-and-context-creation-date-metadata), shared with L2. Scratch Pool's recipe references that single product contract; theme realization must preserve its common formatter and date body. This requirement is not limited to Task167/P34-09 and does not grant a later task/phase execution gate or reopen accepted Task166.
+
 **Observable acceptance:** fixed approved common geometry; sourced header,
 tools, counts, search/clear, sort, expanded selected/unselected rows, collapsed
 switchers, empty/no-match/status and focus/hover appearance. Selection, hidden
@@ -2203,6 +2205,23 @@ Do not visually revise Breakdown/Staging/Explorer internals in this slice.
 **Verification:** direct Pool/Workspace/shared-conformance tests; fresh mounted
 expanded/collapsed/query/sort/selection/empty/status/focus/hover checks,
 external-removal focus/recovery and handoff preservation; applicable gates.
+
+**Task 166-only approved supplement (2026-10-04):** extend this L1 common
+frame with R-SHELL's decorative desktop menu and DESIGN_TOKENS desktop-menu
+roles for retro-mac only. Scope receipt:
+`docs/issues/Issues_Phase_34.Task_166.task-scope-desktop-menu.json`.
+Use the same Workspace DOM and central aliases: one 32px bar, 16px lower gap,
+fixed labels/12:00 PM, no interactions or clock behavior. The menu spans Pool,
+Breakdown and Staging; remaining body retains all selected ratios and Pool
+state/focus/scroll/navigation/DP recovery. Verify original-size matched light
+1920x1080, bounded 1024x768/dark layout/clipping, seven other themes and ordinary
+Grid/Archive leakage, real Pool/recovery behavior and the logical gates above.
+Write owners are only existing common Workspace/CSS/direct/shared test owners,
+Task166 evidence/ledger/new receipt and the three approved canonical clauses.
+The separately approved one extra cycle is not a budget reset. Preserve prior
+checkpoint visual approval; submit menu/layout impact for separate disposition.
+Task166 remains [ ] and Q02 remains Tagged. No later task/theme inherits this
+supplement; no completed receipt or neighboring body is revised.
 
 ### L2 — Selected Scratch Context and Breakdown
 
@@ -2219,6 +2238,8 @@ UF-26 blockers, UF-29; AF-05/09/10. Retain DP-VQ02/03/04/05/11 exactly.
 **Recipe:** [Context](recipes/inbox-triage-selected-scratch-context-visual-recipe.md)
 and [Breakdown](recipes/inbox-triage-breakdown-row-empty-visual-recipe.md).
 
+**Shared creation-date contract:** Every current and subsequent L2 theme/phase binding must follow [SPEC — Scratch Pool and Context creation-date metadata](SPEC.md#scratch-pool-and-context-creation-date-metadata), shared with L1, in Context view and Scratch-title editor. Theme-only prefix presentation follows the Context recipe's central copy/role contract and never replaces the shared date body. This requirement is not limited to Task167/P34-09 and does not grant a later task/phase execution gate or task acceptance.
+
 **Observable acceptance:** sourced plate/title/time/action hierarchy,
 sort, active/staged rows/grips/Edit/Trash, Add and ordinary empty/completion
 distinction. Preserve Edit→Save/Cancel, draft/caret/focus, departure decision,
@@ -2229,6 +2250,54 @@ status or focus. Accepted Pool/common frame remains intact.
 **Verification:** direct Breakdown/Workspace/conformance tests; real
 view/edit/save/cancel/validation/dirty/pending/error/locked/recovery,
 Add/Delete/staged/empty and focus/hover/drag-source checks; applicable gates.
+
+**Task 167-only P34-04 Context-geometry supplement:** the matching
+[task-scope-context-geometry receipt](issues/Issues_Phase_34.Task_167.task-scope-context-geometry.json)
+authorizes the retro-mac Selected Scratch Context alone to use fixed 120.25px
+outer border-box height in every mounted view/editor/overlay/blocker state and
+both modes. Other themes retain 104px; all 9.5rem action reserves, 48px Breakdown
+row slots, shared semantic tree, retained DP behavior/copy/focus and Task160 C1
+placement remain unchanged. Extend only L2's already-owned implementation/tests
+and current Task167 evidence. Reverify state-stable height, caret/actions/status/
+overlays and theme switching, accepted Task166 frame/Pool and neighboring layout/
+scroll/drag linkage. This exception neither grants an adjacent-surface redesign
+nor accepts Task167 or releases Task168.
+
+**Task 167-only P34-07 Context-copy supplement:** the matching
+[task-scope-context-copy receipt](issues/Issues_Phase_34.Task_167.task-scope-context-copy.json)
+authorizes exactly one additional cycle for retro-mac's non-semantic
+`[ FOLDER DIALOG: INFO ]` / `[X]` strip and next-order sort labels
+(DESC→OLD FIRST, ASC→NEW FIRST), as defined by the amended Context recipe.
+Add only central copy/direct copy test owners `src/lib/copy/inbox-triage.ts`
+and `.test.ts`, the exact Context recipe/DESIGN_TOKENS/this plan supplements,
+and the new receipt to the existing Task167 write set. Centralized text/shared
+DOM/CSS selection preserves other7 themes' ASC/DESC and accessible names,
+all sort commands/locks/lifetimes, DP/C1 and approved120.25/104/152/48 geometry.
+No further cycle, unrelated owner, remaining visual-finding repair or acceptance.
+
+**Task 167 / P34-09 bounded execution supplement:** the matching
+[task-scope-created-at receipt](issues/Issues_Phase_34.Task_167.task-scope-created-at.json)
+binds exactly one additional repair cycle to implement the shared SPEC date
+contract and Context recipe presentation now. Add only existing formatter/direct
+test owners `src/lib/utils/relative-time.ts` and `src/lib/utils/relative-time.test.ts`,
+and Pool regression owner `src/components/triage/scratch-pool.test.tsx`. Pool
+already consumes this formatter and needs no production-source write. Reuse
+existing Context/CSS, central copy/direct copy test and shared conformance
+owners solely for this date delta; Workspace and producer/hook/store/schema
+owners receive no new write. Reflect only the exact SPEC, Scratch Pool recipe,
+Selected Scratch Context recipe and this plan amendments before affected product
+writes. Run the declared direct/focused/full gates and fresh mounted date/fit/
+theme-switch, accepted166 Pool/frame and adjacent regressions within the exact
+receipt evidence packet. Preserve prior cycles/receipts/evidence and DP/C1,
+120.25px/104px Context, 9.5rem reserve and 48px rows. Stop after this single cycle
+at Implemented / awaiting review, Task167 [ ]. No extra cycle, visual/task
+acceptance, Task168+, publication or topology/history change. This task-scoped
+execution grant does not limit the shared SPEC/L1/L2 product contract to Task167.
+
+**Retained common L2 scroll direction:** user disposition preserves Context
+and rows in their existing common scroll viewport. Future L2 theme bindings
+retain this co-scroll structure when separately activated; no sticky/standalone
+Context viewport is required. This clause does not activate later tasks.
 
 ### L3 — Staging
 
@@ -2257,6 +2326,10 @@ remain distinct. No permanent Unstage, label snapshot or invented success.
 fresh actual mounted stage/unstage, both types, eligible/invalid/unavailable/
 pending/remote/integrity states and actual pointer/focus delivery, not only
 mocked props; preserved Pool/Breakdown and applicable gates.
+
+**Task 168 P34-15 drag-visual-feedback supplement:** only the matching `docs/issues/Issues_Phase_34.Task_168.task-scope-drag-visual-feedback.json` receipt approves the exact DESIGN_TOKENS and Staging-recipe presentation deltas, bounded existing Staging/Workspace/Breakdown Return/CSS/test owners and exactly one additional cycle. Reflect exactly three canonical documents/five deltas before affected product writes. Retro Mac Remove uses a static opaque framed Trash overlay and monochrome compatible-hover inversion; actual Node/Bit hover alone receives the adopted pattern; compatible Breakdown Return retains alpha0.90 with destructive tint12%, border and text; desktop gaps retain the existing pattern. Preserve all geometry, semantic states, count A, copy, focus, operations, DP contracts and other-theme presentation. No hook/store/repository/root/provider/common-card or later-region write is granted. Initial3/3 plus three approved extra cycles remain consumed; session rollover never resets the budget. Require direct semantic-owner tests and fresh mounted pointer/computed-style/generated/delivery evidence, then stop at separate user visual/issue/task disposition with Task168 `[ ]`.
+
+**Task 168 count-contract supplement:** the matching `docs/issues/Issues_Phase_34.Task_168.task-scope.json` receipt separately approves the visible-Stage-projection count disposition and its exact SPEC, Staging recipe, DESIGN_TOKENS and this L3 amendments before affected product writes. The shared Workspace consumes existing `useStagedCandidates.counts.visibleNodes/visibleBits` for subsection headings under SPEC's pending/unknown/reconciling, candidate-ID deduplication, Unstage, integrity-exclusion and terminal-to-live-query rules; no hook/store/repository/copy/schema/package write is granted. Count semantics apply to the shared tree across themes; retro-mac remains the only visual-realization assignment. Preserve operation copy, locks, reconciliation, remote-arrival indicators, focus, DP-VQ02, P27-08 deferral and Q05 Closed disposition. Require direct and fresh mounted Node/Bit count-transition evidence and affected-theme regressions. Existing DP receipts and accepted task records remain immutable; this supplement neither reopens their historical release actions nor grants task acceptance or later-task authority.
 
 ### L4 — Explorer/Finder and replacement search
 
@@ -2291,6 +2364,55 @@ conditional card tests; actual mounted navigation/scroll anchoring/search/
 reveal/focus/drag interruption/status and eligible/full/invalid targets;
 ordinary Grid/card consumers and previously accepted regions; applicable gates.
 
+**Task 169 user-selected review amendment, 2026-10-07:** every current/future
+L4 theme task consumes SPEC's shared Explorer consumer contract, the
+DESIGN_TOKENS review amendment and the updated Explorer/chrome recipes:
+one header with right-hand whole-hierarchy search control; no persistent path
+breadcrumb; actual stored Node/Bit icons; no Finder options/Direct Archive or
+Done?/Mark as done/Dismiss controls; color-only hover and non-draggable cursors;
+readable distinct overdue-incomplete/completed Bit states. Keep internal path,
+full labels, status, navigation, scrolling, reveal, placement targets and
+independent NEW/Undo/reason/focus. Ordinary Grid behavior and broader D-CARD
+deferral remain intact. Theme-specific values stay centralized; no other
+theme/phase task starts from this common-contract reflection.
+
+The header's conditional consumer owners are
+`src/components/triage/triage-workspace.tsx` and
+`triage-workspace.test.tsx`; necessary centralized status/accessibility copy
+uses `src/lib/copy/inbox-triage.ts` and `inbox-triage.test.ts`.
+List exact per-file actions in the matching supplemental whole-file scope
+before writes; this owner listing alone grants no implementation authority.
+Actual-card internals retain the exact Q01 consumer/test gate. Reflect the
+canonical delta before affected product changes and verify changed header
+input/close/Undo focus and drop-target behavior through direct owner tests and
+fresh mounted evidence proportionate to the change. Preserve historical
+Retry failures/BODY observations and unverified Undo recovery as such.
+Task 169's five consumed cycles do not reset; any Cycle6 requires its own
+exact one-extra-cycle approval. Acceptance and Task170 remain separate gates.
+
+**Task 169 Node/Bit distinction amendment, 2026-10-08:** current/future L4
+tasks consume SPEC's common removal of the ordinary-list inter-type divider,
+visible `Bits` heading and reserved Bit-only/Level 3 subsection-header space.
+Retain Node-before-Bit and within-type order, actual shared cards and existing
+DP/state/focus contracts. Retro-mac alone realizes the user-selected folder-tab
+Node/light surface/double outline/larger plain row and stored glyph, versus
+rectangular Bit/gray surface/thin single outline/smaller plain row; metadata
+and independent NEW/Undo/reason retain natural expansion. Bind the selected
+generated-image identity and exact Q01 element/consumer boundary through the
+matching scope receipt. The candidate product/test owners are only
+`src/app/globals.css`, `src/components/triage/hierarchy-explorer.tsx`,
+`src/components/triage/hierarchy-explorer.test.tsx` and
+`src/components/triage/inbox-triage-theme-realization.test.tsx`.
+Actual NodeCard/BitCard TSX/tests remain preservation inputs unless a separate
+exact expansion is approved. Reflect the exact approved Tower-authored
+canonical delta through the same Working's approved adoption commit before
+affected product writes. Require direct semantic tests and fresh mounted
+appearance/interaction evidence proportionate to changed geometry; do not
+reuse Cycle6 results as proof or add a numerical fidelity/campaign gate.
+Six cycles remain consumed; only an exact approved single Cycle7 may execute,
+without reset or Cycle8 authority. Task169 remains `[ ]`, the same Working
+stays active awaiting disposition at checkpoint, and Task170 remains held.
+
 ### L5 — Placement, then Newly/Undo
 
 **Files and actions:** modify `src/app/globals.css` for assigned Placement/
@@ -2312,8 +2434,9 @@ and [Newly/Undo](recipes/inbox-triage-newly-placed-undo-visual-recipe.md).
 
 **Observable acceptance:** source-backed target-column Direct/Staged forms,
 path/title/type-limit/Confirm/Cancel and attached reliability; then actual
-Node/Bit card provenance marker, independent Undo slot/always-visible reason
-rail in ordinary and search contexts. Get Placement visual disposition before
+Node/Bit card provenance marker and independent Undo/state presentation.
+Ordinary Finder follows the bounded amendment below; search retains the
+approved always-visible reason rail. Get Placement visual disposition before
 Newly/Undo, and both before Archive. Occlusion/geometry differences from the
 prototype require Q02, not cosmetic discretion. Preserve real transactions,
 result/source truth, dependency reasons, recovery and logical focus.
@@ -2323,6 +2446,93 @@ card tests plus existing placement/Newly hook tests as read-only consumers;
 real valid/invalid/full placement, confirm/cancel/title/limits, Newly, eligible/
 ineligible/dependency-clear/pending/reconcile/failed Undo, focus and search
 composition; previously accepted regions and applicable gates.
+
+**Ordinary Finder amendment, 2026-10-08:** current/future L5 ordinary
+NodeCard/BitCard consumers use the amended Newly/Undo recipe and central
+DESIGN_TOKENS contract: centered NEW/content, visually internal independent
+Undo2 action, and above-action hover/keyboard-focus tooltip only for ordinary
+available and nonterminal result-mutated eligibility. All other reasons and
+operation/recovery states retain visible presentation; a terminal
+rejected/conflict cannot be hidden through matching-copy classification.
+Preserve accessibility, disabled mutation suppression, exact copy, shared
+semantic tree, producer/operation/ref/focus/lifetime ownership and static
+normal/reduced-motion presentation. Ordinary Grid and replacement-search
+presentation stay outside this exception. Retro-mac geometry remains theme
+specific; common D-CARD/P29-01/Korean QA deferrals remain unchanged.
+Task170's exact receipt binds the narrow Q01 card/test owners and frozen Tower
+canonical adoption before writes. Placement implementation/visual checkpoint
+comes first; the same approved scope may continue to Newly/Undo only after
+explicit user Placement visual disposition is durably recorded. This does not
+accept Task170, activate Task171 or reopen accepted Task169.
+
+**Placement review amendment, 2026-10-08:** interpret L5's visible path/direct
+heading requirements through the bounded Placement recipe/DESIGN_TOKENS
+exception. Direct/Staged steps omit visible breadcrumbs while retaining
+destination/path authority and invalidation. Direct choice removes visible
+`Choose a result type`, transfers entry focus to existing `DIRECT PLACEMENT`,
+and places Node/Bit/Cancel in one equal-width horizontal row with exact visible
+unavailable reasons retained below it. Staged confirmation keeps source/result
+title and Node/Bit type; compress retro-mac padding/gaps and theme-role rail
+spacing without deleting pre-Confirm reliability/action reservation or clipping
+copy/controls. Verify changed native focus/Tab/action visibility and internal
+scroll, including 1024px. Common semantics carry to later L5 consumers; no
+other-theme geometry or activation is implied. Preserve original DP-VQ08/09
+receipts, prior Placement evidence and the remaining shared budget.
+
+**Placement action-layout amendment, Cycle4, 2026-10-08:** the later user
+direction supersedes the preceding horizontal Direct action arrangement.
+Stack full-width Node, Bit and visually distinct secondary Cancel vertically.
+For Staged confirmation, group the existing heading/item title/Node-or-Bit
+information on the left and vertically center horizontal Confirm/Cancel
+controls on its right. Keep the reserved reliability area below that pair,
+with the same right-hand state-action slot, full recovery copy, refs, locks,
+logical focus, operations and lifetimes. This is a limited staged spatial
+exception to DP-VQ08, not a deletion of its reservation or state authority.
+Keep path omission, direct heading focus, source/title/limits, shared semantic
+order, column geometry/scroll and static behavior. Staged Result Title and
+direct confirmation arrangements remain outside this refinement. Fresh
+Light/Dark, 1024px native Tab/scroll and reached-state evidence must demonstrate
+the changed composition without silently substituting a lower action footer.
+Common composition is distinct from retro-mac visual values; later theme
+tasks and Newly/Undo remain held. Bind exact owners and Tower draft adoption
+through the matching supplemental scope; earlier evidence remains historical.
+
+**Placement chrome/focus amendment, Cycle5, 2026-10-08:** consume the later
+user-selected screenshot edits for Direct selection and Staged confirmation.
+Direct entry focuses the available Node, otherwise available Bit, otherwise
+Cancel, without implicit selection/advance; retro-mac focused/hovered types
+invert, and Direct Cancel becomes borderless text with hover underline. Both
+selected surfaces use a native heading/close header, realized as a black strip
+in retro-mac. The accessible Cancel placement × shares the existing Cancel
+guard, including pending/unknown/reconciling locks. Emphasize actual titles and
+outline Staged Node/Bit tags. Only Staged confirmation/pending uses Cancel then
+OK; the actual Confirm ref/command and all recovery action/focus contracts
+remain. Retain the right-hand action group, lower full-width reservation,
+natural height/scroll and readable 1024px content without footer fallback or
+neighbor geometry changes. Add only the two central placementPresentation
+labels described by DESIGN_TOKENS; keep all other copy/steps/consumers intact.
+Fresh semantic and native focus/hover/close/state/scroll evidence is required;
+generated images and prototype source observations are design inputs rather
+than mounted verification. No numerical gate or later-theme activation follows.
+
+**Selected Placement frame/layout direction, 2026-10-09:** the later approved
+Direct/final-Staged previews remove automatic Direct button focus; restore
+entry focus to the existing DIRECT PLACEMENT heading while preserving native
+keyboard/hover feedback, disabled reasons and explicit selection. Flush the
+retro-mac black header to its top/left/right inner frame edges, with separate
+visible bracket pairs around the unchanged heading and decorative close glyph.
+Preserve central accessible names and existing Cancel guards/return focus.
+Match Direct's frame to Staged and centralize title/body spacing, with a slightly
+larger Direct title and more title vertical padding. Staged uses title-left /
+right horizontal actions in one aligned row, then a separate lower Node/Bit
+tag row; confirmation/pending remains Cancel then OK with the original refs.
+Add real internal button padding and reduce surplus height without deleting
+the lower pre-Confirm reliability reservation, complete recovery, natural
+growth or target-column scroll. Other steps, copy, card/search/Newly/Undo,
+neighbor geometry and producer authority remain unchanged. Pin the selected
+images and exact Tower bytes in the new scope. Design and exactly one additional
+Cycle6 are approved; preserve five consumed cycles and bind the new single
+cycle to the exact supplemental execution scope without reset.
 
 ### L6 — Completion and Archive
 
@@ -2389,7 +2599,7 @@ checks. Preserve earlier theme assertions. Execute full logical gates. Task
 
 Theme set: `retro-mac`. This phase is proposed and unstarted.
 
-### Task 166: [ ] Fix the common frame and realize Scratch Pool
+### Task 166: [x] Fix the common frame and realize Scratch Pool
 
 **Files and actions:** bind L1's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-166.md` and the declared `task-166-assets/` files. Conditional owner/decision gates remain in force.
 
@@ -2405,9 +2615,9 @@ Theme set: `retro-mac`. This phase is proposed and unstarted.
 
 **Commit contract:** only L1's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize retro-mac frame-pool`. No experimental bytes, broad staging or rewrite.
 
-### Task 167: [ ] Realize Selected Scratch Context and Breakdown
+### Task 167: [x] Realize Selected Scratch Context and Breakdown
 
-**Files and actions:** bind L2's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-167.md` and the declared `task-167-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L2's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-167.md` and the declared `task-167-assets/` files. Conditional owner/decision gates remain in force. The approved [P34-04 Context-geometry supplement](issues/Issues_Phase_34.Task_167.task-scope-context-geometry.json) is the sole exception to L2's retained fixed Context height. The [P34-09 bounded execution supplement](issues/Issues_Phase_34.Task_167.task-scope-created-at.json) connects this task to the exact added implementation/test owners and one additional cycle for the shared SPEC/L1/L2 date contract; it does not limit that product contract to this task or activate later tasks.
 
 **Dependencies:** Task 166 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -2421,7 +2631,7 @@ Theme set: `retro-mac`. This phase is proposed and unstarted.
 
 **Commit contract:** only L2's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize retro-mac context-breakdown`. No experimental bytes, broad staging or rewrite.
 
-### Task 168: [ ] Realize Staging and drag presentation
+### Task 168: [x] Realize Staging and drag presentation
 
 **Files and actions:** bind L3's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-168.md` and the declared `task-168-assets/` files. Conditional owner/decision gates remain in force.
 
@@ -2437,9 +2647,26 @@ Theme set: `retro-mac`. This phase is proposed and unstarted.
 
 **Commit contract:** only L3's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize retro-mac staging`. No experimental bytes, broad staging or rewrite.
 
-### Task 169: [ ] Realize Explorer base and replacement search
+### Task 169: [x] Realize Explorer base and replacement search
 
 **Files and actions:** bind L4's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-169.md` and the declared `task-169-assets/` files. Conditional owner/decision gates remain in force.
+
+**User review direction, 2026-10-07:** consume L4's shared Explorer amendment
+in this task's exact supplemental scope. The user's explicit canonical-write
+instruction makes Tower03 the writer of this bounded canonical reflection;
+the same Working01 retains product/test, receipt/ledger and commit ownership.
+Record and adopt the exact Tower-owned canonical diff without a second
+canonical writer. The reflection does not execute Cycle6, accept Task169,
+close issues or advance Task170.
+
+**Node/Bit review direction, 2026-10-08:** the selected generated-image
+design supersedes only retro-mac ordinary-card exterior targets and the shared
+inter-type group chrome described by L4's new amendment. Tower03 remains the
+bounded canonical-draft writer; Working01 retains receipt/ledger, product/test
+and commit ownership. One exact supplemental scope must pin the actual
+canonical diff and its adoption, four product/test owner actions, narrow Q01
+styling boundary and one Cycle7 before execution. Do not substitute a second
+canonical writer, infer task acceptance/issue closure or start Task170.
 
 **Dependencies:** Task 168 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -2453,11 +2680,271 @@ Theme set: `retro-mac`. This phase is proposed and unstarted.
 
 **Commit contract:** only L4's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize retro-mac explorer-search`. No experimental bytes, broad staging or rewrite.
 
-### Task 170: [ ] Realize Placement followed by Newly/Undo
+### Task 170: [x] Realize Placement followed by Newly/Undo
 
 **Files and actions:** bind L5's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-170.md` and the declared `task-170-assets/` files. Conditional owner/decision gates remain in force.
 
+**User-selected Newly/Undo direction, 2026-10-08:** Task169 stays Accepted
+and its Working stays closed/archive-only. Tower03 writes only the bounded
+DESIGN_TOKENS/EXECUTION_PLAN/Newly-Undo recipe draft; Working170/01 remains
+receipt/ledger, implementation/test, evidence and commit owner. The matching
+whole-file Task170 approval must pin the actual three-file canonical bytes
+and their adoption before product writes, without a second canonical writer.
+The minimal candidate product/test owners are `src/app/globals.css`,
+`src/components/triage/hierarchy-explorer.tsx` and its direct test,
+`src/components/grid/node-card.tsx` and its direct test,
+`src/components/grid/bit-card.tsx` and its direct test,
+`src/components/triage/triage-workspace.test.tsx`, and
+`src/components/triage/inbox-triage-theme-realization.test.tsx` (nine paths).
+Actual card source/tests are the conditional Q01 extension for only ordinary
+Finder composition/actions. Workspace implementation, replacement-search
+implementation/direct test and shared tooltip primitive are preservation
+inputs; a demonstrated additional write needs an exact owner expansion first.
+Execute Placement to its user visual checkpoint before any Newly/Undo change.
+Both stages share the separately approved Task170 cycle budget without reset;
+Task169's seven consumed cycles and every failure/unverified/deferred record
+remain historical. Task170 stays `[ ]` pending separate user acceptance.
+
 **Dependencies:** Task 169 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
+
+**Placement checkpoint revision, 2026-10-08:** the user's requested heading/
+breadcrumb removal, equal-width direct actions and compact staged confirmation
+are targeted Placement feedback, not Placement visual approval. Tower03 authors
+only the bounded DESIGN_TOKENS/EXECUTION_PLAN/Placement recipe draft; the same
+Working170/01 adopts exact separately pinned bytes and owns receipt/ledger,
+product/test/evidence writes and commits. Existing Placement owners remain the
+candidate write set; discovery grants no expansion. Two of three shared cycles
+are already consumed. Use only the remaining approved cycle for the targeted
+repair, re-present Placement and hold Newly/Undo. If the budget is exhausted,
+an exact one-cycle request/disposition is required before further repair or
+Newly/Undo; no reset, automatic extension or acceptance follows from feedback.
+
+**Cycle4 action-layout direction and budget, 2026-10-08:** the user confirmed
+the ASCII interpretation of Direct Node/Bit/Cancel stacking and Staged
+left-information/right-actions, then explicitly approved one additional cycle
+("추가 cycle은 내가 승인할게"). Preserve the initial three consumed cycles;
+Cycle4 is exactly one additional Placement revision cycle, with no reset.
+Tower03 authors only the bounded DESIGN_TOKENS/EXECUTION_PLAN/Placement recipe
+draft; Working170/01 remains the sole receipt/ledger/product/test/evidence and
+commit writer. The five existing Placement product/test owners remain the
+candidate write set; pin each current input and the actual three-file draft
+and ordered diff in one supplemental whole-file scope before adoption and
+affected implementation. Record the already received direction and cycle
+approval without requesting them again. This does not approve unpinned
+canonical bytes, Placement visual acceptance, Newly/Undo execution, Cycle5,
+Task170 acceptance or closure. Re-present the revised Placement checkpoint
+and stop with Task170 [ ] and the same Working active awaiting disposition.
+
+**Cycle5 chrome/focus direction and budget, 2026-10-08:** the user selected
+both revised images and said "이렇게 진행하자. 추가 cycle 승인할게."
+The four consumed cycles remain historical; Cycle5 is exactly one additional
+Placement cycle, without reset, Cycle6 or Newly/Undo execution. Tower03 authors
+only the three-file DESIGN_TOKENS/EXECUTION_PLAN/Placement recipe draft.
+Working170/01 prepares the exact supplemental receipt and remains the sole
+implementation/test/evidence/commit writer. The bounded candidate owner set
+is the existing five Placement paths plus src/lib/copy/inbox-triage.ts and
+src/lib/copy/inbox-triage.test.ts for the two new central labels and their
+preservation test. Pin current blobs, both generated-image identities and
+exact Tower draft/diff bytes in the new whole-file scope; the extra-cycle
+approval does not itself authorize those two owner additions or draft adoption.
+Record design/Cycle5 approval as already received. Re-present Placement and
+stop at Task170 [ ] / same Working active awaiting user disposition, preserving
+all previous failures, limits, acceptance and protected WIP. Task169 remains
+Accepted/archive-only; Task171, task acceptance and closure are not activated.
+
+**Cycle6 frame/layout direction and budget, 2026-10-09:** after Cycle5 checkpoint
+the user selected the revised Direct preview and final Staged preview with
+"괜찮네. 이렇게 작업하자." The user then answered "승인합니다" to the exact
+request for one additional Cycle6. Record both approvals as received; neither
+is visual acceptance of the current implementation. Five cycles are consumed;
+Cycle6 adds exactly one unconsumed cycle without reset, ending aggregate6 /
+remaining0 on completion. Tower03 authors only DESIGN_TOKENS/EXECUTION_PLAN/
+Placement recipe draft. Working170/01 stays the sole receipt/ledger/product/
+test/evidence/commit owner. The candidate implementation write set returns to
+the five Placement paths; central copy source/test and all other excluded
+owners remain unchanged. Pin the actual current blobs, both selected preview
+hashes and exact Tower whole-file/ordered-diff bytes in one supplemental scope.
+Do not reselect or request approval of the fixed design or Cycle6 again. No
+product/test or runtime execution occurs before the matching exact scope
+receipt and audited adoption. The extra cycle does not grant unpinned bytes,
+additional owners, Cycle7 or Newly/Undo execution.
+Re-present only Placement after the bounded revision; Task170 [ ], same
+Working active awaiting disposition, Newly/Undo held. Preserve Cycle5's
+failures, long-Direct initial Cancel visibility and narrow recovery wrapping,
+all prior limitations and protected WIP; no automatic issue closure follows.
+
+**Cycle7 visual-audit correction draft, 2026-10-10:** Cycle6 checkpoint is not
+visually accepted; aggregate6 remains consumed. The user's latest direction
+replaces color-regression diagnosis/restoration with directly setting Finder
+Node/Bit default surfaces to the same white Light surface as Staging items
+(corresponding Staging surface in Dark), and adds removal of the enclosing
+Finder wrapper border/outline/ring around Placement plus cards. Keep each
+modal/card/tag's own frame and native focus indicators. The added width
+amendment makes both Direct and Staged Placement match the owning
+Finder Node/Bit card width and left/right edges by removing modal-only inline
+gutters, without resizing columns/cards or changing their scroll owner. Keep
+responsive width, natural content growth and no horizontal overflow. The other
+corrections remain: common selected Direct Node/Bit confirmation frame and
+Cancel-OK/tag hierarchy, same-size header glyphs, drag feedback above card
+paint with unchanged hit testing, and unavailable Staged destinations in
+Return to Breakdown red. Exactly one Cycle7 is already approved by "Cycle은
+1회도 승인할게"; record approved1/unconsumed, without reset or asking again.
+Tower03 authors only DESIGN_TOKENS/EXECUTION_PLAN/Placement recipe drafts.
+Working170/01 remains sole receipt/ledger/product/test/evidence/commit writer
+after the matching supplemental scope receipt and audited adoption. The five
+candidate files remain unchanged; declare internal scope for Direct
+confirmation, scoped Finder surfaces and necessary ExplorerColumn/NodeDropCell
+drag/wrapper paint. Actual card sources/tests, copy, producers/helpers,
+Workspace source and pane geometry remain read-only. Pin current owner blobs
+and exact Tower bytes/diff; needed additional owners stop the affected slice.
+Prepare a concise complete supplemental receipt, referencing immutable prior
+preservation/evidence records by path/commit/hash rather than copying full
+history. This presentation improvement does not alter installed workflow
+policy or exact approval semantics. Require fresh Direct Node/Bit confirmation,
+modal/card inline-width alignment, Finder/Staging default-surface equality,
+absent wrapper outline and native
+drag/drop/exit cleanup evidence, invalidated gates and output-owner guards.
+Revalidate the independent dev consumer before runtime use. Stop at the bounded
+Placement/Finder-feedback checkpoint, Task170 [ ], same Working active awaiting
+disposition, Newly/Undo held; completed aggregate7/remaining0, no Cycle8,
+acceptance or closure.
+
+**Additional Cycle7 Staged layout direction:** reduce the Staged confirmation
+modal's minimum-height floor to 70% of its current baseline, remove hover-only
+visual changes from its body Cancel/OK controls, and modestly enlarge their
+font size and actual internal block/inline padding. Record the current minimum
+contributors and idle baseline, then the actual changed values and rendered
+height; natural full-content growth is not an exact 70% height claim. Preserve
+the card-aligned width, title-left/right-centered horizontal Cancel-OK row,
+independent lower type tag, nonzero full-width reliability reservation,
+disabled/lock states and native keyboard focus indicator. Check containment,
+title readability, gaps and native action access at 1920/1024 Light/Dark as
+part of the same approved Cycle7. No clipping, fixed maximum height, footer
+fallback, Direct-selection hover redesign, recovery-action hover amendment,
+additional owner or extra cycle follows from this layout direction.
+
+**Deferred workflow review after Cycle7:** the user wants to inspect the
+actual Working supplemental receipt before discussing further receipt
+compaction. Tower should compare its size, required approval fields, inherited
+contracts and duplicate evidence, then propose a concrete policy improvement.
+After the Cycle7 execution/checkpoint, evaluate whether a preapproved UI
+revision batch budget can replace repeated one-cycle requests using actual
+scope, failures, trend and review boundaries. This is a later workflow review,
+not additional current cycles, a budget reset or a live skill-policy edit.
+
+**Final visual-refinement batch direction, 2026-10-12:** after the Newly/Undo
+checkpoint at f3e04607d6e0aa042344d141cd153e8d8bc77904, the user confirmed
+findings 1-8, selected the taller-Node image and said "승인할테니 진행" to
+continuing in this same Working with at most three additional cycles. Design
+and that maximum budget are already approved; do not request them again.
+Preserve aggregate10 consumed. The bounded batch may use cycles11-13 only as
+needed, recording aggregate10+actual-used and remaining3-actual-used; no reset,
+automatic Cycle14 or repeated per-cycle scope/start approval inside the approved
+owners/design/budget. The exact supplemental owner/adoption/receipt/commit
+contract must still be prepared and approved before Working writes.
+
+The eight selected changes are: (1) enlarge ordinary Finder Node bodies around
+the unchanged Undo control while preserving width/tab/contour and default
+consumers; (2) center Node NEW in that enlarged body; (3) remove the Staged-Node
+unavailable paint on Level-2 Node cards while retaining Level-3 unavailable
+feedback and original invalid-drop semantics; (4) use ordinary diagonal DND
+pattern/border with red-family background for the named unavailable states;
+(5) cover actual Bit card paint with allowed/unavailable row feedback and
+restore it on native drag cleanup; (6) extend diagonal Return-to-Breakdown
+feedback over the complete body below the section header, retaining red on
+entry; (7) give Remove from Staging in-flow space, reducing Nodes/Bits viewports
+without scaling internal cards; (8) slightly enlarge the Direct/Staged header
+close glyph while preserving native cancellation/focus/lock contracts.
+
+Tower03 authors only the bounded DESIGN_TOKENS/EXECUTION_PLAN/Newly-Undo recipe/
+Placement recipe draft; Working170/01 remains the sole receipt/ledger/product/
+test/evidence/commit writer. Candidate owners are the previous nine Newly/Undo
+paths plus breakdown-panel.tsx, breakdown-panel.test.tsx and the narrowly
+scoped triage-workspace.tsx display layout. The latter previously read-only
+source is eligible only for TriageRemoveDropTarget and its enclosing Staging
+layout; no Workspace observer/producer/command/helper redesign is activated.
+Breakdown source scope is only return-overlay extent/style/necessary body roles,
+with existing return/drop/ref/operation/editor behavior preserved. Finder source
+scope adds NodeDropCell/ExplorerColumn paint roles and PlacementAffordance close
+presentation. Card writes stay within ordinary inbox-explorer presentation;
+stage only actual changed files. Discovery of another necessary owner stops
+before that write and is reported with its concrete reason. StagingZone source,
+hooks/repository/schema/copy/config and ordinary Grid/search stay read-only.
+
+Pin current inputs, the selected image, exact four draft bytes and ordered diff
+in one compact supplemental receipt with immutable prior-contract/evidence
+references. Adopt in one exact receipt+ledger+four-canonical start commit;
+record Reflected only after its matching immediate audit and committed new
+gate/action resolver. Existing receipts and the Placement disposition c4f30214
+remain immutable; this later scoped refinement does not revoke historical
+acceptance or mark the new implementation visually approved.
+
+Record pre-RED producer/render/command/ref/drop/scroll seams and the bounded
+hypothesis. Each product reproduce/repair loop consumes one of the three
+approved cycles. Record observer-only corrections separately when the product
+source and guarded build output are unchanged; preserve raw failure evidence,
+rerun every invalidated observer/fingerprint and impose an explicit bounded
+correction allowance in the receipt. A product correction is not an observer
+correction. No-progress (same signature across two consecutive cycles with a
+nonshrinking failure set), material variance, scope/design/owner expansion or
+budget exhaustion stops affected execution.
+
+Fresh direct-owner/regression and native 1920/1024 Light/Dark normal/reduced
+checks must exercise Node/Undo containment and painted-body NEW center,
+Level-2 suppression/Level-3 retention, allowed/unavailable Bit occlusion and
+cleanup, header-excluded Breakdown extent, in-flow Remove target/card-size
+preservation and close-glyph visibility/Cancel locks. Preserve logical targets,
+drop predicates, collision algorithm, focus and actual commands; measure the
+intended changed card/viewport rectangles rather than promising unchanged
+geometry. Observe native drag entry/exit/drop/cancel and fresh build delivery;
+semantic role tests do not establish pixels or native reachability. Keep all
+708 existing captures/26 raw runs and previous failures/limits/unverified/
+deferrals. Re-present the changed surfaces after audited implementation and
+stop at Task170 [ ] / same Working active awaiting user disposition. No task
+acceptance, Task171, Working/Tower closure, topology change or publication.
+
+**Bit/Return follow-up after Cycle12, 2026-10-12:** the user reported the
+enlarged Node satisfactory at checkpoint34dc7addebd95c052a49ec87b08d179bbde81a93
+and requested a common Finder Bit base using the NEW/Undo version, plus green
+Return-to-Breakdown feedback. Record targeted feedback, not Task170 acceptance.
+Current aggregate12, product remaining1/Cycle13 unused; observer used1/remaining1.
+Use only that existing unused allowance, without another cycle-budget request
+or reset. A new exact display-scope/canonical-adoption supplement is required
+because the earlier receipt preserved Bit dimensions and required Return red.
+Do not reselect the two explicit user directions or rewrite the old receipt.
+
+Unify ordinary inbox-explorer Bit frame/minimum height/body spacing/alignment
+across NEW/Undo-present and absent states using the current NEW/Undo baseline.
+Keep marker/action conditional on actual provenance/eligibility; no fabricated
+NEW, Undo or result. Preserve metadata, natural growth, unavailable/terminal/
+tooltip/action/ref/operation/focus semantics, current Node geometry and default
+Grid/search/other-region presentation. Give Return a green background/ink role
+with its current diagonal/header-excluded extent and native commands. Retain
+Finder unavailable red by separating its current alias to the Return token;
+do not recolor prohibited destinations or change drop predicates/targets.
+
+Tower03 writes only the bounded same four DESIGN_TOKENS/EXECUTION_PLAN/Newly-Undo/
+Placement recipe drafts. Working170/01 owns the supplemental receipt/ledger,
+matching start/adoption and all product/test/evidence commits. Necessary write
+candidates are a subset of the existing12 owners: scoped globals.css, ordinary
+BitContextRow/BitCard presentation and direct tests, theme realization and
+direct return/Workspace regression assertions as needed. Existing other-owner
+limits remain; no Workspace observer, producer, hook/db/schema/copy/helper or
+StagingZone change follows. Freeze current pins/draft4/ordered diff and inherit
+the prior exact budgets, observer cap, history/isolation/commit rules; one exact
+receipt+ledger+four-canonical start, Reflected only after matching audit and
+committed gate/action resolver. Preserve all933 captures/30 runs and failures.
+
+Fresh native comparisons must cover Bits with/without NEW/Undo and
+metadata/status/long-title variants at1920/1024 Light/Dark normal/reduced,
+green Return versus red unavailable in the same guarded build, true return/
+invalid-drop/cancel cleanup, and unchanged Node/Placement/Remove contracts.
+Do not infer a complete recovery matrix or invent native operation IDs. A
+concrete required repair beyond Cycle13 or outside the existing owner/design
+scope stops; observer allowance remains one correction/one fresh invalidated
+rerun under the existing unchanged-product constraints. Re-present Task170
+[ ] / same Working active awaiting user disposition. No acceptance, Cycle14,
+Task171, Working/Tower closure, topology or publication.
 
 **Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L5; UF-19–25/29, its AF/NEG constraints and no-storage boundary.
 

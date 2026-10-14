@@ -350,6 +350,27 @@ function makeDragItem(kind: TriageDragItem extends null ? never : NonNullable<Tr
 }
 
 describe("StagingZone — drop zone state classes", () => {
+  it.each(["node", "bit"] as const)("tracks actual %s hover separately from staged neutral state and clears it on exit", (type) => {
+    const activeDragItem = makeDragItem(type === "node" ? "triage-staged-node" : "triage-staged-bit");
+    const { rerender } = render(<StagingZone type={type} activeDragItem={activeDragItem} overTargetId={null} />);
+    const zone = screen.getByTestId(`${type}-staging-zone`);
+    expect(zone).toHaveAttribute("data-triage-state", "neutral");
+    expect(zone).toHaveAttribute("data-triage-hover", "false");
+    rerender(<StagingZone type={type} activeDragItem={activeDragItem} overTargetId={`triage-${type}-zone-drop`} />);
+    expect(zone).toHaveAttribute("data-triage-state", "neutral");
+    expect(zone).toHaveAttribute("data-triage-hover", "true");
+    rerender(<StagingZone type={type} activeDragItem={activeDragItem} overTargetId={null} />);
+    expect(zone).toHaveAttribute("data-triage-hover", "false");
+  });
+
+  it.each(["node", "bit"] as const)("retains unavailable meaning when the opposite staged type hovers over %s", (type) => {
+    render(<StagingZone type={type} activeDragItem={makeDragItem(type === "node" ? "triage-staged-bit" : "triage-staged-node")} overTargetId={`triage-${type}-zone-drop`} />);
+    const zone = screen.getByTestId(`${type}-staging-zone`);
+    expect(zone).toHaveAttribute("data-triage-state", "unavailable");
+    expect(zone).toHaveAttribute("data-triage-hover", "true");
+    expect(zone).toHaveClass("cursor-not-allowed");
+  });
+
   it("Node Zone shows valid state when a breakdown row hovers over it", () => {
     render(
       <StagingZone
@@ -551,5 +572,23 @@ describe("StagingZone — DP-VQ06-STAGING state projection", () => {
       />,
     );
     expect(screen.getByText("This item is no longer available.")).toBeInTheDocument();
+  });
+});
+
+
+describe("L3 semantic state distinctions", () => {
+  it.each(["node", "bit"] as const)("keeps cancelled %s source invalidation from presenting an active target", type => {
+    render(<StagingZone type={type} activeDragItem={{ ...makeDragItem("triage-breakdown")!, integrity: "invalidated" }} overTargetId={null} />);
+    expect(screen.getByTestId(`${type}-staging-zone`)).toHaveAttribute("data-triage-state", "idle-invalid");
+    expect(screen.queryByText("This item is no longer available.")).not.toBeInTheDocument();
+  });
+  it.each(["node", "bit"] as const)("keeps %s same-type neutral, opposite-type unavailable and invalidated separate", type => {
+    const dropId = `triage-${type}-zone-drop`;
+    const view = render(<StagingZone type={type} activeDragItem={makeDragItem(`triage-staged-${type}`)} overTargetId={dropId} />);
+    expect(screen.getByTestId(`${type}-staging-zone`)).toHaveAttribute("data-triage-state", "neutral");
+    view.rerender(<StagingZone type={type} activeDragItem={makeDragItem(type === "node" ? "triage-staged-bit" : "triage-staged-node")} overTargetId={dropId} />);
+    expect(screen.getByTestId(`${type}-staging-zone`)).toHaveAttribute("data-triage-state", "unavailable");
+    view.rerender(<StagingZone type={type} activeDragItem={{ ...makeDragItem("triage-breakdown")!, integrity: "invalidated" }} overTargetId={dropId} />);
+    expect(screen.getByTestId(`${type}-staging-zone`)).toHaveAttribute("data-triage-state", "invalid");
   });
 });

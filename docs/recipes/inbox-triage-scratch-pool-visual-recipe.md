@@ -16,7 +16,7 @@
 
 - Expanded Pool reads as one tools region above one list. Identity, all-active count, collapse, title search, and created-at sort belong together; search and sort share a row.
 - The header/collapsed count always means all active Scratches. Filtered result count is separate and only appears while searching.
-- Expanded rows keep title and created-at metadata. Collapsed controls are vertical in identity/count → toggle → switchers order, with accessible names and non-color-only selected distinction.
+- Expanded rows keep title and created-at metadata under [SPEC — Scratch Pool and Context creation-date metadata](../SPEC.md#scratch-pool-and-context-creation-date-metadata), shared with Context in every current and subsequent theme/phase. Collapsed controls are vertical in identity/count → toggle → switchers order, with accessible names and non-color-only selected distinction.
 - Search and sort are absent from collapsed presentation, and no hidden filter is applied to compact switchers or total count.
 - Scrollbar chrome is hidden while wheel, trackpad/touch, and keyboard scrolling remain.
 - Pool labels observed as `Scratches` in Claymorphism and Origami are source facts only; the adopted semantic visible identity remains `Scratch Pool` because no alternate Pool name was selected.

@@ -22,9 +22,9 @@ export function formatRelativeTime(timestamp: number): string {
   }
 
   const date = new Date(timestamp);
-  const month = date.getMonth() + 1;
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = date.getDate();
   const year = String(date.getFullYear() % 100).padStart(2, "0");
 
-  return `${month}/${day}/${year}`;
+  return `${day}/${month}/${year}`;
 }

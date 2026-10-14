@@ -37,6 +37,11 @@ The prototype is Design Source only. Its routes, local state, handlers, copy, an
 - Preserve the four semantic areas: Scratch Pool, Breakdown, Staging, and Grid Explorer.
 - Preserve main-work vertical `60/40`, Breakdown/Staging horizontal `60/40`, and Staging Node/Bit `35/65`. A route-local ratio that differs is observation, not adoption.
 - Restore visible section identity as theme chrome. The semantic names remain `Scratch Pool`, `Breakdown`, `Staging`, and `Grid Explorer`; only Tiny Desk `Library Index`, Retro Mac `Finder`, and Terminal `GRID EXPLORER` are approved alternate Grid labels.
+- The user-selected Task 169 review amendment (2026-10-07) gives every theme
+  one Explorer header row: native icon/identity left, dedicated search control
+  right, no persistent breadcrumb/path row or second search toolbar. Consume
+  the [Explorer amendment](inbox-triage-grid-explorer-visual-recipe.md#user-selected-shared-consumer-amendment--2026-10-07)
+  for input/body placement; preserve other section chrome and accepted ratios.
 - Preserve internal scrolling while hiding scrollbar chrome on the Pool list, Breakdown list, both Staging subsections, and every Explorer column.
 - Keep one information and interaction contract. Theme differences flow through semantic attributes, variables/classes, or theme-realization components, never theme-ID branches in product components.
 - Section chrome does not authorize an unsupported replacement body. In particular it is not a fallback for `VQ-01/03/04/07/09`.
@@ -103,3 +108,30 @@ The prototype is Design Source only. Its routes, local state, handlers, copy, an
 - Excluded: route duplication, inline mock architecture, review controls, focus-collapse handlers, internal staging handles, keyboard-grab mechanics, repeated pulse/blink, and route-local mutations.
 - Source inspection confirms declarations and structure only. It does not verify contrast, depth, layering, clipping, overflow, rasterized geometry, scrolling, responsive behavior, motion, light/dark parity, or any combined outcome.
 - Declared review context is a populated workspace at `1920x1080`; it was not rendered in this pass.
+
+## Task 166-only adopted desktop menu supplement — 2026-10-04
+
+This separate user-approved supplement extends only retro-mac Task 166's L1
+common frame. The original extraction snapshot and prior receipts remain
+historical and unchanged. Approval owner:
+`docs/issues/Issues_Phase_34.Task_166.task-scope-desktop-menu.json`.
+Design Source pin: HEAD `4f39709688ceb4cac5e15d4e3502186b1f1c801b`, tree
+`7b8eb8766a9b57fe2174a948de09cfb7646cf7de`, retro route `:836-850`.
+
+- One decorative desktop menu spans the workspace content width above Pool,
+  Breakdown and Staging. Existing product navigation remains available.
+- Adopt 32px bar height, 16px lower gap and inline padding, 2px border,
+  4px radius, 2px hard offset shadow, 11px bold Space Mono family and 14px
+  Monitor decoration. Menu labels are File / Edit / View / Label / Special;
+  the trailing visual clock is the fixed literal 12:00 PM.
+- It is aria-hidden, noninteractive decoration: no menu/button/timer semantics,
+  event handlers, hover actions, clock updates or Tab stops.
+- Shared DOM consumes desktop-menu-bar / desktop-menu-label /
+  desktop-menu-clock roles and central --triage-desktop-menu-* aliases.
+  Only retro-mac displays it; other themes reserve no space.
+- Remaining body height retains main/Explorer 60/40, Breakdown/Staging 60/40
+  and Node/Bit 35/65. Preserve Pool controls/state/focus/scroll, DP-VQ01 and
+  DP-VQ06-POOL. Fresh geometry/clipping/recovery and other-theme leakage
+  evidence is required; source declarations alone are not rendered proof.
+- This does not adopt menus for other theme tasks, revise neighboring bodies,
+  resolve Q02 Tagged, alter completed receipts or grant Task acceptance.

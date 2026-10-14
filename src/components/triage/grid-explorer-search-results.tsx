@@ -8,6 +8,7 @@ import {
   useRef,
   type ChangeEvent,
   type KeyboardEvent,
+  type ReactNode,
   type UIEvent,
 } from "react";
 import type {
@@ -20,6 +21,7 @@ import { NODE_ICON_MAP } from "@/lib/constants/node-icons";
 import type { GridExplorerSearchResult } from "@/lib/utils/grid-explorer-search";
 
 export interface GridExplorerSearchResultsProps {
+  renderHeader?: (control: ReactNode) => ReactNode;
   feedback: GridExplorerSearchFeedback;
   focusTarget: GridExplorerSearchFocusTarget;
   query: string;
@@ -128,6 +130,7 @@ function SearchResultUndo({
         aria-atomic="true"
         aria-live="polite"
         className="newly-status-rail col-span-2"
+        data-triage-role="explorer-search-undo-status"
         data-undo-state={undo.state}
         role="status"
       >
@@ -145,6 +148,7 @@ function SearchResultUndo({
 }
 
 export function GridExplorerSearchResults({
+  renderHeader,
   feedback,
   focusTarget,
   query,
@@ -215,13 +219,8 @@ export function GridExplorerSearchResults({
     }
   }
 
-  return (
-    <div
-      className="explorer-search-body"
-      data-testid="explorer-search-body"
-      data-triage-role="explorer-search-body"
-    >
-      <div className="explorer-search-field">
+  const field = (
+      <div className="explorer-search-field" data-triage-role="explorer-search-find-strip">
         <input
           ref={inputRef}
           aria-label={INBOX_TRIAGE_COPY.explorerSearch.placeholder}
@@ -245,6 +244,17 @@ export function GridExplorerSearchResults({
           <X aria-hidden="true" className="h-4 w-4" />
         </button>
       </div>
+  );
+
+  return (
+    <>
+      {renderHeader === undefined ? field : renderHeader(field)}
+    <div
+      className="explorer-search-body"
+      data-testid="explorer-search-body"
+      data-triage-role="explorer-search-body"
+    >
+
       <div
         aria-label="Explorer search status"
         aria-atomic="true"
@@ -286,6 +296,7 @@ export function GridExplorerSearchResults({
                   : "explorer-search-result-item grid grid-cols-[minmax(0,1fr)_auto] gap-2"
               }
               data-undo-state={resultUndo?.state}
+              data-triage-role="explorer-search-result-shell"
               key={result.key}
             >
               <button
@@ -353,5 +364,6 @@ export function GridExplorerSearchResults({
         })}
       </ul>
     </div>
+    </>
   );
 }

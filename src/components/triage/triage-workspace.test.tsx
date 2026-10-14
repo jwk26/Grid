@@ -139,6 +139,7 @@ vi.mock("@/components/triage/scratch-pool", async () => {
   return {
     ScratchPool: () => (
       <div data-testid="scratch-pool">
+        <h2 id="triage-scratch-pool-heading" data-triage-role="section-header" tabIndex={-1}>Scratch Pool</h2>
         {[
           ["scratch-2", "Second Scratch"],
           ["scratch-3", "Third Scratch"],
@@ -528,7 +529,7 @@ beforeEach(() => {
     pendingOperations: [],
     unknownOperations: [],
     reconcilingOperations: [],
-    counts: { nodes: 0, bits: 0 },
+    counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
     eligibility: { stagedSourceIds: new Set<string>() },
     stageCandidate: stageCandidateMock,
     reconcileStageCandidate: reconcileStageCandidateMock,
@@ -868,7 +869,7 @@ describe("TriageWorkspace", () => {
         },
       ],
       reconcilingOperations: [],
-      counts: { nodes: 1, bits: 0 },
+      counts: { nodes: 1, bits: 0, visibleNodes: 1, visibleBits: 0 },
       eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -1009,7 +1010,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 0 },
+      counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
       eligibility: { stagedSourceIds: new Set<string>() },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -1045,7 +1046,7 @@ describe("TriageWorkspace", () => {
           },
         },
       ],
-      counts: { nodes: 1, bits: 0 },
+      counts: { nodes: 1, bits: 0, visibleNodes: 1, visibleBits: 0 },
     });
     view.rerender(<TriageWorkspace node={createNode()} />);
 
@@ -1069,7 +1070,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 0 },
+      counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
       eligibility: { stagedSourceIds: new Set<string>() },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -1109,7 +1110,7 @@ describe("TriageWorkspace", () => {
           source: { version: 1 },
         },
       ],
-      counts: { nodes: 1, bits: 0 },
+      counts: { nodes: 1, bits: 0, visibleNodes: 1, visibleBits: 0 },
     });
     view.rerender(<TriageWorkspace node={createNode()} />);
 
@@ -1222,7 +1223,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 1 },
+      counts: { nodes: 0, bits: 1, visibleNodes: 0, visibleBits: 1 },
       eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -1264,7 +1265,7 @@ describe("TriageWorkspace", () => {
     useStagedCandidatesMock.mockReturnValue({
       ...projection,
       candidates: [],
-      counts: { nodes: 0, bits: 0 },
+      counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
     });
     view.rerender(<TriageWorkspace node={createNode()} />);
 
@@ -1735,9 +1736,39 @@ describe("TriageWorkspace", () => {
       expect(heading).toHaveAttribute("data-triage-role", "section-header");
     }
 
+    const explorerRegion = within(workspace).getByRole("region", { name:"Grid Explorer" });
+    const explorerHeading = within(explorerRegion).getByRole("heading", { name:"Grid Explorer" });
+    expect(explorerHeading.closest('[data-triage-role="explorer-header"]')).toContainElement(within(explorerRegion).getByRole("button", {name:"Search Explorer"}));
+    expect(within(explorerRegion).getAllByRole("heading", {name:"Grid Explorer"})).toHaveLength(1);
     expect(screen.getByTestId("hierarchy-explorer")).toBeInTheDocument();
     expect(screen.getByTestId("node-staging-zone")).toBeInTheDocument();
     expect(screen.getByTestId("bit-staging-zone")).toBeInTheDocument();
+  });
+
+  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("mounts one noninteractive desktop decoration in the shared tree under %s", (theme) => {
+    document.documentElement.dataset.colorTheme = theme;
+    render(<TriageWorkspace node={createNode()} />);
+    const workspace = screen.getByTestId("triage-workspace");
+    const bars = workspace.querySelectorAll('[data-triage-role="desktop-menu-bar"]');
+    expect(bars).toHaveLength(1);
+    const bar = bars[0];
+    expect(bar).toHaveAttribute("aria-hidden", "true");
+    expect([...bar.querySelectorAll('[data-triage-role="desktop-menu-label"]')].map(e => e.textContent)).toEqual(["File", "Edit", "View", "Label", "Special"]);
+    expect(bar.querySelector('[data-triage-role="desktop-menu-clock"]')).toHaveTextContent("12:00 PM");
+    expect(bar.querySelectorAll('button, a, input, [tabindex], [role="menu"], [role="menuitem"], [role="timer"]')).toHaveLength(0);
+    expect(bar.compareDocumentPosition(screen.getByTestId("scratch-pool")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    document.documentElement.removeAttribute("data-color-theme");
+  });
+
+  it("keeps the desktop clock literal across rerenders without replacing workflow regions", () => {
+    const node = createNode();
+    const { rerender } = render(<TriageWorkspace node={node} />);
+    const pool = screen.getByTestId("scratch-pool");
+    const context = screen.getByTestId("selected-scratch-context");
+    rerender(<TriageWorkspace node={{ ...node, title: "Updated workspace title" }} />);
+    expect(document.querySelector('[data-triage-role="desktop-menu-clock"]')).toHaveTextContent("12:00 PM");
+    expect(screen.getByTestId("scratch-pool")).toBe(pool);
+    expect(screen.getByTestId("selected-scratch-context")).toBe(context);
   });
 
   it("declares the approved shell ratios, desktop minimum, and hidden-scroll viewports", () => {
@@ -1767,9 +1798,58 @@ describe("TriageWorkspace", () => {
     ).toHaveLength(5);
   });
 
+  it.each(["node", "bit"] as const)("delivers A visible counts for %s through projection, overlap, terminal gap and Unstage retention", (type) => {
+    const label = type === "node" ? "Nodes" : "Bits";
+    const project = (visible: number, phase?: "pending" | "unknown" | "reconciling") => ({
+      candidates: [], integrityCandidates: [],
+      counts: { nodes: type === "node" ? 1 : 0, bits: type === "bit" ? 1 : 0,
+        visibleNodes: type === "node" ? visible : 0, visibleBits: type === "bit" ? visible : 0 },
+      pendingOperations: phase === "pending" ? [{ kind: "stage", operationId: "local-stage", candidateId: "projected", resultType: type }] : [],
+      unknownOperations: phase === "unknown" ? [{ kind: "stage", operationId: "local-stage", candidateId: "projected", resultType: type }] : [],
+      reconcilingOperations: phase === "reconciling" ? [{ kind: "stage", operationId: "local-stage", candidateId: "projected", resultType: type }] : [],
+    });
+    useStagedCandidatesMock.mockReturnValue(project(2, "pending"));
+    const view = render(<TriageWorkspace node={createNode()} />);
+    for (const phase of ["pending", "unknown", "reconciling"] as const) {
+      useStagedCandidatesMock.mockReturnValue(project(2, phase));
+      view.rerender(<TriageWorkspace node={createNode()} />);
+      expect(screen.getByRole("heading", { level: 3, name: `2 ${label}` })).toBeInTheDocument();
+    }
+    // Authoritative overlap is already deduplicated by the preservation hook.
+    useStagedCandidatesMock.mockReturnValue(project(2));
+    view.rerender(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByRole("heading", { name: `2 ${label}` })).toBeInTheDocument();
+    // Terminal-before-liveQuery may remove the projection before delivery.
+    useStagedCandidatesMock.mockReturnValue(project(1));
+    view.rerender(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByRole("heading", { name: label })).toBeInTheDocument();
+    useStagedCandidatesMock.mockReturnValue(project(2));
+    view.rerender(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByRole("heading", { name: `2 ${label}` })).toBeInTheDocument();
+    expect(stageCandidateMock).not.toHaveBeenCalled();
+    expect(unstageCandidateMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["node", "bit"] as const)("returns empty remote-arrival activation to the affected %s subsection", async (type) => {
+    const candidate = { id: "arrival", resultType: type, content: "New candidate" };
+    const state = (candidates: typeof candidate[]) => ({ isReady: true, candidates, integrityCandidates: [],
+      counts: { nodes: type === "node" ? candidates.length : 0, bits: type === "bit" ? candidates.length : 0,
+        visibleNodes: type === "node" ? candidates.length : 0, visibleBits: type === "bit" ? candidates.length : 0 } });
+    useStagedCandidatesMock.mockReturnValue(state([]));
+    const view = render(<TriageWorkspace node={createNode()} />);
+    useStagedCandidatesMock.mockReturnValue(state([candidate]));
+    view.rerender(<TriageWorkspace node={createNode()} />);
+    const action = await screen.findByRole("button", { name: `Show new ${type === "node" ? "Nodes" : "Bits"}` });
+    // The currently observed DOM no longer contains the arrived candidate.
+    document.querySelector('[data-candidate-id="arrival"]')?.remove();
+    fireEvent.click(action);
+    expect(screen.getByRole("heading", { name: type === "node" ? "Nodes" : "Bits" })).toHaveFocus();
+    expect(stageCandidateMock).not.toHaveBeenCalled();
+  });
+
   it("prefixes subsection headings only when authoritative type counts reach two", () => {
     useStagedCandidatesMock.mockReturnValue({
-      counts: { nodes: 2, bits: 3 },
+      counts: { nodes: 2, bits: 3, visibleNodes: 2, visibleBits: 3 },
     });
 
     render(<TriageWorkspace node={createNode()} />);
@@ -1785,7 +1865,7 @@ describe("TriageWorkspace", () => {
 
   it("keeps bare subsection headings at zero or one authoritative candidate", () => {
     useStagedCandidatesMock.mockReturnValue({
-      counts: { nodes: 1, bits: 0 },
+      counts: { nodes: 1, bits: 0, visibleNodes: 1, visibleBits: 0 },
     });
 
     render(<TriageWorkspace node={createNode()} />);
@@ -1817,7 +1897,8 @@ describe("TriageWorkspace", () => {
       document.querySelector(
         '[aria-label="Drop staged item here to remove from staging"]',
       ),
-    ).toHaveClass("h-12", "motion-safe:animate-jiggle");
+    ).toHaveAttribute("data-triage-role", "staging-unstage-target");
+    expect(screen.getByText("Remove from staging").parentElement).not.toHaveClass("motion-safe:animate-jiggle");
   });
 
   it("applies destructive tokens only while the compatible staged remove target is active", () => {
@@ -1876,6 +1957,13 @@ describe("TriageWorkspace", () => {
       "bg-destructive/10",
       "text-destructive",
     );
+    expect(unstageCandidateMock).not.toHaveBeenCalled();
+  });
+
+  it("does not activate Remove for an invalidated staged source or dispatch a mutation", () => {
+    useTriageDndMock.mockReturnValue(createDndState({ activeDragItem: { kind: "triage-staged-node", id: "candidate-1", label: "Project", integrity: "invalidated" }, overTargetId: "triage-remove-drop" }));
+    render(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByLabelText("Drop staged item here to remove from staging")).toHaveAttribute("data-triage-state", "available");
     expect(unstageCandidateMock).not.toHaveBeenCalled();
   });
 
@@ -1960,7 +2048,7 @@ describe("TriageWorkspace", () => {
         pendingOperations: [],
         unknownOperations: [],
         reconcilingOperations: [],
-        counts: { nodes: resultType === "node" ? 1 : 0, bits: resultType === "bit" ? 1 : 0 },
+        counts: { nodes: resultType === "node" ? 1 : 0, bits: resultType === "bit" ? 1 : 0, visibleNodes: resultType === "node" ? 1 : 0, visibleBits: resultType === "bit" ? 1 : 0 },
         eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
         stageCandidate: stageCandidateMock,
         reconcileStageCandidate: reconcileStageCandidateMock,
@@ -1989,7 +2077,20 @@ describe("TriageWorkspace", () => {
         }),
       );
     }
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    const confirmName = "OK";
+    const affordance = screen.getByRole("region", { name: "Placement" });
+    expect(affordance.querySelector('[data-triage-role="placement-reliability-slot"]')).not.toBeNull();
+    expect(affordance.querySelector('[data-triage-role="placement-target-path"]')).toBeNull();
+    const stagedRow = affordance.querySelector('[data-triage-role="placement-staged-summary-row"]');
+    {
+      expect(stagedRow).toContainElement(screen.getByRole("button", { name: confirmName }));
+      const typeRow = affordance.querySelector('[data-triage-role="placement-type-row"]');
+      expect(stagedRow?.nextElementSibling).toBe(typeRow);
+      expect(typeRow?.nextElementSibling).toBe(affordance.querySelector('[data-triage-role="placement-reliability-slot"]'));
+      expect(typeRow).toHaveTextContent(resultType === "node" ? "Node" : "Bit");
+    }
+    expect(affordance.querySelector('[data-triage-role="placement-confirm"]')).toBe(screen.getByRole("button", { name: confirmName }));
+    fireEvent.click(screen.getByRole("button", { name: confirmName }));
 
     await waitFor(() =>
       expect(useExplorerRemoteStatusMock).toHaveBeenCalledWith(
@@ -2210,14 +2311,14 @@ describe("TriageWorkspace", () => {
 
     render(<TriageWorkspace node={createNode()} />);
 
-    expect(await screen.findByText("Choose a result type")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "DIRECT PLACEMENT" })).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "OK" })).not.toBeInTheDocument();
     const nodeOption = screen.getByRole("button", { name: "Node" });
 
     fireEvent.click(nodeOption);
 
     expect(screen.getByText("Confirm placement")).toBeInTheDocument();
-    const confirmButton = screen.getByRole("button", { name: "Confirm" });
+    const confirmButton = screen.getByRole("button", { name: "OK" });
 
     fireEvent.click(confirmButton);
 
@@ -2246,7 +2347,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 1 },
+      counts: { nodes: 0, bits: 1, visibleNodes: 0, visibleBits: 1 },
       eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -2264,7 +2365,7 @@ describe("TriageWorkspace", () => {
     fireEvent.change(input, { target: { value: "Exact Bit result" } });
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByRole("heading", { name: "Confirm placement" })).toHaveFocus();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    fireEvent.click(screen.getByRole("button", { name: "OK" }));
 
     await waitFor(() => expect(placeStagedCandidateMock).toHaveBeenCalledOnce());
     expect(placeStagedCandidateMock).toHaveBeenCalledWith(
@@ -2297,7 +2398,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 1 },
+      counts: { nodes: 0, bits: 1, visibleNodes: 0, visibleBits: 1 },
       eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -2346,7 +2447,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 1 },
+      counts: { nodes: 0, bits: 1, visibleNodes: 0, visibleBits: 1 },
       eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -2608,7 +2709,7 @@ describe("TriageWorkspace", () => {
 
     expect(nodeOption).toBeEnabled();
     expect(bitOption).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "OK" })).not.toBeInTheDocument();
   });
 
   it("rejects a competing release while the first direct placement remains open", async () => {
@@ -2655,7 +2756,7 @@ describe("TriageWorkspace", () => {
 
     expect(screen.getByText("Project")).toBeInTheDocument();
     expect(screen.queryByText("Next Project")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "OK" })).toBeInTheDocument();
   });
 
   it("shows isFull warning with muted styling, not destructive, when target is full", async () => {
@@ -2687,7 +2788,7 @@ describe("TriageWorkspace", () => {
     expect(warning).toBeInTheDocument();
     expect(warning).not.toHaveClass("text-destructive");
     expect(warning).toHaveClass("text-muted-foreground");
-    expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "OK" })).toBeDisabled();
   });
 
   it("owns Newly Placed for the mounted page across Scratch, path, and theme and clears it on remount", async () => {
@@ -2727,7 +2828,7 @@ describe("TriageWorkspace", () => {
 
     const mounted = render(<TriageWorkspace node={createNode()} />);
     fireEvent.click(await screen.findByRole("button", { name: "Node" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    fireEvent.click(screen.getByRole("button", { name: "OK" }));
 
     expect(await screen.findByText("NEW")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select Node: Project" })).toHaveAttribute(

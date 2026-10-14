@@ -83,6 +83,48 @@ afterEach(() => {
 });
 
 describe("NodeCard", () => {
+  it("keeps Finder selectable without drag or hover lift and removes only its ordinary menu", () => {
+    const node = createNode({ title: "Finder selection", icon: "Star" });
+    const view = render(<NodeCard presentation="inbox-explorer" node={node} onClick={vi.fn()} />);
+    const card = screen.getByRole("button", { name: node.title });
+    expect(card).toHaveClass("cursor-pointer");
+    expect(card).not.toHaveClass("cursor-grab", "active:cursor-grabbing");
+    expect(card).toHaveAttribute("data-motion-while-hover", "undefined");
+    expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
+    expect(card.parentElement).not.toHaveAttribute("data-card-has-actions");
+    expect(card.querySelector("svg")).toHaveClass("lucide-star");
+    view.rerender(<NodeCard presentation="inbox-explorer" node={{ ...node, icon: "Heart" }} onClick={vi.fn()} />);
+    expect(card.querySelector("svg")).toHaveClass("lucide-heart");
+    view.rerender(<NodeCard node={node} onClick={vi.fn()} />);
+    expect(card).toHaveClass("cursor-grab", "active:cursor-grabbing");
+    expect(card).toHaveAttribute("data-motion-while-hover", "hover");
+    expect(screen.getByLabelText(node.title + " options")).toBeInTheDocument();
+  });
+
+  it("keeps Finder identity, ref, motion and independent actions on the actual NodeCard", () => {
+    const node = createNode({ title: "Mixed Case Finder", icon: "Monitor" });
+    const navigate = vi.fn(), activateUndo = vi.fn();
+    const ref = { current: null as HTMLButtonElement | null };
+    const view = render(<NodeCard presentation="inbox-explorer" node={node} onClick={navigate}
+      ref={ref} isNewlyPlaced undo={{ disabled: false, reason: "available", onActivate: activateUndo }} />);
+    const card = screen.getByRole("button", { name: node.title });
+    expect(card).toHaveAttribute("data-card-presentation", "inbox-explorer");
+    expect(card).toHaveAttribute("data-triage-role", "explorer-card-node");
+    expect(ref.current).toBe(card);
+    // Monitor is not a production map key; retain the existing Box fallback.
+    expect(card.querySelector('[data-triage-role="explorer-card-icon"]')).toHaveClass("lucide-box");
+    expect(card.querySelector('[data-triage-role="explorer-card-chevron"]')).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText(node.title)).toHaveAttribute("data-triage-role", "explorer-card-title");
+    expect(card).toHaveAttribute("data-motion-while-hover", "undefined");
+    fireEvent.click(screen.getByRole("button", { name: "Undo placement of " + node.title }));
+    expect(activateUndo).toHaveBeenCalledOnce();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText(node.title + " options")).not.toBeInTheDocument();
+    view.rerender(<NodeCard node={node} onClick={navigate} ref={ref} />);
+    expect(screen.getByRole("button", { name: node.title })).toBe(card);
+    expect(card).toHaveAttribute("data-card-presentation", "default");
+    expect(card).toHaveClass("h-[var(--grid-node-size)]", "w-[var(--grid-node-size)]");
+  });
   it("layers an independent semantic Newly Placed marker on the actual card", () => {
     const node = createNode({ title: "Placed node" });
     const { rerender } = render(
@@ -255,4 +297,33 @@ describe("B2b — archive context menu (NodeCard)", () => {
     render(<NodeCard isEditMode={true} node={node} onClick={vi.fn()} />);
     expect(screen.queryByLabelText("Work options")).not.toBeInTheDocument();
   });
+});
+
+
+describe("Task170 Newly Undo pilot Node Q01", () => {
+  it("renders an ordinary inbox Undo2 independently and exposes the exact tooltip reason", () => {
+    const item=createNode({title:"Pilot node"}); const navigate=vi.fn(), activate=vi.fn();
+    const {container}=render(<NodeCard presentation="inbox-explorer" node={item} onClick={navigate} isNewlyPlaced undo={{disabled:false,reason:"available",tooltip:"Undo this placement.",onActivate:activate}} />);
+    const action=screen.getByRole("button",{name:"Undo placement of Pilot node"});
+    expect(action.querySelector("svg.lucide-undo-2")).not.toBeNull();
+    expect(action).not.toHaveTextContent("Undo");
+    expect(container.querySelector('[data-card-marker="newly-placed"]')).toHaveTextContent("NEW");
+    fireEvent.keyDown(action,{key:"Enter"});fireEvent.keyDown(action,{key:" "});
+    expect(navigate).not.toHaveBeenCalled();
+    fireEvent.click(action);expect(activate).toHaveBeenCalledOnce();expect(navigate).not.toHaveBeenCalled();
+  });
+});
+
+
+it("Task170 Node unavailable Undo exposes its exact reason on semantic focus and preserves its ref", async () => {
+  vi.useRealTimers();
+  // JSDOM has no layout observer; this shim enables semantic tooltip DOM only.
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+  const item=createNode({title:"Tooltip node"});const activate=vi.fn(),navigate=vi.fn(),ref=vi.fn();
+  render(<NodeCard presentation="inbox-explorer" node={item} onClick={navigate} isNewlyPlaced undoActionRef={ref} undo={{disabled:true,reason:"result-mutated",tooltip:"This item changed after placement. Undo is unavailable.",onActivate:activate}} />);
+  const action=screen.getByRole("button",{name:"Undo placement of Tooltip node"});
+  expect(action).toHaveAttribute("aria-disabled","true");expect(action).not.toBeDisabled();expect(ref).toHaveBeenCalledWith(action);
+  fireEvent.focus(action);expect(await screen.findByRole("tooltip")).toHaveTextContent("This item changed after placement. Undo is unavailable.");
+  fireEvent.keyDown(action,{key:"Enter"});fireEvent.keyDown(action,{key:" "});fireEvent.click(action);
+  expect(activate).not.toHaveBeenCalled();expect(navigate).not.toHaveBeenCalled();
 });

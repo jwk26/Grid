@@ -380,6 +380,24 @@ Four visible, semantically named internal areas retain the selected ratios:
   not collapse into one generic panel/card realization. Exact visual values
   remain owned by `DESIGN_TOKENS.md` and approved recipes after their gates.
 
+#### Scratch Pool and Context creation-date metadata
+
+This common product contract applies to Scratch Pool and Selected Scratch Context in every current and future theme and phase. Both surfaces read the same Scratch Bit's `createdAt` through the one common formatter, `src/lib/utils/relative-time.ts::formatRelativeTime`; Context view and Scratch-title editor use that same date body. Do not substitute `mtime`, last modification or a Breakdown row's `createdAt`.
+
+Keep the existing elapsed-duration calculation: `elapsedMs = Math.max(0, Date.now() - createdAt)`, `MINUTE_MS = 60000`, `HOUR_MS = 3600000`, and `DAY_MS = 86400000`. The display boundaries and relative copy remain:
+
+| Elapsed duration | Date body |
+|---|---|
+| `0 <= elapsedMs < HOUR_MS` | `{Math.floor(elapsedMs / MINUTE_MS)}m ago` |
+| `HOUR_MS <= elapsedMs < DAY_MS` | `{Math.floor(elapsedMs / HOUR_MS)}h ago` |
+| `DAY_MS <= elapsedMs < 2 * DAY_MS` | `yesterday` |
+| `2 * DAY_MS <= elapsedMs < 7 * DAY_MS` | `{Math.floor(elapsedMs / DAY_MS)} days ago` |
+| `elapsedMs >= 7 * DAY_MS` | `d/mm/yy`, for example `4/05/26` |
+
+Future timestamps retain the existing clamp to `0m ago`. At exactly seven elapsed days and later, derive the day, month and year from the timestamp's existing local `Date` interpretation (`getDate()`, `getMonth() + 1`, `getFullYear() % 100`): day has no leading zero; month and year each have two digits. Preserve elapsed-millisecond cutoffs across local day boundaries and DST; do not introduce UTC calendar fields, a locale-format substitution, a calendar-day age calculation or a timezone conversion.
+
+Preserve render-driven refresh: evaluate the existing clock when the consumer renders. This contract adds no ticker, clock subscription, new producer or persistence mutation. Common semantic structure and centralized presentation roles remain in force. Theme-only Context date decoration belongs to the [Selected Scratch Context recipe](recipes/inbox-triage-selected-scratch-context-visual-recipe.md); it never replaces this common date body or changes its timestamp input. Applying this shared rule does not activate a later task/phase or reopen an accepted task.
+
 #### Scratch Pool
 
 - **Selection and re-entry:** On same-app-session Inbox route re-entry, restore
@@ -393,7 +411,7 @@ Four visible, semantically named internal areas retain the selected ratios:
   exact count, collapse control, title search, and created-at sort; search and
   sort share one tools row. The header/collapsed count always means all active
   Scratches, while a separate filtered count appears only during search.
-  Scratch rows keep title plus created-at metadata. Pool sort defaults to
+  Scratch rows keep title plus [common creation-date metadata](#scratch-pool-and-context-creation-date-metadata). Pool sort defaults to
   newest-first and is independent of Breakdown sort.
 - **Collapsed mode:** Identity/count, expand control, and Scratch switchers are
   vertical. Search/sort are absent, and a preserved query never silently
@@ -441,7 +459,7 @@ Four visible, semantically named internal areas retain the selected ratios:
 
 - Selected Scratch Context is a standalone signature section above rows, not
   heading metadata or a compact row-like strip. It contains the selected title,
-  creation date/time, an always-available Scratch-title Edit entry, and the
+  [common creation-date metadata](#scratch-pool-and-context-creation-date-metadata), an always-available Scratch-title Edit entry, and the
   Breakdown sort control. The Breakdown heading does not duplicate title/meta.
   Completion reuses this semantic Context as `Scratch complete`; exact themed
   realization remains downstream visual authority.
@@ -515,10 +533,7 @@ Four visible, semantically named internal areas retain the selected ratios:
   no large or repeated placeholder card. Each independently scrollable list
   sorts `createdAt` DESC then stable ID, has no manual reorder or count cap, and
   preserves the 35/65 split and panel height.
-- A subsection label is just `Nodes` or `Bits` for zero or one candidate. It
-  receives a numeric prefix only at two or more (`2 Nodes`, `3 Bits`). This
-  total includes visible pending candidates and remains distinct from the
-  subsection-local remote-arrival `new items` projection below.
+- A subsection label is just `Nodes` or `Bits` for zero or one presentation candidate. It receives a numeric prefix only at two or more (`2 Nodes`, `3 Bits`). For each type, this presentation total includes source-resolved durable candidates and visible non-draggable Stage projections in pending, unknown, or reconciling, counting an authoritative candidate and its operation projection with the same candidate ID once. Unstage adds no projection count and retains its durable candidate until authoritative disappearance. Unresolved-source integrity slots are not presentation candidates and are excluded from this total. Repository membership, authoritative counts, Archive eligibility and operation locks remain durable truth. The heading total is not a success claim. Authoritative `applied` and `already_applied` outcomes retain their SCHEMA semantics and, where applicable, accepted DP-VQ02 success-signal authority; the heading total still derives only from the current reactive candidate/projection inputs. Terminal projection removal may precede live-query delivery, temporarily lowering the presentation total; do not retain a synthetic count or infer membership before the snapshot arrives. The subsection-local remote-arrival `new items` indicator remains separate and is never added to this total.
 - The whole staged candidate root is the primary pointer/touch drag activator;
   it has no select/detail/menu behavior and no internal grip. Every grab point
   uses the same pointer-centered, type-specific compact `TriageDragToken` and
@@ -595,6 +610,50 @@ Four visible, semantically named internal areas retain the selected ratios:
 
 #### Grid Explorer and dedicated search
 
+- **User-selected Task 169 review amendment, 2026-10-07:** the following
+  Explorer consumer contract applies to every current and future Inbox/Triage
+  theme. It records the selected behavior; implementation, verification and
+  task acceptance remain separate lifecycle actions.
+- Explorer has one section-header row: native section icon/identity on the
+  left and its dedicated search control on the right. There is no separate
+  persistent path/breadcrumb row or second search toolbar. Removing that row
+  does not remove the internal path, selected ancestor chain, column labels,
+  navigation, attached path status, search-result breadcrumbs or Placement
+  destination identity.
+- Every ordinary-column and search-result Node/Bit uses the actual record's
+  stored `icon` through the existing icon mapping/fallback. A saved icon change
+  on the same record in the ordinary Grid is reflected through the same
+  database/reactive projection in Explorer; separate browser-profile databases
+  remain separate. Theme styling may change glyph size/treatment, not substitute
+  a mock or render-time random identity. No new icon model or schema is introduced.
+- Actual cards in the Inbox Explorer do not expose the ordinary Grid's options
+  menu or Direct Archive action. Source-aware Newly Placed/Undo and attached
+  reasons remain independent actions; Scratch Archive retains its own contract.
+- Explorer rows are not drag sources. They expose no grab/grabbing cursor.
+  A selectable Node uses a pointer cursor; a Bit row without an activation
+  command uses the default cursor. Independent actionable controls retain
+  their own cursor/focus treatment. Node destinations remain drop targets for
+  Breakdown/Staging sources. Hover changes color only, without scale,
+  translation, decorative shadow or stacking lift; keyboard focus, selection,
+  reveal and actual drop-target feedback remain distinct.
+- Past-deadline `Done?`, `Mark as done` and `Dismiss` controls belong to the
+  ordinary Grid card, not Inbox/Triage Explorer. An overdue, incomplete Bit
+  retains a readable title/deadline, a subdued state surface and a small static,
+  accessibly named overdue mark; overdue alone never implies completion or
+  title strike-through. A completed Bit uses muted title/strike-through plus a
+  static check mark. Title/deadline and independent NEW/Undo/reason/focus are
+  not blurred or clipped. These are projections of existing deadline/status,
+  not new completion/dismiss commands or writes to `pastDeadlineDismissed`.
+  Priority remains the actual stored metadata.
+- **User-selected Node/Bit distinction amendment, 2026-10-08:** within the
+  ordinary Inbox/Triage Explorer body, retain the existing Node-before-Bit
+  groups and within-type ordering without an inter-type divider or visible
+  `Bits` heading. Bit-only columns, including Level 3, begin at the normal item
+  inset without reserved subsection-header space. Preserve full column labels,
+  actual item identities/keys/refs, navigation/reveal/scroll, drop targets and
+  independent NEW/Undo/reason/focus. Metadata and retained production states
+  expand the actual card naturally. This common structure does not prescribe
+  retro-mac geometry for other themes or change replacement-search composition.
 - Explorer path, selected Node chain, open columns, and each column scroll are
   shared by the mounted Inbox page across Scratch switches; no per-Scratch path
   map and no automatic Home reset is created. Same-app-session route re-entry
@@ -610,7 +669,12 @@ Four visible, semantically named internal areas retain the selected ratios:
   ancestor or column heading, report non-blocking status, and close stale
   placement without a write.
 - Explorer search is an Inbox-only mode inside the Grid Explorer section. It
-  replaces the four-column body and focuses its input. It does not reuse or
+  replaces the four-column body and focuses its one input in the right-hand
+  slot of the single section header. While search is open, that field and its
+  in-input X stay fixed above the replacement body's fixed state line and
+  scrolling result list; there is no second input in the body. Explicit entry,
+  clear/close, interrupted-search and focus lifetimes remain the approved
+  dedicated-search contract. It does not reuse or
   extend global `useSearch()`/`searchAll()` and does not change the global
   Search Overlay. Empty query/pre-search and no-results are distinct; clear is
   an in-input X. Search is unavailable while a direct/result-title/placement
@@ -709,6 +773,8 @@ Four visible, semantically named internal areas retain the selected ratios:
   card model, or redesigned common card. Newly Placed is a page-session marker
   layered on that actual card and remains semantically distinct from selection;
   both may coexist. Repeated blink/pulse/flicker is forbidden.
+  Actual-card reuse follows the Explorer consumer boundary above; it does not
+  import ordinary Grid Archive or past-deadline command controls into Inbox.
 - Only placement operations started and confirmed by the currently mounted
   Inbox page receive marker/Undo provenance. Remote, other-tab, or reloaded
   records render normally at stored coordinates. Stored `x/y` and Grid order
@@ -821,7 +887,11 @@ A **portal, not a container** — archived items keep their original `parentId`;
 
 ### Direct Archive (context menu)
 
-Any non-system Node or Bit can be archived from its context menu (no Review Mode required) — sets `archivedAt` with cascade (Hook 10). System Nodes are excluded. **Completion does not auto-archive**; completed-but-unarchived items remain in place on the grid until the user archives them.
+Any non-system Node or Bit can be archived from its ordinary Grid context menu (no Review Mode required) — sets `archivedAt` with cascade (Hook 10). System Nodes are excluded. **Completion does not auto-archive**; completed-but-unarchived items remain in place on the grid until the user archives them.
+
+The user-selected Task 169 review amendment excludes this menu/action from
+Inbox/Triage Explorer in every theme. That presentation boundary does not
+change repository Archive/cascade/restore behavior or Scratch Archive.
 
 ---
 

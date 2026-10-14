@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Folder, X } from "lucide-react";
+import { FileText, Folder, X } from "lucide-react";
 import {
   invalidateTriageDragSource,
   type TriageDragItem,
@@ -104,10 +104,18 @@ function getDropZoneState({
   const isDragActive = activeDragItem !== null;
 
   if (!isDragActive) return "default";
+  if (activeDragItem.integrity === "invalidated") return isOver ? "invalid" : "idle-invalid";
   if (isOver && isValidTarget) return "valid";
   if (isOver && !isValidTarget) return "invalid";
   if (isValidTarget) return "idle-valid";
   return "idle-invalid";
+}
+
+function getPresentationState(item: TriageDragItem, type: "node" | "bit", state: DropZoneState) {
+  if (item?.integrity === "invalidated") return state;
+  if (item?.kind === `triage-staged-${type}`) return "neutral";
+  if (item?.kind === "triage-staged-node" || item?.kind === "triage-staged-bit") return "unavailable";
+  return state;
 }
 
 export function StagingZone({
@@ -251,10 +259,12 @@ function NodeStagingZone({
     <div
       ref={setNodeRef}
       aria-label="Node staging zone"
-      className={cn(DROP_ZONE_BASE_CLASS, DROP_ZONE_STATE_CLASSES[state])}
+      className={cn("triage-staging__well", DROP_ZONE_BASE_CLASS, DROP_ZONE_STATE_CLASSES[state])}
       data-empty={candidates.length === 0}
       data-testid="node-staging-zone"
       data-triage-role="staging-node-well"
+      data-triage-hover={activeDragItem !== null && overTargetId === dropId}
+      data-triage-state={getPresentationState(activeDragItem, "node", state)}
       onScroll={(event) => {
         if (event.currentTarget.scrollTop === 0) onObservedTop?.();
       }}
@@ -327,10 +337,12 @@ function BitStagingZone({
     <div
       ref={setNodeRef}
       aria-label="Bit staging zone"
-      className={cn(DROP_ZONE_BASE_CLASS, DROP_ZONE_STATE_CLASSES[state])}
+      className={cn("triage-staging__well", DROP_ZONE_BASE_CLASS, DROP_ZONE_STATE_CLASSES[state])}
       data-empty={candidates.length === 0}
       data-testid="bit-staging-zone"
       data-triage-role="staging-bit-well"
+      data-triage-hover={activeDragItem !== null && overTargetId === dropId}
+      data-triage-state={getPresentationState(activeDragItem, "bit", state)}
       onScroll={(event) => {
         if (event.currentTarget.scrollTop === 0) onObservedTop?.();
       }}
@@ -426,7 +438,7 @@ function NodeCandidateCard({
       aria-label={`Drag ${candidate.content} staged node`}
       data-operation-locked={disabled}
       className={cn(
-        "mx-auto aspect-square h-auto w-full max-w-[80px] touch-none cursor-grab select-none overflow-hidden rounded-lg border border-border/80 bg-background transition-[background-color,border-color,color,opacity] active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
+        "triage-staging__node mx-auto aspect-square h-auto w-full max-w-[80px] touch-none cursor-grab select-none overflow-hidden rounded-lg border border-border/80 bg-background transition-[background-color,border-color,color,opacity] active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
         isDragging && "opacity-30 border-dashed border-muted bg-transparent",
       )}
       data-candidate-version={candidate.version}
@@ -436,10 +448,11 @@ function NodeCandidateCard({
       data-testid="node-candidate-card"
       data-triage-drag-source="staged-root"
       data-triage-role="staging-node-card"
+      data-triage-state={operation?.phase ?? "staged"}
       {...attributes}
       {...listeners}
     >
-      <div className="flex h-full w-full flex-col items-center justify-center p-2">
+      <div className="triage-staging__node-content flex h-full w-full flex-col items-center justify-center p-2">
         <Folder
           aria-hidden="true"
           className={cn(
@@ -449,7 +462,7 @@ function NodeCandidateCard({
         />
         <div
           className={cn(
-            "mt-auto w-full truncate px-1 pb-1 text-center text-[10px] font-semibold transition-colors",
+            "triage-staging__node-label mt-auto w-full truncate px-1 pb-1 text-center text-[10px] font-semibold transition-colors",
             isDragging ? "text-muted-foreground" : "text-foreground",
           )}
         >
@@ -520,7 +533,7 @@ function BitCandidateRow({
       aria-label={`Drag ${candidate.content} staged bit`}
       data-operation-locked={disabled}
       className={cn(
-        "flex min-h-[2rem] w-full touch-none cursor-grab select-none items-center rounded-lg border border-border/60 bg-background px-3 py-1.5 transition-[background-color,border-color,color,opacity] active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
+        "triage-staging__bit flex min-h-[2rem] w-full touch-none cursor-grab select-none items-center rounded-lg border border-border/60 bg-background px-3 py-1.5 transition-[background-color,border-color,color,opacity] active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
         isDragging && "opacity-30 border-dashed border-muted bg-transparent",
       )}
       data-candidate-version={candidate.version}
@@ -530,9 +543,11 @@ function BitCandidateRow({
       data-testid="bit-candidate-row"
       data-triage-drag-source="staged-root"
       data-triage-role="staging-bit-row"
+      data-triage-state={operation?.phase ?? "staged"}
       {...attributes}
       {...listeners}
     >
+      <FileText aria-hidden="true" className="triage-staging__bit-icon" />
       <div
         className={cn(
           "min-w-0 flex-1 truncate text-left text-xs font-medium transition-colors",
@@ -578,6 +593,7 @@ function NodeStatusCard({ operation }: { operation: StagingOperationView }) {
       className="staging-node-status-card"
       data-testid="node-operation-card"
       data-triage-role="staging-node-card"
+      data-triage-state={operation.phase}
     >
       <Folder aria-hidden="true" className="h-6 w-6" />
       <OperationStatus operation={operation} />
@@ -587,7 +603,8 @@ function NodeStatusCard({ operation }: { operation: StagingOperationView }) {
 
 function BitStatusRow({ operation }: { operation: StagingOperationView }) {
   return (
-    <div className="staging-bit-status-row" data-testid="bit-operation-row" data-triage-role="staging-bit-row">
+    <div className="staging-bit-status-row" data-testid="bit-operation-row" data-triage-role="staging-bit-row" data-triage-state={operation.phase}>
+      <FileText aria-hidden="true" className="triage-staging__bit-icon" />
       <OperationStatus operation={operation} />
     </div>
   );
@@ -607,6 +624,7 @@ function NodeIntegrityCard() {
 function BitIntegrityRow() {
   return (
     <div className="staging-bit-status-row" data-testid="bit-integrity-row" data-triage-role="staging-bit-row">
+      <FileText aria-hidden="true" className="triage-staging__bit-icon" />
       <div data-triage-role="staging-integrity-status" data-triage-state="source-unresolved">
         {INBOX_TRIAGE_COPY.stagingStatus.integrity.bit}
       </div>

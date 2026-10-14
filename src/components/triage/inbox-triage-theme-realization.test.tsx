@@ -1,0 +1,381 @@
+import "@testing-library/jest-dom/vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useTriageStore } from "@/stores/triage-store";
+import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
+import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
+import type { Bit } from "@/types";
+import { ScratchPool } from "./scratch-pool";
+import { BreakdownPanel } from "./breakdown-panel";
+import { StagingZone } from "./staging-zone";
+import { GridExplorerSearchResults } from "./grid-explorer-search-results";
+import { TriageDragToken } from "./triage-drag-token";
+import { NodeCard } from "@/components/grid/node-card";
+import { BitCard } from "@/components/grid/bit-card";
+
+vi.mock("@/hooks/use-archive", () => ({
+  useArchiveActions: () => ({ archive: vi.fn() }),
+}));
+
+const inbox = vi.hoisted(() => ({ bits: [] as Bit[] }));
+vi.mock("@/hooks/use-inbox", () => ({
+  useInbox: () => ({ activeScratchBits: inbox.bits, poolLifecycleProjection: { revision: 0, changes: [] } }),
+}));
+vi.mock("@/hooks/use-triage-operation-lock", () => ({
+  useTriageOperationLockContext: () => ({ activeOperation: null, isLocked: () => false }),
+}));
+vi.mock("@/hooks/use-triage-departure", () => ({
+  useTriageDepartureContext: () => ({ pendingDestination: null, registerAddDraftOwner: () => () => {}, setAddDraft: vi.fn(), requestDeparture: (destination: {perform: () => void; focus?: () => void}) => { destination.perform(); destination.focus?.(); } }),
+}));
+
+const l2 = vi.hoisted(() => ({ stagedIds: new Set<string>() }));
+vi.mock("@/hooks/use-scratch-breakdowns", () => ({
+  useScratchTitleBlockerContext: () => ({ getSnapshot: () => null, setSnapshot: vi.fn(), subscribe: () => () => {} }),
+  useScratchBreakdowns: () => ({ breakdowns: [{ id: "idea", scratchBitId: "first", content: "Prepare the research summary", order: 0, createdAt: 2000, consumedAt: null, version: 1 }],
+    consumedBreakdownCount: 0, hasObservedBreakdownHistory: true, isArchiveEligible: false, operations: [],
+    editor: { snapshot: null, focusIntent: null, openScratchTitle: vi.fn(), openBreakdown: vi.fn() },
+    addBreakdown: vi.fn(), deleteBreakdown: vi.fn() }),
+}));
+vi.mock("@/hooks/use-staged-candidates", () => ({
+  useStagedCandidates: () => ({ counts: { authoritative: l2.stagedIds.size }, eligibility: { stagedSourceIds: l2.stagedIds } }),
+}));
+
+function scratch(id: string, title: string, createdAt: number): Bit {
+  return { id, title, createdAt, description: "", icon: "sparkles", deadline: null,
+    deadlineAllDay: false, priority: null, status: "active", mtime: createdAt,
+    parentId: "inbox", x: 0, y: 0, deletedAt: null, archivedAt: null, version: 1,
+    pastDeadlineDismissed: false };
+}
+
+beforeEach(() => {
+  window.matchMedia = vi.fn().mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  inbox.bits = [scratch("first", "Plan the autumn release", 2000), scratch("second", "Collect workshop feedback", 1000)];
+  useTriageStore.setState({ selectedScratchId: "first", scratchPoolExpanded: true,
+    scratchPoolManualExpandedForId: null, scratchPoolQuery: "", scratchPoolActiveIds: ["first", "second"],
+    scratchPoolResultIds: ["first", "second"], scratchPoolScroll: { anchorId: null, offset: 0 } });
+  useTriagePreferencesStore.setState({ poolCreatedAtSort: "DESC" });
+});
+afterEach(() => {
+  cleanup();
+  document.head.querySelectorAll("[data-task167-sort-labels]").forEach(style => style.remove());
+  document.documentElement.removeAttribute("data-color-theme");
+});
+
+it("keeps actual Finder and ordinary card identities across shared theme rerenders", () => {
+  const node = { id: "finder-node", title: "Finder Identity", icon: "Folder", color: "red",
+    createdAt: 2000, mtime: 2000, parentId: null, level: 0, x: 0, y: 0, version: 1,
+    deadline: null, deadlineAllDay: false, deletedAt: null, archivedAt: null,
+    systemRole: null, hiddenFromGrid: false, pastDeadlineDismissed: false };
+  const bit = scratch("finder-bit", "Finder Bit", 2000);
+  const activate = vi.fn();
+  const tree = <><NodeCard node={node} onClick={activate} presentation="inbox-explorer" />
+    <NodeCard node={{ ...node, id: "ordinary", title: "Ordinary Identity" }} onClick={activate} />
+    <BitCard bit={bit} parentColor="red" chunkStats={{ completed: 0, total: 0 }} onClick={activate} presentation="inbox-explorer" />
+    <BitCard aria-label="Ordinary Bit" bit={{ ...bit, id: "ordinary-bit", title: "Ordinary Bit", priority: "high" }} parentColor="red" chunkStats={{ completed: 1, total: 4 }} onClick={activate} /></>;
+  const view = render(tree);
+  const finder = screen.getByRole("button", { name: "Finder Identity" });
+  const ordinary = screen.getByRole("button", { name: "Ordinary Identity" });
+  const actualBit = screen.getByText("Finder Bit").closest('[role="button"]');
+  const ordinaryBit = screen.getByRole("button", { name: "Ordinary Bit" });
+  for (const theme of ["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"]) {
+    document.documentElement.dataset.colorTheme = theme;
+    view.rerender(tree);
+    expect(screen.getByRole("button", { name: "Finder Identity" })).toBe(finder);
+    expect(finder).toHaveAttribute("data-card-presentation", "inbox-explorer");
+    expect(finder).toHaveClass("cursor-pointer");
+    expect(screen.queryByLabelText("Finder Identity options")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Ordinary Identity options")).toBeInTheDocument();
+    expect(actualBit).toHaveClass("cursor-default");
+    expect(screen.queryByLabelText("Finder Bit options")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ordinary Identity" })).toBe(ordinary);
+    expect(ordinary).toHaveAttribute("data-card-presentation", "default");
+    expect(screen.getByText("Finder Bit").closest('[role="button"]')).toBe(actualBit);
+    expect(screen.getByRole("button", { name: "Ordinary Bit" })).toBe(ordinaryBit);
+    expect(ordinaryBit).toHaveAttribute("data-card-presentation", "default");
+    expect(ordinaryBit).toHaveClass("cursor-grab");
+    expect(within(ordinaryBit).getByText("high")).toBeInTheDocument();
+    expect(within(ordinaryBit).getByText("1/4")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ordinary Bit options")).toBeInTheDocument();
+  }
+  fireEvent.click(finder);
+  expect(activate).toHaveBeenCalledOnce();
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const rules = css.matchAll(/([^{}]+)\{([^{}]*)\}/g);
+  for (const [rule, selector] of rules) {
+    if (selector.includes('data-card-presentation="inbox-explorer"')) {
+      if (!selector.includes('[data-triage-role="explorer-card-state"]') && !selector.includes('[data-card-state="overdue"]') && !selector.includes('.theme-node-card')) {
+        expect(selector).toContain(':root[data-color-theme="retro-mac"]');
+      }
+      expect(rule).not.toContain("--grid-node-size:");
+    }
+  }
+});
+
+describe("Inbox/Triage shared theme realization — L1", () => {
+  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("retains a single semantic Pool tree under %s", theme => {
+    document.documentElement.dataset.colorTheme = theme;
+    render(<ScratchPool />);
+    const pool = screen.getByTestId("scratch-pool");
+    const heading = within(pool).getByRole("heading", { name: "Scratch Pool" });
+    expect(heading).toHaveAttribute("id", "triage-scratch-pool-heading");
+    expect(within(pool).getByRole("textbox", { name: "Search scratches" })).toBeInTheDocument();
+    expect(within(pool).getByRole("button", { name: "Plan the autumn release" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(pool).getByRole("button", { name: "Collect workshop feedback" })).toHaveAttribute("data-triage-role", "pool-row");
+    expect(pool.querySelector('[data-triage-role="pool-total-count"]')).toHaveTextContent("2");
+  });
+
+  it("retains Pool query, selected Context identity, sort and focus across a same-tree theme rerender", () => {
+    const { rerender } = render(<ScratchPool />);
+    const search = screen.getByRole("textbox", { name: "Search scratches" });
+    fireEvent.change(search, { target: { value: "feedback" } });
+    search.focus();
+    useTriagePreferencesStore.setState({ poolCreatedAtSort: "ASC" });
+    document.documentElement.dataset.colorTheme = "retro-mac";
+    rerender(<ScratchPool />);
+    expect(screen.getByRole("textbox", { name: "Search scratches" })).toBe(search);
+    expect(search).toHaveValue("feedback");
+    expect(search).toHaveFocus();
+    expect(useTriageStore.getState().selectedScratchId).toBe("first");
+    expect(useTriagePreferencesStore.getState().poolCreatedAtSort).toBe("ASC");
+    expect(screen.getByText("Selected Scratch is hidden by this search.")).toBeInTheDocument();
+  });
+
+  it("orders compact identity/count before expand, then the unfiltered switchers", () => {
+    useTriageStore.setState({ scratchPoolExpanded: false, scratchPoolQuery: "release" });
+    render(<ScratchPool />);
+    const pool = screen.getByTestId("scratch-pool");
+    const count = pool.querySelector('[data-triage-role="pool-total-count"]')!;
+    const expand = screen.getByRole("button", { name: "Expand Scratch Pool" });
+    const switchers = screen.getByRole("group", { name: "Switch scratch" });
+    expect(count.compareDocumentPosition(expand) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(expand.compareDocumentPosition(switchers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(switchers).getAllByRole("button")).toHaveLength(2);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByText("Selected Scratch is hidden by this search.")).not.toBeInTheDocument();
+  });
+
+  it("keeps the all-active zero count and semantic identity in compact empty state", () => {
+    inbox.bits = [];
+    useTriageStore.setState({ selectedScratchId: null, scratchPoolExpanded: false });
+    render(<ScratchPool />);
+    expect(screen.getByTestId("scratch-pool").querySelector('[data-triage-role="pool-total-count"]')).toHaveTextContent("0");
+    expect(document.getElementById("triage-scratch-pool-heading")).toHaveTextContent("Scratch Pool");
+  });
+
+  it("preserves hidden selection, clear-search focus, and created-at sort semantics", () => {
+    render(<ScratchPool />);
+    const search = screen.getByRole("textbox", { name: "Search scratches" });
+    fireEvent.change(search, { target: { value: "feedback" } });
+    expect(screen.getByText("Selected Scratch is hidden by this search.")).toBeInTheDocument();
+    expect(useTriageStore.getState().selectedScratchId).toBe("first");
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(search).toHaveFocus();
+    expect(useTriageStore.getState().selectedScratchId).toBe("first");
+    fireEvent.click(screen.getByRole("button", { name: INBOX_TRIAGE_COPY.baseActions.sortNewestFirst }));
+    expect(useTriagePreferencesStore.getState().poolCreatedAtSort).toBe("ASC");
+    const rows = [...screen.getByTestId("scratch-pool").querySelectorAll('button[aria-pressed]')];
+    expect(rows.map(row => row.getAttribute("aria-label"))).toEqual(["Collect workshop feedback", "Plan the autumn release"]);
+  });
+
+  it("keeps shared search then sort roles before the fixed production status and scroll list", () => {
+    render(<ScratchPool />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Search scratches" }), { target: { value: "feedback" } });
+    const pool = screen.getByTestId("scratch-pool");
+    const searchRow = pool.querySelector('[data-triage-role="pool-search-row"]');
+    const sort = pool.querySelector('[data-triage-role="pool-created-at-sort"]');
+    const band = pool.querySelector('[data-triage-role="pool-status-band"]')!;
+    const viewport = pool.querySelector('[data-triage-role="pool-scroll-viewport"]')!;
+    expect(searchRow).not.toBeNull();
+    expect(sort).not.toBeNull();
+    expect(searchRow!.compareDocumentPosition(sort!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sort!.compareDocumentPosition(band) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(band.compareDocumentPosition(viewport) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(viewport.contains(band)).toBe(false);
+    expect(useTriageStore.getState().selectedScratchId).toBe("first");
+    expect(pool.querySelector('[data-triage-role="pool-total-count"]')).toHaveTextContent("2");
+  });
+});
+
+
+describe("Task167 L2 shared theme conformance", () => {
+  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("preserves accessible Context Edit and sort while selecting their decoration in %s", theme => {
+    document.documentElement.dataset.colorTheme = theme;
+    const style = document.createElement("style");
+    style.dataset.task167SortLabels = "true";
+    style.textContent = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8").match(
+      /(?:^|\n)[^{}]*\[data-triage-role="context-(?:edit-label|sort-icon|sort-(?:current|next)-label)"\][^{]*\{[^}]*\}/g,
+    )?.join("\n") ?? "";
+    document.head.append(style);
+    useTriagePreferencesStore.setState({ breakdownCreatedAtSort: "DESC" });
+    render(<div className="triage-shell"><BreakdownPanel /></div>);
+    const context = screen.getByTestId("selected-scratch-context");
+    const edit = within(context).getByRole("button", { name: "Edit" });
+    const label = edit.querySelector('[data-triage-role="context-edit-label"]');
+    const icon = context.querySelector('[data-triage-role="context-sort-icon"]');
+    expect(label).toHaveTextContent("Edit");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(edit).toBeEnabled();
+    expect(getComputedStyle(label!).display === "none").toBe(theme === "retro-mac");
+    expect(getComputedStyle(icon!).display === "none").toBe(theme === "retro-mac");
+    const sort = within(context).getByRole("button", {
+      name: theme === "retro-mac" ? "OLD FIRST" : INBOX_TRIAGE_COPY.baseActions.sortNewestFirst,
+    });
+    fireEvent.click(sort);
+    expect(useTriagePreferencesStore.getState().breakdownCreatedAtSort).toBe("ASC");
+    expect(within(context).getByRole("button", { name: "Edit" })).toBe(edit);
+  });
+
+  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("preserves current-order names except the approved next-order presentation in %s", theme => {
+    document.documentElement.dataset.colorTheme = theme;
+    const style = document.createElement("style");
+  style.dataset.task167SortLabels = "true";
+  style.textContent = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8").match(
+    /(?:^|\n)[^{}]*\[data-triage-role="context-sort-(?:current|next)-label"\][^{]*\{[^}]*\}/g,
+  )?.join("\n") ?? "";
+  document.head.append(style);
+    useTriagePreferencesStore.setState({ breakdownCreatedAtSort: "DESC" });
+    render(<div className="triage-shell"><BreakdownPanel /></div>);
+    const context = screen.getByTestId("selected-scratch-context");
+    const name = theme === "retro-mac" ? "OLD FIRST" : INBOX_TRIAGE_COPY.baseActions.sortNewestFirst;
+    const sort = within(context).getByRole("button", { name });
+    fireEvent.click(sort);
+    expect(useTriagePreferencesStore.getState().breakdownCreatedAtSort).toBe("ASC");
+    expect(within(context).getByRole("button", {
+      name: theme === "retro-mac" ? "NEW FIRST" : INBOX_TRIAGE_COPY.baseActions.sortOldestFirst,
+    })).toBe(sort);
+    expect(screen.getByTestId("selected-scratch-context")).toBe(context);
+  });
+  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("keeps canonical identity/actions and staged source gates in %s", theme => {
+    document.documentElement.dataset.colorTheme = theme;
+    l2.stagedIds = new Set();
+    const view = render(<BreakdownPanel />);
+    const context = screen.getByTestId("selected-scratch-context");
+    expect(within(context).getByText("Plan the autumn release")).toHaveAttribute("data-triage-role", "context-title");
+    expect(context.querySelector('[data-triage-role="context-timestamp"]')).toBeVisible();
+    expect(within(context).getByRole("button", { name: "Edit" })).toBeEnabled();
+    const row = screen.getByTestId("breakdown-row");
+    expect(within(row).getByRole("button", { name: "Drag breakdown" })).toBeEnabled();
+    l2.stagedIds = new Set(["idea"]);
+    view.rerender(<BreakdownPanel />);
+    expect(screen.getByTestId("breakdown-row")).toBe(row);
+    expect(row).toHaveAttribute("data-triage-role", "breakdown-staged-row");
+    expect(within(row).getByRole("button", { name: "Drag breakdown" })).toBeDisabled();
+    expect(within(row).getByRole("button", { name: "Edit" })).toBeDisabled();
+    expect(within(row).getByRole("button", { name: "Delete" })).toBeDisabled();
+    expect(screen.getByTestId("selected-scratch-context")).toBe(context);
+    l2.stagedIds = new Set();
+  });
+});
+
+describe("one shared date body across all theme consumers", () => {
+  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("uses createdAt rather than mtime in Pool and Context for %s", theme => {
+    vi.spyOn(Date, "now").mockReturnValue(new Date(2026, 5, 17, 12).getTime());
+    document.documentElement.dataset.colorTheme = theme;
+    inbox.bits = [{ ...scratch("first", "Date identity", new Date(2026, 4, 4).getTime()), mtime: Date.now() }];
+    const view = render(<div className="triage-shell"><ScratchPool /><BreakdownPanel /></div>);
+    const body = screen.getByTestId("selected-scratch-context").querySelector('[data-triage-role="context-timestamp-value"]');
+    expect(body).toHaveTextContent("4/05/26");
+    expect(screen.getByTestId("scratch-pool").querySelector(".scratch-pool__row-time")).toHaveTextContent("4/05/26");
+    expect(screen.getByTestId("scratch-pool").querySelector('[data-triage-role="context-timestamp-prefix"]')).toBeNull();
+    document.documentElement.dataset.colorTheme = "retro-mac";
+    view.rerender(<div className="triage-shell"><ScratchPool /><BreakdownPanel /></div>);
+    expect(screen.getByTestId("selected-scratch-context").querySelector('[data-triage-role="context-timestamp-value"]')).toBe(body);
+    vi.restoreAllMocks();
+  });
+});
+
+
+describe("L3 shared presentation tree", () => {
+  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("preserves shared neutral and unavailable meanings during real-target presentation in %s", theme => {
+    document.documentElement.dataset.colorTheme = theme;
+    const item = { kind: "triage-staged-node" as const, id: "candidate", label: "Research" };
+    const projection = { candidates: [], integrityCandidates: [], operations: [] };
+    render(<><StagingZone type="node" activeDragItem={item} overTargetId="triage-bit-zone-drop" projection={projection} /><StagingZone type="bit" activeDragItem={item} overTargetId="triage-bit-zone-drop" projection={projection} /></>);
+    expect(screen.getByTestId("node-staging-zone")).toHaveAttribute("data-triage-state", "neutral");
+    expect(screen.getByTestId("node-staging-zone")).toHaveAttribute("data-triage-hover", "false");
+    expect(screen.getByTestId("bit-staging-zone")).toHaveAttribute("data-triage-state", "unavailable");
+    expect(screen.getByTestId("bit-staging-zone")).toHaveAttribute("data-triage-hover", "true");
+    expect(screen.queryByRole("button", { name: /unstage|retry/i })).not.toBeInTheDocument();
+  });
+
+  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("keeps wells quiet and drag preview pointer-inert in %s", theme => {
+    document.documentElement.dataset.colorTheme = theme;
+    render(<><StagingZone type="node" projection={{ candidates: [], integrityCandidates: [], operations: [] }} /><StagingZone type="bit" projection={{ candidates: [], integrityCandidates: [], operations: [] }} /><TriageDragToken item={{ kind: "triage-breakdown", id: "l3-row", label: "Research note", scratchId: "first", sourceBreakdownId: "l3-row", sourceVersion: 1, sourceLifecycle: "active" }} /></>);
+    expect(screen.getByTestId("node-staging-zone")).toHaveAttribute("data-empty", "true");
+    expect(screen.getByTestId("bit-staging-zone")).toHaveAttribute("data-empty", "true");
+    expect(document.querySelector('[data-triage-role="drag-token"]')).toHaveClass("pointer-events-none");
+    expect(screen.queryByRole("button", { name: /unstage|retry/i })).not.toBeInTheDocument();
+  });
+});
+
+
+describe("Inbox/Triage shared theme realization — L4 replacement search", () => {
+  it("retains the same mounted input, result, scroll and recovery action across theme/mode changes", () => {
+    const activate = vi.fn();
+    const props = {
+      feedback: null, focusTarget: { kind: "result" as const, resultKey: "bit:note" as const },
+      query: "note", resultScrollTop: 37, status: "ready" as const,
+      results: [{ key: "bit:note" as const, id: "note", type: "bit" as const, title: "Note", icon: "FileText", color: null, breadcrumb: "Home / Documents", ancestorIds: ["documents"], nodePathIds: ["documents"], hierarchyOrder: 0, relevance: "title-prefix" as const, rank: 1 as const, duplicate: null }],
+      onClose: vi.fn(), onFocusInput: vi.fn(), onFocusResult: vi.fn(), onQueryChange: vi.fn(), onRetry: vi.fn(), onScrollTopChange: vi.fn(), onSelectResult: vi.fn(),
+      getResultUndo: () => ({ actionLabel: "Check again", copy: "We couldn’t confirm whether “Note” was undone.", disabled: false, onActivate: activate, state: "unknown" }),
+    };
+    const view = render(<GridExplorerSearchResults {...props} />);
+    const input = screen.getByRole("searchbox");
+    const row = document.querySelector('[data-triage-role="explorer-search-result"]')!;
+    const undo = screen.getByRole("button", { name: "Check again" });
+    const viewport = screen.getByRole("list", { name: "1 results" });
+    undo.focus();
+    for (const theme of ["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"]) {
+      for (const mode of ["light", "dark"]) {
+        document.documentElement.dataset.colorTheme = theme;
+        document.documentElement.classList.toggle("dark", mode === "dark");
+        view.rerender(<GridExplorerSearchResults {...props} />);
+        expect(screen.getByRole("searchbox")).toBe(input);
+        expect(input).toHaveValue("note");
+        expect(document.querySelector('[data-triage-role="explorer-search-result"]')).toBe(row);
+        expect(viewport.scrollTop).toBe(37);
+        expect(undo).toHaveFocus();
+        expect(screen.getByText(props.getResultUndo().copy)).toBeVisible();
+        expect(document.querySelector('[data-triage-role="explorer-search-undo-status"]')).toBeInTheDocument();
+      }
+    }
+    fireEvent.click(undo);
+    expect(activate).toHaveBeenCalledOnce();
+    expect(props.onSelectResult).not.toHaveBeenCalled();
+    document.documentElement.classList.remove("dark");
+  });
+});
+
+
+it("Task170 pilot makes normal and reduced Newly card descendants static", () => {
+  const css=readFileSync(join(process.cwd(),"src/app/globals.css"),"utf8");
+  expect(css).toMatch(/\[data-card-presentation="inbox-explorer"\]\[data-newly-placed="true"\] \*\s*\{[^}]*animation:\s*none !important;[^}]*transition:\s*none !important;/);
+});
+
+
+it("Task170 final P1-P8 declares independent body, paint-only and in-flow roles", () => {
+  const css=readFileSync(join(process.cwd(),"src/app/globals.css"),"utf8");
+  expect(css).toContain("--triage-explorer-node-body-min-height");
+  expect(css).toContain("data-triage-paint-suppressed");
+  expect(css).toContain("--triage-finder-feedback-pattern");
+  expect(css).toContain("--triage-placement-close-glyph-size");
+  const workspace=readFileSync(join(process.cwd(),"src/components/triage/triage-workspace.tsx"),"utf8");
+  const breakdown=readFileSync(join(process.cwd(),"src/components/triage/breakdown-panel.tsx"),"utf8");
+  expect(workspace).toContain('data-triage-role="staging-display-columns"');
+  expect(breakdown).toContain('data-triage-role="breakdown-body"');
+});
+
+it("Task170 common ordinary Bit base is independent of conditional NEW/Undo", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  expect(css).toContain("--triage-explorer-bit-min-height: 34px");
+  expect(css).toMatch(/\[data-card-presentation="inbox-explorer"\]\[data-triage-role="explorer-card-bit"\]\s*\{[^}]*min-block-size:\s*var\(--triage-explorer-bit-min-height\);/);
+});
+
+it("Task170 green Return and red unavailable have independent color roles", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  expect(css).toContain("--triage-return-positive-ink");
+  expect(css).toContain("--triage-finder-feedback-surface: var(--triage-finder-unavailable-surface)");
+  expect(css).not.toContain("--triage-finder-feedback-surface: var(--triage-return-hover-surface)");
+});

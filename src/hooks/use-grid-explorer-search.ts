@@ -427,7 +427,7 @@ export function useGridExplorerSearch(
       ];
       setFocusTarget(
         next === undefined
-          ? INPUT_FOCUS
+          ? { kind: "input" }
           : { kind: "result", resultKey: next.key },
       );
     },

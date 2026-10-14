@@ -50,12 +50,71 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   vi.clearAllMocks();
   vi.useRealTimers();
   useEditModeStore.setState({ isEditMode: false });
 });
 
 describe("BitCard", () => {
+  it.each([
+    {status: "active" as const, overdue: true, label: "Overdue", struck: false},
+    {status: "complete" as const, overdue: false, label: "Completed", struck: true},
+    {status: "complete" as const, overdue: true, label: "Completed", struck: true},
+  ])("projects Finder $status overdue=$overdue without importing Grid commands", ({status, overdue, label, struck}) => {
+    const bit = createBit({title: "Readable state", status, icon: "Star", priority: "high", deadline: Date.now() + (overdue ? -86400000 : 86400000)});
+    const activateUndo = vi.fn();
+    const view = render(<BitCard presentation="inbox-explorer" aria-label={bit.title} bit={bit} parentColor="red" chunkStats={{completed: 1, total: 4}} onClick={vi.fn()} isNewlyPlaced undo={{disabled: false, reason: "available", onActivate: activateUndo}} />);
+    const card = screen.getByRole("button", {name: bit.title});
+    expect(card).toHaveClass("cursor-default");
+    expect(card).not.toHaveClass("cursor-grab", "active:cursor-grabbing", "opacity-50");
+    expect(card.className).not.toContain("animate-urgency-blink");
+    const title = card.querySelector('[data-triage-role="explorer-card-title"]');
+    if (struck) expect(title).toHaveClass("line-through");
+    else expect(title).not.toHaveClass("line-through");
+    expect(card.querySelector('[data-triage-role="explorer-card-state"]')).toHaveAccessibleName(label);
+    expect(card.querySelector('[data-triage-role="explorer-card-overdue"]')).toBeNull();
+    expect(card.querySelector('[data-triage-role="explorer-card-deadline"]')).toBeVisible();
+    expect(card.querySelector('[data-triage-role="explorer-card-priority"]')).toHaveTextContent("high");
+    expect(screen.queryByLabelText(bit.title + " options")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Mark as done")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Dismiss")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", {name: "Undo placement of " + bit.title}));
+    expect(activateUndo).toHaveBeenCalledOnce();
+    expect(screen.getByText("NEW")).toBeVisible();
+    view.rerender(<BitCard presentation="inbox-explorer" aria-label={bit.title} bit={{...bit, icon:"Heart"}} parentColor="red" chunkStats={{completed:1,total:4}} onClick={vi.fn()} />);
+    expect(card.querySelector('[data-triage-role="explorer-card-icon"]')).toHaveClass("lucide-heart");
+    view.rerender(<BitCard aria-label={bit.title} bit={bit} parentColor="red" chunkStats={{completed:1,total:4}} onClick={vi.fn()} />);
+    expect(card).toHaveClass("cursor-grab", "active:cursor-grabbing");
+    expect(screen.getByLabelText(bit.title + " options")).toBeInTheDocument();
+    if (overdue) expect(screen.getByLabelText("Mark as done")).toBeInTheDocument();
+  });
+
+  it("keeps Finder metadata, icon identity, ref, activation and independent Undo on the actual BitCard", () => {
+    const bit = createBit({ title: "Mixed Case Bit", icon: "FileText", deadline: Date.now() + 86400000, priority: "high" });
+    const navigate = vi.fn(), activateUndo = vi.fn();
+    const ref = { current: null as HTMLDivElement | null };
+    const view = render(<BitCard presentation="inbox-explorer" aria-label={bit.title} bit={bit} parentColor="red"
+      chunkStats={{ completed: 1, total: 4 }} onClick={navigate} ref={ref} isNewlyPlaced
+      undo={{ disabled: false, reason: "available", onActivate: activateUndo }} />);
+    const card = screen.getByRole("button", { name: bit.title });
+    expect(card).toHaveAttribute("data-card-presentation", "inbox-explorer");
+    expect(card).toHaveAttribute("data-triage-role", "explorer-card-bit");
+    expect(ref.current).toBe(card);
+    expect(card.querySelector('[data-triage-role="explorer-card-icon"]')).toHaveClass("lucide-file-text");
+    expect(card.querySelector('[data-triage-role="explorer-card-deadline"]')).toHaveTextContent("Mar 26");
+    expect(card.querySelector('[data-triage-role="explorer-card-priority"]')).toHaveTextContent("high");
+    expect(card.querySelector('[data-triage-role="explorer-card-progress"]')).toHaveTextContent("1/4");
+    fireEvent.click(screen.getByRole("button", { name: "Undo placement of " + bit.title }));
+    expect(activateUndo).toHaveBeenCalledOnce();
+    expect(navigate).not.toHaveBeenCalled();
+    fireEvent.keyDown(card, { key: "Enter" });
+    expect(navigate).toHaveBeenCalledOnce();
+    view.rerender(<BitCard bit={bit} parentColor="red" chunkStats={{ completed: 1, total: 4 }} onClick={navigate} ref={ref} />);
+    expect(ref.current).toBe(card);
+    expect(card).toHaveAttribute("data-card-presentation", "default");
+    expect(card).toHaveClass("rounded-[10px]", "inline-flex");
+  });
   it("layers an independent semantic Newly Placed marker on the actual card", () => {
     const bit = createBit({ title: "Placed bit" });
     const { rerender } = render(
@@ -291,4 +350,46 @@ describe("B2b — archive context menu (BitCard)", () => {
     );
     expect(screen.queryByLabelText("Design sprint options")).not.toBeInTheDocument();
   });
+});
+
+
+describe("Task170 Newly Undo pilot Bit Q01", () => {
+  it("keeps common-base Bit NEW and Undo optional while preserving metadata", () => {
+    const item = createBit({ title: "Common Bit", priority: "high", deadline: Date.now() + 86400000 });
+    const view = render(<BitCard presentation="inbox-explorer" bit={item} parentColor="red" chunkStats={{completed:1,total:4}} onClick={vi.fn()} />);
+    expect(view.container.querySelector('[data-card-marker="newly-placed"]')).toBeNull();
+    expect(view.container.querySelector('[data-triage-role="explorer-card-undo"]')).toBeNull();
+    expect(screen.getByText("Common Bit")).toBeInTheDocument();
+    expect(screen.getByText("high")).toBeInTheDocument();
+    expect(screen.getByText("1/4")).toBeInTheDocument();
+    expect(view.container.querySelector('[data-triage-role="explorer-card-deadline"]')).toBeInTheDocument();
+    view.rerender(<BitCard presentation="inbox-explorer" bit={item} parentColor="red" chunkStats={{completed:1,total:4}} onClick={vi.fn()} isNewlyPlaced />);
+    expect(view.container.querySelector('[data-card-marker="newly-placed"]')).toHaveTextContent("NEW");
+    expect(view.container.querySelector('[data-triage-role="explorer-card-undo"]')).toBeNull();
+  });
+  it("renders an ordinary inbox Undo2 independently and exposes the exact tooltip reason", () => {
+    const item=createBit({title:"Pilot bit"}); const navigate=vi.fn(), activate=vi.fn();
+    const {container}=render(<BitCard presentation="inbox-explorer" bit={item} parentColor="red" chunkStats={{completed:1,total:4}} onClick={navigate} isNewlyPlaced undo={{disabled:false,reason:"available",tooltip:"Undo this placement.",onActivate:activate}} />);
+    const action=screen.getByRole("button",{name:"Undo placement of Pilot bit"});
+    expect(action.querySelector("svg.lucide-undo-2")).not.toBeNull();
+    expect(action).not.toHaveTextContent("Undo");
+    expect(container.querySelector('[data-card-marker="newly-placed"]')).toHaveTextContent("NEW");
+    fireEvent.keyDown(action,{key:"Enter"});fireEvent.keyDown(action,{key:" "});
+    expect(navigate).not.toHaveBeenCalled();
+    fireEvent.click(action);expect(activate).toHaveBeenCalledOnce();expect(navigate).not.toHaveBeenCalled();
+  });
+});
+
+
+it("Task170 Bit unavailable Undo exposes its exact reason on semantic focus and preserves its ref", async () => {
+  vi.useRealTimers();
+  // JSDOM has no layout observer; this shim enables semantic tooltip DOM only.
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+  const item=createBit({title:"Tooltip bit"});const activate=vi.fn(),navigate=vi.fn(),ref=vi.fn();
+  render(<BitCard presentation="inbox-explorer" bit={item} parentColor="red" chunkStats={{completed:1,total:4}} onClick={navigate} isNewlyPlaced undoActionRef={ref} undo={{disabled:true,reason:"result-mutated",tooltip:"This item changed after placement. Undo is unavailable.",onActivate:activate}} />);
+  const action=screen.getByRole("button",{name:"Undo placement of Tooltip bit"});
+  expect(action).toHaveAttribute("aria-disabled","true");expect(action).not.toBeDisabled();expect(ref).toHaveBeenCalledWith(action);
+  fireEvent.focus(action);expect(await screen.findByRole("tooltip")).toHaveTextContent("This item changed after placement. Undo is unavailable.");
+  fireEvent.keyDown(action,{key:"Enter"});fireEvent.keyDown(action,{key:" "});fireEvent.click(action);
+  expect(activate).not.toHaveBeenCalled();expect(navigate).not.toHaveBeenCalled();
 });

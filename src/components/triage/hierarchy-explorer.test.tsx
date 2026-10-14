@@ -684,7 +684,7 @@ describe("HierarchyExplorer Task 134 base", () => {
     expect(useTriageStore.getState().explorerPathIds).toEqual([home.id]);
   });
 
-  it("renders full column and path labels with no abbreviated or dedicated search body", async () => {
+  it("renders full column labels and retained path identity without a persistent breadcrumb", async () => {
     const { home, level1 } = seedDeepGrid();
     render(<HierarchyExplorer {...defaultProps} />);
 
@@ -697,10 +697,10 @@ describe("HierarchyExplorer Task 134 base", () => {
     fireEvent.click(screen.getByRole("button", { name: `Select Node: ${home.title}` }));
     fireEvent.click(screen.getByRole("button", { name: `Select Node: ${level1.title}` }));
 
-    const path = screen.getByRole("navigation", { name: "Explorer path" });
-    expect(within(path).getByText("Home")).toBeInTheDocument();
-    expect(within(path).getByText(home.title)).toBeInTheDocument();
-    expect(within(path).getByText(level1.title)).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Explorer path" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", {name:"Home"})).toBeInTheDocument();
+    expect(screen.getByRole("button", {name:`Select Node: ${home.title}`})).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("button", {name:`Select Node: ${level1.title}`})).toHaveAttribute("aria-current", "true");
 
     const { useDroppable } = await import("@dnd-kit/core");
     const level2BodyCalls = vi
@@ -713,6 +713,29 @@ describe("HierarchyExplorer Task 134 base", () => {
       targetParentPath: ["Home", home.title],
       targetTitle: level1.title,
     });
+  });
+
+  it("suppresses only Staged Node Level2 paint while preserving invalid semantics and Level3 guidance", () => {
+    const { home, level1, level2 } = seedDeepGrid();
+    useTriageStore.setState({
+      explorerPathIds: [home.id, level1.id, level2.id],
+      explorerOpenColumnIds: ["home", home.id, level1.id, level2.id],
+    });
+    const { rerender } = render(
+      <HierarchyExplorer
+        {...defaultProps}
+        activeDragItem={{ kind: "triage-staged-node", id: "candidate", label: "Candidate" }}
+      />,
+    );
+    const button = screen.getByRole("button", { name: `Select Node: ${level2.title}` });
+    const row = button.closest('[data-triage-role="explorer-node-target"]');
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(row).toHaveAttribute("data-triage-target-state", "invalid");
+    expect(row).toHaveAttribute("data-triage-paint-suppressed", "unavailable");
+    expect(screen.getByTestId("hierarchy-section-body-l3")).toHaveAttribute("data-triage-unavailable", "true");
+    rerender(<HierarchyExplorer {...defaultProps} />);
+    expect(row).not.toHaveAttribute("data-triage-paint-suppressed");
+    expect(button).toHaveAttribute("aria-disabled", "false");
   });
 
   it("keeps the shared Explorer context across Scratch switches", () => {
@@ -1126,7 +1149,7 @@ describe("HierarchyExplorer Task 152 target-column placement", () => {
 
       const focusOwner =
         kind === "direct"
-          ? screen.getByText("Choose a result type")
+          ? screen.getByRole("heading", { name: "DIRECT PLACEMENT" })
           : screen.getByRole("textbox", { name: "Result title" });
       expect(focusOwner).toHaveFocus();
       expect(body.scrollTop).toBe(0);
@@ -1174,7 +1197,7 @@ describe("HierarchyExplorer Task 152 target-column placement", () => {
       />,
     );
 
-    expect(screen.getByText("Choose a result type")).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "DIRECT PLACEMENT" })).toHaveFocus();
     expect(targetBody.scrollTop).toBe(0);
     expect(homeBody.scrollTop).toBe(37);
     expect(window.scrollY).toBe(documentScroll);
@@ -1242,7 +1265,7 @@ describe("HierarchyExplorer Task 152 target-column placement", () => {
     expect(body.scrollTop).toBe(110);
   });
 
-  it("closes headless Search, renders the direct step inside the exact target column, and focuses the step heading", async () => {
+  it("closes headless Search, renders the direct step inside the exact target column, and focuses the existing Direct heading", async () => {
     const target = createNode({ id: "target-1", title: "Target" });
     setGrid(null, [target]);
     explorerSearchState.mode = "active";
@@ -1262,7 +1285,7 @@ describe("HierarchyExplorer Task 152 target-column placement", () => {
     expect(
       screen.getByTestId("hierarchy-column-heading-home").closest("section"),
     ).toContainElement(placement);
-    expect(screen.getByText("Choose a result type")).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "DIRECT PLACEMENT" })).toHaveFocus();
 
     fireEvent.click(screen.getByRole("button", { name: "Node" }));
     expect(onPlacementSelectType).toHaveBeenCalledWith("node");
@@ -1295,7 +1318,7 @@ describe("HierarchyExplorer Task 152 target-column placement", () => {
         onPlacementCancel={onPlacementCancel}
       />,
     );
-    screen.getByRole("button", { name: "Confirm" }).focus();
+    screen.getByRole("button", { name: "OK" }).focus();
 
     view.rerender(
       <HierarchyExplorer
@@ -1304,7 +1327,7 @@ describe("HierarchyExplorer Task 152 target-column placement", () => {
         onPlacementCancel={onPlacementCancel}
       />,
     );
-    expect(screen.getByRole("button", { name: "Confirm" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "OK" })).toHaveFocus();
     fireEvent.keyDown(screen.getByRole("region", { name: "Placement" }), {
       key: "Escape",
     });
@@ -1420,6 +1443,19 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
     );
     return { ...view, titleBlocker };
   }
+
+  it.each(["available", "mutated", "terminal-conflict"] as const)("pilot keeps the exact ordinary %s reason display partition", async (kind) => {
+    const target = createNode({id:"pilot-partition",title:"Pilot partition"});
+    const entry = newlyPlacedEntry(target,"node",1);setGrid(null,[target]);
+    if (kind === "mutated") undoRepository.reconcileDirectPlacementUndo.mockImplementation(async command => ({operationId:command.operationId,status:"conflict",result:{...command.resultSnapshot,version:command.resultSnapshot.version+1},source:command.sourceSnapshot,candidate:null}));
+    if (kind === "terminal-conflict") undoRepository.undoDirectPlacement.mockImplementation(async command => ({operationId:command.operationId,status:"conflict",result:{...command.resultSnapshot,version:command.resultSnapshot.version+1},source:command.sourceSnapshot,candidate:null}));
+    renderWithUndo([entry]);const action=await screen.findByRole("button",{name:"Undo placement of Pilot partition"});
+    if (kind === "terminal-conflict") {await waitFor(()=>expect(action).toHaveAttribute("aria-disabled","false"));fireEvent.click(action);}
+    await waitFor(()=>expect(action).toHaveAttribute("aria-disabled",kind === "available" ? "false" : "true"));
+    const reason=screen.getByText(kind === "available" ? "Undo this placement." : "This item changed after placement. Undo is unavailable.");
+    expect(reason.parentElement).toHaveClass(kind === "terminal-conflict" ? "newly-status-rail" : "newly-status-announcement");
+    expect(action).not.toBeDisabled();expect(screen.getByText("NEW")).toBeInTheDocument();
+  });
 
   it("reactively blocks dirty Edit intent without dispatch or navigation and re-enables after resolution", async () => {
     const target = createNode({ id: "undo-target", title: "Undo target" });
@@ -1858,7 +1894,7 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
     fireEvent.click(undoButton);
 
     const retry = await screen.findByRole("button", { name: "Retry" });
-    expect(retry).toHaveFocus();
+    await waitFor(() => expect(retry).toHaveFocus());
     expect(screen.getByText("“Undo target” wasn’t undone. Nothing changed.")).toBeInTheDocument();
     const firstOperationId = undoRepository.undoDirectPlacement.mock.calls[0]![0].operationId;
     fireEvent.click(retry);
@@ -1913,7 +1949,7 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
 
 describe("HierarchyExplorer Task 153 placement reliability rail", () => {
   it.each([
-    ["pending", null, "Placing “Project” in Home → Target…", "Confirm"],
+    ["pending", null, "Placing “Project” in Home → Target…", "OK"],
     [
       "unknown",
       null,
@@ -2063,7 +2099,7 @@ describe("HierarchyExplorer Task 153 placement reliability rail", () => {
     );
 
     expect(document.querySelector(".placement-reliability-rail")).toBeNull();
-    expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "OK" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });
 
@@ -2272,10 +2308,10 @@ describe("HierarchyExplorer Task 154 Result Title and direct limits", () => {
       expect(bit).toHaveProperty("disabled", bitDisabled);
       expect(cancel).toBeEnabled();
       expect(node.compareDocumentPosition(bit)).toBe(
-        globalThis.Node.DOCUMENT_POSITION_FOLLOWING,
+        globalThis.window.Node.DOCUMENT_POSITION_FOLLOWING,
       );
       expect(bit.compareDocumentPosition(cancel)).toBe(
-        globalThis.Node.DOCUMENT_POSITION_FOLLOWING,
+        globalThis.window.Node.DOCUMENT_POSITION_FOLLOWING,
       );
       expect(
         screen.queryByText(
@@ -2625,13 +2661,15 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
     explorerSearchState.activeQuery = "";
     render(<HierarchyExplorer {...defaultProps} />);
 
-    expect(screen.getByRole("navigation", { name: "Explorer path" })).toBeVisible();
+    expect(screen.queryByRole("navigation", { name: "Explorer path" })).not.toBeInTheDocument();
+    const header = document.querySelector('[data-triage-role="explorer-header"]');
+    expect(header).toContainElement(screen.getByRole("heading", { name: "Grid Explorer" }));
+    expect(header).toContainElement(screen.getByRole("searchbox"));
+    expect(screen.getAllByRole("searchbox")).toHaveLength(1);
+    expect(screen.getByTestId("explorer-search-body")).not.toContainElement(screen.getByRole("searchbox"));
     expect(screen.getByTestId("explorer-search-body")).toBeVisible();
     expect(screen.queryByTestId("hierarchy-section-body-home")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Search Explorer" })).toHaveAttribute(
-      "data-triage-role",
-      "explorer-search-entry",
-    );
+    expect(screen.queryByRole("button", { name: "Search Explorer" })).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveAttribute(
       "data-triage-role",
       "explorer-search-status",
@@ -2727,10 +2765,12 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
               );
           }),
       );
-      render(<HierarchyExplorer {...defaultProps} />);
+      const view = render(<HierarchyExplorer {...defaultProps} />);
 
       fireEvent.click(explorerSearchResultRow());
-      fireEvent.click(screen.getByRole("button", { name: target }));
+      fireEvent.click(screen.getByRole("button", {name:"Clear and close Explorer search"}));
+      view.rerender(<HierarchyExplorer {...defaultProps} />);
+      fireEvent.click(screen.getByRole("button", { name: target === "Home" ? target : `Select Node: ${target}` }));
 
       expect(explorerSearchState.invalidatePendingSelection).toHaveBeenCalledOnce();
       expect(useTriageStore.getState().explorerPathIds).toEqual(expectedPath);
@@ -2785,7 +2825,7 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
     expect(screen.queryByTestId("explorer-search-body")).not.toBeInTheDocument();
   });
 
-  it.each(["input", "result", "close", "retry", "entry"])(
+  it.each(["input", "result", "close", "retry", "header"])(
     "clears active search with Escape from the %s control",
     async (target) => {
       explorerSearchState.mode = "active";
@@ -2805,7 +2845,7 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
               ? screen.getByRole("button", { name: "Clear and close Explorer search" })
               : target === "retry"
                 ? screen.getByRole("button", { name: "Try again" })
-                : screen.getByRole("button", { name: "Search Explorer" });
+                : screen.getByRole("heading", { name: "Grid Explorer" });
       fireEvent.keyDown(control, { key: "Escape" });
       view.rerender(<HierarchyExplorer {...defaultProps} />);
 
@@ -2979,8 +3019,8 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
     explorerSearchState.activeQuery = "projects";
     explorerSearchState.resultScrollTop = 72;
     render(<HierarchyExplorer {...defaultProps} />);
-    const home = screen.getByRole("button", { name: "Home" });
-    home.focus();
+    const close = screen.getByRole("button", { name: "Clear and close Explorer search" });
+    close.focus();
 
     act(() => {
       useTriageStore.getState().selectScratch("scratch-2");
@@ -2990,7 +3030,7 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
     expect(explorerSearchState.mode).toBe("active");
     expect(explorerSearchState.activeQuery).toBe("projects");
     expect(explorerSearchState.resultScrollTop).toBe(72);
-    expect(home).toHaveFocus();
+    expect(close).toHaveFocus();
   });
 
   it("preserves an existing reveal across a Scratch switch without restoring row focus", () => {
@@ -3201,4 +3241,443 @@ describe("HierarchyExplorer Task 158 search-result Undo", () => {
     expect(explorerSearchState.completeResultUndo).not.toHaveBeenCalled();
     expect(explorerSearchState.selectResult).not.toHaveBeenCalled();
   });
+});
+
+
+describe("Task169 Finder presentation boundaries", () => {
+  it.each(["mixed", "bit-only", "level3"])("keeps %s item identity and order without a Bits subsection", (state) => {
+    const home = createNode({ id: "documents", title: "Documents", level: 0 });
+    const child = createNode({ id: "design", title: "Design", parentId: home.id, level: 1 });
+    const grandchild = createNode({ id: "assets", title: "Assets", parentId: child.id, level: 2 });
+    const bit = createBit({ id: "overview", title: "Project overview", parentId: state === "level3" ? grandchild.id : home.id });
+    setGrid(null, [home]);
+    setGrid(home.id, state === "bit-only" ? [] : [child], state === "level3" ? [] : [bit]);
+    setGrid(child.id, [grandchild]);
+    setGrid(grandchild.id, [], state === "level3" ? [bit] : []);
+    render(<HierarchyExplorer {...defaultProps} />);
+    fireEvent.click(screen.getByRole("button", { name: "Select Node: Documents" }));
+    if (state === "level3") {
+      fireEvent.click(screen.getByRole("button", { name: "Select Node: Design" }));
+      fireEvent.click(screen.getByRole("button", { name: "Select Node: Assets" }));
+    }
+    const root = screen.getByTestId("hierarchy-explorer");
+    const pane = screen.getByTestId(`hierarchy-section-body-${state === "level3" ? "l3" : "l1"}`);
+    const row = within(pane).getByRole("button", { name: "Bit: Project overview" });
+    expect(within(root).queryByText("Bits", { exact: true })).not.toBeInTheDocument();
+    expect(pane.querySelector('[data-triage-role="explorer-bit-list"]')?.parentElement).toHaveAttribute("data-triage-role", "explorer-card-list");
+    expect(Array.from(pane.querySelectorAll('[data-explorer-item-id]')).map(item => item.getAttribute("data-explorer-item-id"))).toEqual(state === "mixed" ? [child.id, bit.id] : [bit.id]);
+    expect(row).toHaveAttribute("data-card-presentation", "inbox-explorer");
+    fireEvent.click(screen.getByRole("button", { name: "Select Node: Documents" }));
+    if (state !== "level3") expect(within(pane).getByRole("button", { name: "Bit: Project overview" })).toBe(row);
+    expect(within(root).getAllByRole("heading", { level: 3 }).map(h => h.textContent)).toEqual(["Home", "Level 1", "Level 2", "Level 3"]);
+  });
+  it("exposes full-label panes with independently owned headers and scrolling viewports", () => {
+    setGrid(null, [createNode({ id: "documents", title: "Documents", level: 0 })]);
+    render(<HierarchyExplorer {...defaultProps} />);
+    const root = screen.getByTestId("hierarchy-explorer");
+    expect(root).toHaveAttribute("data-triage-role", "explorer-root");
+    expect(within(root).queryByRole("navigation", { name: "Explorer path" })).not.toBeInTheDocument();
+    expect(root.querySelector('[data-triage-role="explorer-header"]')).toContainElement(within(root).getByRole("button", {name:"Search Explorer"}));
+    expect(screen.getByTestId("hierarchy-column-heading-home")).toContainElement(screen.getByRole("button", {name:"Home"}));
+    const panes = root.querySelectorAll('[data-triage-role="explorer-pane"]');
+    expect(panes).toHaveLength(4);
+    expect(Array.from(panes).map(p => within(p as HTMLElement).getByRole("heading", { level: 3 }).textContent)).toEqual(["Home", "Level 1", "Level 2", "Level 3"]);
+    for (const pane of panes) {
+      expect(pane.querySelector('[data-triage-role="explorer-column-header"]')).toContainElement(pane.querySelector('h3'));
+      expect(pane.querySelector('[data-triage-role="explorer-viewport"]')).not.toContainElement(pane.querySelector('h3'));
+    }
+    expect(root.querySelector('[data-triage-role="explorer-node-target"]')).toContainElement(screen.getByRole("button", { name: "Select Node: Documents" }));
+    expect(root.querySelector('[data-triage-role="explorer-card-shell"]')).toContainElement(screen.getByRole("button", { name: "Select Node: Documents" }));
+    expect(screen.getByRole("button", { name: "Select Node: Documents" })).toHaveAttribute("data-card-presentation", "inbox-explorer");
+  });
+});
+
+
+it("keeps the mounted Explorer navigation, selected card and focus through theme/mode rerenders", () => {
+  const home = createNode({ id: "documents", title: "Documents", level: 0 });
+  setGrid(null, [home]);
+  setGrid(home.id, [], [createBit({ id: "note", parentId: home.id, title: "Note" })]);
+  const view = render(<HierarchyExplorer {...defaultProps} />);
+  const row = screen.getByRole("button", { name: "Select Node: Documents" });
+  fireEvent.click(row);
+  row.focus();
+  const root = screen.getByTestId("hierarchy-explorer");
+  for (const theme of ["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"]) {
+    for (const mode of ["light", "dark"]) {
+      document.documentElement.dataset.colorTheme = theme;
+      document.documentElement.classList.toggle("dark", mode === "dark");
+      view.rerender(<HierarchyExplorer {...defaultProps} />);
+      expect(screen.getByTestId("hierarchy-explorer")).toBe(root);
+      expect(screen.getByRole("button", { name: "Select Node: Documents" })).toBe(row);
+      expect(row).toHaveFocus();
+      expect(row).toHaveAttribute("aria-current", "true");
+      expect(useTriageStore.getState().explorerPathIds).toEqual([home.id]);
+      expect(screen.getByRole("button", { name: "Bit: Note" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Bit: Note" })).toHaveAttribute("data-card-presentation", "inbox-explorer");
+    }
+  }
+  document.documentElement.removeAttribute("data-color-theme");
+  document.documentElement.classList.remove("dark");
+});
+
+
+describe("HierarchyExplorer Task170 Placement presentation", () => {
+  it.each([1, 100, 101, 200, 201, 1000])("Task170 Cycle6 Direct enters its heading and retains ordered independent actions/reasons at length %i", (length) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    render(<HierarchyExplorer {...defaultProps} placementSnapshot={placementSnapshot({ release: {
+      ...placementSnapshot().release, source: { ...placementSnapshot().release.source, title: "d".repeat(length) },
+    } })} />);
+    const placement = screen.getByRole("region", { name: "Placement" });
+    const heading = within(placement).getByRole("heading", { name: "DIRECT PLACEMENT" });
+    expect(heading).toHaveAttribute("tabindex", "-1");
+    expect(heading).toHaveFocus();
+    expect(within(placement).queryByText("Choose a result type")).toBeNull();
+    expect(placement.querySelector('[data-triage-role="placement-target-path"]')).toBeNull();
+    const node = within(placement).getByRole("button", { name: "Node" });
+    const bit = within(placement).getByRole("button", { name: "Bit" });
+    const cancel = within(placement).getByRole("button", { name: "Cancel" });
+    expect(node.parentElement).toBe(bit.parentElement);
+    expect(node.parentElement).toBe(cancel.parentElement);
+    expect([...node.parentElement!.querySelectorAll("button")]).toEqual([node, bit, cancel]);
+    for (const button of [node, bit, cancel]) expect(button).toHaveClass("placement-direct-action");
+    expect(node).toHaveProperty("disabled", length > 100);
+    expect(bit).toHaveProperty("disabled", length > 200);
+    expect(cancel).toBeEnabled();
+    for (const button of [node, bit, cancel]) expect(button).not.toHaveFocus();
+    for (const [button, limit, name] of [[node, 100, "Node"], [bit, 200, "Bit"]] as const) {
+      if (length > limit) {
+        const reason = document.getElementById(button.getAttribute("aria-describedby")!);
+        expect(reason).toHaveTextContent(`${name} titles can be up to ${limit} characters. This source has ${length}.`);
+        expect(node.parentElement!.compareDocumentPosition(reason!)).toBe(window.Node.DOCUMENT_POSITION_FOLLOWING);
+      } else expect(button).not.toHaveAttribute("aria-describedby");
+    }
+    expect(!!within(placement).queryByText("This source is too long for direct placement. Cancel and stage it first.")).toBe(length > 200);
+  });
+
+  it.each(["direct-selection", "result-title", "confirmation"] as const)("Task170 supplemental omits only the visible path in %s while retaining source/type/title semantics", (phase) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const staged = phase !== "direct-selection";
+    render(<HierarchyExplorer {...defaultProps} placementSnapshot={placementSnapshot({
+      phase, resultType: staged ? "node" : null, resultTitleDraft: staged ? "Result" : null,
+      release: { ...placementSnapshot().release, kind: staged ? "staged" : "direct", candidate: staged ? { id: "candidate-1", resultType: "node", version: 1 } : undefined },
+    })} />);
+    const placement = screen.getByRole("region", { name: "Placement" });
+    expect(placement.querySelector('[data-triage-role="placement-target-path"]')).toBeNull();
+    expect(within(placement).queryByText("Home → Target")).toBeNull();
+    expect(within(placement).getByText(phase === "confirmation" ? "Source: Project" : "Project")).toBeInTheDocument();
+    if (phase === "result-title") expect(within(placement).getByRole("textbox", { name: "Result title" })).toHaveValue("Result");
+    if (phase === "confirmation") {
+      expect(placement.querySelector('[data-triage-role="placement-source"]')).toHaveTextContent("Result");
+      expect(placement.querySelector('[data-triage-role="placement-result-type"]')).toHaveTextContent("Node");
+      expect(within(placement).getByRole("button", { name: "OK" })).toBeInTheDocument();
+    }
+  });
+
+  it("Task170 Cycle4 declares full-width vertical Direct actions, secondary Cancel and staged side actions", () => {
+    expect(globalsCss).toMatch(/\.placement-direct-types\s*\{[^}]*flex-direction:\s*column;/);
+    expect(globalsCss).toMatch(/\.placement-direct-action\s*\{[^}]*inline-size:\s*100%;/);
+    expect(globalsCss).toContain(".placement-direct-cancel");
+    expect(globalsCss).toContain("--triage-placement-cancel-surface");
+    expect(globalsCss).toContain(' :root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-direct-cancel {'.trim());
+    expect(globalsCss).toMatch(/\.placement-staged-summary-row\s*\{[^}]*align-items:\s*center;[^}]*display:\s*grid;/);
+    expect(globalsCss).toContain("--triage-placement-rail-height: calc(2 * var(--triage-placement-rail-line-height) + 2 * var(--triage-placement-rail-padding))");
+  });
+
+  it.each([
+    ["confirmation", null, "OK"], ["pending", null, "OK"],
+    ["unknown", null, "Check again"], ["reconciling", null, "Check again"],
+    ["terminal", "not-applied", "Retry"], ["terminal", "stale-source", "Cancel"],
+    ["terminal", "stale-target", "Cancel"],
+  ] as const)("Task170 Cycle4 keeps staged information and one right action slot before full-width rail in %s / %s", (phase, terminalKind, action) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const base = placementSnapshot();
+    render(<HierarchyExplorer {...defaultProps} placementSnapshot={placementSnapshot({
+      phase, terminalKind, resultType: "node", resultTitleDraft: "Result",
+      terminalStatus: terminalKind === "not-applied" ? "not_applied" : terminalKind ? "conflict" : null,
+      release: { ...base.release, kind: "staged", candidate: { id: "candidate-1", resultType: "node", version: 1 } },
+    })} />);
+    const placement = screen.getByRole("region", { name: "Placement" });
+    const row = placement.querySelector('[data-triage-role="placement-staged-summary-row"]');
+    const information = placement.querySelector('[data-triage-role="placement-information"]');
+    const actions = placement.querySelector(".placement-reliability-actions");
+    const slot = placement.querySelector('[data-triage-role="placement-reliability-slot"]');
+    expect(row).not.toBeNull();
+    expect(information?.parentElement).toBe(row);
+    expect(actions?.parentElement).toBe(row);
+    const tagRow = placement.querySelector<HTMLElement>('[data-triage-role="placement-type-row"]');
+    expect(row?.nextElementSibling).toBe(tagRow);
+    expect(tagRow?.nextElementSibling).toBe(slot);
+    expect(placement.querySelectorAll(".placement-reliability-actions")).toHaveLength(1);
+    const header = placement.querySelector('[data-triage-role="placement-header"]');
+    expect(header?.nextElementSibling).toBe(row?.parentElement);
+    expect(header).toContainElement(within(placement).getByRole("heading", { name: "Confirm placement" }));
+    expect(information).toHaveTextContent("Result");
+    expect(information).toHaveTextContent("Source: Project");
+    expect(tagRow).toHaveTextContent("Node");
+    expect(information).not.toContainElement(tagRow);
+    expect(actions).toContainElement(within(placement).getByRole("button", { name: action }));
+    expect(actions).toContainElement(within(placement).getByRole("button", { name: "Cancel" }));
+    expect(within(placement).getAllByRole("button", { name: "Cancel" })).toHaveLength(1);
+    if (phase === "confirmation") {
+      expect(within(placement).getByRole("heading", { name: "Confirm placement" })).toHaveFocus();
+      expect(slot?.childElementCount).toBe(0);
+    } else if (phase === "unknown" || phase === "reconciling" || terminalKind === "not-applied") {
+      expect(within(placement).getByRole("button", { name: action })).toHaveFocus();
+    }
+  });
+
+  it.each([
+    ["confirmation", null, "OK"],
+    ["pending", null, "OK"],
+    ["unknown", null, "Check again"],
+    ["reconciling", null, "Check again"],
+    ["terminal", "not-applied", "Retry"],
+    ["terminal", "stale-source", "Cancel"],
+    ["terminal", "stale-target", "Cancel"],
+  ] as const)("retains summary, reserved reliability slot and action order in %s / %s", (phase, terminalKind, action) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    render(<HierarchyExplorer {...defaultProps} placementSnapshot={placementSnapshot({
+      phase, terminalKind, resultType: "node",
+      terminalStatus: terminalKind === "not-applied" ? "not_applied" : terminalKind ? "conflict" : null,
+    })} />);
+    const placement = screen.getByRole("region", { name: "Placement" });
+    const slot = placement.querySelector('[data-triage-role="placement-reliability-slot"]');
+    const actions = placement.querySelector(".placement-reliability-actions");
+    expect(slot).not.toBeNull();
+    expect(actions!.compareDocumentPosition(slot!)).toBe(window.Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(placement.querySelector('[data-triage-role="placement-source"]')).toHaveTextContent("Project");
+    expect(placement.querySelector('[data-triage-role="placement-target-path"]')).toBeNull();
+    expect(placement.querySelector('[data-triage-role="placement-result-type"]')).toHaveTextContent("Node");
+    expect(within(placement).getByRole("button", { name: action })).toBeInTheDocument();
+    expect(within(placement).getByRole("button", { name: "Cancel" })).toHaveAttribute("data-triage-role", "placement-cancel");
+    if (phase === "confirmation") {
+      expect(within(placement).queryByRole("status", { name: "Placement status" })).toBeNull();
+      expect(within(placement).getByRole("button", { name: "OK" })).toHaveAttribute("data-triage-role", "placement-confirm");
+    } else expect(within(placement).getByRole("status", { name: "Placement status" }).parentElement).toBe(slot);
+  });
+
+  it("keeps one semantic direct/staged shell and native full-target controls across theme/mode rerenders", () => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const snapshot = placementSnapshot({ phase: "confirmation", resultType: "bit", release: {
+      ...placementSnapshot().release, kind: "staged", candidate: { id: "candidate-1", resultType: "bit", version: 1 },
+      target: { ...placementSnapshot().release.target, isFull: true },
+    } });
+    const tree = <HierarchyExplorer {...defaultProps} placementSnapshot={snapshot} />;
+    const view = render(tree);
+    const placement = screen.getByRole("region", { name: "Placement" });
+    const confirm = within(placement).getByRole("button", { name: "OK" });
+    for (const theme of ["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"]) {
+      document.documentElement.dataset.colorTheme = theme;
+      for (const mode of ["light", "dark"]) {
+        document.documentElement.className = mode;
+        view.rerender(tree);
+        expect(screen.getByRole("region", { name: "Placement" })).toBe(placement);
+        expect(placement).toHaveClass("placement-staged-shell");
+        expect(placement.querySelectorAll('[data-triage-role="placement-reliability-slot"]')).toHaveLength(1);
+        expect(within(placement).getByRole("button", { name: "OK" })).toBe(confirm);
+        expect(confirm).toBeDisabled();
+        expect(placement.querySelector('[data-triage-role="placement-full-target-warning"]')).toHaveTextContent("No available grid cell in this target");
+      }
+    }
+    document.documentElement.removeAttribute("data-color-theme");
+    document.documentElement.className = "";
+  });
+});
+
+
+describe("Task170 Cycle6 frame/layout", () => {
+  it.each([
+    [1, 0, "target-1"], [100, 0, "target-1"], [101, 0, "target-1"],
+    [201, 0, "target-1"], [1, 2, "target-1"], [150, null, null],
+  ] as const)("Task170 Cycle6 enters the existing heading at length %i level %s parent %s without choosing a type", (length, level, parentId) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const select = vi.fn(); const base = placementSnapshot();
+    render(<HierarchyExplorer {...defaultProps} onPlacementSelectType={select} placementSnapshot={placementSnapshot({
+      release: { ...base.release, source: { ...base.release.source, title: "d".repeat(length) }, target: { ...base.release.target, level, parentId } },
+    })} />);
+    const placement = screen.getByRole("region", { name: "Placement" });
+    const heading = within(placement).getByRole("heading", { name: "DIRECT PLACEMENT" });
+    expect(heading).toHaveFocus(); expect(heading).toHaveAttribute("tabindex", "-1");
+    expect(select).not.toHaveBeenCalled();
+    const header = placement.querySelector('[data-triage-role="placement-header"]')!;
+    expect(header.parentElement).toBe(placement);
+    expect(header).toHaveTextContent("[DIRECT PLACEMENT]");
+    expect(heading.querySelectorAll('[aria-hidden="true"]')).toHaveLength(2);
+    const close = within(header as HTMLElement).getByRole("button", { name: "Cancel placement" });
+    expect(close).toHaveTextContent("[×]");
+    expect(close.querySelector('[aria-hidden="true"]')).toHaveTextContent("[×]");
+    expect(within(placement).getAllByRole("heading")).toHaveLength(1);
+  });
+
+  it.each(["node", "bit"] as const)("Task170 Cycle6 places a separate full-width %s tag after title/right actions and before reliability reservation", (resultType) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const base = placementSnapshot();
+    render(<HierarchyExplorer {...defaultProps} placementSnapshot={placementSnapshot({ phase: "confirmation", resultType, resultTitleDraft: "Actual title", release: {
+      ...base.release, kind: "staged", candidate: { id: "candidate-1", resultType, version: 1 },
+    } })} />);
+    const placement = screen.getByRole("region", { name: "Placement" });
+    const header = placement.querySelector('[data-triage-role="placement-header"]')!;
+    const row = placement.querySelector('[data-triage-role="placement-staged-summary-row"]')!;
+    const information = placement.querySelector('[data-triage-role="placement-information"]')!;
+    const tagRow = placement.querySelector('[data-triage-role="placement-type-row"]');
+    const tag = placement.querySelector<HTMLElement>('[data-triage-role="placement-result-type"]')!;
+    const slot = placement.querySelector('[data-triage-role="placement-reliability-slot"]')!;
+    expect(tagRow).not.toBeNull(); expect(tag.parentElement).toBe(tagRow);
+    expect(information).not.toContainElement(tag);
+    expect(row.nextElementSibling).toBe(tagRow); expect(tagRow?.nextElementSibling).toBe(slot);
+    expect(header.parentElement).toBe(placement);
+    expect(header.nextElementSibling).toBe(row.parentElement);
+    expect(row.parentElement).toHaveClass("placement-frame-body");
+    expect(information).toHaveTextContent("Actual title"); expect(information).toHaveTextContent("Source: Project");
+    expect(header).toHaveTextContent("[Confirm placement]");
+    expect(within(placement).getByRole("heading", { name: "Confirm placement" })).toHaveFocus();
+    expect([...row.querySelectorAll("button")].map(e => e.textContent)).toEqual(["Cancel", "OK"]);
+    expect(slot.childElementCount).toBe(0);
+  });
+
+  it("Task170 Cycle6 declares flush selected frame, common inset body and real internal action padding roles", () => {
+    expect(globalsCss).toMatch(/\.placement-affordance\[data-placement-frame\]\s*\{[^}]*outline:\s*none;[^}]*padding:\s*0;/);
+    expect(globalsCss).toContain("--triage-placement-title-size");
+    expect(globalsCss).toContain("--triage-placement-title-padding");
+    expect(globalsCss).toContain("--triage-placement-action-padding-block");
+    expect(globalsCss).toContain("--triage-placement-action-padding-inline");
+    expect(globalsCss).toMatch(/\.placement-staged-type-row\s*\{[^}]*min-inline-size:\s*0;/);
+    expect(globalsCss).toContain("--triage-placement-rail-height: calc(2 * var(--triage-placement-rail-line-height) + 2 * var(--triage-placement-rail-padding))");
+  });
+});
+
+describe("Task170 Cycle5 chrome and focus", () => {
+  it.each([
+    [1, 0, "target-1", "Node"], [101, 0, "target-1", "Bit"],
+    [201, 0, "target-1", "Cancel"], [1, 2, "target-1", "Bit"],
+    [150, null, null, "Cancel"],
+  ] as const)("Task170 Cycle6 entry length %i level %s parent %s preserves %s eligibility without selection", (length, level, parentId, expected) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const select = vi.fn(); const base = placementSnapshot();
+    render(<HierarchyExplorer {...defaultProps} onPlacementSelectType={select} placementSnapshot={placementSnapshot({
+      release: { ...base.release, source: { ...base.release.source, title: "d".repeat(length) }, target: { ...base.release.target, level, parentId } },
+    })} />);
+    expect(screen.getByRole("button", { name: expected })).toBeEnabled();
+    expect(select).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "DIRECT PLACEMENT" })).toHaveFocus();
+  });
+
+  it("Task170 Cycle5 preserves an explicit type focus on ordinary rerender", () => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const snapshot = placementSnapshot(); const view = render(<HierarchyExplorer {...defaultProps} placementSnapshot={snapshot} />);
+    expect(screen.getByRole("heading", { name: "DIRECT PLACEMENT" })).toHaveFocus();
+    screen.getByRole("button", { name: "Bit" }).focus();
+    view.rerender(<HierarchyExplorer {...defaultProps} placementSnapshot={{ ...snapshot }} />);
+    expect(screen.getByRole("button", { name: "Bit" })).toHaveFocus();
+  });
+
+  it("Task170 Cycle5 Direct header has one heading and independent guarded close", () => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]); const cancel = vi.fn();
+    render(<HierarchyExplorer {...defaultProps} placementSnapshot={placementSnapshot()} onPlacementCancel={cancel} />);
+    const placement = screen.getByRole("region", { name: "Placement" });
+    const close = within(placement).getByRole("button", { name: "Cancel placement" });
+    const header = placement.querySelector('[data-triage-role="placement-header"]');
+    expect(header).toContainElement(close); expect(header).toContainElement(within(placement).getByRole("heading", { name: "DIRECT PLACEMENT" }));
+    expect(within(placement).getAllByRole("heading")).toHaveLength(1);
+    expect(close).not.toBe(within(placement).getByRole("button", { name: "Cancel" }));
+    fireEvent.click(close); expect(cancel).toHaveBeenCalledOnce(); cancel.mockClear();
+    fireEvent.click(within(placement).getByRole("button", { name: "Cancel" })); expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it.each(["pending", "unknown", "reconciling"] as const)("Task170 Cycle5 Staged header close cannot bypass %s locks", (phase) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]); const base = placementSnapshot(); const cancel = vi.fn();
+    render(<HierarchyExplorer {...defaultProps} onPlacementCancel={cancel} placementSnapshot={placementSnapshot({ phase, resultType: "node", release: {
+      ...base.release, kind: "staged", candidate: { id: "candidate-1", resultType: "node", version: 1 },
+    } })} />);
+    const placement = screen.getByRole("region", { name: "Placement" });
+    const close = within(placement).getByRole("button", { name: "Cancel placement" });
+    expect(close).toHaveAttribute("aria-disabled", "true"); fireEvent.click(close);
+    fireEvent.click(within(placement).getByRole("button", { name: "Cancel" }));
+    fireEvent.keyDown(placement, { key: "Escape" }); expect(cancel).not.toHaveBeenCalled();
+  });
+
+  it.each(["confirmation", "pending"] as const)("Task170 Cycle5 Staged %s has header then Cancel OK body order and original command role", (phase) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]); const base = placementSnapshot(); const confirm = vi.fn();
+    render(<HierarchyExplorer {...defaultProps} onPlacementConfirm={confirm} placementSnapshot={placementSnapshot({ phase, resultType: "bit", resultTitleDraft: "Exact result", release: {
+      ...base.release, kind: "staged", candidate: { id: "candidate-1", resultType: "bit", version: 1 },
+    } })} />);
+    const placement = screen.getByRole("region", { name: "Placement" }); const header = placement.querySelector('[data-triage-role="placement-header"]');
+    const row = placement.querySelector('[data-triage-role="placement-staged-summary-row"]');
+    expect(header?.nextElementSibling).toBe(row?.parentElement); expect(header).toContainElement(within(placement).getByRole("heading", { name: "Confirm placement" }));
+    const actions = placement.querySelector(".placement-reliability-actions")!;
+    expect([...actions.querySelectorAll("button")].map(e => e.textContent)).toEqual(["Cancel", "OK"]);
+    const ok = within(placement).getByRole("button", { name: "OK" }); expect(ok).toHaveAttribute("data-triage-role", "placement-confirm");
+    expect(placement.querySelector('[data-triage-role="placement-source"]')).toHaveTextContent("Exact result");
+    expect(placement.querySelector('[data-triage-role="placement-result-type"]')).toHaveClass("placement-staged-type");
+    fireEvent.click(ok); expect(confirm).toHaveBeenCalledTimes(phase === "confirmation" ? 1 : 0);
+    if (phase === "pending") { expect(ok).toHaveFocus(); expect(ok).toHaveAttribute("aria-disabled", "true"); }
+  });
+
+  it("Task170 Cycle5 declares header actual-focus and text-only Cancel roles", () => {
+    expect(globalsCss).toContain("--triage-placement-header-surface");
+    expect(globalsCss).toMatch(/placement-direct-type:focus/);
+    expect(globalsCss).toMatch(/button\.placement-direct-cancel\s*\{[^}]*background:\s*transparent;[^}]*border:\s*0;[^}]*box-shadow:\s*none;/);
+    expect(globalsCss).toContain("text-decoration: underline");
+    expect(globalsCss).toContain(".placement-staged-type");
+  });
+});
+
+
+describe("Task170 Cycle7 visual correction seams", () => {
+  it.each(["node", "bit"] as const)("shares the selected confirmation frame and Cancel OK order for Direct %s without changing the command", (resultType) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const confirm = vi.fn(); const cancel = vi.fn();
+    render(<HierarchyExplorer {...defaultProps} onPlacementConfirm={confirm} onPlacementCancel={cancel} placementSnapshot={placementSnapshot({ phase: "confirmation", resultType })} />);
+    const placement = screen.getByRole("region", { name: "Placement" });
+    expect(placement).toHaveAttribute("data-placement-frame", "true");
+    const header = placement.querySelector('[data-triage-role="placement-header"]')!;
+    expect(header).not.toBeNull(); expect(header).toHaveTextContent("[Confirm placement]");
+    const row = placement.querySelector('[data-triage-role="placement-staged-summary-row"]')!;
+    expect([...row.querySelectorAll("button")].map(e => e.textContent)).toEqual(["Cancel", "OK"]);
+    const tag = placement.querySelector('[data-triage-role="placement-type-row"]')!;
+    expect(row.nextElementSibling).toBe(tag); expect(tag).toHaveTextContent(resultType === "node" ? "Node" : "Bit");
+    expect(tag.nextElementSibling).toBe(placement.querySelector('[data-triage-role="placement-reliability-slot"]'));
+    fireEvent.click(within(placement).getByRole("button", { name: "OK" })); expect(confirm).toHaveBeenCalledOnce();
+    fireEvent.click(within(header as HTMLElement).getByRole("button", { name: "Cancel placement" })); expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it("declares scoped Finder surface, aligned modal and pointer-transparent foreground feedback contracts", () => {
+    expect(globalsCss).toContain("--triage-explorer-card-node-surface: var(--triage-staging-surface)");
+    expect(globalsCss).toContain("--triage-explorer-card-bit-surface: var(--triage-staging-surface)");
+    expect(globalsCss).toMatch(/\.placement-affordance\s*\{[^}]*margin-inline:\s*0;/);
+    expect(globalsCss).toContain('[data-triage-role="explorer-viewport"]:has([data-triage-role="placement-affordance"])');
+    expect(globalsCss).toMatch(/\[data-triage-feedback-source\][\s\S]*?::after\s*\{[^}]*pointer-events:\s*none;[^}]*z-index:\s*1;/);
+    expect(globalsCss).toContain('[data-triage-unavailable="true"]');
+  });
+
+  it("declares the Staged floor and body-control enlargement independently of recovery and Direct selection", () => {
+    expect(globalsCss).toContain("--triage-placement-staged-min-height: 74.2px");
+    expect(globalsCss).toContain("--triage-placement-staged-control-size: 9px");
+    expect(globalsCss).toContain("--triage-placement-staged-control-padding-block: 4px");
+    expect(globalsCss).toContain("--triage-placement-staged-control-padding-inline: 3px");
+    expect(globalsCss).toContain("--triage-placement-staged-reserve: 6.2px");
+    expect(globalsCss).toContain(".placement-staged-shell .placement-staged-summary-row .placement-cancel:hover");
+    expect(globalsCss).toContain("font-size: var(--triage-placement-strip-size)");
+  });
+});
+
+
+it("Task170 Cycle7 paint metadata preserves staged Bit Home rejection and clears on drag end", () => {
+  const target = createNode({ id: "target-1", title: "Target" }); setGrid(null, [target]);
+  const base = { ...defaultProps, activeDragItem: { kind: "triage-staged-bit" as const, id: "candidate", label: "Candidate" } };
+  const view = render(<HierarchyExplorer {...base} />);
+  const home = screen.getByTestId("hierarchy-section-body-home");
+  expect(home).toHaveAttribute("data-triage-target-state", "invalid");
+  expect(home).toHaveAttribute("data-triage-unavailable", "true");
+  expect(home).toHaveAttribute("data-triage-feedback-source", "bit");
+  const node = screen.getByRole("button", { name: "Select Node: Target" }).closest('[data-triage-role="explorer-node-target"]');
+  expect(node).toHaveAttribute("data-triage-target-state", "idle-valid");
+  view.rerender(<HierarchyExplorer {...defaultProps} />);
+  expect(home).not.toHaveAttribute("data-triage-feedback-source"); expect(home).not.toHaveAttribute("data-triage-unavailable");
+  expect(home).toHaveAttribute("data-triage-target-state", "default");
+});
+
+
+it("Task170 Cycle7 Staged Cancel hover overrides the general enabled-button inversion without touching recovery", () => {
+  expect(globalsCss).toContain('.placement-staged-summary-row .placement-cancel:hover:not(:disabled):not([aria-disabled="true"])');
 });

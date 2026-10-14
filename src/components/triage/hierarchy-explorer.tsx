@@ -1,7 +1,7 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import { Search } from "lucide-react";
+import { Folder, Search } from "lucide-react";
 import {
   useContext,
   useEffect,
@@ -61,6 +61,7 @@ type LocalPlacementResult = ExplorerItemIdentity & {
 };
 
 interface HierarchyExplorerProps {
+  headingId?: string;
   activeDragItem: TriageDragItem;
   onPendingPlacementInvalidated: (
     dropId: string,
@@ -236,6 +237,15 @@ function getNewlyUndoPresentation(
   };
 }
 
+// Ordinary Finder alone adopts the two-state tooltip amendment. Search keeps
+// the shared projection and visible rail; terminal copy equality is irrelevant.
+function getOrdinaryNewlyUndoPresentation(state: TriageNewlyPlacedUndoState, title: string) {
+  const presentation = getNewlyUndoPresentation(state, title);
+  const tooltip = (state.phase === "available" && state.reason === "available") ||
+    (state.phase === "blocked" && state.reason === "result-mutated" && state.terminalStatus === null);
+  return { ...presentation, tooltip: tooltip ? presentation.copy : undefined };
+}
+
 function useNewlyUndoActionFocus(state: TriageNewlyPlacedUndoState) {
   const ref = useRef<HTMLButtonElement>(null);
   const previousPhaseRef = useRef(state.phase);
@@ -256,8 +266,10 @@ function useNewlyUndoActionFocus(state: TriageNewlyPlacedUndoState) {
 function NewlyUndoStatusRail({
   presentation,
   statusId,
+  tooltip = false,
 }: {
   presentation: NewlyUndoPresentation;
+  tooltip?: boolean;
   statusId: string;
 }) {
   const ownsLiveStatus = presentation.state !== "success";
@@ -265,7 +277,7 @@ function NewlyUndoStatusRail({
     <div
       aria-atomic={ownsLiveStatus ? "true" : undefined}
       aria-live={ownsLiveStatus ? "polite" : undefined}
-      className="newly-status-rail"
+      className={tooltip ? "newly-status-announcement sr-only" : "newly-status-rail"}
       data-undo-state={presentation.state}
       role={ownsLiveStatus ? "status" : undefined}
     >
@@ -480,7 +492,34 @@ function explorerPathStatusCopy(status: RenderedExplorerPathStatus): string {
   });
 }
 
+function ExplorerHeader({
+  headingId,
+  control,
+}: {
+  headingId: string;
+  control: ReactNode;
+}) {
+  return (
+    <div className="explorer-header triage-shell__section-heading triage-shell__section-heading--explorer" data-triage-role="explorer-header">
+      <h2
+        aria-label={INBOX_TRIAGE_COPY.sectionNames.gridExplorer}
+        className="explorer-header__identity"
+        data-triage-role="section-header"
+        id={headingId}
+        tabIndex={-1}
+      >
+        <span className="triage-shell__heading-label triage-shell__heading-label--explorer" aria-hidden="true">
+          <Folder className="triage-shell__explorer-icon" />
+          {INBOX_TRIAGE_COPY.sectionNames.gridExplorer}
+        </span>
+      </h2>
+      <div className="explorer-header__control" data-triage-role="explorer-header-control">{control}</div>
+    </div>
+  );
+}
+
 export function HierarchyExplorer({
+  headingId = "triage-grid-explorer-heading",
   activeDragItem,
   onPendingPlacementInvalidated,
   onPointerGeometryChange,
@@ -1418,6 +1457,7 @@ export function HierarchyExplorer({
       ref={explorerRef}
       className="flex min-h-0 w-full flex-col rounded-md border border-border/50 bg-card"
       data-testid="hierarchy-explorer"
+      data-triage-role="explorer-root"
     >
       {reveal !== null ? (
         <div
@@ -1433,28 +1473,11 @@ export function HierarchyExplorer({
           })}
         </div>
       ) : null}
-      <nav
-        aria-label="Explorer path"
-        className="flex min-w-0 flex-wrap items-center gap-x-1 border-b border-border/50 px-3 py-1.5 text-xs text-muted-foreground"
-      >
-        <button className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" type="button" onClick={() => selectPath([])}>
-          Home
-        </button>
-        {pathNodes.map((node, index) => (
-          <span className="contents" key={node.id}>
-            <span aria-hidden="true">/</span>
-            <button
-              className="rounded text-left font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              type="button"
-              onClick={() => selectPath(explorerPathIds.slice(0, index + 1))}
-            >
-              {node.title}
-            </button>
-          </span>
-        ))}
+      {search.mode !== "active" ? (
+        <ExplorerHeader headingId={headingId} control={
         <button
           ref={searchEntryRef}
-          className="explorer-search-entry ml-auto"
+          className="explorer-search-entry"
           data-triage-role="explorer-search-entry"
           type="button"
           onClick={() => {
@@ -1464,13 +1487,15 @@ export function HierarchyExplorer({
           <Search aria-hidden="true" className="h-3.5 w-3.5" />
           {INBOX_TRIAGE_COPY.explorerSearch.entry}
         </button>
-      </nav>
+        } />
+      ) : null}
 
       <p ref={placementLiveRegionRef} className="sr-only" />
       <p ref={undoLiveRegionRef} className="sr-only" />
 
       {search.mode === "active" ? (
         <GridExplorerSearchResults
+          renderHeader={(control) => <ExplorerHeader headingId={headingId} control={control} />}
           feedback={search.feedback}
           focusTarget={search.focusTarget}
           query={search.activeQuery ?? ""}
@@ -1505,7 +1530,7 @@ export function HierarchyExplorer({
           onSelectResult={(result) => void selectSearchResult(result)}
         />
       ) : (
-      <div className="flex min-h-0 flex-1 flex-row overflow-x-hidden">
+      <div className="flex min-h-0 flex-1 flex-row overflow-x-hidden" data-triage-role="explorer-panes">
         {columns.map((column, index) => {
           const parentPath = ["Home", ...pathNodes.slice(0, index).map(({ title }) => title)];
           const targetParentPath =
@@ -1533,6 +1558,7 @@ export function HierarchyExplorer({
               ));
           return (
             <ExplorerColumn
+              feedbackSource={getCandidateType(activeDragItem)}
               key={COLUMN_LABELS[index]}
               bodyState={getSectionBodyState({
                 activeDragItem,
@@ -1547,6 +1573,7 @@ export function HierarchyExplorer({
               isDimmed={index > 0 && column.parentNode === null}
               itemIds={idsForColumn(projectedNodes, projectedBits)}
               label={COLUMN_LABELS[index]}
+              onGoHome={index === 0 ? () => selectPath([]) : undefined}
               pathStatusAnnouncementSuppressed={
                 explorerPathStatus === announcementSuppressedPathStatus
               }
@@ -1663,10 +1690,9 @@ function PlacementAffordance({
     let focusOwner: HTMLElement | null = null;
     if (snapshot.phase === "result-title") {
       focusOwner = resultTitleInputRef.current;
-    } else if (
-      snapshot.phase === "direct-selection" ||
-      snapshot.phase === "confirmation"
-    ) {
+    } else if (snapshot.phase === "direct-selection") {
+      focusOwner = headingRef.current;
+    } else if (snapshot.phase === "confirmation") {
       focusOwner = headingRef.current;
     } else if (snapshot.phase === "unknown") {
       focusOwner = reconcileRef.current;
@@ -1706,11 +1732,165 @@ function PlacementAffordance({
         ? "direct-type-limit"
         : undefined;
 
+  const cancelPlacement = () => {
+    if (!locked) onCancel?.();
+  };
+  const placementHeading = (
+          <h3
+            ref={headingRef}
+            className="placement-confirm-heading text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            data-triage-role="placement-heading"
+            tabIndex={-1}
+          >
+            <span aria-hidden="true">[</span>
+            Confirm placement
+            <span aria-hidden="true">]</span>
+          </h3>
+  );
+  const placementResultType = (
+    <p className="placement-result-type placement-staged-type mt-2 text-xs font-medium text-foreground" data-triage-role="placement-result-type">
+      {snapshot.resultType === "node" ? "Node" : "Bit"}
+    </p>
+  );
+  const placementDetails = (
+    <>
+          <p
+            className="placement-confirm-source mt-1 break-words text-xs text-foreground"
+            data-triage-role="placement-source"
+            data-placement-result-title={
+              snapshot.resultTitleDraft === null ? undefined : "true"
+            }
+          >
+            {snapshot.resultTitleDraft ?? snapshot.release.source.title}
+          </p>
+          {snapshot.resultTitleDraft !== null ? (
+            <p
+              className="placement-source-truth break-words text-[11px] text-muted-foreground"
+              data-placement-source-title="true"
+            >
+              Source: {snapshot.release.source.title}
+            </p>
+          ) : null}
+          {snapshot.release.target.isFull ? (
+            <p className="placement-full-target-warning mt-2 text-xs font-semibold text-muted-foreground" data-triage-role="placement-full-target-warning" role="status">
+              No available grid cell in this target
+            </p>
+          ) : null}
+    </>
+  );
+  const placementHeader = (
+    <div className="placement-header" data-triage-role="placement-header">
+      {placementHeading}
+      <Button
+        aria-label={INBOX_TRIAGE_COPY.placementPresentation.cancelPlacement}
+        aria-disabled={locked || undefined}
+        className="placement-header-close"
+        size="sm" type="button" onClick={cancelPlacement}
+      ><span aria-hidden="true">[×]</span></Button>
+    </div>
+  );
+  const placementReliability = (
+          <div className="placement-reliability-slot" data-triage-role="placement-reliability-slot">
+            {reliabilityCopy === null ? null : (
+            <div
+              aria-atomic="true"
+              aria-label="Placement status"
+              aria-live="polite"
+              className="placement-reliability-rail"
+              role="status"
+            >
+              <span
+                aria-hidden="true"
+                className="placement-reliability-mark"
+                data-placement-reliability-mark={reliabilityState}
+              />
+              <span>{reliabilityCopy}</span>
+            </div>
+            )}
+          </div>
+  );
+  const placementCommand = (
+    <>
+            {snapshot.phase === "unknown" || snapshot.phase === "reconciling" ? (
+              <Button
+                ref={reconcileRef}
+                aria-disabled={snapshot.phase === "reconciling" || undefined}
+                className="placement-reliability-action"
+                size="sm"
+                type="button"
+                onClick={() => {
+                  if (snapshot.phase === "unknown") onReconcile?.();
+                }}
+              >
+                {INBOX_TRIAGE_COPY.placementReliability.actions.checkAgain}
+              </Button>
+            ) : snapshot.phase === "confirmation" || snapshot.phase === "pending" ? (
+              <Button
+                ref={confirmRef}
+                aria-disabled={locked || undefined}
+                className="placement-reliability-action placement-confirm"
+                data-triage-role="placement-confirm"
+                disabled={snapshot.release.target.isFull}
+                size="sm"
+                type="button"
+                onClick={() => {
+                  if (!locked && snapshot.phase === "confirmation") {
+                    onConfirm?.();
+                  }
+                }}
+              >
+                {INBOX_TRIAGE_COPY.placementPresentation.stagedConfirm}
+              </Button>
+            ) : snapshot.terminalKind === "not-applied" ? (
+              <Button
+                ref={retryRef}
+                className="placement-reliability-action placement-reliability-retry"
+                size="sm"
+                type="button"
+                onClick={onConfirm}
+              >
+                {INBOX_TRIAGE_COPY.placementReliability.actions.retry}
+              </Button>
+            ) : null}
+    </>
+  );
+  const placementCancel = (
+            snapshot.phase === "terminal" ||
+            snapshot.phase === "confirmation" ||
+            snapshot.phase === "pending" ||
+            snapshot.phase === "unknown" ||
+            snapshot.phase === "reconciling" ? (
+              <Button
+                ref={cancelRef}
+                aria-disabled={locked || undefined}
+                className="placement-reliability-action placement-cancel"
+                data-triage-role="placement-cancel"
+                size="sm"
+                type="button"
+                variant="outline"
+                onClick={cancelPlacement}
+              >
+                {INBOX_TRIAGE_COPY.placementReliability.actions.cancel}
+              </Button>
+            ) : null
+  );
+  const placementActions = (
+    <div className="placement-reliability-actions mt-3 flex gap-2">
+      {snapshot.phase === "confirmation" || snapshot.phase === "pending"
+        ? <>{placementCancel}{placementCommand}</>
+        : <>{placementCommand}{placementCancel}</>}
+    </div>
+  );
+
   return (
     <section
       aria-label="Placement"
-      className="placement-affordance m-2 rounded-md border border-primary/50 bg-accent/30 p-3"
+      className={cn(
+        "placement-affordance m-2 rounded-md border border-primary/50 bg-accent/30 p-3",
+        snapshot.release.kind === "direct" ? "placement-direct-shell" : "placement-staged-shell",
+      )}
       data-placement-phase={snapshot.phase}
+      data-placement-frame={snapshot.phase !== "result-title" ? "true" : undefined}
       data-placement-reliability={reliabilityCopy === null ? undefined : reliabilityState}
       data-placement-title-step={titleStep}
       data-triage-role="placement-affordance"
@@ -1721,7 +1901,7 @@ function PlacementAffordance({
           return;
         }
         event.preventDefault();
-        onCancel?.();
+        cancelPlacement();
       }}
     >
       {snapshot.phase === "result-title" ? (
@@ -1736,9 +1916,6 @@ function PlacementAffordance({
           </h3>
           <p className="placement-result-title-source break-words">
             {snapshot.release.source.title}
-          </p>
-          <p className="placement-target-path break-words">
-            {snapshot.release.target.path.join(" → ")}
           </p>
           <p id={descriptionId} className="placement-result-title-explanation">
             {explorerTemplate(titleCopy.resultTitle.explanation, {
@@ -1795,181 +1972,102 @@ function PlacementAffordance({
           </div>
         </div>
       ) : snapshot.phase === "direct-selection" ? (
-        <div className="placement-direct-limit-shell">
-          <p className="placement-direct-eyebrow">{titleCopy.direct.eyebrow}</p>
+        <>
+          <div className="placement-header" data-triage-role="placement-header">
           <h3
             ref={headingRef}
-            className="placement-direct-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="placement-direct-eyebrow placement-direct-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             tabIndex={-1}
           >
-            {titleCopy.direct.heading}
+            <span aria-hidden="true">[</span>
+            {titleCopy.direct.eyebrow}
+            <span aria-hidden="true">]</span>
           </h3>
+          <Button
+            aria-label={INBOX_TRIAGE_COPY.placementPresentation.cancelPlacement}
+            className="placement-header-close" size="sm" type="button" onClick={cancelPlacement}
+          ><span aria-hidden="true">[×]</span></Button>
+          </div>
+          <div className="placement-direct-limit-shell placement-frame-body">
           <p className="placement-result-title-source break-words">
             {snapshot.release.source.title}
           </p>
-          <p className="placement-target-path break-words">
-            {snapshot.release.target.path.join(" → ")}
-          </p>
           <div className="placement-direct-types" aria-label="Select placement type">
-            <div className="placement-direct-type-option">
-              <Button
-                aria-describedby={nodeLimitUnavailable ? nodeReasonId : undefined}
-                disabled={nodeLimitUnavailable || nodeTargetUnavailable}
-                size="sm"
-                type="button"
-                onClick={() => onSelectType?.("node")}
-              >
-                {titleCopy.direct.actions.node}
-              </Button>
-              {nodeLimitUnavailable ? (
-                <p id={nodeReasonId} className="placement-direct-type-reason">
-                  {explorerTemplate(titleCopy.direct.nodeReason, {
-                    count: directSourceLength,
-                  })}
-                </p>
-              ) : null}
-            </div>
-            <div className="placement-direct-type-option">
-              <Button
-                aria-describedby={bitLimitUnavailable ? bitReasonId : undefined}
-                disabled={bitLimitUnavailable || bitTargetUnavailable}
-                size="sm"
-                type="button"
-                onClick={() => onSelectType?.("bit")}
-              >
-                {titleCopy.direct.actions.bit}
-              </Button>
-              {bitLimitUnavailable ? (
-                <p id={bitReasonId} className="placement-direct-type-reason">
-                  {explorerTemplate(titleCopy.direct.bitReason, {
-                    count: directSourceLength,
-                  })}
-                </p>
-              ) : null}
-            </div>
+            <Button
+              aria-describedby={nodeLimitUnavailable ? nodeReasonId : undefined}
+              className="placement-direct-action placement-direct-type"
+              disabled={nodeLimitUnavailable || nodeTargetUnavailable}
+              size="sm"
+              type="button"
+              onClick={() => onSelectType?.("node")}
+            >
+              {titleCopy.direct.actions.node}
+            </Button>
+            <Button
+              aria-describedby={bitLimitUnavailable ? bitReasonId : undefined}
+              className="placement-direct-action placement-direct-type"
+              disabled={bitLimitUnavailable || bitTargetUnavailable}
+              size="sm"
+              type="button"
+              onClick={() => onSelectType?.("bit")}
+            >
+              {titleCopy.direct.actions.bit}
+            </Button>
+            <Button
+              ref={cancelRef}
+              className="placement-direct-action placement-direct-cancel"
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={cancelPlacement}
+            >
+              {titleCopy.direct.actions.cancel}
+            </Button>
           </div>
+          {nodeLimitUnavailable || bitLimitUnavailable ? (
+            <div className="placement-direct-reasons">
+              {nodeLimitUnavailable ? (
+                <div className="placement-direct-type-option">
+                  <p id={nodeReasonId} className="placement-direct-type-reason">
+                    {explorerTemplate(titleCopy.direct.nodeReason, {
+                      count: directSourceLength,
+                    })}
+                  </p>
+                </div>
+              ) : null}
+              {bitLimitUnavailable ? (
+                <div className="placement-direct-type-option">
+                  <p id={bitReasonId} className="placement-direct-type-reason">
+                    {explorerTemplate(titleCopy.direct.bitReason, {
+                      count: directSourceLength,
+                    })}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {nodeLimitUnavailable && bitLimitUnavailable ? (
             <p className="placement-direct-limit-summary">
               {titleCopy.direct.neitherAvailable}
             </p>
           ) : null}
-          <Button size="sm" type="button" variant="outline" onClick={onCancel}>
-            {titleCopy.direct.actions.cancel}
-          </Button>
-        </div>
+          </div>
+        </>
       ) : (
         <>
-          <h3
-            ref={headingRef}
-            className="text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            tabIndex={-1}
-          >
-            Confirm placement
-          </h3>
-          <p
-            className="mt-1 break-words text-xs text-foreground"
-            data-placement-result-title={
-              snapshot.resultTitleDraft === null ? undefined : "true"
-            }
-          >
-            {snapshot.resultTitleDraft ?? snapshot.release.source.title}
-          </p>
-          {snapshot.resultTitleDraft !== null ? (
-            <p
-              className="break-words text-[11px] text-muted-foreground"
-              data-placement-source-title="true"
-            >
-              Source: {snapshot.release.source.title}
-            </p>
-          ) : null}
-          <p className="break-words text-[11px] text-muted-foreground">
-            {snapshot.release.target.path.join(" → ")}
-          </p>
-          <p className="mt-2 text-xs font-medium text-foreground">
-            {snapshot.resultType === "node" ? "Node" : "Bit"}
-          </p>
-          {snapshot.release.target.isFull ? (
-            <p className="mt-2 text-xs font-semibold text-muted-foreground" role="status">
-              No available grid cell in this target
-            </p>
-          ) : null}
-          {reliabilityCopy === null ? null : (
-            <div
-              aria-atomic="true"
-              aria-label="Placement status"
-              aria-live="polite"
-              className="placement-reliability-rail"
-              role="status"
-            >
-              <span
-                aria-hidden="true"
-                className="placement-reliability-mark"
-                data-placement-reliability-mark={reliabilityState}
-              />
-              <span>{reliabilityCopy}</span>
-            </div>
-          )}
-          <div className="placement-reliability-actions mt-3 flex gap-2">
-            {snapshot.phase === "unknown" || snapshot.phase === "reconciling" ? (
-              <Button
-                ref={reconcileRef}
-                aria-disabled={snapshot.phase === "reconciling" || undefined}
-                className="placement-reliability-action"
-                size="sm"
-                type="button"
-                onClick={() => {
-                  if (snapshot.phase === "unknown") onReconcile?.();
-                }}
-              >
-                {INBOX_TRIAGE_COPY.placementReliability.actions.checkAgain}
-              </Button>
-            ) : snapshot.phase === "confirmation" || snapshot.phase === "pending" ? (
-              <Button
-                ref={confirmRef}
-                aria-disabled={locked || undefined}
-                className="placement-reliability-action"
-                disabled={snapshot.release.target.isFull}
-                size="sm"
-                type="button"
-                onClick={() => {
-                  if (!locked && snapshot.phase === "confirmation") {
-                    onConfirm?.();
-                  }
-                }}
-              >
-                Confirm
-              </Button>
-            ) : snapshot.terminalKind === "not-applied" ? (
-              <Button
-                ref={retryRef}
-                className="placement-reliability-action placement-reliability-retry"
-                size="sm"
-                type="button"
-                onClick={onConfirm}
-              >
-                {INBOX_TRIAGE_COPY.placementReliability.actions.retry}
-              </Button>
-            ) : null}
-            {snapshot.phase === "terminal" ||
-            snapshot.phase === "confirmation" ||
-            snapshot.phase === "pending" ||
-            snapshot.phase === "unknown" ||
-            snapshot.phase === "reconciling" ? (
-              <Button
-                ref={cancelRef}
-                aria-disabled={locked || undefined}
-                className="placement-reliability-action"
-                size="sm"
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (!locked) onCancel?.();
-                }}
-              >
-                {INBOX_TRIAGE_COPY.placementReliability.actions.cancel}
-              </Button>
-            ) : null}
-          </div>
+          {placementHeader}
+              <div className="placement-frame-body">
+              <div className="placement-staged-summary-row" data-triage-role="placement-staged-summary-row">
+                <div className="placement-staged-information" data-triage-role="placement-information">
+                  {placementDetails}
+                </div>
+                {placementActions}
+              </div>
+              <div className="placement-staged-type-row" data-triage-role="placement-type-row">
+                {placementResultType}
+              </div>
+              {placementReliability}
+              </div>
         </>
       )}
     </section>
@@ -2010,6 +2108,7 @@ function getSectionBodyState({
 }
 
 function ExplorerColumn({
+  feedbackSource,
   bodyState,
   children,
   columnId,
@@ -2017,6 +2116,7 @@ function ExplorerColumn({
   isDimmed,
   itemIds,
   label,
+  onGoHome,
   pathStatus,
   pathStatusAnnouncementSuppressed,
   remoteArrivals,
@@ -2027,6 +2127,7 @@ function ExplorerColumn({
   scrollPosition,
   targetParentPath,
 }: {
+  feedbackSource: ReturnType<typeof getCandidateType>;
   bodyState: HierarchyCellState;
   children: ReactNode;
   columnId: string;
@@ -2034,6 +2135,7 @@ function ExplorerColumn({
   isDimmed: boolean;
   itemIds: string[];
   label: (typeof COLUMN_LABELS)[number];
+  onGoHome?: () => void;
   pathStatus: RenderedExplorerPathStatus | null;
   pathStatusAnnouncementSuppressed: boolean;
   remoteArrivals: ExplorerItemIdentity[];
@@ -2125,22 +2227,27 @@ function ExplorerColumn({
   return (
     <section
       aria-labelledby={`${headingTestId}-label`}
+      data-triage-role="explorer-pane"
+      data-explorer-dimmed={isDimmed ? "true" : undefined}
       className={cn(
         "flex min-w-0 flex-1 flex-col bg-background",
         hasRightBorder && "border-r border-border/50",
         isDimmed && "bg-muted/30 border-border/50",
       )}
     >
-      <div className="border-b border-border/50 bg-muted/30 px-3 py-2">
+      <div className="border-b border-border/50 bg-muted/30 px-3 py-2" data-triage-role="explorer-column-header">
         <div className="flex min-w-0 items-center justify-between gap-2">
           <h3
             ref={headingRef}
             className="font-mono text-[10px] font-medium uppercase text-muted-foreground"
             data-testid={headingTestId}
+            data-triage-role="explorer-column-label"
             id={`${headingTestId}-label`}
             tabIndex={-1}
           >
-            {label}
+            {onGoHome === undefined ? label : (
+              <button className="explorer-home-entry" type="button" onClick={onGoHome}>{label}</button>
+            )}
           </h3>
           {remoteArrivals.length > 0 ? (
             <button
@@ -2149,6 +2256,7 @@ function ExplorerColumn({
                 { level: label },
               )}
               className="explorer-remote-count"
+              data-triage-role="explorer-remote-count"
               type="button"
               onClick={() => {
                 const body = bodyRef.current;
@@ -2223,8 +2331,14 @@ function ExplorerColumn({
         data-testid={`hierarchy-section-body-${sectionIndex === 0 ? "home" : `l${sectionIndex}`}`}
         data-triage-drop-id={sectionDropId}
         data-triage-explorer-column="true"
+        data-triage-role="explorer-viewport"
         data-triage-hierarchy-drop={JSON.stringify(sectionDropData)}
         data-triage-target-state={bodyState}
+        data-triage-feedback-source={feedbackSource ?? undefined}
+        data-triage-unavailable={
+          (feedbackSource === "node" && parentNode !== null && parentNode.level >= 2) ||
+          (feedbackSource === "bit" && sectionIndex === 0) ? "true" : undefined
+        }
         onScroll={handleScroll}
       >
         {children}
@@ -2268,7 +2382,7 @@ function HierarchyItemList({
 }) {
   if (!isLoading && nodes.length === 0 && bits.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
+      <div className="flex h-full items-center justify-center p-4" data-triage-role="explorer-empty">
         <div className="font-sans text-xs text-muted-foreground/50">
           No items in this grid
         </div>
@@ -2277,7 +2391,7 @@ function HierarchyItemList({
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1" data-triage-role="explorer-card-list">
       {nodes.map((node) => (
         <NodeDropCell
           key={node.id}
@@ -2296,11 +2410,7 @@ function HierarchyItemList({
         />
       ))}
       {bits.length > 0 ? (
-        <div className="my-1 border-t border-border/50 pt-1">
-          <div className="px-3 py-0.5 font-mono text-[10px] font-medium uppercase text-muted-foreground/50">
-            Bits
-          </div>
-          <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-0.5" data-triage-role="explorer-bit-list">
             {bits.map((bit) => (
               <BitContextRow
                 key={bit.id}
@@ -2312,7 +2422,6 @@ function HierarchyItemList({
                 parentColor={parentColor}
               />
             ))}
-          </div>
         </div>
       ) : null}
     </div>
@@ -2347,7 +2456,7 @@ function NodeDropCell({
   targetFeedback: TriageTargetFeedback;
 }) {
   const undoState = undo.getState("node", node.id);
-  const undoPresentation = getNewlyUndoPresentation(undoState, node.title);
+  const undoPresentation = getOrdinaryNewlyUndoPresentation(undoState, node.title);
   const undoStatusId = useId();
   const undoActionRef = useNewlyUndoActionFocus(undoState);
   const dropId = getTriageHierarchyDropId(node.id);
@@ -2386,12 +2495,18 @@ function NodeDropCell({
       data-triage-drop-id={dropId}
       data-triage-hierarchy-drop={JSON.stringify(dropData)}
       data-triage-target-state={state}
+      data-triage-feedback-source={getCandidateType(activeDragItem) ?? undefined}
+      data-triage-unavailable={getCandidateType(activeDragItem) === "node" && node.level >= 2 ? "true" : undefined}
+      data-triage-paint-suppressed={activeDragItem?.kind === "triage-staged-node" && node.level === 2 ? "unavailable" : undefined}
+      data-triage-role="explorer-node-target"
     >
       <div
         className={cn(isNewlyPlaced && "newly-card-shell")}
+        data-triage-role="explorer-card-shell"
         data-undo-state={isNewlyPlaced ? undoPresentation.state : undefined}
       >
         <NodeCard
+          presentation="inbox-explorer"
           aria-current={isSelected ? "true" : undefined}
           aria-disabled={state === "invalid"}
           aria-label={`Select Node: ${node.title}`}
@@ -2428,6 +2543,7 @@ function NodeDropCell({
                     }
                   },
                   reason: undoState.reason,
+                  tooltip: undoPresentation.tooltip,
                 }
               : undefined
           }
@@ -2435,6 +2551,7 @@ function NodeDropCell({
         {isNewlyPlaced ? (
           <NewlyUndoStatusRail
             presentation={undoPresentation}
+            tooltip={undoPresentation.tooltip !== undefined}
             statusId={undoStatusId}
           />
         ) : null}
@@ -2459,15 +2576,17 @@ function BitContextRow({
   parentColor: string;
 }) {
   const undoState = undo.getState("bit", bit.id);
-  const undoPresentation = getNewlyUndoPresentation(undoState, bit.title);
+  const undoPresentation = getOrdinaryNewlyUndoPresentation(undoState, bit.title);
   const undoStatusId = useId();
   const undoActionRef = useNewlyUndoActionFocus(undoState);
   return (
     <div
       className={cn(isNewlyPlaced && "newly-card-shell")}
       data-undo-state={isNewlyPlaced ? undoPresentation.state : undefined}
+      data-triage-role="explorer-bit-wrapper"
     >
       <BitCard
+        presentation="inbox-explorer"
         aria-label={`Bit: ${bit.title}`}
         bit={bit}
         chunkStats={{ completed: 0, total: 0 }}
@@ -2497,6 +2616,7 @@ function BitContextRow({
                   }
                 },
                 reason: undoState.reason,
+                tooltip: undoPresentation.tooltip,
               }
             : undefined
         }
@@ -2504,6 +2624,7 @@ function BitContextRow({
       {isNewlyPlaced ? (
         <NewlyUndoStatusRail
           presentation={undoPresentation}
+          tooltip={undoPresentation.tooltip !== undefined}
           statusId={undoStatusId}
         />
       ) : null}

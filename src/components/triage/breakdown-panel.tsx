@@ -19,6 +19,7 @@ import {
   ArrowDownUp,
   CheckCircle2,
   GripVertical,
+  Folder,
   Inbox,
   Lightbulb,
   Pencil,
@@ -64,6 +65,7 @@ import type {
 } from "@/lib/db/schema";
 import type { TriageDropData } from "@/lib/grid-dnd";
 import { cn } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { useTriageStore } from "@/stores/triage-store";
 
@@ -426,6 +428,21 @@ function InlineEditor({
     event: KeyboardEvent<HTMLInputElement>,
   ) {
     if (isComposingRef.current || event.nativeEvent.isComposing) return;
+
+    // Keep plain draft navigation in the input. In a scrolling viewport the
+    // browser can otherwise consume End by scrolling the list instead.
+    if (
+      !event.currentTarget.readOnly &&
+      !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey &&
+      (event.key === "Home" || event.key === "End")
+    ) {
+      event.preventDefault();
+      const field = event.currentTarget;
+      const caret = event.key === "Home" ? 0 : field.value.length;
+      field.setSelectionRange(caret, caret);
+      field.scrollLeft = event.key === "Home" ? 0 : field.scrollWidth;
+      return;
+    }
 
     if (event.key === "Enter") {
       event.preventDefault();
@@ -956,6 +973,7 @@ function BreakdownRow({
           data-source-version={row.version}
           data-triage-staging-focus-source="true"
           data-triage-drag-source="breakdown-grip"
+          data-triage-role="breakdown-grip-control"
           disabled={isDragDisabled}
           className={cn(
             "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-transparent text-muted-foreground/60 hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
@@ -1152,11 +1170,17 @@ function InvalidatedBreakdownRecoveryRow({
   );
 }
 
-function formatScratchTimestamp(createdAt: number): string {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(createdAt);
+function ScratchTimestamp({ createdAt }: { createdAt: number }) {
+  return (
+    <div className="mt-1 text-xs tabular-nums text-muted-foreground" data-triage-role="context-timestamp">
+      <span aria-hidden="true" data-triage-role="context-timestamp-prefix">
+        {INBOX_TRIAGE_COPY.contextPresentation.lastStampPrefix}{" "}
+      </span>
+      <span data-triage-role="context-timestamp-value">
+        {formatRelativeTime(createdAt)}
+      </span>
+    </div>
+  );
 }
 
 export function BreakdownPanel({
@@ -1176,6 +1200,9 @@ export function BreakdownPanel({
   const isStagedDrag =
     activeDragItem?.kind === "triage-staged-node" ||
     activeDragItem?.kind === "triage-staged-bit";
+  const isBreakdownReturnOver =
+    overTargetId === BREAKDOWN_UNSTAGE_DROP_ID &&
+    activeDragItem?.integrity !== "invalidated";
   const { setNodeRef: setBreakdownDropRef } = useDroppable({
     id: BREAKDOWN_UNSTAGE_DROP_ID,
     data: { kind: "triage-remove-drop" } satisfies TriageDropData,
@@ -2099,18 +2126,16 @@ export function BreakdownPanel({
   }
 
   return (
-    <div ref={setBreakdownDropRef} className="relative flex h-full flex-col">
+    <div ref={setBreakdownDropRef} className="relative flex h-full flex-col" data-triage-role="breakdown-body">
       {isStagedDrag ? (
         <div
           aria-label="Return staged item to Breakdown"
           className={cn(
-            "pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-xl border border-dashed bg-card/90 text-sm font-medium text-muted-foreground",
-            overTargetId === BREAKDOWN_UNSTAGE_DROP_ID &&
+            "triage-breakdown__return pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-xl border border-dashed bg-card/90 text-sm font-medium text-muted-foreground",
+            isBreakdownReturnOver &&
               "border-solid border-primary bg-accent text-foreground",
           )}
-          data-drop-active={
-            overTargetId === BREAKDOWN_UNSTAGE_DROP_ID
-          }
+          data-drop-active={isBreakdownReturnOver}
           role="region"
         >
           Return to Breakdown
@@ -2133,6 +2158,7 @@ export function BreakdownPanel({
         ref={contentRegionRef}
         className="min-h-0 flex-1 overflow-y-auto px-3 py-2"
         data-testid="breakdown-content-region"
+        data-triage-role="breakdown-content-viewport"
         inert={isDepartureDecision || isCompletionOverlayOpen ? true : undefined}
       >
         <div
@@ -2145,10 +2171,18 @@ export function BreakdownPanel({
           data-triage-state={isCompletionComplete ? "complete" : "working"}
           tabIndex={-1}
         >
-          <Inbox
-            aria-hidden="true"
-            className="h-5 w-5 flex-shrink-0 text-primary/70"
-          />
+          <span aria-hidden="true" data-triage-role="context-title-strip">
+            <span data-triage-role="context-dialog-info">
+              {INBOX_TRIAGE_COPY.contextPresentation.folderDialogInfo}
+            </span>
+            <span data-triage-role="context-decoration-close">
+              {INBOX_TRIAGE_COPY.contextPresentation.decorativeClose}
+            </span>
+          </span>
+          <span aria-hidden="true" data-triage-role="context-identity-object">
+            <Inbox className="h-5 w-5 flex-shrink-0 text-primary/70" data-triage-role="context-base-icon" />
+            <Folder data-triage-role="context-folder-icon" />
+          </span>
           {editor.snapshot?.target.kind === "scratch-title" ? (
             <InlineEditor
               actionRole="context-action-slot"
@@ -2186,9 +2220,7 @@ export function BreakdownPanel({
               }
               contentAfter={
                 selectedScratch !== null ? (
-                  <div className="mt-1 text-xs tabular-nums text-muted-foreground">
-                    {formatScratchTimestamp(selectedScratch.createdAt)}
-                  </div>
+                  <ScratchTimestamp createdAt={selectedScratch.createdAt} />
                 ) : null
               }
               contentClassName="triage-fixed-context__content"
@@ -2228,9 +2260,7 @@ export function BreakdownPanel({
                   {selectedScratch?.title ?? "Unknown Scratch"}
                 </div>
                 {selectedScratch !== null && (
-                  <div className="mt-1 text-xs tabular-nums text-muted-foreground">
-                    {formatScratchTimestamp(selectedScratch.createdAt)}
-                  </div>
+                  <ScratchTimestamp createdAt={selectedScratch.createdAt} />
                 )}
               </div>
               <div
@@ -2241,6 +2271,8 @@ export function BreakdownPanel({
               >
                 <div className="flex items-center gap-2" data-triage-role="context-action-cluster">
                   <Button
+                    aria-label={INBOX_TRIAGE_COPY.baseActions.edit}
+                    data-triage-role="context-edit-control"
                     ref={contextEditRef}
                     disabled={
                       selectedScratch === null ||
@@ -2253,14 +2285,11 @@ export function BreakdownPanel({
                     onClick={handleOpenScratchTitle}
                   >
                     <Pencil aria-hidden="true" className="h-3.5 w-3.5" />
-                    {INBOX_TRIAGE_COPY.baseActions.edit}
+                    <span data-triage-role="context-edit-label">
+                      {INBOX_TRIAGE_COPY.baseActions.edit}
+                    </span>
                   </Button>
                   <Button
-                    aria-label={
-                      breakdownCreatedAtSort === "DESC"
-                        ? INBOX_TRIAGE_COPY.baseActions.sortNewestFirst
-                        : INBOX_TRIAGE_COPY.baseActions.sortOldestFirst
-                    }
                     data-triage-role="context-sort-control"
                     disabled={operationLock.activeOperation !== null}
                     size="sm"
@@ -2272,8 +2301,20 @@ export function BreakdownPanel({
                       )
                     }
                   >
-                    <ArrowDownUp aria-hidden="true" className="h-3.5 w-3.5" />
-                    {breakdownCreatedAtSort}
+                    <ArrowDownUp aria-hidden="true" className="h-3.5 w-3.5" data-triage-role="context-sort-icon" />
+                    <span data-triage-role="context-sort-current-label">
+                      <span className="sr-only">
+                        {breakdownCreatedAtSort === "DESC"
+                          ? INBOX_TRIAGE_COPY.baseActions.sortNewestFirst
+                          : INBOX_TRIAGE_COPY.baseActions.sortOldestFirst}
+                      </span>
+                      <span aria-hidden="true">{breakdownCreatedAtSort}</span>
+                    </span>
+                    <span data-triage-role="context-sort-next-label">
+                      {breakdownCreatedAtSort === "DESC"
+                        ? INBOX_TRIAGE_COPY.contextPresentation.nextOldestFirst
+                        : INBOX_TRIAGE_COPY.contextPresentation.nextNewestFirst}
+                    </span>
                   </Button>
                 </div>
               </div>
@@ -2282,7 +2323,7 @@ export function BreakdownPanel({
         </div>
 
         {breakdownRenderItems.length > 0 ? (
-          <div className="mt-2" role="list">
+          <div className="mt-2" role="list" data-triage-role="breakdown-row-list">
             {breakdownRenderItems.map((item) =>
               item.kind === "recovery" ? (
                 <InvalidatedBreakdownRecoveryRow
@@ -2359,6 +2400,7 @@ export function BreakdownPanel({
             }
             data-triage-state={emptyState}
           >
+            <span aria-hidden="true" data-triage-role="breakdown-empty-object" />
             {isCompletionComplete ? (
               <>
                 <CheckCircle2 aria-hidden="true" className="h-6 w-6 text-primary/70" />
@@ -2413,6 +2455,7 @@ export function BreakdownPanel({
 
       <div
         className="border-t border-border px-3 py-2"
+        data-triage-role="breakdown-add-footer"
         inert={isCompletionOverlayOpen ? true : undefined}
       >
         <div

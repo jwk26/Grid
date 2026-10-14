@@ -18,7 +18,7 @@
 - The candidate root is the full drag activator. Production retains the shared compact pointer-centered `TriageDragToken`; no internal handle, native snapshot, primary click, detail, or menu is adopted.
 - During staged drag, the dedicated lower unstage overlay and Breakdown drop-back share one meaning. The overlay must not resize, blur, or move the lists.
 - Base pending, invalid, same-type neutral, opposite-type unavailable, and drop-back meanings remain semantic states. Source mock mutations do not define their lifecycle.
-- The lower Remove-from-staging target stays dashed and neutral while idle. Only when a compatible staged drag actively owns that exact target does it use the canonical destructive border, restrained destructive background, and destructive text/icon tokens. This is an explicit removal affordance for Unstage, not deletion; cancellation, invalid, unavailable, same-type neutral, Node/Bit wells, and Breakdown drop-back remain non-destructive.
+- The lower Remove-from-staging target remains a transient, static Unstage affordance with fixed list geometry. Other themes retain the dashed neutral idle surface and compatible-hover destructive border, restrained background and text/icon tokens. The exact Task168 P34-15 Retro Mac supplement below instead defines an opaque framed Remove surface with monochrome compatible-hover inversion and restrained destructive emphasis for compatible Breakdown Return. Cancellation, incompatible or invalidated sources and Node/Bit neutral, unavailable and invalid states receive no destructive emphasis. Both targets perform Unstage, not deletion.
 
 ## Decision-Prerequisite Boundary
 
@@ -41,10 +41,7 @@ history, permanent Unstage/Retry button, or Pool/Explorer presentation.
   and uses the same attached line. Pending, unknown, and reconciling never
   replace the subsection, resize the Staging panel, or become draggable,
   unstageable, or placeable.
-- `Nodes` and `Bits` keep their canonical base counts: zero or one renders the
-  bare label and two or more renders the total prefix (`2 Nodes`, `3 Bits`). A
-  separate actionable `1 new` / `{count} new` indicator sits beside only the
-  affected subsection heading and never changes the durable total.
+- `Nodes` and `Bits` use the presentation total defined in [SPEC — Durable Staging](../SPEC.md#durable-staging): zero or one renders the bare label and two or more renders the total prefix (`2 Nodes`, `3 Bits`). Include source-resolved durable candidates and visible pending, unknown, or reconciling Stage projections without counting the same candidate ID twice; Unstage adds no count and unresolved-source integrity slots are excluded. A separate actionable `1 new` / `{count} new` indicator sits beside only the affected subsection heading and is never added to the heading total. This presentation count changes no durable membership, success, lock, reconciliation or eligibility meaning and introduces no synthetic count lifetime across terminal-to-live-query delivery.
 - The terminal/integrity alert is one static band immediately below the
   `Staging` title and above both subsection wells. A later failure replaces the
   earlier alert; no stack, queue, history, or rotating carousel is created.
@@ -175,7 +172,7 @@ candidate truth, Pool behavior, Explorer behavior, `DP-VQ02`, or `D-CARD`.
 ### Retro Mac
 
 - Observed source-only: `Staging Area` uses black/white folder-like Node tiles and document-like Bit rows, with a lower Trash target labeled as unstage. Hard borders and source drop patterns distinguish states.
-- Adopted fact: classic file/folder shapes and transient Trash-like return target are supported as non-destructive unstage semantics.
+- Adopted fact: classic file/folder shapes and transient Trash-like return target are supported as Unstage semantics, never deletion. Under the separately approved Task168 P34-15 supplement, Remove is a static 60px overlay with left/right/bottom inset12px, 2px foreground border, radius4px and a static decorative Trash icon. Idle uses a fully opaque background surface; compatible active-hover uses fully opaque foreground/background inversion. Copy remains `Remove from staging`; wells and lists do not resize or move. Drag start alone does not wash or dim Node/Bit backgrounds; a 45-degree 4px/4px monochrome pattern appears only in the actually hovered subsection while preserving neutral/unavailable/invalid meaning, copy and eligibility. Breakdown Return preserves background alpha0.90 in both idle and hover; compatible hover uses card surface with destructive tint12%, destructive border and text, excluding invalidated sources. Normal and reduced-motion presentation is immediate/static. Continue the existing desktop pattern through Breakdown/Staging/Finder gaps without changing panel surfaces or geometry. Other themes retain their existing presentation.
 - Token implication: Mac Node/Bit/target roles need explicit semantic naming so Trash imagery does not imply deletion.
 
 ### Graphite
