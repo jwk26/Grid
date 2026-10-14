@@ -72,13 +72,21 @@ Read it at task start during Phases 34–35.
 ## Task 172 — Complete supported modes, accessibility and regression
 
 ### Current state
-- Status: In Progress
-- Next: user decision on the MI-3/MI-4/MI-8 rechecks (see Checkpoint), then acceptance
-- Open: MI-3, MI-4, MI-8, MI-10
+- Status: Awaiting User Decision
+- Next: user decision on MI-8/MI-11 repair owner and MI-4 Retry focus target (see Log), then remaining rechecks
+- Open: MI-3, MI-4, MI-8, MI-10, MI-11
 
 ### Log
 - Decision: work plan approved by the user; proceed in Korean (user, 2026-10-15).
 - MI-10 [Open]: in dark mode the Context sort chip (`OLD FIRST`) was unreadable, white text on a fixed `#ffffd0` fill — cause: `--triage-context-sort-fill/-hover` were hex literals that ignore the mode — fix: derive both from `--background` with `color-mix` as the Pool chip does; light values unchanged (uncommitted until this checkpoint commit).
+
+- Decision: dark Context chip accepted, 1024px Breakdown truncation is not a defect (user, 2026-10-15).
+- Decision: option A, run the MI-3/MI-4/MI-8 rechecks in this task; the leftover `remote row` node in the MCP test profile may be deleted (user, 2026-10-15).
+
+- MI-8 [Open, diagnosed by expert, code-read only]: root cause is not frame timing alone. `applyTerminal` (`use-archive-scratch.ts:178-194`) awaits `onApplied` before recording the terminal state; `handleArchiveApplied` calls `finishScratchArchive`, which changes `selectedScratchId` while the coordinator is still `pending`; the recovery gate (`triage-workspace.tsx:800-808`) then reads it as a forced-reload mismatch and unmounts `ReadyTriageWorkspace`, taking the focused Archive button with it. The one-shot rAF focus (`:881-891`) finds no target. Proposed fix: parent-owned pending focus kind consumed in a `useLayoutEffect` once `terminalSuccess` renders (like `pendingTerminalFocusRef`, `:1698-1711`), plus a gate change so a normal Archive never shows the recovery boundary. The gate change alters the coordinator contract.
+- MI-11 [Open, needs browser confirmation]: the same unmount appears to discard page-session state owned under `TriageWorkspaceContent` on every successful Archive (Newly Placed markers and Undo, Staging alerts), against `SPEC.md` 785-786 and 908.
+- MI-4 [Open, diagnosed]: the BODY focus loss on Retry 150/151 is the Explorer search "Try again" button (`grid-explorer-search-results.tsx:267-276`), removed when the next run starts; `retry` (`use-grid-explorer-search.ts:386-390`) sets no new focus target. Different mechanism from MI-8. Where focus should land after Retry is a product decision the plan does not make.
+- Awaiting User Decision: L7 forbids hiding component/hook repair in this task. MI-8/MI-11 need a repair owner and scope, MI-4 needs a focus destination.
 
 ### Checkpoint
 - Changed: `globals.css` (two Context sort tokens), one CSS assertion in `inbox-triage-theme-realization.test.tsx`.
