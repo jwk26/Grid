@@ -27,7 +27,6 @@ Read it at task start during Phases 34–35.
 ### Current state
 - Status: Open
 - Next: `/run-task 172`
-- Open: MI-1, MI-3, MI-4, MI-9
 
 ### Log
 - Decision: carry-over dispositions below approved as proposed (user, 2026-10-15).
