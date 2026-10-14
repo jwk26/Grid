@@ -571,7 +571,7 @@ foreground/background; other themes display none and reserve no space.
 File / Edit / View / Label / Special and fixed 12:00 PM are decorative literals,
 not commands or a live timer. Remaining body keeps the selected ratios and
 existing state/focus/scroll/recovery. Approval trace:
-`docs/issues/Issues_Phase_34.Task_166.task-scope-desktop-menu.json`.
+`Issues_Phase_34.Task_166.task-scope-desktop-menu.json` (in tag `archive/phase-34-codex`).
 This does not alter DP contracts, Q02 Tagged or later-theme adoption boundaries.
 
 | Surface | Canonical visual contract | Trace |
@@ -1464,7 +1464,7 @@ Do not borrow a nearby card, overlay or prototype behavior as an automatic
 fallback. An unsourced new surface or a real conflict with an accepted DP
 requires its exact user-owned decision before the conflicting change.
 
-Existing fixed Context/editor geometry, action reserves, surface ratios and Placement/Archive boundaries remain unchanged apart from the separately approved Phase 34 / Task 167 P34-04 retro-mac Context-height exception: 120.25px in all mounted states and both modes, with other themes at 104px, the fixed 9.5rem action reserve, shared semantic tree and retained DP/C1 semantics unchanged. See [P34-04 supplemental receipt](issues/Issues_Phase_34.Task_167.task-scope-context-geometry.json). If a matched prototype
+Existing fixed Context/editor geometry, action reserves, surface ratios and Placement/Archive boundaries remain unchanged apart from the separately approved Phase 34 / Task 167 P34-04 retro-mac Context-height exception: 120.25px in all mounted states and both modes, with other themes at 104px, the fixed 9.5rem action reserve, shared semantic tree and retained DP/C1 semantics unchanged. See P34-04 supplemental receipt (`Issues_Phase_34.Task_167.task-scope-context-geometry.json` in tag `archive/phase-34-codex`). If a matched prototype
 target conflicts with them, report the affected element, measured difference,
 behavior/copy impact and decision owner under Q02; do not silently override the
 contract or hide actions, status, caret or focus with fixed height/overflow.
@@ -2339,7 +2339,7 @@ Centered within chunk area:
 
 ## Phase 34 / Task 167 P34-07 — Context presentation-copy roles
 
-Bound to the exact [approved supplemental receipt](issues/Issues_Phase_34.Task_167.task-scope-context-copy.json),
+Bound to the exact approved supplemental receipt (`Issues_Phase_34.Task_167.task-scope-context-copy.json` in tag `archive/phase-34-codex`),
 these additions change only retro-mac Context decoration/sort presentation.
 
 | Role | Approved treatment |

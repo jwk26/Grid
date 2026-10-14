@@ -75,7 +75,7 @@ fresh verification and task acceptance; historical DP receipts/evidence remain.
   search retain their existing composition and consumer behavior.
 - This image is user-selected design authority only, not pinned-prototype
   delivery or implementation verification. Record its exact source identity
-  with [Task169 evidence](../verification/inbox-triage/task-169.md); do not
+  with Task169 evidence (`task-169.md` in tag `archive/phase-34-codex`); do not
   copy its raster into product assets or derive product dimensions/numerical
   fidelity thresholds from enlarged pixels. The pinned source still governs
   unaffected surfaces; existing DP-VQ06-EXPLORER/07/10, receipts, failed and

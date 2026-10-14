@@ -28,7 +28,7 @@
 
 ### Phase 34 / Task 167 P34-04 Context-geometry supplement
 
-The [approved supplemental receipt](../issues/Issues_Phase_34.Task_167.task-scope-context-geometry.json)
+The approved supplemental receipt (`Issues_Phase_34.Task_167.task-scope-context-geometry.json` in tag `archive/phase-34-codex`)
 sets the retro-mac Selected Scratch Context alone to fixed `120.25px` outer
 border-box height in every mounted working/complete view, editor, progress,
 issue-overlay, completion-blocker, pending-intent, locked and departure state,
@@ -142,7 +142,7 @@ acknowledged-latest CAS rule, but does not expose expanding comparison regions.
 
 ### Phase 34 / Task 167 P34-07 Context-copy supplement
 
-The [approved copy receipt](../issues/Issues_Phase_34.Task_167.task-scope-context-copy.json)
+The approved copy receipt (`Issues_Phase_34.Task_167.task-scope-context-copy.json` in tag `archive/phase-34-codex`)
 adopts retro-mac's exact `[ FOLDER DIALOG: INFO ]` left strip text and `[X]`
 right decoration, centrally owned by `src/lib/copy/inbox-triage.ts`. Both are
 aria-hidden, non-focusable, pointer-inert decoration with no close command or
@@ -170,7 +170,7 @@ Pool and Context use the common creation-date body defined only in [SPEC — Scr
 
 Retro-mac Context alone visibly prepends `LAST_STAMP:` followed by one ASCII space to the common date body in both view and editor. Own `lastStampPrefix: "LAST_STAMP:"` centrally in `INBOX_TRIAGE_COPY.contextPresentation`. Mount the same `context-timestamp-prefix` and `context-timestamp-value` roles for every theme and select prefix visibility only through central theme CSS: default hidden, retro-mac Context visible. The prefix is aria-hidden, non-focusable, pointer-inert decoration, not a last-modification label or state announcement. Other themes' Context and every Pool expose only the common date body, with no visible or accessible `LAST_STAMP:` prefix. Keep one semantic tree; do not introduce a theme-ID behavior/copy branch or a CSS-generated copy string.
 
-Preserve the existing working/complete and editor-state meanings, fixed geometry, DP-VQ02/03/04/05/11 and Task160 C1, actions/draft/caret/focus/recovery and centralized theme roles. The [P34-09 execution receipt](../issues/Issues_Phase_34.Task_167.task-scope-created-at.json) binds the first bounded implementation to Task167; the shared date rule and this presentation contract are not limited to that task. Visual disposition and task acceptance remain separate.
+Preserve the existing working/complete and editor-state meanings, fixed geometry, DP-VQ02/03/04/05/11 and Task160 C1, actions/draft/caret/focus/recovery and centralized theme roles. The P34-09 execution receipt (`Issues_Phase_34.Task_167.task-scope-created-at.json` in tag `archive/phase-34-codex`) binds the first bounded implementation to Task167; the shared date rule and this presentation contract are not limited to that task. Visual disposition and task acceptance remain separate.
 
 ## Theme Realizations
 

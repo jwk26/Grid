@@ -114,7 +114,7 @@ The prototype is Design Source only. Its routes, local state, handlers, copy, an
 This separate user-approved supplement extends only retro-mac Task 166's L1
 common frame. The original extraction snapshot and prior receipts remain
 historical and unchanged. Approval owner:
-`docs/issues/Issues_Phase_34.Task_166.task-scope-desktop-menu.json`.
+`Issues_Phase_34.Task_166.task-scope-desktop-menu.json` (in tag `archive/phase-34-codex`).
 Design Source pin: HEAD `4f39709688ceb4cac5e15d4e3502186b1f1c801b`, tree
 `7b8eb8766a9b57fe2174a948de09cfb7646cf7de`, retro route `:836-850`.
 
