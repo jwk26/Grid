@@ -48,10 +48,14 @@ Read it at task start during Phases 34–35.
 
 ### Current state
 - Status: In Progress
-- Next: Stage B (complete Context, Reopen, blockers, withdrawal), then the Archive state checks
-- Open: none
+- Next: Stage B awaits the user's first judgment; MI-8 awaits the user's decision
+- Open: MI-8 (for Task 172)
 
 ### Log
 - Decision: MI-3/MI-4 stay with Task 172. Task 171 checks only the L6 Archive states (user, 2026-10-15).
 - Decision: the confirmation card shows `Every idea segment in "<Scratch title>" has been successfully placed. File it to disk?` below the heading, with the title in bold (user, 2026-10-15). Added as a hidden-by-default element that only retro-mac shows, so other themes are unchanged.
 - Stage A accepted by the user (2026-10-15): overlay and Archive card, with the first judgment being the Scratch-title body text and bold title. Reflected in the Stage A commit.
+- MI-8 [Open]: after Archive succeeds, focus lands on BODY instead of the destination Scratch context — cause: not confirmed; calling `focus()` on `selected-scratch-context` by hand works, so the app's call in `handleArchiveApplied` (`triage-workspace.tsx`) probably runs before the target is focusable or before the new context mounts. Reproduced at 8e5b1d4, before any Task 171 change, so it is pre-existing and theme-independent. Not fixed here. Recheck in Task 172 together with MI-4 (BODY focus loss).
+- Decision: MI-8 goes to Task 172 with MI-4 because it reproduces without Task 171 changes (user's rule, 2026-10-15).
+- Archive states checked in the browser at 1920×1080, retro-mac, light (2026-10-15): confirmation, pending, unknown, reconciling (held 20 s), not-applied, storage-failure, conflict, forced-reload recovery, success with next-visible handoff. The card height stayed 198px in each. Not verified: rejected (no way found to force it), previous-visible, filtered-null and true-empty handoff.
+- Stage B accepted by the user (2026-10-15): complete state, Reopen, blockers, withdrawal and the forced-reload recovery card. Reflected in the Stage B commit.

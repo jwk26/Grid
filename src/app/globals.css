@@ -5713,11 +5713,11 @@
 }
 
 /* L6 (Task 171, retro-mac): Breakdown-scoped system alert for completion and Archive. */
-:root[data-color-theme="retro-mac"] .triage-shell .archive-operation-overlay {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-operation-overlay {
   background: hsl(var(--background) / 0.7);
   backdrop-filter: blur(1px);
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-card {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card {
   background: hsl(var(--background));
   border: 4px double hsl(var(--foreground));
   border-radius: 0;
@@ -5732,7 +5732,7 @@
   padding: 24px;
   text-align: start;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-status-mark {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-status-mark {
   align-self: start;
   background: hsl(var(--background));
   block-size: 40px;
@@ -5745,10 +5745,10 @@
   grid-row: 1;
   inline-size: 40px;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-status-mark[data-archive-status-mark="confirmation"]::before {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-status-mark[data-archive-status-mark="confirmation"]::before {
   content: "!";
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-status {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-status {
   font-size: 10px;
   font-weight: 700;
   grid-column: 2;
@@ -5760,7 +5760,7 @@
   min-block-size: 14px;
   text-transform: uppercase;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-confirmation-detail {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-confirmation-detail {
   display: block;
   font-size: 10px;
   grid-column: 2;
@@ -5772,13 +5772,13 @@
   text-align: start;
   text-transform: uppercase;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-confirmation-detail strong {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-confirmation-detail strong {
   font-weight: 800;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-confirmation-detail[data-archive-detail="reserved"] {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-confirmation-detail[data-archive-detail="reserved"] {
   visibility: hidden;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-actions {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-actions {
   grid-column: 1 / -1;
   grid-row: 3;
   gap: 12px;
@@ -5786,11 +5786,11 @@
   min-block-size: 0;
   padding-block-start: 24px;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-current-action-slot {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-current-action-slot {
   min-block-size: 0;
   min-inline-size: 0;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-card button {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button {
   background: hsl(var(--background));
   border: 1px solid hsl(var(--foreground));
   border-radius: 0;
@@ -5805,22 +5805,90 @@
   padding: 6px 16px;
   text-transform: uppercase;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-card button.archive-current-action {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button.archive-current-action {
   border-width: 2px;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-card button:hover:not([aria-disabled="true"]):not(:disabled),
-:root[data-color-theme="retro-mac"] .triage-shell .archive-card button:focus-visible {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:hover:not([aria-disabled="true"]):not(:disabled),
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:focus-visible {
   background: hsl(var(--foreground));
   color: hsl(var(--background));
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-card button:focus-visible {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:focus-visible {
   outline: 2px solid hsl(var(--foreground));
   outline-offset: 2px;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-card button:active:not([aria-disabled="true"]):not(:disabled) {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:active:not([aria-disabled="true"]):not(:disabled) {
   transform: translate(1px, 1px);
 }
-:root[data-color-theme="retro-mac"] .triage-shell .archive-status:focus-visible {
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-status:focus-visible {
   outline: 2px solid hsl(var(--foreground));
   outline-offset: 2px;
+}
+
+/* L6 Stage B (retro-mac): completed-file object, Reopen, blockers and withdrawal status. */
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-consumed-completion"] > span:not([data-triage-role]) {
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="archive-completion-reopen"] {
+  background: hsl(var(--background));
+  border: 2px solid hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: 2px 2px 0 hsl(var(--foreground));
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 10px;
+  font-weight: 700;
+  height: auto;
+  letter-spacing: 0.05em;
+  line-height: 14px;
+  padding: 4px 12px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="archive-completion-reopen"]:hover,
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="archive-completion-reopen"]:focus-visible {
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="archive-completion-reopen"]:focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="archive-completion-reopen"]:active {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+:root[data-color-theme="retro-mac"] .triage-shell .breakdown-add-completion-blocker,
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-withdrawal-status {
+  background: hsl(var(--background));
+  border: 2px solid hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: 2px 2px 0 hsl(var(--foreground));
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 14px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-withdrawal-status [data-triage-role="archive-withdrawal-mark"] {
+  align-items: center;
+  border: 2px solid hsl(var(--foreground));
+  display: inline-flex;
+  flex: none;
+  font-size: 12px;
+  block-size: 20px;
+  inline-size: 20px;
+  justify-content: center;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .context-completion-blocker-mark {
+  font-family: var(--triage-context-font);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
