@@ -2854,3 +2854,272 @@ describe("TriageWorkspace", () => {
     delete document.documentElement.dataset.colorTheme;
   });
 });
+
+describe("TriageWorkspace Archive handoff with the real coordinator", () => {
+  const ARCHIVE_SCRATCH_ID = "11111111-1111-4111-8111-111111111111";
+  const RECOVERY_KEY = "griddo.pending-operation-recovery.archive-scratch";
+  let operationCounter = 0;
+  let dispatchResolvers: Array<(result: { operationId: string; status: string }) => void> = [];
+  const dispatchArchiveMock = vi.fn();
+  const reconcileArchiveMock = vi.fn();
+  let storageFailsOnSet = false;
+
+  async function useRealCoordinator() {
+    const actual = await vi.importActual<
+      typeof import("@/hooks/use-archive-scratch")
+    >("@/hooks/use-archive-scratch");
+    useArchiveScratchMock.mockImplementation((options) =>
+      actual.useArchiveScratch({
+        ...options,
+        createOperationId: () =>
+          `00000000-0000-4000-8000-${String(++operationCounter).padStart(12, "0")}`,
+        dispatchArchive: dispatchArchiveMock,
+        reconcileArchive: reconcileArchiveMock,
+        getStorage: () =>
+          storageFailsOnSet
+            ? ({
+                getItem: () => null,
+                removeItem: () => undefined,
+                setItem: () => {
+                  throw new Error("quota");
+                },
+              } as unknown as Storage)
+            : window.sessionStorage,
+      }),
+    );
+  }
+
+  function lastCoordinator() {
+    return useArchiveScratchMock.mock.results.at(-1)?.value as {
+      retry: () => Promise<boolean>;
+    };
+  }
+
+  function observeSamples(container: HTMLElement) {
+    const samples: Array<{
+      active: Element | null;
+      boundary: boolean;
+      context: string | null;
+      phase: string | null;
+    }> = [];
+    const record = () => {
+      const panel = container.querySelector('[data-testid="breakdown-panel"]');
+      samples.push({
+        active: document.activeElement,
+        boundary:
+          container.querySelector('[data-triage-role="archive-recovery-boundary"]') !== null,
+        context:
+          container.querySelector('[data-testid="selected-scratch-context"]')
+            ?.textContent ?? null,
+        phase: panel?.getAttribute("data-archive-phase") ?? null,
+      });
+    };
+    const observer = new MutationObserver(record);
+    observer.observe(container, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+    return { samples, stop: () => observer.disconnect() };
+  }
+
+  afterEach(() => {
+    completionState.eligibility.scratch.id = "scratch-1";
+  });
+
+  beforeEach(async () => {
+    completionState.eligibility.scratch.id = ARCHIVE_SCRATCH_ID;
+    useTriageStore.setState({ selectedScratchId: ARCHIVE_SCRATCH_ID });
+    operationCounter = 0;
+    dispatchResolvers = [];
+    storageFailsOnSet = false;
+    window.sessionStorage.clear();
+    dispatchArchiveMock.mockReset();
+    dispatchArchiveMock.mockImplementation(
+      () => new Promise((resolve) => dispatchResolvers.push(resolve)),
+    );
+    reconcileArchiveMock.mockReset();
+    await useRealCoordinator();
+  });
+
+  it("keeps the workspace mounted and focus off BODY in every commit through a successful Archive", async () => {
+    const { container } = render(<TriageWorkspace node={createNode()} />);
+    const region = screen.getByTestId("triage-workspace");
+    const button = screen.getByRole("button", { name: "Archive completion" });
+    button.focus();
+    const observed = observeSamples(container);
+
+    fireEvent.click(button);
+    await act(async () => {});
+    expect(screen.getByTestId("breakdown-panel")).toHaveAttribute(
+      "data-archive-phase",
+      "pending",
+    );
+    expect(dispatchArchiveMock).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      dispatchResolvers[0]({
+        operationId: "00000000-0000-4000-8000-000000000001",
+        status: "applied",
+      });
+    });
+    observed.stop();
+
+    expect(screen.getByTestId("triage-workspace")).toBe(region);
+    expect(observed.samples.length).toBeGreaterThan(0);
+    for (const sample of observed.samples) {
+      expect(sample.boundary).toBe(false);
+      expect(sample.active).not.toBe(document.body);
+      // Only the archiving Scratch's Breakdown reports an Archive phase.
+      if (sample.context !== null && !sample.context.includes(ARCHIVE_SCRATCH_ID)) {
+        expect(sample.phase).toBeNull();
+      }
+    }
+    expect(useTriageStore.getState().selectedScratchId).not.toBe(ARCHIVE_SCRATCH_ID);
+    expect(document.activeElement).toBe(
+      screen.getByTestId("selected-scratch-context"),
+    );
+    expect(screen.getByTestId("archive-live-region")).toHaveTextContent(
+      "Scratch archived.",
+    );
+  });
+
+  it("accepts a second Archive on the same mounted page after success", async () => {
+    render(<TriageWorkspace node={createNode()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    await act(async () => {
+      dispatchResolvers[0]({
+        operationId: "00000000-0000-4000-8000-000000000001",
+        status: "applied",
+      });
+    });
+    expect(screen.getByTestId("archive-live-region")).toHaveTextContent(
+      "Scratch archived.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    expect(dispatchArchiveMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("dismisses a live non-success result without a write when the selected Scratch changes", async () => {
+    render(<TriageWorkspace node={createNode()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    await act(async () => {
+      dispatchResolvers[0]({
+        operationId: "00000000-0000-4000-8000-000000000001",
+        status: "conflict",
+      });
+    });
+    expect(screen.getByTestId("breakdown-panel")).toHaveAttribute(
+      "data-archive-phase",
+      "terminal",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Second Scratch" }));
+    await act(async () => {});
+
+    expect(screen.getByTestId("breakdown-panel")).not.toHaveAttribute(
+      "data-archive-phase",
+    );
+    expect(screen.queryByTestId("archive-recovery-card")).not.toBeInTheDocument();
+    expect(dispatchArchiveMock).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    expect(dispatchArchiveMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a pre-dispatch storage failure on the activated Scratch and dismisses it on a Scratch change", async () => {
+    storageFailsOnSet = true;
+    render(<TriageWorkspace node={createNode()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    expect(dispatchArchiveMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId("breakdown-panel")).toHaveAttribute(
+      "data-archive-phase",
+      "storage_failed",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Second Scratch" }));
+    await act(async () => {});
+    expect(screen.getByTestId("breakdown-panel")).not.toHaveAttribute(
+      "data-archive-phase",
+    );
+  });
+
+  it("keeps a restored not applied result in place, and the workspace identity through Retry → applied", async () => {
+    window.sessionStorage.setItem(
+      RECOVERY_KEY,
+      JSON.stringify({
+        operationId: "00000000-0000-4000-8000-0000000000aa",
+        kind: "archive_scratch",
+        scratchBitId: ARCHIVE_SCRATCH_ID,
+        expectedVersion: 7,
+        startedAt: 100,
+      }),
+    );
+    reconcileArchiveMock.mockResolvedValue({
+      operationId: "00000000-0000-4000-8000-0000000000aa",
+      status: "not_applied",
+    });
+    const { container } = render(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByTestId("archive-recovery-card")).toBeInTheDocument();
+    await act(async () => {});
+    const region = screen.getByTestId("triage-workspace");
+    expect(screen.getByTestId("breakdown-panel")).toHaveAttribute(
+      "data-archive-phase",
+      "terminal",
+    );
+
+    screen.getByRole("button", { name: "Archive completion" }).focus();
+    const observed = observeSamples(container);
+    await act(async () => {
+      void lastCoordinator().retry();
+    });
+    await act(async () => {
+      dispatchResolvers[0]({
+        operationId: "00000000-0000-4000-8000-0000000000aa",
+        status: "applied",
+      });
+    });
+    observed.stop();
+
+    expect(screen.getByTestId("triage-workspace")).toBe(region);
+    expect(observed.samples.every((sample) => !sample.boundary)).toBe(true);
+    expect(observed.samples.every((sample) => sample.active !== document.body)).toBe(true);
+  });
+
+  it("does not dismiss a restored result held in the recovery projection on an unrelated selection change", async () => {
+    useTriageStore.setState({ selectedScratchId: "scratch-2" });
+    window.sessionStorage.setItem(
+      RECOVERY_KEY,
+      JSON.stringify({
+        operationId: "00000000-0000-4000-8000-0000000000bb",
+        kind: "archive_scratch",
+        scratchBitId: ARCHIVE_SCRATCH_ID,
+        expectedVersion: 7,
+        startedAt: 100,
+      }),
+    );
+    reconcileArchiveMock.mockResolvedValue({
+      operationId: "00000000-0000-4000-8000-0000000000bb",
+      status: "conflict",
+    });
+    render(<TriageWorkspace node={createNode()} />);
+    await act(async () => {});
+    expect(screen.getByTestId("archive-recovery-card")).toHaveAttribute(
+      "data-is-recovery-projection",
+      "true",
+    );
+
+    act(() => useTriageStore.getState().selectScratch("scratch-3"));
+    await act(async () => {});
+    expect(screen.getByTestId("archive-recovery-card")).toHaveAttribute(
+      "data-phase",
+      "terminal",
+    );
+  });
+});
