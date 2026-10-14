@@ -13,11 +13,11 @@
 > [Final Close Phase 31](issues/Final_Close_Phase_31.json).
 > **Task state:** Tasks 101–163 and 105A retain explicit user acceptance.
 > Tasks 164–165 are historical, unaccepted `[ ]` transfer records.
-> Tasks 166–208 are `[ ]`, planned and unstarted. Phases 32–33 remain reserved.
-> **Next boundary:** the user has held actual theme implementation (Step 6)
-> until directly reviewing Steps 3–5. Post-close workflow-audit disposition and
-> fresh lifecycle gates remain prerequisites; planning approval and technical
-> close never grant theme implementation or visual acceptance.
+> Tasks 166–170 are accepted `[x]`; Tasks 171–208 are `[ ]`, planned and
+> unstarted. Phases 32–33 remain reserved.
+> **Workflow:** from Task 171, tasks run under the lightweight workflow in
+> [WORKFLOW.md](WORKFLOW.md) (`/run-phase`, `/run-task`, `/end-phase`).
+> Planning approval and technical gates never grant visual acceptance.
 > Phase 30 and original Task 163 acceptance records are unchanged.
 ## Goal
 
@@ -53,10 +53,10 @@ Phase grouping is organizational, never a blanket dependency chain. Each task na
 
 This proposal was derived only from:
 
-- [`AGENTS.md`](../AGENTS.md);
+- `AGENTS.md` (removed 2026-10-15);
 - historical `docs/CODEX_WORKFLOW_ADAPTER.md` at the approved
-  `c9a2112f8554026510ac1135cfb7c3243d337151` planning commit (not a current
-  adapter pointer; current discovery uses [`docs/CODEX_WORKFLOW_ADAPTER.json`](CODEX_WORKFLOW_ADAPTER.json));
+  `c9a2112f8554026510ac1135cfb7c3243d337151` planning commit (removed with the
+  Codex workflow; not a current pointer);
 - the approved [`PROMOTION_MAP.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/PROMOTION_MAP.md);
 - [`docs/SCHEMA.md`](SCHEMA.md), including its completed 2026-07-28 grid-dimension correction receipt at `07bef1e`, [`docs/SPEC.md`](SPEC.md), [`docs/DESIGN_TOKENS.md`](DESIGN_TOKENS.md), and [`docs/PLANNING_STANDARD.md`](PLANNING_STANDARD.md);
 - the approved [`Inbox/Triage visual recipe index`](recipes/inbox-triage-visual-recipe-index.md) and exactly these nine approved recipes:
@@ -109,11 +109,11 @@ do not rebuild eight isolated production trees. No new storage is required.
 
 - **No phase-wide inference:** a phase number never substitutes for a listed dependency.
 - **Code-ready or gated:** a code task is runnable only when all listed dependencies and exact DP receipts exist. Silence never selects a fallback.
-- **TDD:** first add the focused failing test and observe the intended failure; then implement the smallest slice, rerun focused tests, and run the task's broader checks.
+- **Verification matches risk:** data, state, persistence, async and drag-and-drop logic get a focused failing test first; observe the intended failure, implement the smallest slice, rerun focused tests, then run the broader checks. Layout, styling and copy are verified in the running app.
 - **Authoritative results:** pending or unknown transport outcome is not success. Source truth remains visible until a complete repository postcondition is proven.
-- **One narrow commit:** a task commit contains only its declared implementation, tests, and task-local evidence. Shared-file writers obey the mutex register below.
-- **Running-app evidence near the change:** every new user-visible task owns `docs/verification/inbox-triage/task-NNN.md` plus its declared task-local assets. Record route, seed/state, viewport, theme/mode, interaction, focus, captures and UF/recipe. Each region records its first-submission and followup results separately. Theme conformance Tasks 172/179/186/193/200/207 and final Task 208 aggregate rather than substitute for local evidence.
-- **Source/render separation:** recipe declarations are source authority. A task record is rendered/interaction evidence and never changes recipe authority.
+- **Narrow commits:** a task's commits contain only its implementation, tests, and plan/ledger updates. Shared-file writers obey the mutex register below.
+- **Running-app checks near the change:** every user-visible task is checked in the running app with test data. Screenshots are shown in the conversation and never committed; there is no per-task evidence report or assets directory. The ledger checkpoint records what was compared, retained differences, and the user's first judgment separately from the final disposition ([PLANNING_STANDARD §5.3](PLANNING_STANDARD.md#53-visual-checks-and-independent-dispositions)). Theme conformance Tasks 172/179/186/193/200/207 and final Task 208 aggregate rather than substitute for regional checks.
+- **Source/render separation:** recipe declarations are source authority. A task checkpoint records rendered/interaction checks and never changes recipe authority.
 - **Preserve unrelated behavior:** ordinary Grid routing/DnD, Calendar, Trash, Quick Capture, global Search, Bit Detail, Direct Archive, Archive View restore, and system-node lifecycle change only where an explicit task names a compatibility assertion.
 
 ## Readiness Summary
@@ -121,11 +121,11 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 31 terminal transaction | The actual publication/sync result is in Final_Close_Phase_31.json; Phases 34–40 have no kickoff or implementation authority. |
+| Execution lifecycle | Phase 34 in progress | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 continues on `phase-34/retro-mac-regions`; Phases 35–40 start through `/run-phase`. |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
 | Headless/base UI | Tasks 127–163 accepted | Task 163 integration and bounded R01/I01 corrections are included in the Phase 31 Final Close transaction. Original task evidence is retained; correction/candidate evidence is separate. |
-| Theme realization | `PLANNED / UNSTARTED` | Named regional owners below; Q01/Q02/Q05 gate only their affected slices. No old experiment is evidence of canonical conformance. |
+| Theme realization | `IN PROGRESS` | Retro Mac Tasks 166–170 accepted. Named regional owners below; Q01/Q02/Q05 gate only their affected slices. No old experiment is evidence of canonical conformance. |
 | Phase 31 close | `COMPLETED / ARCHIVED` | R01/C01/I01 corrections are recorded in the archive; fresh candidate/output/browser checks and publication guards must pass before the Final Close receipt is created. No eight-theme-completion claim. |
 | Campaign full gate | `PLANNED / UNSTARTED` | Task 208 consumes every accepted foundation and new theme task plus the retained complete matrices. |
 
@@ -202,7 +202,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 31 | Completed | [Accepted route integration and technical close](execution-plan/archive/phase-31.md) | 163; 164/165 historical unaccepted transfer only | Technical corrections and fresh candidate verification are owned by Final Close; no theme completion or new task acceptance. |
 | Phase 32 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
-| Phase 34 | Planned / unstarted | Retro Mac, region-by-region then supported-mode conformance | 166–172 | 163 accepted + Phase 31 close/main sync + post-close audit disposition + document/flow gates; subsequent tasks use exact predecessor edges. |
+| Phase 34 | In progress | Retro Mac, region-by-region then supported-mode conformance | 166–172 | Tasks 166–170 accepted; Task 171 next. Subsequent tasks use exact predecessor edges. |
 | Phase 35 | Planned / unstarted | Neumorphism, region-by-region then supported-mode conformance | 173–179 | 172 accepted + Phase 34 close/main sync. |
 | Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 accepted + Phase 35 close/main sync. |
 | Phase 37 | Planned / unstarted | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
@@ -2133,8 +2133,7 @@ exercise actual transitions and interruption/reduced-motion behavior.
 No arbitrary visual score or pixel threshold is imposed by this plan.
 
 Regional first comparison targets light, 1920×1080, DPR 1, zoom 100%.
-Record the actual browser, fonts, locale/timezone, motion input, selected data,
-query/sort/edit/staged state and prototype correspondence limits. Each region
+Note prototype correspondence limits in the ledger checkpoint. Each region
 needs explicit user visual disposition before the next region. A coherent
 approved Working may perform measurement, implementation and bounded internal
 refinement together; no routine contract-only session is inserted. Preserve
@@ -2147,15 +2146,15 @@ change assigned theme aliases, and verify every shared-structure effect. A new
 geometry/behavior conflict remains Q02, not permission to rebuild a previously
 accepted region. Per-theme variance is centralized styling, not alternate JSX.
 
-At task N, create `docs/verification/inbox-triage/task-N.md`. Its owned asset
-root is exactly `docs/verification/inbox-triage/task-N-assets/`: independently
-authored `fixture.mjs`, `runner.mjs`, `manifest.json`,
-`browser-results.json` and needed PNGs in `captures/`. Filenames/manifest
-identify theme, region, state and reference/production/comparison kind; no
-capture-count limit. No nested node_modules, Next output, runtime/cache or
-temporary generated file is a tracked asset. Report before-code differences,
-first-submit internal corrections, retained differences, the user's first
-judgment and any later repair separately. No past experiment bytes are reused.
+Check each region in the running app with test data, never the user's own
+data. Show screenshots in the conversation and do not commit them; there is no
+per-task evidence report or assets directory. The task's ledger checkpoint
+records what was compared, retained differences and why, and the user's first
+judgment separately from any later repair or final disposition
+([PLANNING_STANDARD §5.3](PLANNING_STANDARD.md#53-visual-checks-and-independent-dispositions)).
+No past experiment bytes are reused. Tasks 166–170 ran under the previous
+workflow; the receipts and verification records their supplements below cite
+are kept in local tag `archive/phase-34-codex`, not on main.
 
 Every binding below also creates or extends
 `src/components/triage/inbox-triage-theme-realization.test.tsx` with relevant
@@ -2168,11 +2167,11 @@ affected write at its owning gate. Q02 blocks a conflicting element/state,
 not unrelated measurement or supported work; advancing the region still needs
 a disposition that truthfully covers any owned remainder.
 
-Use the adapter/catalog's logical focused diff-check/typecheck and full
-test/lint/typecheck/build gates with exact direct targets below. Keep direct
-DOM/state checks separate from fresh mounted-route pixel/geometry/pointer/
-keyboard/focus evidence. Per-region checks include regression of its previously
-accepted neighboring regions and any other themes/modes affected by shared JSX.
+Use the `CLAUDE.md` gates with the direct test targets below: focused
+checks (direct tests, typecheck) while working and the full gate before the
+checkpoint. Keep direct DOM/state checks separate from fresh mounted-route
+pixel/geometry/pointer/keyboard/focus checks. Per-region checks include
+regression of its previously accepted neighboring regions and any other themes/modes affected by shared JSX.
 L7 closes supported current-theme dark/desktop/accessibility/motion work;
 Task 208 owns the retained full 16-combination campaign matrix. Neither user
 visual acceptance nor a technical pass substitutes for the other.
@@ -2185,7 +2184,7 @@ and the assigned theme(s)' frame/Pool aliases; modify
 sourced semantic structure and preserved Pool actions; modify
 `src/components/triage/triage-workspace.tsx` and `triage-workspace.test.tsx`
 only for the common mounting/frame and existing external-removal presentation.
-Include the shared conformance test and task-N evidence paths above.
+Include the shared conformance test above.
 
 **Authority / flows:** D11–D22/D25; UF-01–05, UF-28 handoff, UF-29;
 AF-03/05/10; all applicable NEG. Preserve DP-VQ01 and DP-VQ06-POOL.
@@ -2230,7 +2229,7 @@ Breakdown roles; modify `src/components/triage/breakdown-panel.tsx` and
 `breakdown-panel.test.tsx` for shared presentation; modify
 `src/components/triage/triage-workspace.tsx` and `triage-workspace.test.tsx`
 only for Breakdown mounting and source-attached overlays/status. Include
-shared conformance and task-N evidence.
+the shared conformance test.
 
 **Authority / flows:** D11–D22/D25/D26; UF-06–12, UF-14–15 source linkage,
 UF-26 blockers, UF-29; AF-05/09/10. Retain DP-VQ02/03/04/05/11 exactly.
@@ -2252,7 +2251,7 @@ view/edit/save/cancel/validation/dirty/pending/error/locked/recovery,
 Add/Delete/staged/empty and focus/hover/drag-source checks; applicable gates.
 
 **Task 167-only P34-04 Context-geometry supplement:** the matching
-[task-scope-context-geometry receipt](issues/Issues_Phase_34.Task_167.task-scope-context-geometry.json)
+task-scope-context-geometry receipt (`Issues_Phase_34.Task_167.task-scope-context-geometry.json`)
 authorizes the retro-mac Selected Scratch Context alone to use fixed 120.25px
 outer border-box height in every mounted view/editor/overlay/blocker state and
 both modes. Other themes retain 104px; all 9.5rem action reserves, 48px Breakdown
@@ -2264,7 +2263,7 @@ scroll/drag linkage. This exception neither grants an adjacent-surface redesign
 nor accepts Task167 or releases Task168.
 
 **Task 167-only P34-07 Context-copy supplement:** the matching
-[task-scope-context-copy receipt](issues/Issues_Phase_34.Task_167.task-scope-context-copy.json)
+task-scope-context-copy receipt (`Issues_Phase_34.Task_167.task-scope-context-copy.json`)
 authorizes exactly one additional cycle for retro-mac's non-semantic
 `[ FOLDER DIALOG: INFO ]` / `[X]` strip and next-order sort labels
 (DESC→OLD FIRST, ASC→NEW FIRST), as defined by the amended Context recipe.
@@ -2276,7 +2275,7 @@ all sort commands/locks/lifetimes, DP/C1 and approved120.25/104/152/48 geometry.
 No further cycle, unrelated owner, remaining visual-finding repair or acceptance.
 
 **Task 167 / P34-09 bounded execution supplement:** the matching
-[task-scope-created-at receipt](issues/Issues_Phase_34.Task_167.task-scope-created-at.json)
+task-scope-created-at receipt (`Issues_Phase_34.Task_167.task-scope-created-at.json`)
 binds exactly one additional repair cycle to implement the shared SPEC date
 contract and Context recipe presentation now. Add only existing formatter/direct
 test owners `src/lib/utils/relative-time.ts` and `src/lib/utils/relative-time.test.ts`,
@@ -2306,8 +2305,7 @@ roles; modify `src/components/triage/staging-zone.tsx` and
 `staging-zone.test.tsx`, `src/components/triage/triage-drag-token.tsx`
 and `triage-drag-token.test.tsx` for semantic presentation; modify
 `src/components/triage/triage-workspace.tsx` and `triage-workspace.test.tsx`
-only for Staging mounting/status connections. Include shared conformance and
-task-N evidence.
+only for Staging mounting/status connections. Include the shared conformance test.
 
 **Authority / flows:** D11–D22/D25; UF-13–16/29; AF-05/08/09/10.
 Retain DP-VQ02 and DP-VQ06-STAGING; Q05 diagnosis/disposition precedes a
@@ -2338,7 +2336,7 @@ roles; modify `src/components/triage/hierarchy-explorer.tsx` and
 `hierarchy-explorer.test.tsx`,
 `src/components/triage/grid-explorer-search-results.tsx` and
 `grid-explorer-search-results.test.tsx` for shared base/search presentation.
-Include shared conformance and task-N evidence. Conditional candidate owners
+Include the shared conformance test. Conditional candidate owners
 are `src/components/grid/node-card.tsx`, `node-card.test.tsx`,
 `bit-card.tsx`, `bit-card.test.tsx`: before any internal-card write, Q01
 must approve the exact Inbox-only element/path/consumer boundary. Their listing
@@ -2422,9 +2420,9 @@ Newly roles; modify `src/components/triage/triage-workspace.tsx` and
 `hierarchy-explorer.test.tsx`,
 `src/components/triage/grid-explorer-search-results.tsx` and
 `grid-explorer-search-results.test.tsx` only for their shared forms/attached
-marker/status/action presentation. Include shared conformance and task-N
-evidence. Actual Node/Bit internal changes use the same conditional Q01 owners
-and direct tests as L4; no implicit owner enlargement.
+marker/status/action presentation. Include the shared conformance test.
+Actual Node/Bit internal changes use the same conditional Q01 owners and
+direct tests as L4; no implicit owner enlargement.
 
 **Authority / flows:** D11–D28; UF-19–25/29; AF-05/09/10.
 Retain DP-VQ08/09/10, atomic placement and source-aware Undo.
@@ -2541,7 +2539,7 @@ Archive roles; modify `src/components/triage/breakdown-panel.tsx` and
 `breakdown-panel.test.tsx`,
 `src/components/triage/triage-workspace.tsx` and
 `triage-workspace.test.tsx` only for the existing completion/recovery
-presentation. Include shared conformance and task-N evidence.
+presentation. Include the shared conformance test.
 
 **Authority / flows:** D11–D28; UF-02/12/26–29; AF-04/05/09/10.
 Retain DP-VQ11/12 and the accepted completion/Archive coordinator.
@@ -2569,7 +2567,7 @@ gates and unrelated Archive View/Trash preservation.
 **Files and actions:** modify `src/app/globals.css` only for the assigned
 theme(s)' missing supported-dark aliases and in-scope CSS accessibility/motion
 conformance; extend the shared realization test and
-`src/app/theme-transition.test.ts`; create task-N evidence and assets.
+`src/app/theme-transition.test.ts`.
 No component/hook/data repair is hidden here; a structural/behavior regression
 returns to its named regional owner under an exact approved repair scope.
 
@@ -2597,11 +2595,18 @@ checks. Preserve earlier theme assertions. Execute full logical gates. Task
 
 ## Phase 34 — Retro Mac Regional Realization
 
-Theme set: `retro-mac`. This phase is proposed and unstarted.
+Theme set: `retro-mac`. In progress on branch `phase-34/retro-mac-regions`.
+Tasks 166–170 were accepted under the previous workflow; their receipts,
+verification records and assets are kept in local tag `archive/phase-34-codex`,
+not on main.
+
+Visual reference: prototype route `/prototype/inbox-triage-retro-mac` in the read-only worktree `/Users/jwk/Documents/griddo2-claude-themes2-3` (commit `4f39709`). View it only; never copy its source or assets.
+
+Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
 
 ### Task 166: [x] Fix the common frame and realize Scratch Pool
 
-**Files and actions:** bind L1's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-166.md` and the declared `task-166-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L1's exact per-file actions to `retro-mac` only; its verification record and assets are kept in tag `archive/phase-34-codex`. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 163 and every explicit Phase 34 entry condition above. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -2617,7 +2622,7 @@ Theme set: `retro-mac`. This phase is proposed and unstarted.
 
 ### Task 167: [x] Realize Selected Scratch Context and Breakdown
 
-**Files and actions:** bind L2's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-167.md` and the declared `task-167-assets/` files. Conditional owner/decision gates remain in force. The approved [P34-04 Context-geometry supplement](issues/Issues_Phase_34.Task_167.task-scope-context-geometry.json) is the sole exception to L2's retained fixed Context height. The [P34-09 bounded execution supplement](issues/Issues_Phase_34.Task_167.task-scope-created-at.json) connects this task to the exact added implementation/test owners and one additional cycle for the shared SPEC/L1/L2 date contract; it does not limit that product contract to this task or activate later tasks.
+**Files and actions:** bind L2's exact per-file actions to `retro-mac` only; its verification record and assets are kept in tag `archive/phase-34-codex`. Conditional owner/decision gates remain in force. The approved P34-04 Context-geometry supplement (`Issues_Phase_34.Task_167.task-scope-context-geometry.json`) is the sole exception to L2's retained fixed Context height. The P34-09 bounded execution supplement (`Issues_Phase_34.Task_167.task-scope-created-at.json`) connects this task to the exact added implementation/test owners and one additional cycle for the shared SPEC/L1/L2 date contract; it does not limit that product contract to this task or activate later tasks.
 
 **Dependencies:** Task 166 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -2633,7 +2638,7 @@ Theme set: `retro-mac`. This phase is proposed and unstarted.
 
 ### Task 168: [x] Realize Staging and drag presentation
 
-**Files and actions:** bind L3's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-168.md` and the declared `task-168-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L3's exact per-file actions to `retro-mac` only; its verification record and assets are kept in tag `archive/phase-34-codex`. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 167 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -2649,7 +2654,7 @@ Theme set: `retro-mac`. This phase is proposed and unstarted.
 
 ### Task 169: [x] Realize Explorer base and replacement search
 
-**Files and actions:** bind L4's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-169.md` and the declared `task-169-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L4's exact per-file actions to `retro-mac` only; its verification record and assets are kept in tag `archive/phase-34-codex`. Conditional owner/decision gates remain in force.
 
 **User review direction, 2026-10-07:** consume L4's shared Explorer amendment
 in this task's exact supplemental scope. The user's explicit canonical-write
@@ -2682,7 +2687,7 @@ canonical writer, infer task acceptance/issue closure or start Task170.
 
 ### Task 170: [x] Realize Placement followed by Newly/Undo
 
-**Files and actions:** bind L5's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-170.md` and the declared `task-170-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L5's exact per-file actions to `retro-mac` only; its verification record and assets are kept in tag `archive/phase-34-codex`. Conditional owner/decision gates remain in force.
 
 **User-selected Newly/Undo direction, 2026-10-08:** Task169 stays Accepted
 and its Working stays closed/archive-only. Tower03 writes only the bounded
@@ -2958,7 +2963,7 @@ Task171, Working/Tower closure, topology or publication.
 
 ### Task 171: [ ] Realize completion and Archive
 
-**Files and actions:** bind L6's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-171.md` and the declared `task-171-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L6's exact per-file actions to `retro-mac` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 170 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -2966,15 +2971,15 @@ Task171, Working/Tower closure, topology or publication.
 
 **Recipe:** exactly the source/DP surfaces named by L6; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L6, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L6's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize retro-mac archive`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize retro-mac archive`.
 
 ### Task 172: [ ] Complete supported modes, accessibility and regression
 
-**Files and actions:** bind L7's exact per-file actions to `retro-mac` only; create `docs/verification/inbox-triage/task-172.md` and the declared `task-172-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L7's exact per-file actions to `retro-mac` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 171 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -2982,11 +2987,11 @@ Task171, Working/Tower closure, topology or publication.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition, with the user's first judgment recorded separately from the final disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L7, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L7's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize retro-mac theme-conformance`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize retro-mac theme-conformance`.
 
 ---
 
@@ -2994,9 +2999,13 @@ Task171, Working/Tower closure, topology or publication.
 
 Theme set: `neumorphism`. This phase is proposed and unstarted.
 
+Visual reference: prototype route `/prototype/inbox-triage-neumorphism` in the read-only worktree `/Users/jwk/Documents/griddo2-claude-themes2-3` (commit `4f39709`). View it only; never copy its source or assets.
+
+Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
+
 ### Task 173: [ ] Fix the common frame and realize Scratch Pool
 
-**Files and actions:** bind L1's exact per-file actions to `neumorphism` only; create `docs/verification/inbox-triage/task-173.md` and the declared `task-173-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L1's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 172 accepted and actual Phase 34 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3004,15 +3013,15 @@ Theme set: `neumorphism`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L1, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L1's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize neumorphism frame-pool`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize neumorphism frame-pool`.
 
 ### Task 174: [ ] Realize Selected Scratch Context and Breakdown
 
-**Files and actions:** bind L2's exact per-file actions to `neumorphism` only; create `docs/verification/inbox-triage/task-174.md` and the declared `task-174-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L2's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 173 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3020,15 +3029,15 @@ Theme set: `neumorphism`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L2; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L2, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L2's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize neumorphism context-breakdown`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize neumorphism context-breakdown`.
 
 ### Task 175: [ ] Realize Staging and drag presentation
 
-**Files and actions:** bind L3's exact per-file actions to `neumorphism` only; create `docs/verification/inbox-triage/task-175.md` and the declared `task-175-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L3's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 174 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3036,15 +3045,15 @@ Theme set: `neumorphism`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L3; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L3, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L3's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize neumorphism staging`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize neumorphism staging`.
 
 ### Task 176: [ ] Realize Explorer base and replacement search
 
-**Files and actions:** bind L4's exact per-file actions to `neumorphism` only; create `docs/verification/inbox-triage/task-176.md` and the declared `task-176-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L4's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 175 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3052,15 +3061,15 @@ Theme set: `neumorphism`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L4; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L4, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L4's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize neumorphism explorer-search`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize neumorphism explorer-search`.
 
 ### Task 177: [ ] Realize Placement followed by Newly/Undo
 
-**Files and actions:** bind L5's exact per-file actions to `neumorphism` only; create `docs/verification/inbox-triage/task-177.md` and the declared `task-177-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L5's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 176 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3068,15 +3077,15 @@ Theme set: `neumorphism`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L5; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L5, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L5's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize neumorphism placement-newly-undo`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize neumorphism placement-newly-undo`.
 
 ### Task 178: [ ] Realize completion and Archive
 
-**Files and actions:** bind L6's exact per-file actions to `neumorphism` only; create `docs/verification/inbox-triage/task-178.md` and the declared `task-178-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L6's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 177 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3084,15 +3093,15 @@ Theme set: `neumorphism`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L6; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L6, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L6's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize neumorphism archive`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize neumorphism archive`.
 
 ### Task 179: [ ] Complete supported modes, accessibility and regression
 
-**Files and actions:** bind L7's exact per-file actions to `neumorphism` only; create `docs/verification/inbox-triage/task-179.md` and the declared `task-179-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L7's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 178 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3100,11 +3109,11 @@ Theme set: `neumorphism`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition, with the user's first judgment recorded separately from the final disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L7, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L7's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize neumorphism theme-conformance`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize neumorphism theme-conformance`.
 
 ---
 
@@ -3112,9 +3121,11 @@ Theme set: `neumorphism`. This phase is proposed and unstarted.
 
 Theme set: `terminal`. This phase is proposed and unstarted.
 
+Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
+
 ### Task 180: [ ] Fix the common frame and realize Scratch Pool
 
-**Files and actions:** bind L1's exact per-file actions to `terminal` only; create `docs/verification/inbox-triage/task-180.md` and the declared `task-180-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L1's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 179 accepted and actual Phase 35 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3122,15 +3133,15 @@ Theme set: `terminal`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L1, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L1's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize terminal frame-pool`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize terminal frame-pool`.
 
 ### Task 181: [ ] Realize Selected Scratch Context and Breakdown
 
-**Files and actions:** bind L2's exact per-file actions to `terminal` only; create `docs/verification/inbox-triage/task-181.md` and the declared `task-181-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L2's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 180 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3138,15 +3149,15 @@ Theme set: `terminal`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L2; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L2, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L2's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize terminal context-breakdown`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize terminal context-breakdown`.
 
 ### Task 182: [ ] Realize Staging and drag presentation
 
-**Files and actions:** bind L3's exact per-file actions to `terminal` only; create `docs/verification/inbox-triage/task-182.md` and the declared `task-182-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L3's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 181 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3154,15 +3165,15 @@ Theme set: `terminal`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L3; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L3, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L3's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize terminal staging`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize terminal staging`.
 
 ### Task 183: [ ] Realize Explorer base and replacement search
 
-**Files and actions:** bind L4's exact per-file actions to `terminal` only; create `docs/verification/inbox-triage/task-183.md` and the declared `task-183-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L4's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 182 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3170,15 +3181,15 @@ Theme set: `terminal`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L4; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L4, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L4's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize terminal explorer-search`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize terminal explorer-search`.
 
 ### Task 184: [ ] Realize Placement followed by Newly/Undo
 
-**Files and actions:** bind L5's exact per-file actions to `terminal` only; create `docs/verification/inbox-triage/task-184.md` and the declared `task-184-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L5's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 183 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3186,15 +3197,15 @@ Theme set: `terminal`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L5; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L5, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L5's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize terminal placement-newly-undo`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize terminal placement-newly-undo`.
 
 ### Task 185: [ ] Realize completion and Archive
 
-**Files and actions:** bind L6's exact per-file actions to `terminal` only; create `docs/verification/inbox-triage/task-185.md` and the declared `task-185-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L6's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 184 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3202,15 +3213,15 @@ Theme set: `terminal`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L6; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L6, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L6's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize terminal archive`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize terminal archive`.
 
 ### Task 186: [ ] Complete supported modes, accessibility and regression
 
-**Files and actions:** bind L7's exact per-file actions to `terminal` only; create `docs/verification/inbox-triage/task-186.md` and the declared `task-186-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L7's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 185 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3218,11 +3229,11 @@ Theme set: `terminal`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition, with the user's first judgment recorded separately from the final disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L7, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L7's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize terminal theme-conformance`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize terminal theme-conformance`.
 
 ---
 
@@ -3230,9 +3241,11 @@ Theme set: `terminal`. This phase is proposed and unstarted.
 
 Theme set: `claymorphism`, `origami`. This phase is proposed and unstarted.
 
+Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
+
 ### Task 187: [ ] Fix the common frame and realize Scratch Pool
 
-**Files and actions:** bind L1's exact per-file actions to `claymorphism`, `origami` only; create `docs/verification/inbox-triage/task-187.md` and the declared `task-187-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L1's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 186 accepted and actual Phase 36 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3240,15 +3253,15 @@ Theme set: `claymorphism`, `origami`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L1, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L1's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize claymorphism-origami frame-pool`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize claymorphism-origami frame-pool`.
 
 ### Task 188: [ ] Realize Selected Scratch Context and Breakdown
 
-**Files and actions:** bind L2's exact per-file actions to `claymorphism`, `origami` only; create `docs/verification/inbox-triage/task-188.md` and the declared `task-188-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L2's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 187 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3256,15 +3269,15 @@ Theme set: `claymorphism`, `origami`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L2; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L2, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L2's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize claymorphism-origami context-breakdown`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize claymorphism-origami context-breakdown`.
 
 ### Task 189: [ ] Realize Staging and drag presentation
 
-**Files and actions:** bind L3's exact per-file actions to `claymorphism`, `origami` only; create `docs/verification/inbox-triage/task-189.md` and the declared `task-189-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L3's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 188 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3272,15 +3285,15 @@ Theme set: `claymorphism`, `origami`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L3; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L3, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L3's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize claymorphism-origami staging`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize claymorphism-origami staging`.
 
 ### Task 190: [ ] Realize Explorer base and replacement search
 
-**Files and actions:** bind L4's exact per-file actions to `claymorphism`, `origami` only; create `docs/verification/inbox-triage/task-190.md` and the declared `task-190-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L4's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 189 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3288,15 +3301,15 @@ Theme set: `claymorphism`, `origami`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L4; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L4, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L4's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize claymorphism-origami explorer-search`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize claymorphism-origami explorer-search`.
 
 ### Task 191: [ ] Realize Placement followed by Newly/Undo
 
-**Files and actions:** bind L5's exact per-file actions to `claymorphism`, `origami` only; create `docs/verification/inbox-triage/task-191.md` and the declared `task-191-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L5's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 190 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3304,15 +3317,15 @@ Theme set: `claymorphism`, `origami`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L5; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L5, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L5's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize claymorphism-origami placement-newly-undo`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize claymorphism-origami placement-newly-undo`.
 
 ### Task 192: [ ] Realize completion and Archive
 
-**Files and actions:** bind L6's exact per-file actions to `claymorphism`, `origami` only; create `docs/verification/inbox-triage/task-192.md` and the declared `task-192-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L6's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 191 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3320,15 +3333,15 @@ Theme set: `claymorphism`, `origami`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L6; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L6, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L6's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize claymorphism-origami archive`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize claymorphism-origami archive`.
 
 ### Task 193: [ ] Complete supported modes, accessibility and regression
 
-**Files and actions:** bind L7's exact per-file actions to `claymorphism`, `origami` only; create `docs/verification/inbox-triage/task-193.md` and the declared `task-193-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L7's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 192 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3336,11 +3349,11 @@ Theme set: `claymorphism`, `origami`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition, with the user's first judgment recorded separately from the final disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L7, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L7's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize claymorphism-origami theme-conformance`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize claymorphism-origami theme-conformance`.
 
 ---
 
@@ -3348,9 +3361,11 @@ Theme set: `claymorphism`, `origami`. This phase is proposed and unstarted.
 
 Theme set: `griddo`, `tiny-desk`. This phase is proposed and unstarted.
 
+Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
+
 ### Task 194: [ ] Fix the common frame and realize Scratch Pool
 
-**Files and actions:** bind L1's exact per-file actions to `griddo`, `tiny-desk` only; create `docs/verification/inbox-triage/task-194.md` and the declared `task-194-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L1's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 193 accepted and actual Phase 37 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3358,15 +3373,15 @@ Theme set: `griddo`, `tiny-desk`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L1, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L1's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize griddo-tiny-desk frame-pool`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize griddo-tiny-desk frame-pool`.
 
 ### Task 195: [ ] Realize Selected Scratch Context and Breakdown
 
-**Files and actions:** bind L2's exact per-file actions to `griddo`, `tiny-desk` only; create `docs/verification/inbox-triage/task-195.md` and the declared `task-195-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L2's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 194 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3374,15 +3389,15 @@ Theme set: `griddo`, `tiny-desk`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L2; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L2, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L2's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize griddo-tiny-desk context-breakdown`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize griddo-tiny-desk context-breakdown`.
 
 ### Task 196: [ ] Realize Staging and drag presentation
 
-**Files and actions:** bind L3's exact per-file actions to `griddo`, `tiny-desk` only; create `docs/verification/inbox-triage/task-196.md` and the declared `task-196-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L3's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 195 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3390,15 +3405,15 @@ Theme set: `griddo`, `tiny-desk`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L3; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L3, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L3's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize griddo-tiny-desk staging`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize griddo-tiny-desk staging`.
 
 ### Task 197: [ ] Realize Explorer base and replacement search
 
-**Files and actions:** bind L4's exact per-file actions to `griddo`, `tiny-desk` only; create `docs/verification/inbox-triage/task-197.md` and the declared `task-197-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L4's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 196 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3406,15 +3421,15 @@ Theme set: `griddo`, `tiny-desk`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L4; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L4, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L4's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize griddo-tiny-desk explorer-search`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize griddo-tiny-desk explorer-search`.
 
 ### Task 198: [ ] Realize Placement followed by Newly/Undo
 
-**Files and actions:** bind L5's exact per-file actions to `griddo`, `tiny-desk` only; create `docs/verification/inbox-triage/task-198.md` and the declared `task-198-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L5's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 197 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3422,15 +3437,15 @@ Theme set: `griddo`, `tiny-desk`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L5; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L5, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L5's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize griddo-tiny-desk placement-newly-undo`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize griddo-tiny-desk placement-newly-undo`.
 
 ### Task 199: [ ] Realize completion and Archive
 
-**Files and actions:** bind L6's exact per-file actions to `griddo`, `tiny-desk` only; create `docs/verification/inbox-triage/task-199.md` and the declared `task-199-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L6's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 198 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3438,15 +3453,15 @@ Theme set: `griddo`, `tiny-desk`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L6; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L6, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L6's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize griddo-tiny-desk archive`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize griddo-tiny-desk archive`.
 
 ### Task 200: [ ] Complete supported modes, accessibility and regression
 
-**Files and actions:** bind L7's exact per-file actions to `griddo`, `tiny-desk` only; create `docs/verification/inbox-triage/task-200.md` and the declared `task-200-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L7's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 199 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3454,11 +3469,11 @@ Theme set: `griddo`, `tiny-desk`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition, with the user's first judgment recorded separately from the final disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L7, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L7's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize griddo-tiny-desk theme-conformance`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize griddo-tiny-desk theme-conformance`.
 
 ---
 
@@ -3466,9 +3481,11 @@ Theme set: `griddo`, `tiny-desk`. This phase is proposed and unstarted.
 
 Theme set: `graphite`. This phase is proposed and unstarted.
 
+Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
+
 ### Task 201: [ ] Fix the common frame and realize Scratch Pool
 
-**Files and actions:** bind L1's exact per-file actions to `graphite` only; create `docs/verification/inbox-triage/task-201.md` and the declared `task-201-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L1's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 200 accepted and actual Phase 38 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3476,15 +3493,15 @@ Theme set: `graphite`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L1, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L1's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize graphite frame-pool`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize graphite frame-pool`.
 
 ### Task 202: [ ] Realize Selected Scratch Context and Breakdown
 
-**Files and actions:** bind L2's exact per-file actions to `graphite` only; create `docs/verification/inbox-triage/task-202.md` and the declared `task-202-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L2's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 201 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3492,15 +3509,15 @@ Theme set: `graphite`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L2; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L2, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L2's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize graphite context-breakdown`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize graphite context-breakdown`.
 
 ### Task 203: [ ] Realize Staging and drag presentation
 
-**Files and actions:** bind L3's exact per-file actions to `graphite` only; create `docs/verification/inbox-triage/task-203.md` and the declared `task-203-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L3's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 202 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3508,15 +3525,15 @@ Theme set: `graphite`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L3; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L3, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L3's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize graphite staging`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize graphite staging`.
 
 ### Task 204: [ ] Realize Explorer base and replacement search
 
-**Files and actions:** bind L4's exact per-file actions to `graphite` only; create `docs/verification/inbox-triage/task-204.md` and the declared `task-204-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L4's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 203 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3524,15 +3541,15 @@ Theme set: `graphite`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L4; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L4, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L4's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize graphite explorer-search`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize graphite explorer-search`.
 
 ### Task 205: [ ] Realize Placement followed by Newly/Undo
 
-**Files and actions:** bind L5's exact per-file actions to `graphite` only; create `docs/verification/inbox-triage/task-205.md` and the declared `task-205-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L5's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 204 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3540,15 +3557,15 @@ Theme set: `graphite`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L5; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L5, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L5's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize graphite placement-newly-undo`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize graphite placement-newly-undo`.
 
 ### Task 206: [ ] Realize completion and Archive
 
-**Files and actions:** bind L6's exact per-file actions to `graphite` only; create `docs/verification/inbox-triage/task-206.md` and the declared `task-206-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L6's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 205 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3556,15 +3573,15 @@ Theme set: `graphite`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L6; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, fresh matched first-submission/internal-refinement evidence and separate user visual disposition for each assigned theme. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L6, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L6's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize graphite archive`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize graphite archive`.
 
 ### Task 207: [ ] Complete supported modes, accessibility and regression
 
-**Files and actions:** bind L7's exact per-file actions to `graphite` only; create `docs/verification/inbox-triage/task-207.md` and the declared `task-207-assets/` files. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L7's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
 
 **Dependencies:** Task 206 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
@@ -3572,28 +3589,27 @@ Theme set: `graphite`. This phase is proposed and unstarted.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
-**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
+**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition, with the user's first judgment recorded separately from the final disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
 
 **Verification:** all exact direct targets and fresh mounted-browser checks in L7, plus its focused/full logical gates and regression boundaries.
 
-**Commit contract:** only L7's owned implementation/tests and this task's fresh evidence, approved receipt/ledger state; no acceptance marker before user acceptance. Message: `feat(triage): realize graphite theme-conformance`. No experimental bytes, broad staging or rewrite.
+**Commit message:** `feat(triage): realize graphite theme-conformance`.
 
 ---
 
 ## Phase 40 — Complete Implementation And Preservation Gate
 
+Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
+
 ### Task 208: [ ] Run the retained all-nodes campaign gate
 
-**Files and actions:** create `docs/verification/inbox-triage/task-208.md`
-and `docs/verification/inbox-triage/full-gate.md`; create only the declared
-`task-208-assets/` independently authored fixtures/runners/manifests/browser
-results/captures needed for the full matrix. Record commands/exits/environment/
-commit, the retained task-local records from Tasks 129–163 and independently
-authored records/user dispositions from Tasks 166–207, the approved SCHEMA grid
-correction, all 29 UF/10 AF/21 NEG outcomes, nine recipes, fourteen accepted DP
-receipts covering twelve VQs and migration/rollback/ABA/aggregate-retention/
-recovery/unrelated-surface proof. Make no production/test/config change;
-failures return to their exact owner and invalidate the affected evidence.
+**Files and actions:** make no production/test/config change. Run the full
+matrix below on the current code with test data and record the outcome in the
+Phase 40 ledger checkpoint: the accepted dispositions of Tasks 129–163 and
+166–207, the approved SCHEMA grid correction, all 29 UF/10 AF/21 NEG outcomes,
+nine recipes, fourteen accepted DP receipts covering twelve VQs and
+migration/rollback/ABA/aggregate-retention/recovery/unrelated-surface results.
+Failures return to their exact owner.
 
 **Dependencies:** all accepted Tasks 101–163 including 105A; all accepted Tasks
 166–207; actual Phase 39 Final Close/main sync and all prior phase publication/
@@ -3619,20 +3635,17 @@ every newly scoped card change has its exact Q01 authority and preserved
 consumer evidence. No unknown result, skipped check, unresolved decision,
 known failure or source-only claim is represented as completion.
 
-**Verification:** resolve logical test/lint/typecheck/build/diff-check through
-the adapter catalog; run the complete v3→v4 migration/rollback, real transaction,
-ABA-1/2/3, aggregate retention, 29-flow/10-AF/21-NEG, fourteen-DP/nine-recipe,
+**Verification:** run the `CLAUDE.md` full gate; run the complete v3→v4
+migration/rollback, real transaction, ABA-1/2/3, aggregate retention, 29-flow/10-AF/21-NEG, fourteen-DP/nine-recipe,
 16-theme/mode × 1024px/1920×1080, route/reload/remote/concurrent/focus,
-accessibility/motion and unrelated-surface matrices. Any reused non-volatile
-foundation evidence must remain valid under the installed evidence rules;
-generated/browser outputs require fresh qualifying proof. Finish with exact
-commit scope/clean-state inspection and independent technical and user visual
-dispositions. This task does not itself authorize Phase 40 Final Close.
+accessibility/motion and unrelated-surface matrices. Browser-dependent
+results need a fresh check on the current code. Finish with a clean working
+tree and independent technical and user visual dispositions. This task does
+not itself authorize Phase 40 Final Close.
 
-**Commit contract:** owned complete campaign gate records and independently
-authored assets only after every claimed check passes; `docs(triage): record
-full inbox implementation and preservation gate`. No repair, experiment
-import, task/phase acceptance, push or publication is bundled into this commit.
+**Commit message:** `docs(triage): record full inbox implementation and
+preservation gate`, after every claimed check passes. No repair is bundled.
+
 ---
 
 ## Shared-File Writer Register And Mutex Policy
@@ -3700,17 +3713,14 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 34 / Task 166, only after
-  all entry conditions and fresh lifecycle gates. Phases 32 and 33 remain
-  reserved with no tasks.
+- **Next planned implementation phase/task:** Phase 34 / Task 171. Phases 32
+  and 33 remain reserved with no tasks.
 - **Next unallocated numbers after this amendment:** Phase 41 / Task 209.
   Planned Phases 34–40 and Tasks 166–208 are already allocated; none may be
   reused for another meaning.
-- Graph reconciliation: 64 accepted tasks (101–163 plus 105A), nine completed
-  archives (Phases 23–31), two historical unaccepted transfer records (164/165),
-  43 new unstarted tasks (166–208) in seven planned phases (34–40), and two
-  reserved phases (32–33).
+- Graph reconciliation: 69 accepted tasks (101–163 plus 105A, 166–170), nine
+  completed archives (Phases 23–31), two historical unaccepted transfer records
+  (164/165), 38 unstarted tasks (171–208) in Phases 34–40, and two reserved
+  phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
-  receipts. They approve planning, not task acceptance or theme implementation.
-  The post-close workflow-audit disposition, user's Step 6 review and fresh
-  lifecycle gates remain required.
+  receipts. They approve planning, not task acceptance.
