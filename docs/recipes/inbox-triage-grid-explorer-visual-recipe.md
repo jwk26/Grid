@@ -19,6 +19,68 @@
 - Grid semantic/default name is `Grid Explorer`; Tiny Desk may show `Library Index`, Retro Mac `Finder`, and Terminal `GRID EXPLORER`.
 - Source active-column search inputs and filtered columns are observations only and are superseded; they do not source the selected replacement search mode.
 
+### User-selected shared consumer amendment — 2026-10-07
+
+Task 169 user review adds this contract for all current/future Inbox/Triage
+themes. The approved direction is distinct from pending product implementation,
+fresh verification and task acceptance; historical DP receipts/evidence remain.
+
+- Use one Explorer header row, left native icon/identity and right dedicated
+  search control. Omit the persistent path/breadcrumb row and separate search
+  toolbar. Preserve the internal path/selected chain, full Home/Level labels,
+  column navigation/scroll, attached path status, result breadcrumbs and
+  Placement destination.
+- All ordinary and result Node/Bit glyphs read the actual record's stored
+  `icon` through the existing mapping/fallback. A Grid icon edit in the same
+  database updates that record projection in Explorer. Theme styling preserves
+  identity; fixture/browser-profile isolation does not imply shared storage.
+- Actual Finder/Explorer cards omit ordinary Grid options/Direct Archive and
+  past-deadline Done?/Mark as done/Dismiss controls. Keep source-aware
+  NEW/independent Undo/attached reason, ordinary Grid commands and Scratch Archive.
+- Hover changes color only, without scale/translation/shadow/stacking lift.
+  Rows are not drag sources: selectable Nodes use pointer, non-activating Bit
+  rows default, never grab/grabbing. Keep actual controls' focus/cursor and
+  Breakdown/Staging-to-Node drop targets.
+- Overdue incomplete Bits keep readable title/deadline, a subdued state surface
+  and small static accessibly named overdue mark; no overdue-only strike-through
+  or unreadable blur. Completed Bits use muted title/strike-through plus static
+  check. NEW/Undo/reason/focus remain unobscured. Use actual deadline/status/
+  priority, without new completion/dismiss writes.
+- Realize through shared roles and centralized theme values. The selected
+  retro-mac compact-row values are not dimensions for every later theme.
+
+### User-selected ordinary Node/Bit distinction — 2026-10-08
+
+- **Common current/future L4 structure:** ordinary Explorer columns omit the
+  inter-type divider and visible `Bits` heading. Preserve full level labels,
+  Node-before-Bit and within-type order, actual item identities/keys/refs and
+  existing semantic behavior. Bit-only columns, including Level 3, start at
+  the normal item inset without reserved subsection-header space.
+- **Retro-mac exterior only:** the user-selected generated image, SHA256
+  `b26b3d428e22c6958a0e0c2747fe228f5ff3dce4b40da6ee25fcfaac94869ac5`,
+  supersedes the earlier plain ordinary-card exterior target: Nodes have a
+  small folder tab, light surface, double outline, slightly larger plain row
+  and actual stored-icon glyph, trailing chevron and Light selected black
+  inversion; Bits have a rectangular outline, subdued gray surface, thin
+  single outline and smaller plain row containing title/priority/due date.
+  Preserve appropriate Dark contrast and distinct selection/focus/reveal/drop
+  feedback. Other-theme card exteriors do not inherit these values.
+- Keep actual shared NodeCard/BitCard and explicit Inbox Explorer presentation.
+  Use central roles for the exact Q01-approved actual elements. Decorative
+  folder-outline layers are noninteractive and do not clip content, NEW,
+  independent Undo/reason or focus. Metadata/progress where supplied and
+  retained production states expand naturally; a metadata Bit can be taller
+  than a plain Node. Preserve stored glyphs, current hover/cursor/static-state
+  contracts and operation lifetimes. Ordinary Grid/Staging and replacement
+  search retain their existing composition and consumer behavior.
+- This image is user-selected design authority only, not pinned-prototype
+  delivery or implementation verification. Record its exact source identity
+  with Task169 evidence (`task-169.md` in tag `archive/phase-34-codex`); do not
+  copy its raster into product assets or derive product dimensions/numerical
+  fidelity thresholds from enlarged pixels. The pinned source still governs
+  unaffected surfaces; existing DP-VQ06-EXPLORER/07/10, receipts, failed and
+  unverified evidence, Q02/Q05 and broader D-CARD deferrals remain unchanged.
+
 ## Decision-Prerequisite Boundary
 
 - `VQ-07` — **resolved by `DP-VQ07` Choice A on 2026-08-10.** The dedicated full-hierarchy search keeps Explorer chrome and replaces only the four-column body with the approved fixed-input, state-line, flat-result realization below. After Task 114 checkpoint acceptance, Task 151 consumes the complete search body and Task 158 consumes only its search-result Undo integration after that task's other prerequisites. The source/current active-column search, global Search overlay, and ordinary columns remain prohibited fallbacks.
@@ -33,13 +95,21 @@ global Search dependency. Search behavior and hierarchy truth remain owned by
 SPEC and the Task 135 query lifecycle; this section owns only the direct
 replacement body's content, placement, focus, lifetime, motion, and themes.
 
+The user-selected 2026-10-07 amendment above supersedes only the former
+body-top input placement: the one input/close control belongs to the single
+header's right-hand slot. The four-column body still becomes one fixed state
+line plus one scrolling flat list. Whole-hierarchy behavior and all original
+copy/status/reveal/close/interruption/Undo meanings remain.
+
 ### Placement And Result Grammar
 
-- `Search Explorer` is the Explorer-header entry action. Opening it replaces
-  only the body and moves focus to one full-width input fixed at the top of the
-  replacement body. Its placeholder is `Search all Nodes and Bits`; its
-  in-input `X` is named `Clear and close Explorer search`.
-- One non-scrolling state line sits directly below the input. The remaining
+- `Search Explorer` remains the accessible Explorer-header entry action.
+  Opening it replaces only the body and moves focus to the one input fixed
+  in the right-hand header slot, with no duplicate input in the body.
+  Its placeholder is `Search all Nodes and Bits`; its in-input `X` is named
+  `Clear and close Explorer search`. Clear/close returns focus to the logical
+  header entry control.
+- One non-scrolling state line sits directly below the header. The remaining
   body is one internally scrolling flat result list; the page, Explorer shell,
   and hidden ordinary columns do not scroll in response to result focus.
 - Each result uses its existing Node or Bit icon/color identity, a visible
@@ -79,6 +149,8 @@ not from this receipt.
   Scrolling follows only the active result. Ordinary Tab order reaches the
   input, `Try again` when present, and eligible result `Undo` controls without
   turning result rows into drag sources.
+- `Try again` starts the next request and moves focus to the input, because
+  the control ends with the error state.
 - A current reachable result clears active and interrupted search state,
   restores the four columns, reconstructs the real ancestor chain inside
   Inbox, and focuses the revealed Node or Bit row. The actual row receives a
@@ -137,13 +209,13 @@ Only Explorer-owned role realization changes:
 
 | Theme | Exact realization mapping |
 |---|---|
-| GridDO | Full-width technical search field, restrained state rule, compact typed result rows, and canonical primary/action/focus roles. |
+| GridDO | Technical header search field, restrained body state rule, compact typed result rows, and canonical primary/action/focus roles. |
 | Tiny Desk | Library-index search tab, catalog-paper status slip, and stacked catalog result cards inside the existing Explorer body. |
 | Neumorphism | Inset search field and state trough with shallow raised result rows inside the existing column-shadow family. |
 | Claymorphism | Soft sculpted search field, shape-preserving status ribbon, and tactile typed result tiles without motion-led state. |
 | Origami | Folded search sheet, seam-attached state strip, and cut-paper result rows with no animated fold or ghost column. |
 | Terminal | Variable-driven command-line search, static status record, and text-led result records with no fixed JSX color, spinner, or blink. |
-| Retro Mac | In-pane Finder `Find` strip, 1-bit system status line, and hard bordered result list; no new window, dialog, or ghost pane. |
+| Retro Mac | Finder header search control, 1-bit body system status line, and hard bordered result list; no new window, dialog, or ghost pane. |
 | Graphite | Editorial index field, strengthened-rule status caption, and restrained monochrome result rows with precise focus outline. |
 
 Task 151 alone realizes the complete search body, copy, reveal, close matrix,

@@ -578,4 +578,99 @@ describe("useArchiveScratch — Task 161 guarded current-tab owner", () => {
     expect(result.current.isProjectionReady).toBe(true);
     expect(result.current.dismissTerminal()).toBe(false);
   });
+
+  it("accepts a later Archive after a committed terminal success as a new operation", async () => {
+    const lock = makeLock();
+    const storage = memoryStorage();
+    let counter = 0;
+    const dispatchArchive = vi.fn(async (command: ArchiveScratchCommand) =>
+      terminal(command),
+    );
+    const { result } = renderHook(() =>
+      useArchiveScratch({
+        operationLock: lock,
+        readAddDraftBlocker: () => false,
+        readTitleBlocker: () => null,
+        createOperationId: () =>
+          `00000000-0000-4000-8000-00000000000${++counter}`,
+        getStorage: () => storage,
+        dispatchArchive,
+        reconcileArchive: vi.fn(),
+      }),
+    );
+    const scratch = { id: "10000000-0000-4000-8000-000000000001", version: 7 };
+
+    await act(async () => {
+      await expect(result.current.archiveScratch(scratch)).resolves.toBe(true);
+    });
+    expect(result.current.state).toMatchObject({
+      phase: "terminal",
+      terminalStatus: "applied",
+    });
+    await act(async () => {
+      await expect(result.current.archiveScratch(scratch)).resolves.toBe(true);
+    });
+
+    expect(dispatchArchive).toHaveBeenCalledTimes(2);
+    expect(dispatchArchive.mock.calls[1][0].operationId).toBe(
+      "00000000-0000-4000-8000-000000000002",
+    );
+  });
+
+  it("still refuses a new Archive over a non-success terminal result", async () => {
+    const lock = makeLock();
+    const dispatchArchive = vi.fn(async (command: ArchiveScratchCommand) =>
+      terminal(command, "conflict"),
+    );
+    const { result } = renderHook(() =>
+      useArchiveScratch({
+        operationLock: lock,
+        readAddDraftBlocker: () => false,
+        readTitleBlocker: () => null,
+        createOperationId: () => "00000000-0000-4000-8000-000000000001",
+        getStorage: () => memoryStorage(),
+        dispatchArchive,
+        reconcileArchive: vi.fn(),
+      }),
+    );
+    const scratch = { id: "10000000-0000-4000-8000-000000000001", version: 7 };
+
+    await act(async () => {
+      await result.current.archiveScratch(scratch);
+    });
+    await act(async () => {
+      await expect(result.current.archiveScratch(scratch)).resolves.toBe(false);
+    });
+    expect(dispatchArchive).toHaveBeenCalledOnce();
+  });
+
+  it("remembers the activated Scratch on a pre-dispatch storage failure", async () => {
+    const storage = memoryStorage();
+    vi.mocked(storage.setItem).mockImplementation(() => {
+      throw new Error("quota");
+    });
+    const { result } = renderHook(() =>
+      useArchiveScratch({
+        operationLock: makeLock(),
+        readAddDraftBlocker: () => false,
+        readTitleBlocker: () => null,
+        createOperationId: () => "00000000-0000-4000-8000-000000000001",
+        getStorage: () => storage,
+        dispatchArchive: vi.fn(),
+        reconcileArchive: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current.archiveScratch({
+        id: "10000000-0000-4000-8000-000000000001",
+        version: 7,
+      });
+    });
+    expect(result.current.state).toMatchObject({
+      phase: "storage_failed",
+      recovery: null,
+      attemptedScratchBitId: "10000000-0000-4000-8000-000000000001",
+    });
+  });
 });

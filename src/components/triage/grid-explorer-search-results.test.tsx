@@ -62,6 +62,23 @@ afterEach(() => {
 });
 
 describe("GridExplorerSearchResults", () => {
+  it("delivers the sole input and close control through the header while retaining native focus intent", () => {
+    const view = render(<GridExplorerSearchResults {...defaultProps} query="alpha" status="ready" results={[result("node:alpha")]}
+      renderHeader={control => <div data-testid="shared-header">{control}</div>} />);
+    const input = screen.getByRole("searchbox");
+    expect(screen.getByTestId("shared-header")).toContainElement(input);
+    expect(screen.getByTestId("explorer-search-body")).not.toContainElement(input);
+    expect(screen.getAllByRole("searchbox")).toHaveLength(1);
+    expect(input).toHaveFocus();
+    view.rerender(<GridExplorerSearchResults {...defaultProps} query="alpha" status="ready" results={[result("node:alpha")]}
+      focusTarget={{kind:"result",resultKey:"node:alpha"}} renderHeader={control => <div data-testid="shared-header">{control}</div>} />);
+    expect(renderedResultRows()[0]).toHaveFocus();
+    view.rerender(<GridExplorerSearchResults {...defaultProps} query="alpha" status="ready" results={[]}
+      focusTarget={{kind:"input"}} renderHeader={control => <div data-testid="shared-header">{control}</div>} />);
+    expect(input).toHaveFocus();
+    expect(screen.getByTestId("shared-header")).toContainElement(screen.getByRole("button", {name:"Clear and close Explorer search"}));
+  });
+
   it("renders the fixed input, fixed pre-search state, and close action", () => {
     render(<GridExplorerSearchResults {...defaultProps} />);
 
@@ -366,4 +383,17 @@ describe("GridExplorerSearchResults", () => {
       "That item is no longer available. Results were updated.",
     );
   });
+});
+
+
+it("owns the result shell and attached Undo reason separately from row activation", () => {
+  render(<GridExplorerSearchResults {...defaultProps} query="alpha" status="ready" results={[result("node:alpha")]} getResultUndo={() => ({ actionLabel: "Undo", copy: "Undo this placement.", disabled: false, onActivate: vi.fn(), state: "available" })} />);
+  const field = screen.getByRole("searchbox", { name: "Search all Nodes and Bits" });
+  expect(field.parentElement).toHaveAttribute("data-triage-role", "explorer-search-find-strip");
+  const shell = screen.getByRole("listitem");
+  expect(shell).toHaveAttribute("data-triage-role", "explorer-search-result-shell");
+  const reason = screen.getByText("Undo this placement.").closest<HTMLElement>('[role="status"]');
+  expect(reason).toHaveAttribute("data-triage-role", "explorer-search-undo-status");
+  expect(reason).not.toContainElement(screen.getByRole("button", { name: "Undo placement of Alpha" }));
+  expect(renderedResultRows()[0]).not.toContainElement(reason);
 });

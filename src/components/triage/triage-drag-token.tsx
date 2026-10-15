@@ -22,7 +22,7 @@ export function TriageDragToken({ item }: TriageDragTokenProps) {
   return (
     <div
       className={cn(
-        "pointer-events-none inline-flex h-8 max-w-40 select-none items-center justify-center gap-1.5 rounded-full border bg-popover px-2 text-foreground shadow-lg",
+        "triage-drag-token pointer-events-none inline-flex h-8 max-w-40 select-none items-center justify-center gap-1.5 rounded-full border bg-popover px-2 text-foreground shadow-lg",
         "cursor-grabbing",
         item.kind === "triage-staged-node" ? "w-8 border-primary px-0" : "border-border",
       )}
@@ -30,6 +30,7 @@ export function TriageDragToken({ item }: TriageDragTokenProps) {
         item.kind === "triage-breakdown" ? undefined : item.candidateVersion
       }
       data-source-version={item.sourceVersion}
+      data-triage-role="drag-token"
       data-triage-drag-token={item.kind}
     >
       <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />

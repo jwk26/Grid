@@ -128,13 +128,20 @@ are discarded by Task 161/126 and never produce a `DP-VQ12` card or mutation.
   focuses `Check again`; reconciling retains that position; `not_applied`
   focuses Retry; storage failure/rejected/conflict focuses Cancel. A forced
   reload focuses the recovery heading before any ordinary Inbox control.
+- Authoritative success hands focus from the current-action slot to the SPEC
+  visible-order destination in the render that shows it; focus never rests on
+  the document body. Only the archiving Scratch's Breakdown shows the card, and
+  an Archive started on the mounted page never shows the forced-reload
+  recovery projection.
 - One polite atomic announcement occurs for each new exact state sentence,
   never per rerender. The static mark plus full text carries meaning without
   color, motion, ellipsis animation, or spinner.
 - Pending/unknown/reconciling and valid forced-reload recovery last until the
   same descriptor reaches authoritative terminal classification. They do not
   end on a timer, Scratch switch, route intent, theme/mode change, or attempted
-  conflicting action. Terminal Cancel ends only its displayed terminal result.
+  conflicting action. Terminal Cancel ends only its displayed terminal result;
+  a change of the selected Scratch after a non-success terminal result or a
+  pre-dispatch storage failure dismisses it the same way.
 - Geometry, copy, actions, focus, announcement, and lifetime are identical in
   ordinary and reduced-motion modes. Card content and terminal removal change
   immediately/staticly; no fade, slide, scale, blur transition, skeleton,
@@ -197,6 +204,7 @@ are discarded by Task 161/126 and never produce a `DP-VQ12` card or mutation.
 - Observed source-only: a white translucent scrim centers a hard-shadow, double-border system alert with icon block, Archive and Cancel buttons. Complete state uses a classic system/file empty object and reopen control.
 - Adopted fact: 1-bit system alert and completed-file presentation are supported.
 - Token implication: system scrim/window/icon/action/complete roles need Retro Mac aliases.
+- Adopted by user decision (Task 171, 2026-10-15): the confirmation card shows `Every idea segment in "<Scratch title>" has been successfully placed. File it to disk?` below the heading, title in bold. It is one shared `archive-confirmation-detail` element, hidden by default; only Retro Mac CSS shows it, so the component tree and behavior stay theme-independent (architecture rule 8). The string still lives in `breakdown-panel.tsx`; moving it into `INBOX_TRIAGE_COPY` is deferred to Task 178.
 
 ### Graphite
 

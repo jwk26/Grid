@@ -391,6 +391,7 @@ or to promotion-map §11.4's shared implication.
 | Family | Canonical `<role>` values | Approved trace |
 |---|---|---|
 | Shell / chrome | `shell-background`, `section-surface`, `section-header`, `section-divider`, `internal-scroll-viewport`, `section-state-overlay` | `R-SHELL` |
+| Task 166 retro desktop decoration only | `desktop-menu-bar`, `desktop-menu-label`, `desktop-menu-clock` | `R-SHELL` Task 166-only desktop-menu supplement; supplemental task-scope receipt |
 | Scratch Pool | `pool-tools`, `pool-search-field`, `pool-total-count`, `pool-filtered-count`, `pool-selected-row`, `pool-compact-switcher`, `pool-compact-marker`, `pool-scroll-viewport`, `pool-status-band`, `pool-status-line`, `pool-status-action`, `pool-activity-marker` | `R-POOL`; status roles from `DP-VQ06-POOL` / Task 144 only |
 | External Scratch removal | `external-removal-scrim`, `external-removal-panel`, `external-removal-title`, `external-removal-destination`, `external-removal-countdown-track`, `external-removal-countdown-fill`, `external-removal-draft-card`, `external-removal-copy-status`, `external-removal-primary-action`, `external-removal-secondary-action` | `DP-VQ01`; Task 141 only |
 | Selected Context | `context-signature-plate`, `context-eyebrow-meta`, `context-title`, `context-action-cluster`, `context-complete-marker`, `context-completion-blocker`, `context-completion-blocker-mark` | `R-CONTEXT`; blocker roles from approved `DP-VQ11`, Task 160 only |
@@ -400,7 +401,7 @@ or to promotion-map §11.4's shared implication.
 | Grid Explorer search | `explorer-search-entry`, `explorer-search-body`, `explorer-search-field`, `explorer-search-close`, `explorer-search-status`, `explorer-search-results`, `explorer-search-result`, `explorer-search-type`, `explorer-search-breadcrumb`, `explorer-search-duplicate`, `explorer-search-retry`, `explorer-search-undo`, `explorer-reveal-status`, `explorer-revealed-row` | `DP-VQ07`; complete body Task 151 and search-result Undo composition Task 158 only |
 | Placement base | `placement-direct-shell`, `placement-staged-shell`, `placement-target-path`, `placement-confirm`, `placement-cancel`, `placement-full-target-warning`, `placement-confirm-disabled`, `placement-result-title-shell`, `placement-result-title-source`, `placement-result-title-input`, `placement-result-title-count`, `placement-result-title-error`, `placement-result-title-continue`, `placement-direct-type-option`, `placement-direct-type-reason`, `placement-direct-limit-summary` | `R-PLACEMENT`; reliability extends through approved `DP-VQ08`, and title/limit replacement surfaces extend through approved `DP-VQ09`; Task 153 and Task 154 remain separate edges |
 | Newly Placed / Undo | `newly-marker`, `newly-dot`, `newly-new-badge`, `newly-undo-action`, `newly-status-rail`, `newly-status-mark`, `newly-status-action`, `newly-status-reason` | `R-NEWLY`; exact overlap/reason/reliability roles from approved `DP-VQ10`, Task 157 only; composes around the actual Node/Bit card and never replaces or redesigns it |
-| Archive / completion | `archive-section-scrim`, `archive-card`, `archive-complete-context`, `archive-reopen`, `archive-action`, `archive-cancel`, `archive-withdrawal-status`, `archive-withdrawal-mark`, `archive-status`, `archive-status-mark`, `archive-current-action` | `R-ARCHIVE`; blocker/withdrawal roles from approved `DP-VQ11`, Task 160 only; reliability/recovery roles from approved `DP-VQ12`, Task 162 only |
+| Archive / completion | `archive-section-scrim`, `archive-card`, `archive-complete-context`, `archive-reopen`, `archive-action`, `archive-cancel`, `archive-withdrawal-status`, `archive-withdrawal-mark`, `archive-status`, `archive-status-mark`, `archive-current-action`, `archive-confirmation-detail` | `R-ARCHIVE`; `archive-confirmation-detail` is hidden by default and shown only by themes that adopt it (retro-mac, Task 171 user decision); blocker/withdrawal roles from approved `DP-VQ11`, Task 160 only; reliability/recovery roles from approved `DP-VQ12`, Task 162 only |
 
 The shared state binding is a whitespace-delimited
 `data-triage-state="<state> …"` token list so independent states can coexist.
@@ -561,6 +562,18 @@ accepted implementation as absent or complete.
 
 ### Shared shell and surface meaning
 
+**Task 166-only desktop-menu adoption (2026-10-04):** the separately approved
+R-SHELL supplement adds one noninteractive, aria-hidden retro-mac decoration
+above the workspace body. Central --triage-desktop-menu-* aliases own 32px
+height, 16px lower gap/inline padding, 2px border, 4px radius, 2px hard shadow,
+11px bold Space Mono and 14px Monitor. Bar colors use current semantic
+foreground/background; other themes display none and reserve no space.
+File / Edit / View / Label / Special and fixed 12:00 PM are decorative literals,
+not commands or a live timer. Remaining body keeps the selected ratios and
+existing state/focus/scroll/recovery. Approval trace:
+`Issues_Phase_34.Task_166.task-scope-desktop-menu.json` (in tag `archive/phase-34-codex`).
+This does not alter DP contracts, Q02 Tagged or later-theme adoption boundaries.
+
 | Surface | Canonical visual contract | Trace |
 |---|---|---|
 | Layout | Preserve main work versus Explorer `60/40`, Breakdown versus Staging `60/40`, and Staging Nodes versus Bits `35/65`. These selected ratios are source-backed product geometry, not VQ realization. | `R-SHELL`, `R-STAGING` |
@@ -569,7 +582,7 @@ accepted implementation as absent or complete.
 | Scratch Pool | Use the Pool role family for the tools/search region, total count, selected row, compact switcher/marker, and hidden-scroll viewport. Exact product behavior remains in SPEC. | `R-POOL` |
 | Selected Scratch Context | Use the standalone signature plate above ordinary rows, never a compact context strip or heading metadata. Working and complete presentations share the Context role family but remain semantically distinct. | `R-CONTEXT` |
 | Breakdown | Keep active and staged rows distinct, with grip/action, Add, ordinary-empty, and consumed-completion roles. Staged is not strike-through completion, and empty is not an Archive surface. | `R-BREAKDOWN` |
-| Staging | Keep visible `Staging`, `Nodes`, and `Bits`; Node cards and Bit rows use distinct shapes and independent wells. Neutral, unavailable, invalid, and pending meanings remain separate and non-destructive. The transient unstage target is neutral while idle; only its compatible active-hover state uses the canonical destructive border, restrained destructive background, and destructive text/icon tokens as an explicit removal affordance. It remains semantically Unstage, not deletion. | `R-STAGING` |
+| Staging | Keep visible `Staging`, `Nodes`, and `Bits`; Node cards and Bit rows use distinct shapes and independent wells. Neutral, unavailable, invalid, and pending meanings remain separate and non-destructive. The transient unstage target is neutral while idle; compatible active-hover uses the approved theme-specific Unstage emphasis below. Retro Mac uses opaque monochrome inversion for Remove and restrained destructive emphasis for compatible Breakdown Return; other themes retain the existing Remove emphasis. Both targets remain semantically Unstage, not deletion. | `R-STAGING` |
 | Explorer base | Use four ordinary progressive columns, full level labels, native Node/Bit row shapes, and eligible/hovered/invalid/unavailable target roles. This base excludes the absent replacement search body. | `R-EXPLORER` |
 | Placement base | Direct and staged shells, target path, Confirm/Cancel, full-target warning, and disabled Confirm use the Placement base roles. The affordance stays inside the target column; unsupported reliability and Result Title/direct-limit bodies remain excluded. | `R-PLACEMENT` |
 | Newly Placed / Undo | Compose the source-backed marker/dot or visible `NEW` badge over the unchanged actual Node/Bit card; keep selection authoritative; expose Undo in a separate stable trailing slot and the approved always-visible status rail immediately below the card inside the same Explorer item wrapper. Never introduce a replacement indicator card, internal card footer/menu, or common-card redesign. | `R-NEWLY`, `DP-VQ10` |
@@ -580,12 +593,16 @@ than copying the full source row/card. Invalid and unavailable targets mean a
 non-destructive operation cannot proceed; they must not inherit destructive
 delete styling merely because the current drop is rejected.
 
-The compatible active-hover state of `staging-unstage-target` is the sole
-Staging exception: use `border-destructive`, a restrained
+Unless an exact approved theme supplement applies, compatible active-hover
+of `staging-unstage-target` retains `border-destructive`, restrained
 `bg-destructive/10`, and `text-destructive` while the exact Remove target owns
-the staged drag. Idle, cancellation, Node/Bit invalid, unavailable, same-type
-neutral, and every other DnD state remain non-destructive. This visual emphasis
-does not change the Unstage command, copy, persistence, or target arbitration.
+the staged drag. The Task168 P34-15 Retro Mac supplement instead uses fully
+opaque foreground/background inversion for compatible Remove hover and
+background alpha0.90 with destructive tint12%, destructive border and text
+for compatible Breakdown Return hover. Idle, cancellation and incompatible
+or invalidated sources receive no destructive emphasis; Node/Bit neutral,
+unavailable and invalid states remain non-destructive. These presentation
+exceptions change no Unstage command, copy, persistence or target arbitration.
 
 The old active-section/active-column search is superseded and is not fallback
 authority. `DP-VQ07` Choice A supplies the full-hierarchy replacement body;
@@ -709,7 +726,7 @@ focus semantics remain unchanged.
 | Surface binding | `data-triage-editor-surface="scratch-title"` or `"breakdown-content"`; `context-inline-editor` stays inside Context and `breakdown-inline-editor` inside the exact source/former row position |
 | State binding | `data-triage-editor-state="pristine|dirty|validation|saving|offline|not-applied|reconciling|conflict|invalidated"`; no theme-ID or copy branch |
 | Common roles | `inline-editor-field`, `inline-editor-status`, `inline-editor-actions`, `inline-editor-compare`, `inline-editor-latest`, `inline-editor-draft`, `inline-editor-recovery`, and `inline-editor-copy-status` |
-| Fixed source geometry | View/edit outer geometry and existing drag/content/action anchors do not move. Reserve a fixed `9.5rem` action region; editor content and caret never enter it. Scratch title is limited to 60 characters and Breakdown content to 120. Both are single-line fields with no textarea, resize control, vertical scrolling, or visible scrollbar. Overflow may use browser-managed caret-following horizontal movement: `Home` returns to `scrollLeft=0` and `End` exposes the terminal caret. |
+| Fixed source geometry | View/edit and editor-state transitions retain the same outer geometry and content/action anchors within each theme. The Phase 34 / Task 167 P34-04 Context-geometry supplement sets the retro-mac Context alone to a fixed 120.25px outer border-box height in every mounted state and both modes; other themes retain 104px. Breakdown rows retain their existing fixed geometry. Theme changes may change Context height without changing draft, logical focus or commands. Reserve a fixed `9.5rem` action region; editor content and caret never enter it. Scratch title is limited to 60 characters and Breakdown content to 120. Both are single-line fields with no textarea, resize control, vertical scrolling, or visible scrollbar. Overflow may use browser-managed caret-following horizontal movement: `Home` returns to `scrollLeft=0` and `End` exposes the terminal caret. |
 | Base actions | Existing text-style `Save` and `Cancel`; dirty Save uses the approved destructive/red emphasis; pristine/validation Save disabled; unchanged Save/valid blur exits without a write; theme/locale activation and IME composition do not blur-save |
 | Ordinary and progress states | Pristine, dirty, and validation keep the fixed field/action geometry with no visible status row. Saving and reconciling retain the read-only field and replace the fixed action region with the corresponding progress action; the existing state copy remains available to that progress treatment without expanding the source region. |
 | Source-bound overlay | Offline, not-applied, conflict, and invalidated use a fixed overlay bound to the source editor, with underlying content blurred and no outer-geometry or anchor movement. |
@@ -771,13 +788,13 @@ The same semantic tree consumes existing theme families:
 ### Approved Pool fixed-status realization — `DP-VQ06-POOL`
 
 **User-approved 2026-08-10:** Choice A establishes one fixed Pool-local status
-band directly below the expanded search/sort row and outside the scrolling
+band directly below the expanded search/sort tools and outside the scrolling
 Scratch list. It resolves only the Pool slice of `VQ-06`; Task 144 alone
 consumes it, while the Staging and Explorer slices remain unresolved.
 
 | Contract | Exact token requirement |
 |---|---|
-| Placement | `pool-status-band` follows the complete search/sort row and precedes `pool-scroll-viewport`; it has at most one search-context `pool-status-line` and one aggregate activity line and never becomes a list row, toast, panel, event history, or adjacent-surface status |
+| Placement | `pool-status-band` follows the complete search/sort tools (one row; in retro-mac two rows, search then sort, per the Task 166 Q02 disposition) and precedes `pool-scroll-viewport`; it has at most one search-context `pool-status-line` and one aggregate activity line and never becomes a list row, toast, panel, event history, or adjacent-surface status |
 | Count meaning | `pool-total-count` always means all active Scratches; non-empty search alone renders exact `{visible} of {total} Scratches` in `pool-filtered-count`; `pool-activity-marker` means mounted-page unseen remote arrivals or non-selected lifecycle activity and never replaces either count |
 | Hidden selection | Bind `hidden-selection`; render exact `Selected Scratch is hidden by this search.` plus `Clear search`; retain selection/Context, clear only the query, and keep focus in the search field |
 | Remote arrival | Bind `remote-arrival`; render `1 new Scratch arrived.` or `{count} new Scratches arrived.` plus `Review new`; revalidate, scroll/focus the first surviving unseen row without selecting it, and otherwise return focus to the search field |
@@ -814,7 +831,7 @@ Staging slice of `VQ-06`; Task 147 alone consumes it. Pool remains owned by
 | Contract | Exact token requirement |
 |---|---|
 | Operation placement | `staging-operation-status` is one fixed line inside the affected final-type Node card or Bit row; Stage pending uses a non-draggable projection, Unstage retains the durable candidate, and pending/unknown/reconciling never replace or resize the Staging panel |
-| Base and remote count | `Nodes` / `Bits` remain bare at zero or one and receive the durable total prefix only at two or more; `staging-arrival-count` separately renders exact `1 new` / `{count} new` beside only the affected heading with accessible action name `Show new {Nodes|Bits}` |
+| Base and remote count | `Nodes` / `Bits` remain bare at zero or one and receive the presentation total prefix only at two or more, following SPEC — Durable Staging, including visible pending/unknown/reconciling Stage projections without duplicate candidate IDs and excluding unresolved-source integrity slots; `staging-arrival-count` separately renders exact `1 new` / `{count} new` beside only the affected heading with accessible action name `Show new {Nodes|Bits}` and is never added to the heading total. Durable membership, eligibility and status lifetimes remain unchanged. |
 | Terminal alert | `staging-local-alert` is one static band directly below `Staging` and above both wells; `staging-alert-action` is visible `X` named `Dismiss Staging alert`; later failure replaces earlier and no stack/history/rail/toast/dialog exists |
 | Pending/reconcile copy | Use the Staging recipe's exact `Staging “{title}”…`, `Returning “{title}” to Breakdown…`, unknown, and checking sentences; no action or Retry exists before authority |
 | Failure copy | Use the recipe's exact Stage/Unstage `not_applied`, rejected, and conflict sentences; alert `X` dismisses presentation only and a permitted retry is a new drag, never a status action |
@@ -873,6 +890,47 @@ The affected-column family maps through Explorer-native theme roles:
 | Retro Mac | Hard counter control and in-pane 1-bit system message below the full label with no new window or ghost pane |
 | Graphite | Compact editorial index and strengthened-rule column note with restrained monochrome action |
 
+### Shared Explorer consumer realization — Task 169 review amendment
+
+**User-selected 2026-10-07:** this shared contract applies to every current and
+future Inbox/Triage theme. Phase 34 realizes only retro-mac; this reflection
+claims no implementation, rendered evidence, task acceptance or later-task
+start. Existing DP receipts and accepted evidence remain immutable.
+
+| Concern | Shared realization contract |
+|---|---|
+| Header | One fixed section-header row: theme-native icon/identity on the left, dedicated search control on the right. No persistent breadcrumb/path row or second search toolbar. Internal path/selection/scroll, full column labels, affected-column status, search-result breadcrumbs and Placement destination remain authoritative |
+| Stored icon | Ordinary-column and result glyphs use their actual Node/Bit `icon` through the existing mapping/fallback. Same-database Grid edits update the same record projection. Theme roles may style glyph geometry/color treatment, never substitute a mock or render-time random icon |
+| Consumer actions | Explicit Inbox Explorer presentation omits ordinary-card options/Direct Archive and past-deadline Done?/Mark as done/Dismiss controls. Keep independent NEW/Undo/reason and Scratch Archive. Ordinary Grid card appearance/actions remain their own consumer contract |
+| Hover and cursor | Hover changes color only; no scale, translation, decorative shadow or stacking lift. Explorer items are not drag sources and expose neither grab nor grabbing. Selectable Nodes use pointer, non-activating Bit rows default; actual controls retain their own treatment. Keep focus/reveal/selection and valid/invalid/full drop-target feedback |
+| Overdue incomplete Bit | Readable title/deadline, subdued theme-role surface, small static overdue mark with non-color/accessibility meaning. No title strike-through merely because the deadline passed; no unreadable title/deadline blur, pulse or completion/dismiss control |
+| Completed Bit | Muted title with strike-through and static check mark. Completion and overdue do not collapse into the same state. Independent NEW/Undo/reason/focus remain readable and unobscured |
+| State/data ownership | Project existing deadline/status/priority and preserve ordinary Grid dismissal semantics. No schema, completion/dismiss mutation, common eight-theme D-CARD redesign or new data model is adopted |
+| Ordinary list chrome — user-selected 2026-10-08 | Keep Node-before-Bit groups and within-type order without an inter-type divider or visible `Bits` heading. Bit-only columns, including Level 3, start at the normal item inset without subsection-header space. Full column labels, item identities/keys/refs, navigation/reveal/scroll, drop targets and independent NEW/Undo/reason/focus remain |
+
+Values remain centralized through existing semantic tokens and
+`--triage-explorer-*` role aliases. Retro-mac compact-row measurements do not
+become common theme dimensions or new numeric acceptance thresholds.
+
+**Retro-mac ordinary-card distinction — user-selected 2026-10-08:** Nodes use
+a small folder-tab outline, light surface, double border, slightly larger
+plain base row and actual stored-icon glyph than a plain Bit, trailing chevron
+and Light selected black inversion. Bits use a rectangular outline, subdued
+gray surface, thin single border and smaller plain base row, retaining title,
+priority and deadline inside the actual card. Metadata/progress where supplied
+and independent NEW/Undo/reason expand naturally; a metadata Bit can therefore
+be taller than a plain Node. Preserve focus, reveal/drop feedback, color-only
+hover, pointer/default cursors, static overdue/completed marks and appropriate
+Dark contrast. These exterior values belong only to retro-mac plus explicit
+Inbox Explorer presentation, not ordinary Grid, Staging, search results or
+other-theme card exteriors. Use actual-card roles and centralized values;
+decorative folder outlines are noninteractive and must not clip content,
+markers, controls or focus. The selected image is new design authority, not
+pinned-prototype or mounted implementation evidence, and its enlarged pixels
+are not product dimensions or numerical acceptance thresholds. See the
+[Explorer recipe](recipes/inbox-triage-grid-explorer-visual-recipe.md) for the
+selected image identity and retained source boundary.
+
 ### Approved Explorer replacement-search realization — `DP-VQ07`
 
 **User-selected 2026-08-10:** Choice A retains theme-native Explorer chrome
@@ -881,14 +939,22 @@ search body. Task 151 consumes the complete body after checkpoint acceptance;
 Task 158 consumes only its result-Undo composition after `DP-VQ10` and Tasks
 156–157. Ordinary-card Undo Task 156 remains independent.
 
+**User-selected review amendment, 2026-10-07:** only the header/input placement
+and its shared consumer boundary are superseded below. One search input now
+occupies the right-hand header slot, with the fixed state line and scrolling
+results replacing the complete four-column body. Keep whole-hierarchy query,
+copy, revalidation, reveal, close, interruption, Undo and focus lifetimes;
+never substitute the prototype's active-column filter. The original DP receipt
+and historical release/verification records are not rewritten.
+
 | Contract | Exact token requirement |
 |---|---|
-| Entry and body | `explorer-search-entry` is exact `Search Explorer`; activation swaps only the body. `explorer-search-body` contains one fixed top `explorer-search-field`, its in-input `explorer-search-close`, one fixed `explorer-search-status`, and one internally scrolling `explorer-search-results` viewport; no overlay, dialog, fifth column, detached panel, or page scroll response |
-| Input and close copy | Placeholder is exact `Search all Nodes and Bits`; `X` accessible name is exact `Clear and close Explorer search`; X and Escape clear active/interrupted query, results, scroll, and reveal, restore columns, and focus the entry action |
+| Entry and body | `explorer-search-entry` retains accessible entry name `Search Explorer`; activation swaps only the body and focuses the single `explorer-search-field` with in-input `explorer-search-close` in the right-hand header slot. `explorer-search-body` contains one fixed `explorer-search-status` and one internally scrolling `explorer-search-results` viewport; no duplicate body input, overlay, dialog, fifth column, detached panel, or page scroll response |
+| Input and close copy | Placeholder is exact `Search all Nodes and Bits`; `X` accessible name is exact `Clear and close Explorer search`; X and Escape clear active/interrupted query, results, scroll, and reveal, restore columns, and focus the logical header entry control |
 | Result grammar | Each `explorer-search-result` preserves Node/Bit icon/color identity and adds visible `explorer-search-type`, title, full `explorer-search-breadcrumb`, and when required exact `explorer-search-duplicate` text `Duplicate {index} of {count}` in stable hierarchy order; no result is a drag source and no ID/coordinate/hidden root is exposed |
 | State copy | Use exact `Search the entire Grid Explorer.`, `Searching Grid Explorer…`, `Updating results…`, `No results for “{query}”.`, `Search couldn’t be updated.`, `That item is no longer available. Results were updated.`, `Revealed “{title}” in {breadcrumb}.`, and `Restored “{title}” to {source}.`; request failure alone exposes exact `Try again` |
 | Loading/stale/error | Initial loading has an empty result viewport; stale refresh retains prior rows, scroll, and focus; error retains prior successful rows when available; `aria-busy` and one-time state announcements replace spinner/shimmer or row-by-row announcements |
-| Navigation/focus | Open focuses input; Arrow Down/Up moves result focus; Enter/pointer revalidates before selection; valid selection restores columns and focuses the actual revealed row; stale selection changes no path/selection/route and returns to input when the focused result disappears; Scratch switch preserves state without forcing focus |
+| Navigation/focus | Open focuses input; Arrow Down/Up moves result focus; Enter/pointer revalidates before selection; valid selection restores columns and focuses the actual revealed row; stale selection changes no path/selection/route and returns to input when the focused result disappears; `Try again` starts the next request and focuses input; Scratch switch preserves state without forcing focus |
 | Reveal | `explorer-revealed-row` is a static non-color marker on the actual row and `explorer-reveal-status` sits directly below the Explorer header; it ends only on another item selection, path change, DnD start, search restart, route exit, or reload, never a timer |
 | DnD interruption | DnD start alone closes the body and preserves query/results/scroll as mounted-page interrupted state; Drop/Cancel never auto-reopens; explicit entry activation restores it and focuses input; result selection, X, Escape, route exit, or reload clears it |
 | Result Undo boundary | `explorer-search-undo` is a trailing exact `Undo` action only when later `DP-VQ10` allows it; operation-specific reason/pending/failure/conflict treatment is imported from Tasks 156–157. Terminal success keeps query/scroll, removes only that result, reports source restoration, and focuses the next result at the removed position or otherwise the input, never the previous result |
@@ -899,14 +965,214 @@ The replacement body maps through Explorer-search-native theme roles:
 
 | Theme | Role-family binding |
 |---|---|
-| GridDO | Full-width technical search field, restrained state rule, compact typed result rows, and canonical primary/action/focus roles |
+| GridDO | Technical header search field, restrained body state rule, compact typed result rows, and canonical primary/action/focus roles |
 | Tiny Desk | Library-index search tab, catalog-paper status slip, and stacked catalog result cards inside the Explorer body |
 | Neumorphism | Inset search field and state trough with shallow raised result rows inside the existing shadow family |
 | Claymorphism | Soft sculpted search field, shape-preserving status ribbon, and tactile typed result tiles without motion-led state |
 | Origami | Folded search sheet, seam-attached state strip, and cut-paper result rows with no animated fold or ghost column |
 | Terminal | Variable-driven command-line search, static status record, and text-led result records with no fixed JSX color, spinner, or blink |
-| Retro Mac | In-pane Finder `Find` strip, 1-bit system status line, and hard bordered result list with no new window/dialog/ghost pane |
+| Retro Mac | Finder header search control, 1-bit body system status line, and hard bordered result list with no new window/dialog/ghost pane |
 | Graphite | Editorial index field, strengthened-rule status caption, and restrained monochrome result rows with precise focus outline |
+
+### Placement review amendment — Task170, 2026-10-08
+
+Read the retained DP-VQ08/09 source/type/destination and direct-step rows below
+with this bounded user-selected presentation exception. The original receipts
+and accepted evidence remain unchanged. This draft requires exact supplemental
+Task170 scope/adoption and claims neither implementation nor visual acceptance.
+
+| Boundary | Exact requirement |
+|---|---|
+| Destination presentation | Direct/Staged Placement steps omit the visible breadcrumb/path line, including staged Result Title. Preserve captured destination/path identity, validation/invalidation, target-column ownership and destination-bearing status copy; Explorer attached status and search-result paths remain |
+| Direct heading/focus | Omit visible `Choose a result type`; existing `DIRECT PLACEMENT` becomes the focusable heading with the actual entry-focus ref. Preserve source title and accessible step identity; no empty heading or new copy |
+| Direct actions/reasons | One Node/Bit/Cancel row, in order, with equal flexible shares of the available width. Preserve disabled types, exact limits, native unavailable semantics and associated non-hover reasons below the row, plus the neither-available instruction. Long reasons remain readable |
+| Staged compact geometry | Retain source/result title, Node/Bit type, Confirm/Cancel and content-based height. Reduce surplus padding/gaps and centrally bound retro-mac reliability spacing to actual two-line typography. Current 48px reserve is not a product dimension; preserve pre-Confirm rail/action reservation and fixed target-column geometry without clipping full status or controls |
+| Preserved state authority | DP-VQ08 recovery copy/actions/operation IDs, DP-VQ09 source/title/limits, locks, Cancel/Escape, atomic commands, restoration and logical focus remain controlling. No tooltip-only recovery, hidden rail, maximum-height clipping, alternate target or shared-copy mutation |
+| Theme/evidence boundary | Common omission and heading/action semantics continue to later L5 consumers; retro-mac geometry remains theme-specific. Verify physical Tab/action visibility and internal scroll at 1024px with fresh evidence. Historical failures/unverified states and other-theme task/evidence boundaries remain |
+
+The amended [Placement recipe](recipes/inbox-triage-placement-affordances-visual-recipe.md)
+owns this limited exception. Exact Tower bytes become Reflected only after
+approved committed adoption and matching audit. Placement visual disposition
+still precedes Newly/Undo; this amendment grants no cycle reset or extra cycle.
+
+### Placement action-layout amendment — Task170 Cycle4, 2026-10-08
+
+The user approved the revised layout direction after Cycle3 re-review. Read
+the earlier Placement review amendment with this later, bounded exception;
+the Cycle3 implementation has not received visual acceptance. The separate
+one-cycle approval does not adopt these draft bytes or expand product owners.
+
+| Boundary | Exact requirement |
+|---|---|
+| Direct action stack | Replace the earlier horizontal equal-share row with vertically stacked Node, Bit, then Cancel controls. Each fills the available inline width. Keep native order, disabled-type semantics, exact non-hover reasons and their action associations, title/length limits, source truth and DIRECT PLACEMENT heading focus |
+| Direct Cancel distinction | Give Cancel a distinct secondary surface and/or outline from Node/Bit through centralized action roles. Retro-mac uses a subdued surface or lighter outline within its existing control family; preserve readable Light/Dark contrast, focus and availability. Secondary appearance must not imply that Cancel is disabled |
+| Staged confirmation composition | Group the existing Confirm placement heading, actual item title, Node/Bit type and any required source-truth/full-target content on the left. Place the independent Confirm/Cancel action group horizontally to its right, vertically centered against that information group, rather than in a lower footer. Do not remove or rename content or nest actions inside an interactive summary |
+| Staged reliability reservation | Keep a full-width reserved reliability area below the summary/action pair before Confirm. This supersedes only DP-VQ08's staged rail-above-lower-action-row spatial arrangement. Retain the right-hand action slot and original state-specific Confirm, Check again, Retry and Cancel controls, refs, locking and logical focus. Preserve exact full status, operation identity, announcements and lifetimes; the reservation is not removable blank space |
+| Containment and motion | Preserve content-based growth, target-column geometry and its internal scroll ownership, static normal/reduced-motion behavior, readable long content and unclipped controls/focus. Verify the approved left/right grouping at 1024px; do not silently move the actions below the summary or change neighboring panes to fit it |
+| Scope and evidence | Direct selection and Staged confirmation only; retain visible-path omission and all other DP-VQ08/09 contracts. Staged Result Title and direct confirmation retain their existing arrangements. Shared action composition continues to later L5 consumers; only retro-mac appearance values are realized here. Use fresh semantic and mounted pointer/Tab/scroll/state evidence, without new pixel thresholds or other-theme acceptance |
+
+This exact three-file Tower amendment remains pending until the matching
+supplemental receipt pins its bytes and Working commits and audits adoption.
+Preserve prior Reflected contracts, receipts, results and failed/unverified
+observations. The user's additional one-cycle approval is Cycle4 only after
+the initial three consumed cycles; no reset, Cycle5 or Newly/Undo execution
+follows from this amendment. Re-present Placement for user visual disposition.
+
+### Placement chrome/focus amendment — Task170 Cycle5, 2026-10-08
+
+The user selected the two generated screenshot edits and approved one further
+Placement cycle after Cycle4. This later exception applies to Direct type
+selection and Staged confirmation/reliability only. It does not accept the
+Cycle4 implementation or adopt these uncommitted Tower draft bytes.
+
+| Boundary | Exact requirement |
+|---|---|
+| Direct entry focus | Focus the actual available Node button on entry, considering both title limits and target validity. If Node is unavailable, focus the available Bit button; if neither type is available, focus Cancel. This supersedes the earlier direct heading-entry focus only. Preserve native disabled semantics, exact reasons/ARIA and independent explicit type selection; never select, advance or mutate automatically or steal focus on ordinary rerenders |
+| Direct focused appearance | Retro-mac Light uses black surface/white text for the actual focused or hovered type control, making available Node initially contrast with white Bit. Keep visible keyboard focus and Dark contrast. Do not simulate focus with a permanently selected Node or force focus in browser verification |
+| Direct text Cancel | Replace the outlined secondary Cancel exterior with borderless, background-free, shadow-free text. Use muted readable idle text, black text plus underline on hover in Light, equivalent Dark contrast and a visible keyboard-focus indicator. Preserve a real independent button/hit target, its existing label, no-write cancellation and focus return; prototype source observations specify appearance only |
+| Header and close action | Place the existing step heading at the left of a theme-native header; retro-mac realizes a black strip/white heading. A decorative × in an independent right-hand close button has exact accessible name Cancel placement. It invokes the same cancellation guard/callback as body Cancel; pending/unknown/reconciling cannot gain a bypass. Keep heading/action refs and state-owned focus; no duplicate heading or new dialog/overlay |
+| Staged title/type/actions | Give the actual item title stronger central size/weight and the Node/Bit type a compact rectangular outline. Retain source-truth/full-target content. In confirmation/pending, place Cancel then OK in native DOM/Tab order at the information group's right, vertically centered; OK retains the actual Confirm command/ref. Other recovery controls, labels, order, locks and focus remain authoritative |
+| Compact containment | Reduce surplus spacing through retro-mac roles without a fixed maximum height, clipped text/focus/actions or hidden reliability. Preserve the lower full-width pre-Confirm reservation, state-driven growth and target-column internal scroll/geometry. Measure 1024px information/action balance; do not silently replace the requested right-hand group with a lower footer or change neighboring panes |
+| Central copy and scope | Add only placementPresentation.stagedConfirm = OK and placementPresentation.cancelPlacement = Cancel placement to the central English copy owner and its direct test. Preserve every existing value and Direct confirmation/Result Title arrangements. Header/action/focus semantics are shared; retro-mac appearance does not activate other-theme realization or common-card/Newly/Undo work |
+
+The two image identities and correspondence limits belong in the matching
+scope receipt and Placement recipe. Enlarged preview pixels are not product
+dimensions or acceptance tolerances. Exact new scope approval must include
+the five Placement owners plus the two narrow central-copy owners before
+Working writes them; the additional cycle alone grants no owner expansion.
+The new canonical delta is pending exact adoption and audit. Preserve every
+earlier receipt/result/failure and re-present Placement after Cycle5 only.
+
+### Selected Placement frame/layout direction — Task170 Cycle6, 2026-10-09
+
+After reviewing the Cycle5 implementation, the user selected the revised
+Direct preview and final Staged preview with "괜찮네. 이렇게 작업하자."
+This fixes the following later design direction; it does not visually accept
+the Cycle5 implementation. The user subsequently answered "승인합니다" to the
+exact request for one additional Cycle6. Preserve initial3 plus Cycle4/Cycle5
+consumed: aggregate5; Cycle6 adds exactly one unconsumed cycle without reset.
+These Tower draft bytes await exact supplemental scope/adoption and audit.
+
+| Boundary | Exact requirement |
+|---|---|
+| Direct initial focus | Remove automatic entry focus from Node, Bit and body Cancel. Restore entry focus to the existing DIRECT PLACEMENT heading/ref, with no implicit selection, advance or write and no ordinary-rerender focus theft. Available Node and Bit start in the same idle surface; preserve native keyboard focus indication and actual hover/focus treatment after user input, disabled predicates, exact reasons/ARIA and explicit activation |
+| Flush bracketed header | Direct selection and Staged confirmation/reliability use a continuous retro-mac black strip touching the top/left/right inner frame edges, without exterior padding or white inset gutters. Render separate visible square-bracket pairs around the existing heading and close glyph: [DIRECT PLACEMENT] or [CONFIRM PLACEMENT] at left and [×] at right. Brackets are presentation only; preserve exact existing heading text/accessibility and central Cancel placement accessible name, independent native close, original no-write Cancel callback/return focus and pending/unknown/reconciling lock suppression |
+| Shared frame and title rhythm | Match Direct's rectangular outer outline to the selected Staged frame family; no extra Direct double outline or inset header frame. Use centralized retro-mac title typography and common body inset/gap roles across both selected surfaces. Increase Direct actual-title size slightly and give that title more top/bottom padding, preserving literal source text and natural wrapping. Do not reuse these roles to redesign cards, selected Scratch Context or neighboring panes |
+| Staged content hierarchy | After the full-width header, place the actual item title on the left and independent horizontal body actions on the right, vertically centered in the same row. In confirmation/pending preserve native Cancel then OK order and the actual Confirm ref/command. Place the outlined Node/Bit tag in its own full-width lower row, aligned to the body's left inset, rather than inside the narrow title/actions information cell. Preserve required original-source/full-target content and original state-specific Check again/Retry/Cancel labels, order, locks, refs, focus, operation and lifetime |
+| Button padding and compact height | Give both Staged body buttons comfortable internal block/inline padding and a distinct gap through centralized roles; padding must not be simulated by changing labels. Reduce surplus height through scoped body spacing/title/tag arrangement while retaining the lower full-width pre-Confirm reliability reservation and complete state copy. Do not replace that reservation with zero height, hidden status, a fixed maximum height, clipping or a lower action footer. Long content grows naturally inside the existing target-column scroll/geometry |
+| Scope and evidence | Candidate product/test owners are the existing five Placement paths only. The two central copy owners and all existing strings remain read-only; the visible brackets create no new copy contract. Direct confirmation and Staged Result Title stay unchanged. Shared semantics remain distinct from retro-mac visual values. Fresh semantic and mounted focus/hover/close/containment/native Tab/wheel evidence must cover the changed hierarchy, 1920px and 1024px Light/Dark and static motion; no new pixel threshold, other-theme acceptance, producer/helper/pane expansion or Newly/Undo execution follows |
+
+The Placement recipe pins the selected preview identities and correspondence
+limits. Preview pixels are not product dimensions or implementation evidence.
+Record the design approval as received, preserving every prior receipt,
+Reflected amendment, failure and unverified/retained observation. A necessary
+out-of-owner repair stops the affected slice. One exact additional-cycle
+approval has now been received for Cycle6 only; a matching supplemental
+execution receipt and audited exact adoption remain required before product
+writes. On completed Cycle6 aggregate6/remaining0; no Cycle7, acceptance,
+closure, Newly/Undo or publication follows. Do not request design or Cycle6
+approval again.
+
+### Placement visual-audit correction draft — Task170 Cycle7, 2026-10-10
+
+The user reported five findings after Cycle6, then replaced color-regression
+investigation with an explicit new white-background direction and added outer
+Finder wrapper-border removal, then requested both modal widths match the
+Finder Node/Bit cards. The user approved exactly one additional
+Cycle7: "Cycle은 1회도 승인할게." Record that approval as received, not pending.
+This bounded Tower draft is not implementation visual acceptance or an adopted
+execution receipt. Preserve aggregate6 consumed; Cycle7approved1/unconsumed.
+Preserve all earlier decisions, receipts and evidence without rewriting them.
+
+| Boundary | Proposed exact correction |
+|---|---|
+| Direct post-selection confirmation | Extend the selected confirmation frame to Direct after either explicit Node or Bit selection, including its reached pending/recovery states. Use the same flush bracketed CONFIRM PLACEMENT header/independent guarded close, title-left/actions-right row, separate outlined type-tag row and lower full-width reliability reservation as Staged. Confirmation/pending body controls become Cancel then OK through the existing central OK value and original Confirm ref/command. Recovery labels/order/refs/locks remain unchanged. This later correction supersedes only the prior Direct-confirmation arrangement/label preservation boundary |
+| Finder default card appearance | This is a new color choice, not restoration or diagnosis. Set ordinary Finder Node and Bit default backgrounds to the same centralized surface as Staging items: var(--triage-staging-surface), white in Light and the corresponding Staging surface in Dark. Include the Node decorative folder fill and actual Bit surface; replace the default gray/tinted base only. Do not gate the change on historical comparison, causal investigation or another color approval. Verify the resulting default surface after the change and retain distinct selected/hover/status presentation, data and producer logic; no global Grid/search/card redesign or Task169 history rewrite |
+| Placement enclosing wrapper | When Direct or Staged Placement is mounted inside Finder, remove the enclosing Finder target/row border, outline and ring that surround both modal and Node/Bit cards, including the pending-confirmation double outline. Keep the modal's own rectangular frame, individual card contours, type-tag border and native focus indicators. This is a scoped wrapper-paint change, not a column geometry, hit-testing, drop-predicate or modal layout change |
+| Modal width matches Finder cards | Expand Direct and Staged Placement outer frames to the same available inline width and left/right alignment as the ordinary Node/Bit card boxes in their owning Finder column. Include Direct's selection and post-type confirmation surfaces. Remove only modal-specific extra inline gutters, including the current horizontal m-2 inset; retain the column's existing padding, width and scroll owner. Use responsive available width instead of a fixed screenshot width. Preserve content-based height, internal body padding, full title/status growth and native focus; no horizontal overflow, neighboring-pane resize or card-width change |
+| Drag feedback covers card paint | For Breakdown and Staged drags, the Finder feedback surface must visibly cover the relevant Node/Bit card paint instead of remaining behind child surfaces. Keep original drop targets, hit testing, eligibility, collision geometry, DOM/data, commands and column scroll. Feedback must clear on drag exit/end/cancel and must not conceal Placement confirmation/recovery, source truth or retained status after drop. Do not unmount cards or alter their ordinary idle presentation |
+| Unavailable Staged destinations | Replace the gray unavailable treatment for Staged Node destinations at Level 3 and Staged Bit at Home with the existing Return to Breakdown red family. Bind scoped Finder invalid-surface/border/ink roles to that existing token family; do not change Return to Breakdown itself. Preserve existing acceptance predicates, invalid-drop no-write behavior and full-target distinctions; no global full/invalid recoloring |
+| Header close glyph | Direct selection and both Direct/Staged confirmation headers use the same centralized strip font size for heading and visible bracketed close glyph. Remove the independent 14px glyph override against the 7px heading. Preserve a usable native hit target, focus indicator, accessible Cancel placement name, decorative brackets and lock/cancellation semantics |
+| Staged minimum height and body controls | The user's additional Cycle7 direction reduces the Staged confirmation modal's minimum-height floor to 70% of its current baseline and modestly increases Cancel/OK font size and real block/inline padding. Identify and record the existing minimum-height contributors and matching idle baseline before changing them; do not invent an existing modal min-height declaration or describe a content-grown actual height as exactly 70%. Remove hover-only visual changes from these Staged body Cancel/OK controls through scoped roles, while preserving their idle distinction, disabled/locked treatment and native keyboard focus indicator. Keep title-left/actions-right centering, Cancel-OK native order, separate lower type tag, aligned card-width frame and nonzero full-width reliability reservation. Full titles/status may naturally exceed the lowered floor. Verify 1920/1024 Light/Dark containment, readable title space, button padding/gap and native action access; no clipping, fixed maximum height, footer fallback or neighboring geometry change. Direct selection/text-Cancel hover and recovery Check again/Retry remain outside this additional hover amendment |
+| Scope and evidence | The five candidate product/test files remain globals.css, hierarchy-explorer.tsx and its direct test, triage-workspace.test.tsx and inbox-triage-theme-realization.test.tsx. Internal scope includes PlacementAffordance, scoped ordinary-Finder surface selectors and necessary ExplorerColumn/NodeDropCell drag/wrapper-presentation roles only. Actual card source/tests, producers/helpers/copy/Workspace implementation and pane geometry remain preservation inputs. A required additional owner stops the affected slice. Fresh Direct Node/Bit confirmation, modal/card inline-width alignment, default-card/Staging surface equality, absence of the enclosing wrapper border and native drag layering/invalid-color/cleanup evidence is required in addition to modal regression; previous 32 native passes do not prove these new invariants |
+
+Tower03 is the sole author of this three-file draft. Working170/01 owns the
+new exact supplemental receipt/ledger, implementation/tests/evidence and
+commits after the matching exact scope receipt and audited adoption. Direction
+and exactly one additional Cycle7 are already approved; do not ask again.
+The exact supplemental receipt/adoption remains Working-owned. Keep its
+user-facing proposal concise: required scope fields and the actual new owner/
+draft pins, with immutable preservation/evidence records referenced by path,
+commit and hash instead of repeating all previous payloads or raw history.
+Approval still binds the entire exact new receipt; brevity does not grant
+scope expansion or silently change installed workflow policy. No reset,
+Cycle8, Newly/Undo, acceptance, closure or publication follows. Revalidate
+the separate dev/output consumer before affected build/runtime use; do not
+adopt or signal it without proven authority. Re-present the bounded checkpoint.
+
+### User-selected Task170 final visual refinement — 2026-10-12
+
+After the Newly/Undo checkpoint at
+`f3e04607d6e0aa042344d141cd153e8d8bc77904`, the user confirmed all eight
+visual findings, selected the taller-Node preview, and approved continuing in
+the same Working with a maximum of three additional cycles. This is targeted
+feedback and a Task170-only budget exception; it is not final task acceptance.
+Tower03 authors this bounded draft. Its exact bytes remain pending adoption
+through Working170/01's supplemental receipt/start and immediate audit.
+
+| Finding | Selected bounded direction |
+|---|---|
+| 1 — Finder Node height | Enlarge ordinary Inbox Finder Node cards vertically, retaining their responsive width, folder tab and double contour. Keep the actual Undo control and glyph size; add enough body height and block padding for the entire control and native focus indicator to fit inside the card. Apply consistent Node minimum height with/without NEW or Undo, including selected Nodes; retain natural title/content growth. Default Grid/search consumers and Bit card sizes are unchanged |
+| 2 — NEW alignment | Center the Node NEW marker vertically within the enlarged painted body, together with the existing icon/title/action alignment. Do not confuse the raised folder tab or outer wrapper rectangle with the actual body center. Preserve marker identity, unavailable action access, selection and content |
+| 3 — Level-2 Node paint | During Staged Node drag, remove the unavailable red treatment from Level-2 Node cards. Retain the Level-3 column's unavailable feedback. This is a display exception only: keep actual target eligibility, disabled meaning, invalid-drop no-write behavior, source/target IDs and commands |
+| 4 — Unavailable pattern | Use the current ordinary Finder DND diagonal pattern and border treatment for the named unavailable Staged destinations; change only the background color family to the existing Return-to-Breakdown red family. Do not retain a separate solid red border plus flat-fill design. Preserve allowed/full/invalid distinctions and existing drop rules |
+| 5 — Feedback over Bits | Allowed and unavailable Finder row feedback must cover actual Bit card paint as well as the row background. Keep the feedback non-interactive, retain the drag token and actual native target access, and clear it on exit/reentry/end/cancel/drop. Do not unmount cards or cover the post-drop Placement/status surface |
+| 6 — Return to Breakdown | Cover the complete Breakdown body below its section header, including the selected-Scratch context and rows, with the same diagonal feedback design. Retain the red-family entered-state treatment. Preserve the actual return target, guarded unstage command, source restoration, copy, focus and existing status/lifetime; the section header stays exposed |
+| 7 — Remove from Staging | Reserve layout space when the Remove target appears, reducing the Nodes/Bits display viewports instead of painting over them. Preserve each internal card's width, height, typography and controls; scroll exposes remaining cards rather than scaling/compressing them. Keep the outer Staging pane and column widths, current grouping, native target identity, eligibility and removal command. The intended viewport/drop-target rectangle changes follow the in-flow layout; collision logic is not redesigned |
+| 8 — Placement close | Modestly enlarge the visible bracketed close glyph in Direct selection and Direct/Staged confirmation headers. Keep brackets, heading font, flush strip, current native hit area, keyboard indicator, accessible name, guarded Cancel callback, refs and locks. This supersedes only the prior requirement that close glyph and heading resolve to exactly the same font size |
+
+The selected raster is preview-only input, not a product asset or a mounted
+acceptance gate. Its identity and the detailed card invariants are recorded in
+the [Newly/Undo recipe](recipes/inbox-triage-newly-placed-undo-visual-recipe.md);
+the [Placement recipe](recipes/inbox-triage-placement-affordances-visual-recipe.md)
+records the affected drag/header exception. Semantic presentation roles remain
+shared; new visual values apply only to retro-mac. Preserve other-theme
+presentation and every unchanged producer, operation, lock, tooltip/recovery,
+metadata, source/destination, focus and event-owned lifetime contract.
+
+This later amendment supersedes only the named card geometry, drag paint,
+return-overlay extent, Remove target layout and close-glyph size. Task169 and
+all prior acceptances/receipts/history remain immutable. Task170 stays `[ ]`.
+The previous ten consumed cycles remain recorded; use only needed cycles from
+the approved maximum three, with no reset or automatic fourth cycle. Global
+skill/adapter policy, Task171, acceptance, closure and publication are unchanged.
+
+### Task170 Bit/Return visual follow-up — 2026-10-12
+
+At checkpoint `34dc7addebd95c052a49ec87b08d179bbde81a93`, the user found
+the enlarged Node satisfactory and requested two further display corrections.
+This is targeted feedback, not Task170 acceptance. The current batch consumed
+cycles11-12 and has one unused product cycle13 and one observer correction;
+retain those counters without a reset or a new budget request.
+
+| Boundary | User-selected follow-up |
+|---|---|
+| Ordinary Finder Bit base | Use the current NEW/Undo Bit version as the common ordinary inbox-explorer Bit frame, body spacing, alignment and minimum-height baseline. Apply that base to Bits with/without NEW or Undo, preserving natural metadata/title growth and state distinctions. This expressly supersedes the prior ordinary Bit dimension-preservation boundary only for the requested common base. Preserve literal metadata, selection, default Grid/search/other-region consumers and unchanged Node geometry |
+| Optional NEW/Undo | Marker provenance and Undo eligibility remain authoritative. Common presentation must not add NEW, fabricate provenance or show an Undo command on an ordinary Bit that lacks it. Keep the existing actual action/ref, tooltip/visible-recovery partition, disabled reason access, independent activation, locks, operations and focus/lifetime |
+| Return to Breakdown palette | Use a positive green family for the Return feedback, including its entered-state background/ink, retaining the current diagonal design, header-excluded full-body coverage, idle/entered distinction, text/non-color cues, native target and actual return command |
+| Unavailable palette isolation | Finder unavailable Staged Node Level3/Bit Home and other already scoped rejection feedback remain red. Separate the Return green role from the currently shared unavailable background alias; retain the current diagonal/border treatment, Level2 suppression, Bit coverage/cleanup and invalid-drop no-write semantics. Changing Return must not make a prohibited destination look permitted |
+
+Only these two requested display deltas supersede prior Task170 direction.
+Tower03's four-file draft remains pending exact Working-owned supplemental
+scope/adoption; existing receipts and successful/failed captures stay immutable.
+Use the already approved remaining Cycle13 after matching adoption and fresh
+guards, with no new writer, owner, producer/copy/helper, acceptance or closure.
+Fresh 1920/1024 Light/Dark normal/reduced evidence must compare ordinary Bits
+with/without NEW/Undo, metadata/status variants and native tooltip/ref/action
+preservation; independently observe green Return and red unavailable feedback,
+return/drop/cancel cleanup and durable no-write/return behavior. Stop at the
+Task170 visual checkpoint; product budget becomes aggregate13/remaining0 only
+when that actual product loop is consumed. No automatic Cycle14 follows.
 
 ### Approved Placement fixed-reliability-rail realization — `DP-VQ08`
 
@@ -1015,6 +1281,34 @@ theme branching or unsupported literal values:
 | Retro Mac | Static 1-bit `[NEW]`; hard Undo and in-item system line preserving selected inversion |
 | Graphite | Restrained black `NEW`; strengthened-rule caption and labeled Undo with precise focus |
 
+### Ordinary Finder Newly/Undo amendment — Task170, 2026-10-08
+
+The user's selected ordinary Finder amendment supersedes only the original
+DP-VQ10 leading-marker/trailing-action placement and the two reason-display
+states below. Read the original role/state/surface tables and theme-family
+mapping with this exception for the explicit ordinary `inbox-explorer`
+NodeCard/BitCard consumers. Preserve historical decision receipts and accepted
+Task117/157 evidence. This frozen direction needs exact Task170 scope/adoption;
+it does not claim implementation or acceptance of any theme.
+
+| Boundary | Exact requirement |
+|---|---|
+| Ordinary card composition | Vertically center NEW and the actual content group. Visually place an independent stable Undo action inside the card's right edge. Preserve real title/icon, deadline/priority/progress/state, selection/reveal, refs and natural metadata/status expansion. Never nest Undo inside Node navigation or propagate its pointer/keyboard activation to the card |
+| Ordinary Undo | Use existing Lucide `Undo2` as a decorative glyph in the independent Undo control, retaining its accessible action name and actual focus/hit target. Keep NEW when eligibility is lost. Distinct Check again/Retry controls retain their meaning and labels |
+| Two tooltip states only | Exact `Undo this placement.` for ordinary available and `This item changed after placement. Undo is unavailable.` for nonterminal result-mutated eligibility use an above-action hover/keyboard-focus tooltip instead of a visible reason line. Branch on authoritative state/phase, not copy equality; reserve no empty rail for these two states |
+| Unavailable/accessibility | Keep a visibly subdued, keyboard-focusable aria-disabled Undo in the same slot with mutation suppressed. Associate the exact current reason programmatically; retain existing once-per-change announcements. Neither color nor pointer hover is the only accessible meaning |
+| Visible reasons/recovery | Checking, re-enabled, descendants, placement-open, operation-locked and edit-blocked remain visible. Pending/unknown/reconciling/not-applied/rejected/conflict/success retain original status/announcements, operations, focus and event-ended lifetimes. Terminal rejected/conflict remains visible even when its sentence matches the ordinary tooltip reason |
+| Central roles/static display | Use existing marker/action/status roles and semantic `newly-undo-icon` / `newly-undo-tooltip` bindings for the ordinary consumer. Bind theme appearance centrally. Tooltip and state transitions are static in normal/reduced motion, without inherited primitive fade/zoom/slide or theme-ID JSX |
+| Retro-mac geometry | Preserve accepted folder-tab/double-outline Node and rectangular single-outline Bit. Center the content group, provide internal right action space and selected/disabled contrast, and prevent title/metadata/NEW/action/focus clipping. No enlarged-source dimensions or new numerical fidelity threshold |
+| Preserved consumers | Ordinary Grid and replacement-search Undo keep their existing presentation. Common behavior applies to current/future ordinary L5 consumers; retro-mac values do not become other-theme geometry. Common eight-theme D-CARD/P29-01 and Korean QA stay deferred |
+
+The amended [Newly/Undo recipe](recipes/inbox-triage-newly-placed-undo-visual-recipe.md)
+owns the exact state/surface exception. Task170's matching scope receipt pins
+the actual Q01 card/test owners, canonical delta and evidence. Reflect only
+after exact committed adoption and matching audit. DP-VQ08/09 placement,
+DP-VQ10 transactions/locks/recovery/focus/lifetime and other accepted contracts
+are otherwise unchanged.
+
 ### Approved Completion Blocker / Withdrawal realization — `DP-VQ11`
 
 **User-selected 2026-08-11:** Choice A keeps page-local blockers attached to
@@ -1028,7 +1322,7 @@ alone consumes this contract after Task 118 checkpoint acceptance.
 | Add placement / copy | Bind `breakdown-add-completion-blocker` immediately below the stable Add field/control row with exact `Add this idea or clear the draft to complete this Scratch.`; keep `DP-VQ05` reliability copy first when both occupy the source status area |
 | Title placement / copy | Under approved Task 160 compatibility C1, `open|dirty|saving|reconciling` replace only the existing Context eyebrow/meta value `Selected Scratch` with static `context-completion-blocker-mark` plus the exact blocker sentence; visual `offline|not_applied|conflict` append the matching exact blocker sentence after the current editor-state sentence inside the existing source-bound issue-overlay status column. `open|dirty`: `Save or cancel the Scratch title edit to complete this Scratch.`; `saving`: `Saving the Scratch title before completion…`; `conflicted`: `Resolve the Scratch title conflict to complete this Scratch.`; `reconciling`: `Checking the Scratch title before completion…`. Restore `Selected Scratch` without moving focus when clear; add no ordinary status row, overlay, panel, or action |
 | Existing actions only | Add creates no completion action; its existing Add/text-editing paths resolve the draft. Title uses only the current `DP-VQ04` actions. No blocker auto-adds, clears, saves, cancels, persists, archives, or moves focus |
-| Fixed Context compatibility | Preserve fixed `104px` Context geometry, title field and timestamp, fixed `9.5rem` action region, Save/Cancel, saving/reconciling progress action, issue-overlay actions, and current logical focus. C1 supersedes only the stale persistent Scratch-title editor-status placement; every other `DP-VQ11` copy, behavior, focus, lifetime, theme, and prohibition remains unchanged |
+| Fixed Context compatibility | Preserve fixed Context geometry: `104px` except retro-mac `120.25px` under the Phase 34 / Task 167 P34-04 Context-geometry supplement, title field and timestamp, fixed `9.5rem` action region, Save/Cancel, saving/reconciling progress action, issue-overlay actions, and current logical focus. C1 supersedes only the stale persistent Scratch-title editor-status placement; every other `DP-VQ11` copy, behavior, focus, lifetime, theme, and prohibition remains unchanged |
 | Withdrawal placement | Remove `archive-section-scrim`, `archive-card`, `archive-complete-context`, and `archive-reopen`, then use `archive-withdrawal-status` plus static `archive-withdrawal-mark` in the vacated Breakdown completion slot; never substitute an ordinary empty state, toast, dialog, global banner, or detached panel |
 | Withdrawal copy | Active row only: `Completion is no longer available because a Breakdown item is active.`; staged candidate only: `Completion is no longer available because an item is in Staging.`; both: `Completion is no longer available because Breakdown and Staging have active items.` |
 | Inactive Scratch | Archived/deleted/inactive selected Scratch exits through the canonical workspace owner and renders no blocker/withdrawal status or stale Archive control |
@@ -1068,7 +1362,7 @@ current-action slot in place. Task 162 alone consumes this contract after Task
 | Pre-dispatch storage failure | Exact `Archive couldn’t start because this tab couldn’t keep its recovery details.`; no command ran, expose Cancel only, focus it, and return to current completion/reopen truth. A later Archive activation is a newly confirmed attempt, not this variant's Retry |
 | Rejected / conflict | Rejected exact `Archive stopped because this Scratch is no longer ready.` plus returned current truth where available; conflict exact `Archive couldn’t finish because this Scratch changed while the result was being checked.`. Focus Cancel and expose no Retry, overwrite, compensation, inferred success, or stale completion action |
 | Success / handoff | `applied|already_applied` announces exact `Scratch archived.` once, then removes the card with the selected Scratch and uses canonical next-visible → previous-visible → filtered-null → true-empty focus. No persistent success card, Archive View navigation, or hidden-Scratch selection |
-| Cancel | Pre-dispatch base Cancel retains Task 159 meaning. No Cancel/Escape exists while pending/unknown/reconciling. Terminal Cancel dismisses only the terminal result and returns to current completion/reopen or working truth; it never aborts, rolls back, compensates, or conceals uncertainty |
+| Cancel | Pre-dispatch base Cancel retains Task 159 meaning. No Cancel/Escape exists while pending/unknown/reconciling. Terminal Cancel dismisses only the terminal result and returns to current completion/reopen or working truth; it never aborts, rolls back, compensates, or conceals uncertainty. A change of the selected Scratch after a non-success terminal result or a pre-dispatch storage failure dismisses it the same way |
 | Accessibility / lifetime | One visible polite atomic status announces each changed exact sentence once. Static text/mark carries meaning without color or motion. Nonterminal state lasts until the same descriptor is authoritatively classified; theme/mode change and conflicting intents do not end or restart it |
 | Motion | Card content, action, terminal removal, and focus changes are immediate/static; reduced motion is identical. No fade, slide, scale, blur transition, skeleton, shimmer, spinner, progress loop, pulse, ping, bounce, blink, flicker, ellipsis animation, or layout-transition animation |
 | Scope | No SCHEMA command/result/reconciliation change, Task 126/161 behavior change, new persistence, product implementation in Task 119, Task 162 start, Phase 24 close, theme-ID behavior/copy branch, adjacent-surface fallback, or Release edge other than Task 162 |
@@ -1170,8 +1464,7 @@ Do not borrow a nearby card, overlay or prototype behavior as an automatic
 fallback. An unsourced new surface or a real conflict with an accepted DP
 requires its exact user-owned decision before the conflicting change.
 
-Existing fixed Context/editor geometry, action reserves, surface ratios and
-Placement/Archive boundaries remain unchanged here. If a matched prototype
+Existing fixed Context/editor geometry, action reserves, surface ratios and Placement/Archive boundaries remain unchanged apart from the separately approved Phase 34 / Task 167 P34-04 retro-mac Context-height exception: 120.25px in all mounted states and both modes, with other themes at 104px, the fixed 9.5rem action reserve, shared semantic tree and retained DP/C1 semantics unchanged. See P34-04 supplemental receipt (`Issues_Phase_34.Task_167.task-scope-context-geometry.json` in tag `archive/phase-34-codex`). If a matched prototype
 target conflicts with them, report the affected element, measured difference,
 behavior/copy impact and decision owner under Q02; do not silently override the
 contract or hide actions, status, caret or focus with fixed height/overflow.
@@ -2043,3 +2336,20 @@ Centered within chunk area:
   Hollow dot: h-3.5 w-3.5 rounded-full border-2 border-muted-foreground/30
   "Add a step" button below
 ```
+
+## Phase 34 / Task 167 P34-07 — Context presentation-copy roles
+
+Bound to the exact approved supplemental receipt (`Issues_Phase_34.Task_167.task-scope-context-copy.json` in tag `archive/phase-34-codex`),
+these additions change only retro-mac Context decoration/sort presentation.
+
+| Role | Approved treatment |
+| --- | --- |
+| `context-title-strip` | Retain16px strip;8px/700 mono text, contrast against strip ink,8px inline padding, flex space-between, pointer-events none. |
+| `context-dialog-info` / `context-decoration-close` | Central copy `[ FOLDER DIALOG: INFO ]` / `[X]`; aria-hidden, non-focusable text spans; no command or new status. |
+| `context-sort-current-label` | Existing visible ASC/DESC and canonical current-order accessible text, shown by default; hidden only in retro-mac. |
+| `context-sort-next-label` | Hidden by default; retro-mac shows centralized next-order text: DESC→OLD FIRST, ASC→NEW FIRST. Active label owns accessible name. |
+
+Keep one shared semantic tree; CSS selects presentation roles without theme-ID
+code branches or CSS-generated copy. Other7 themes retain their existing labels.
+No other theme/token/editor/state/copy/geometry changes: Context120.25px retro,
+104px others,9.5rem action reserve and48px row remain authoritative.

@@ -33,6 +33,8 @@ export type ArchiveScratchCoordinatorState =
   | Readonly<{
       phase: "storage_failed";
       recovery: PendingOperationRecovery | null;
+      /** The Scratch Archive was activated on when no recovery exists yet. */
+      attemptedScratchBitId?: string;
     }>;
 
 type UseArchiveScratchOptions = Readonly<{
@@ -235,7 +237,8 @@ export function useArchiveScratch({
         stateRef.current.phase === "unknown" ||
         stateRef.current.phase === "reconciling" ||
         stateRef.current.phase === "recovering" ||
-        stateRef.current.phase === "terminal" ||
+        (stateRef.current.phase === "terminal" &&
+          !isApplied(stateRef.current.terminalStatus)) ||
         operationLock.isLocked() ||
         readAddDraftBlocker() ||
         (titleBlocker !== null && titleBlocker !== false)
@@ -257,7 +260,11 @@ export function useArchiveScratch({
         operationLock.release(recovery.operationId, "not_applied");
         commit({
           blocksProjection: false,
-          state: { phase: "storage_failed", recovery: null },
+          state: {
+            phase: "storage_failed",
+            recovery: null,
+            attemptedScratchBitId: scratch.id,
+          },
         });
         return false;
       }
@@ -335,7 +342,11 @@ export function useArchiveScratch({
       operationLock.release(recovery.operationId, "not_applied");
       commit({
         blocksProjection: false,
-        state: { phase: "storage_failed", recovery: null },
+        state: {
+          phase: "storage_failed",
+          recovery: null,
+          attemptedScratchBitId: recovery.scratchBitId,
+        },
       });
       return false;
     }

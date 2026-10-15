@@ -23,6 +23,155 @@
 - `VQ-10` — **resolved by `DP-VQ10` Choice A on 2026-08-11.** The card-attached always-visible status rail specified below preserves the actual common card, keeps selection, Newly provenance, and Undo eligibility independent, and owns exact available/ineligible/re-enabled, pending, unknown/reconciling, not-applied, conflict, focus, lifetime, motion, and eight-theme treatment. Task 157 is its only realization edge after Task 117 checkpoint acceptance.
 - `D-CARD` — future common eight-theme Node/Bit card redesign remains deferred. This recipe layers only marker/control roles over the current common cards.
 
+## Ordinary Finder Newly/Undo Amendment — 2026-10-08
+
+The user selected this amendment after visually accepting Task169. Its design
+direction is fixed; implementation and canonical adoption require Task170's
+exact scope receipt. It supersedes only the original DP-VQ10 marker/action
+placement and always-visible reason rules for the ordinary Inbox Explorer
+Node/Bit consumers identified below. Original DP-VQ10 receipts, Task117/157
+acceptance, source observations and previous evidence remain historical inputs,
+without amendment or replay. Search-result Undo and ordinary Grid consumers
+retain their existing presentation contracts.
+
+- Keep the actual shared NodeCard/BitCard, explicit `inbox-explorer` consumer
+  boundary, stored icon/title identity and independent Newly/selection/Undo
+  states. Vertically center NEW and the content group. Preserve title,
+  deadline, priority, progress and static overdue/completed content, with
+  natural height expansion rather than clipping or a fixed maximum height.
+- Ordinary Undo occupies a stable independent action slot visually inside the
+  card's right edge and uses the existing Lucide `Undo2` glyph. A Node's
+  navigation button and Undo remain separate interactive elements; never nest
+  the Undo button in that navigation button. Pointer and keyboard activation
+  cannot bubble into card navigation or acknowledgement. Keep the actual
+  action ref and accessible action name; the glyph is decorative.
+- Only ordinary `available` copy `Undo this placement.` and nonterminal
+  eligibility `result-mutated` copy `This item changed after placement. Undo
+  is unavailable.` move from the visible reason rail to an above-action
+  tooltip. Choose this projection from authoritative state/phase, never by
+  matching the sentence alone. Show the exact current reason on pointer hover
+  and keyboard focus, associate it programmatically with the action, and
+  retain existing once-per-change polite announcements. These two states
+  reserve no empty reason-rail line when the tooltip is closed.
+- An unavailable Undo keeps the same stable slot, visibly subdued treatment,
+  keyboard focusability and `aria-disabled` meaning. Suppress pointer,
+  keyboard and programmatic mutation without removing NEW or changing
+  selection. Tooltip access must remain possible while the action is
+  unavailable; color and pointer hover are not the sole accessible meaning.
+- Checking, re-enabled, descendants, placement-open, operation-locked and
+  edit-blocked reasons remain visible. Pending, unknown, reconciliation,
+  not-applied, rejected/conflict and success retain their existing visible
+  status/announcement, action, operation ID, focus and event-ended lifetime.
+  A rejected/conflict reason remains visible even if it uses the same sentence
+  as a normal result-mutated eligibility reason. Keep distinct `Check again`
+  and `Retry` actions; do not replace them with the Undo glyph.
+- Tooltip presentation and all marker/action/state transitions are static.
+  Do not inherit a tooltip primitive's fade, zoom or slide animation. Tooltip
+  disclosure/dismissal cannot invoke navigation, Undo or a recovery command.
+  Theme/mode changes retain the shared semantic tree, operation and focus
+  ownership; theme values live in central roles rather than theme-ID JSX.
+- These ordinary-consumer semantics bind current/future L5 themes. Retro-mac
+  alone uses the accepted folder-tab/double-outline Node and single-outline
+  Bit, with an internal right action reserve and readable selected/disabled
+  contrast. Exact geometry comes from fresh mounted evidence, not new numeric
+  tolerances. Other-theme task activation or exterior acceptance is not implied.
+
+Realization consumers are `HierarchyExplorer.NodeDropCell` and `BitContextRow`.
+The exact Q01 source/test boundary is the two actual card implementations and
+their direct tests, bound through Task170's receipt. Ordinary Grid, replacement
+search, common eight-theme D-CARD and Korean QA remain outside this amendment.
+Task170 realizes Placement first and stops for user Placement visual
+disposition before implementing this Newly/Undo slice. No product execution,
+user acceptance, runtime lease or extra cycle follows from this draft alone.
+
+## Selected Task170 Node-Height Refinement — 2026-10-12
+
+The user reviewed the Newly/Undo implementation at
+`f3e04607d6e0aa042344d141cd153e8d8bc77904`, confirmed all eight visual
+findings, and selected the taller-Node mockup. They approved the same Working
+continuing with a maximum of three additional cycles; the exact supplemental
+owner/adoption/execution contract remains pending. The design/budget are fixed,
+not questions to repeat. No implementation visual acceptance is implied.
+
+Selected preview identity (read/view/hash only):
+
+- Path: `/Users/jwk/Library/Application Support/orca/codex-accounts/6f847280-0f85-4eaa-84be-56c81057b6d3/home/generated_images/01a1114e-1e45-7cf2-84ad-6c4e784aa851/exec-26c65af5-fc6a-4bd5-af39-d27ed53d17cf.png`.
+- SHA256: `a94962e46564500a5a3120db5b18ed1cebaa64e9505628778eae9f2cf418f5ac`.
+
+The image edits the user's Level-1 screenshot to illustrate taller Node bodies
+around the existing Undo buttons. It is not a product raster, a numeric size
+contract, a mounted capture or evidence that unrelated text/pixel identities
+were rendered. Do not copy image bytes into product/evidence assets.
+
+- Enlarge only ordinary Inbox Finder Node height/block padding, retaining the
+  responsive inline width, folder tab/double contour and current Undo size.
+  Give the complete control and focus indicator visible internal clearance.
+  Use a consistent minimum painted-body height for selected/unselected Nodes
+  with/without NEW or Undo; allow longer actual content to grow naturally.
+- Center the Node NEW marker against that painted body, including the existing
+  icon/title/action composition. Measure the body and marker boxes separately
+  from the raised tab/outer wrapper; preserve literal text, metadata, refs,
+  selection, command identity and the independent native Undo hit target.
+- Preserve Bit dimensions/default presentation except the explicit drag-overlay
+  coverage direction. Default Grid, replacement-search and other-region card
+  consumers do not receive enlarged Node geometry.
+- Keep the two authoritative eligibility tooltip partitions, unavailable
+  keyboard-focusable aria-disabled Undo, visible terminal/recovery copy,
+  announcements, Undo2 identity, no-bubbling command boundary, operation/result
+  IDs, atomic restoration and event-owned provenance lifetime unchanged.
+
+Findings 3-8 bind the later scoped Finder DND/Breakdown/Staging/Placement
+amendment in DESIGN_TOKENS and the Placement recipe. The Remove target reserves
+in-flow space, reducing the Nodes/Bits viewports while each internal Staging
+card retains its size; this is not permission to compress cards or redesign
+producers. Workspace display scope is only the Remove target/enclosing layout.
+Breakdown display scope is only the header-excluded return overlay/body roles.
+Current card/Workspace/Breakdown candidate ownership and every required check
+must be explicit in Working170/01's new compact receipt.
+
+Use only needed cycles11-13 after the previous ten, with no reset or automatic
+extension. Preserve Task169 acceptance, Placement disposition and all earlier
+failed/unverified evidence. Fresh Node/Undo containment/NEW alignment and the
+changed drag/layout/header surfaces require native evidence at 1920/1024
+Light/Dark and static normal/reduced motion. Supplemental adoption is not
+Reflected until the exact canonical start commit and matching audit. Stop at
+the Task170 visual checkpoint, [ ] and the same Working active awaiting user
+disposition; no acceptance, closure or publication follows.
+
+## Task170 Common Ordinary Bit Follow-Up — 2026-10-12
+
+After checkpoint `34dc7addebd95c052a49ec87b08d179bbde81a93`, the user
+found Node size satisfactory and requested ordinary Finder Bits use the same
+base UI as the current NEW/Undo Bit version. Apply a common frame, minimum
+height, body padding and content alignment to all ordinary inbox-explorer Bits;
+compare the actual current NEW/Undo baseline rather than derive a size gate
+from a raster or a different card type. Retain natural title/metadata growth,
+priority/deadline/progress and static completed/overdue semantics.
+
+NEW and Undo remain optional authoritative state. Do not populate absent NEW,
+reserve fabricated commands or attach Undo to a Bit without provenance. Keep
+actual command/action refs, disabled tooltip access, visible recovery/status
+partition, independent pointer/Enter/Space activation and exact operation/
+atomic/focus/lifetime behavior. Unify visual base only; default Grid, search,
+Staging and other-region consumers remain unchanged. The accepted Node geometry
+is not revised by this follow-up.
+
+This explicitly supersedes only the previous ordinary Bit size-preservation
+restriction. The companion Placement amendment separates positive green
+Return feedback from the still-red Finder unavailable feedback; its native
+commands/coverage/pattern are preserved. Both directions require the exact
+Working-owned supplemental display scope and adoption of the four bounded
+Tower drafts, with all original receipts/results/history immutable.
+
+Use existing remaining Cycle13, aggregate12 plus actual consumed1, no budget
+reset or new extra-cycle approval. Preserve the one remaining observer
+correction with its unchanged-product/one-rerun cap. Fresh direct/default
+consumer tests and mounted 1920/1024 Light/Dark normal/reduced comparisons
+must distinguish common base geometry from conditional NEW/Undo, full metadata,
+state color and actual native actions. Retain all933 captures/30 runs and
+prior failures/unverified/deferrals. Stop at Task170 [ ] / same Working active
+awaiting visual disposition; no acceptance, Cycle14, closure or publication.
+
 ## `DP-VQ10` Approved Card-Attached Always-Visible Status Rail
 
 Choice A keeps the existing actual `NodeCard` or `BitCard` as the sole card.

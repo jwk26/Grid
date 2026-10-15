@@ -139,6 +139,7 @@ vi.mock("@/components/triage/scratch-pool", async () => {
   return {
     ScratchPool: () => (
       <div data-testid="scratch-pool">
+        <h2 id="triage-scratch-pool-heading" data-triage-role="section-header" tabIndex={-1}>Scratch Pool</h2>
         {[
           ["scratch-2", "Second Scratch"],
           ["scratch-3", "Third Scratch"],
@@ -528,7 +529,7 @@ beforeEach(() => {
     pendingOperations: [],
     unknownOperations: [],
     reconcilingOperations: [],
-    counts: { nodes: 0, bits: 0 },
+    counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
     eligibility: { stagedSourceIds: new Set<string>() },
     stageCandidate: stageCandidateMock,
     reconcileStageCandidate: reconcileStageCandidateMock,
@@ -868,7 +869,7 @@ describe("TriageWorkspace", () => {
         },
       ],
       reconcilingOperations: [],
-      counts: { nodes: 1, bits: 0 },
+      counts: { nodes: 1, bits: 0, visibleNodes: 1, visibleBits: 0 },
       eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -1009,7 +1010,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 0 },
+      counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
       eligibility: { stagedSourceIds: new Set<string>() },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -1045,7 +1046,7 @@ describe("TriageWorkspace", () => {
           },
         },
       ],
-      counts: { nodes: 1, bits: 0 },
+      counts: { nodes: 1, bits: 0, visibleNodes: 1, visibleBits: 0 },
     });
     view.rerender(<TriageWorkspace node={createNode()} />);
 
@@ -1069,7 +1070,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 0 },
+      counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
       eligibility: { stagedSourceIds: new Set<string>() },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -1109,7 +1110,7 @@ describe("TriageWorkspace", () => {
           source: { version: 1 },
         },
       ],
-      counts: { nodes: 1, bits: 0 },
+      counts: { nodes: 1, bits: 0, visibleNodes: 1, visibleBits: 0 },
     });
     view.rerender(<TriageWorkspace node={createNode()} />);
 
@@ -1222,7 +1223,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 1 },
+      counts: { nodes: 0, bits: 1, visibleNodes: 0, visibleBits: 1 },
       eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -1264,7 +1265,7 @@ describe("TriageWorkspace", () => {
     useStagedCandidatesMock.mockReturnValue({
       ...projection,
       candidates: [],
-      counts: { nodes: 0, bits: 0 },
+      counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
     });
     view.rerender(<TriageWorkspace node={createNode()} />);
 
@@ -1735,9 +1736,39 @@ describe("TriageWorkspace", () => {
       expect(heading).toHaveAttribute("data-triage-role", "section-header");
     }
 
+    const explorerRegion = within(workspace).getByRole("region", { name:"Grid Explorer" });
+    const explorerHeading = within(explorerRegion).getByRole("heading", { name:"Grid Explorer" });
+    expect(explorerHeading.closest('[data-triage-role="explorer-header"]')).toContainElement(within(explorerRegion).getByRole("button", {name:"Search Explorer"}));
+    expect(within(explorerRegion).getAllByRole("heading", {name:"Grid Explorer"})).toHaveLength(1);
     expect(screen.getByTestId("hierarchy-explorer")).toBeInTheDocument();
     expect(screen.getByTestId("node-staging-zone")).toBeInTheDocument();
     expect(screen.getByTestId("bit-staging-zone")).toBeInTheDocument();
+  });
+
+  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("mounts one noninteractive desktop decoration in the shared tree under %s", (theme) => {
+    document.documentElement.dataset.colorTheme = theme;
+    render(<TriageWorkspace node={createNode()} />);
+    const workspace = screen.getByTestId("triage-workspace");
+    const bars = workspace.querySelectorAll('[data-triage-role="desktop-menu-bar"]');
+    expect(bars).toHaveLength(1);
+    const bar = bars[0];
+    expect(bar).toHaveAttribute("aria-hidden", "true");
+    expect([...bar.querySelectorAll('[data-triage-role="desktop-menu-label"]')].map(e => e.textContent)).toEqual(["File", "Edit", "View", "Label", "Special"]);
+    expect(bar.querySelector('[data-triage-role="desktop-menu-clock"]')).toHaveTextContent("12:00 PM");
+    expect(bar.querySelectorAll('button, a, input, [tabindex], [role="menu"], [role="menuitem"], [role="timer"]')).toHaveLength(0);
+    expect(bar.compareDocumentPosition(screen.getByTestId("scratch-pool")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    document.documentElement.removeAttribute("data-color-theme");
+  });
+
+  it("keeps the desktop clock literal across rerenders without replacing workflow regions", () => {
+    const node = createNode();
+    const { rerender } = render(<TriageWorkspace node={node} />);
+    const pool = screen.getByTestId("scratch-pool");
+    const context = screen.getByTestId("selected-scratch-context");
+    rerender(<TriageWorkspace node={{ ...node, title: "Updated workspace title" }} />);
+    expect(document.querySelector('[data-triage-role="desktop-menu-clock"]')).toHaveTextContent("12:00 PM");
+    expect(screen.getByTestId("scratch-pool")).toBe(pool);
+    expect(screen.getByTestId("selected-scratch-context")).toBe(context);
   });
 
   it("declares the approved shell ratios, desktop minimum, and hidden-scroll viewports", () => {
@@ -1767,9 +1798,58 @@ describe("TriageWorkspace", () => {
     ).toHaveLength(5);
   });
 
+  it.each(["node", "bit"] as const)("delivers A visible counts for %s through projection, overlap, terminal gap and Unstage retention", (type) => {
+    const label = type === "node" ? "Nodes" : "Bits";
+    const project = (visible: number, phase?: "pending" | "unknown" | "reconciling") => ({
+      candidates: [], integrityCandidates: [],
+      counts: { nodes: type === "node" ? 1 : 0, bits: type === "bit" ? 1 : 0,
+        visibleNodes: type === "node" ? visible : 0, visibleBits: type === "bit" ? visible : 0 },
+      pendingOperations: phase === "pending" ? [{ kind: "stage", operationId: "local-stage", candidateId: "projected", resultType: type }] : [],
+      unknownOperations: phase === "unknown" ? [{ kind: "stage", operationId: "local-stage", candidateId: "projected", resultType: type }] : [],
+      reconcilingOperations: phase === "reconciling" ? [{ kind: "stage", operationId: "local-stage", candidateId: "projected", resultType: type }] : [],
+    });
+    useStagedCandidatesMock.mockReturnValue(project(2, "pending"));
+    const view = render(<TriageWorkspace node={createNode()} />);
+    for (const phase of ["pending", "unknown", "reconciling"] as const) {
+      useStagedCandidatesMock.mockReturnValue(project(2, phase));
+      view.rerender(<TriageWorkspace node={createNode()} />);
+      expect(screen.getByRole("heading", { level: 3, name: `2 ${label}` })).toBeInTheDocument();
+    }
+    // Authoritative overlap is already deduplicated by the preservation hook.
+    useStagedCandidatesMock.mockReturnValue(project(2));
+    view.rerender(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByRole("heading", { name: `2 ${label}` })).toBeInTheDocument();
+    // Terminal-before-liveQuery may remove the projection before delivery.
+    useStagedCandidatesMock.mockReturnValue(project(1));
+    view.rerender(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByRole("heading", { name: label })).toBeInTheDocument();
+    useStagedCandidatesMock.mockReturnValue(project(2));
+    view.rerender(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByRole("heading", { name: `2 ${label}` })).toBeInTheDocument();
+    expect(stageCandidateMock).not.toHaveBeenCalled();
+    expect(unstageCandidateMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["node", "bit"] as const)("returns empty remote-arrival activation to the affected %s subsection", async (type) => {
+    const candidate = { id: "arrival", resultType: type, content: "New candidate" };
+    const state = (candidates: typeof candidate[]) => ({ isReady: true, candidates, integrityCandidates: [],
+      counts: { nodes: type === "node" ? candidates.length : 0, bits: type === "bit" ? candidates.length : 0,
+        visibleNodes: type === "node" ? candidates.length : 0, visibleBits: type === "bit" ? candidates.length : 0 } });
+    useStagedCandidatesMock.mockReturnValue(state([]));
+    const view = render(<TriageWorkspace node={createNode()} />);
+    useStagedCandidatesMock.mockReturnValue(state([candidate]));
+    view.rerender(<TriageWorkspace node={createNode()} />);
+    const action = await screen.findByRole("button", { name: `Show new ${type === "node" ? "Nodes" : "Bits"}` });
+    // The currently observed DOM no longer contains the arrived candidate.
+    document.querySelector('[data-candidate-id="arrival"]')?.remove();
+    fireEvent.click(action);
+    expect(screen.getByRole("heading", { name: type === "node" ? "Nodes" : "Bits" })).toHaveFocus();
+    expect(stageCandidateMock).not.toHaveBeenCalled();
+  });
+
   it("prefixes subsection headings only when authoritative type counts reach two", () => {
     useStagedCandidatesMock.mockReturnValue({
-      counts: { nodes: 2, bits: 3 },
+      counts: { nodes: 2, bits: 3, visibleNodes: 2, visibleBits: 3 },
     });
 
     render(<TriageWorkspace node={createNode()} />);
@@ -1785,7 +1865,7 @@ describe("TriageWorkspace", () => {
 
   it("keeps bare subsection headings at zero or one authoritative candidate", () => {
     useStagedCandidatesMock.mockReturnValue({
-      counts: { nodes: 1, bits: 0 },
+      counts: { nodes: 1, bits: 0, visibleNodes: 1, visibleBits: 0 },
     });
 
     render(<TriageWorkspace node={createNode()} />);
@@ -1817,7 +1897,8 @@ describe("TriageWorkspace", () => {
       document.querySelector(
         '[aria-label="Drop staged item here to remove from staging"]',
       ),
-    ).toHaveClass("h-12", "motion-safe:animate-jiggle");
+    ).toHaveAttribute("data-triage-role", "staging-unstage-target");
+    expect(screen.getByText("Remove from staging").parentElement).not.toHaveClass("motion-safe:animate-jiggle");
   });
 
   it("applies destructive tokens only while the compatible staged remove target is active", () => {
@@ -1876,6 +1957,13 @@ describe("TriageWorkspace", () => {
       "bg-destructive/10",
       "text-destructive",
     );
+    expect(unstageCandidateMock).not.toHaveBeenCalled();
+  });
+
+  it("does not activate Remove for an invalidated staged source or dispatch a mutation", () => {
+    useTriageDndMock.mockReturnValue(createDndState({ activeDragItem: { kind: "triage-staged-node", id: "candidate-1", label: "Project", integrity: "invalidated" }, overTargetId: "triage-remove-drop" }));
+    render(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByLabelText("Drop staged item here to remove from staging")).toHaveAttribute("data-triage-state", "available");
     expect(unstageCandidateMock).not.toHaveBeenCalled();
   });
 
@@ -1960,7 +2048,7 @@ describe("TriageWorkspace", () => {
         pendingOperations: [],
         unknownOperations: [],
         reconcilingOperations: [],
-        counts: { nodes: resultType === "node" ? 1 : 0, bits: resultType === "bit" ? 1 : 0 },
+        counts: { nodes: resultType === "node" ? 1 : 0, bits: resultType === "bit" ? 1 : 0, visibleNodes: resultType === "node" ? 1 : 0, visibleBits: resultType === "bit" ? 1 : 0 },
         eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
         stageCandidate: stageCandidateMock,
         reconcileStageCandidate: reconcileStageCandidateMock,
@@ -1989,7 +2077,20 @@ describe("TriageWorkspace", () => {
         }),
       );
     }
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    const confirmName = "OK";
+    const affordance = screen.getByRole("region", { name: "Placement" });
+    expect(affordance.querySelector('[data-triage-role="placement-reliability-slot"]')).not.toBeNull();
+    expect(affordance.querySelector('[data-triage-role="placement-target-path"]')).toBeNull();
+    const stagedRow = affordance.querySelector('[data-triage-role="placement-staged-summary-row"]');
+    {
+      expect(stagedRow).toContainElement(screen.getByRole("button", { name: confirmName }));
+      const typeRow = affordance.querySelector('[data-triage-role="placement-type-row"]');
+      expect(stagedRow?.nextElementSibling).toBe(typeRow);
+      expect(typeRow?.nextElementSibling).toBe(affordance.querySelector('[data-triage-role="placement-reliability-slot"]'));
+      expect(typeRow).toHaveTextContent(resultType === "node" ? "Node" : "Bit");
+    }
+    expect(affordance.querySelector('[data-triage-role="placement-confirm"]')).toBe(screen.getByRole("button", { name: confirmName }));
+    fireEvent.click(screen.getByRole("button", { name: confirmName }));
 
     await waitFor(() =>
       expect(useExplorerRemoteStatusMock).toHaveBeenCalledWith(
@@ -2210,14 +2311,14 @@ describe("TriageWorkspace", () => {
 
     render(<TriageWorkspace node={createNode()} />);
 
-    expect(await screen.findByText("Choose a result type")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "DIRECT PLACEMENT" })).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "OK" })).not.toBeInTheDocument();
     const nodeOption = screen.getByRole("button", { name: "Node" });
 
     fireEvent.click(nodeOption);
 
     expect(screen.getByText("Confirm placement")).toBeInTheDocument();
-    const confirmButton = screen.getByRole("button", { name: "Confirm" });
+    const confirmButton = screen.getByRole("button", { name: "OK" });
 
     fireEvent.click(confirmButton);
 
@@ -2246,7 +2347,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 1 },
+      counts: { nodes: 0, bits: 1, visibleNodes: 0, visibleBits: 1 },
       eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -2264,7 +2365,7 @@ describe("TriageWorkspace", () => {
     fireEvent.change(input, { target: { value: "Exact Bit result" } });
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByRole("heading", { name: "Confirm placement" })).toHaveFocus();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    fireEvent.click(screen.getByRole("button", { name: "OK" }));
 
     await waitFor(() => expect(placeStagedCandidateMock).toHaveBeenCalledOnce());
     expect(placeStagedCandidateMock).toHaveBeenCalledWith(
@@ -2297,7 +2398,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 1 },
+      counts: { nodes: 0, bits: 1, visibleNodes: 0, visibleBits: 1 },
       eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -2346,7 +2447,7 @@ describe("TriageWorkspace", () => {
       pendingOperations: [],
       unknownOperations: [],
       reconcilingOperations: [],
-      counts: { nodes: 0, bits: 1 },
+      counts: { nodes: 0, bits: 1, visibleNodes: 0, visibleBits: 1 },
       eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
       stageCandidate: stageCandidateMock,
       reconcileStageCandidate: reconcileStageCandidateMock,
@@ -2608,7 +2709,7 @@ describe("TriageWorkspace", () => {
 
     expect(nodeOption).toBeEnabled();
     expect(bitOption).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "OK" })).not.toBeInTheDocument();
   });
 
   it("rejects a competing release while the first direct placement remains open", async () => {
@@ -2655,7 +2756,7 @@ describe("TriageWorkspace", () => {
 
     expect(screen.getByText("Project")).toBeInTheDocument();
     expect(screen.queryByText("Next Project")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "OK" })).toBeInTheDocument();
   });
 
   it("shows isFull warning with muted styling, not destructive, when target is full", async () => {
@@ -2687,7 +2788,7 @@ describe("TriageWorkspace", () => {
     expect(warning).toBeInTheDocument();
     expect(warning).not.toHaveClass("text-destructive");
     expect(warning).toHaveClass("text-muted-foreground");
-    expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "OK" })).toBeDisabled();
   });
 
   it("owns Newly Placed for the mounted page across Scratch, path, and theme and clears it on remount", async () => {
@@ -2727,7 +2828,7 @@ describe("TriageWorkspace", () => {
 
     const mounted = render(<TriageWorkspace node={createNode()} />);
     fireEvent.click(await screen.findByRole("button", { name: "Node" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    fireEvent.click(screen.getByRole("button", { name: "OK" }));
 
     expect(await screen.findByText("NEW")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select Node: Project" })).toHaveAttribute(
@@ -2751,5 +2852,304 @@ describe("TriageWorkspace", () => {
     expect(screen.getByRole("button", { name: "Select Node: Project" })).toBeInTheDocument();
     expect(screen.queryByText("NEW")).not.toBeInTheDocument();
     delete document.documentElement.dataset.colorTheme;
+  });
+});
+
+describe("TriageWorkspace Archive handoff with the real coordinator", () => {
+  const ARCHIVE_SCRATCH_ID = "11111111-1111-4111-8111-111111111111";
+  const RECOVERY_KEY = "griddo.pending-operation-recovery.archive-scratch";
+  let operationCounter = 0;
+  let dispatchResolvers: Array<(result: { operationId: string; status: string }) => void> = [];
+  const dispatchArchiveMock = vi.fn();
+  const reconcileArchiveMock = vi.fn();
+  let storageFailsOnSet = false;
+
+  async function useRealCoordinator() {
+    const actual = await vi.importActual<
+      typeof import("@/hooks/use-archive-scratch")
+    >("@/hooks/use-archive-scratch");
+    useArchiveScratchMock.mockImplementation((options) =>
+      actual.useArchiveScratch({
+        ...options,
+        createOperationId: () =>
+          `00000000-0000-4000-8000-${String(++operationCounter).padStart(12, "0")}`,
+        dispatchArchive: dispatchArchiveMock,
+        reconcileArchive: reconcileArchiveMock,
+        getStorage: () =>
+          storageFailsOnSet
+            ? ({
+                getItem: (key: string) => window.sessionStorage.getItem(key),
+                removeItem: (key: string) => window.sessionStorage.removeItem(key),
+                setItem: () => {
+                  throw new Error("quota");
+                },
+              } as unknown as Storage)
+            : window.sessionStorage,
+      }),
+    );
+  }
+
+  function lastCoordinator() {
+    return useArchiveScratchMock.mock.results.at(-1)?.value as {
+      retry: () => Promise<boolean>;
+    };
+  }
+
+  function observeSamples(container: HTMLElement) {
+    const samples: Array<{
+      active: Element | null;
+      boundary: boolean;
+      context: string | null;
+      phase: string | null;
+    }> = [];
+    const record = () => {
+      const panel = container.querySelector('[data-testid="breakdown-panel"]');
+      samples.push({
+        active: document.activeElement,
+        boundary:
+          container.querySelector('[data-triage-role="archive-recovery-boundary"]') !== null,
+        context:
+          container.querySelector('[data-testid="selected-scratch-context"]')
+            ?.textContent ?? null,
+        phase: panel?.getAttribute("data-archive-phase") ?? null,
+      });
+    };
+    const observer = new MutationObserver(record);
+    observer.observe(container, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+    return { samples, stop: () => observer.disconnect() };
+  }
+
+  afterEach(() => {
+    completionState.eligibility.scratch.id = "scratch-1";
+  });
+
+  beforeEach(async () => {
+    completionState.eligibility.scratch.id = ARCHIVE_SCRATCH_ID;
+    useTriageStore.setState({ selectedScratchId: ARCHIVE_SCRATCH_ID });
+    operationCounter = 0;
+    dispatchResolvers = [];
+    storageFailsOnSet = false;
+    window.sessionStorage.clear();
+    dispatchArchiveMock.mockReset();
+    dispatchArchiveMock.mockImplementation(
+      () => new Promise((resolve) => dispatchResolvers.push(resolve)),
+    );
+    reconcileArchiveMock.mockReset();
+    await useRealCoordinator();
+  });
+
+  it("keeps the workspace mounted and focus off BODY in every commit through a successful Archive", async () => {
+    const { container } = render(<TriageWorkspace node={createNode()} />);
+    const region = screen.getByTestId("triage-workspace");
+    const button = screen.getByRole("button", { name: "Archive completion" });
+    button.focus();
+    const observed = observeSamples(container);
+
+    fireEvent.click(button);
+    await act(async () => {});
+    expect(screen.getByTestId("breakdown-panel")).toHaveAttribute(
+      "data-archive-phase",
+      "pending",
+    );
+    expect(dispatchArchiveMock).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      dispatchResolvers[0]({
+        operationId: "00000000-0000-4000-8000-000000000001",
+        status: "applied",
+      });
+    });
+    observed.stop();
+
+    expect(screen.getByTestId("triage-workspace")).toBe(region);
+    expect(observed.samples.length).toBeGreaterThan(0);
+    for (const sample of observed.samples) {
+      expect(sample.boundary).toBe(false);
+      expect(sample.active).not.toBe(document.body);
+      // Only the archiving Scratch's Breakdown reports an Archive phase.
+      if (sample.context !== null && !sample.context.includes(ARCHIVE_SCRATCH_ID)) {
+        expect(sample.phase).toBeNull();
+      }
+    }
+    expect(useTriageStore.getState().selectedScratchId).not.toBe(ARCHIVE_SCRATCH_ID);
+    expect(document.activeElement).toBe(
+      screen.getByTestId("selected-scratch-context"),
+    );
+    expect(screen.getByTestId("archive-live-region")).toHaveTextContent(
+      "Scratch archived.",
+    );
+  });
+
+  it("accepts a second Archive on the same mounted page after success", async () => {
+    render(<TriageWorkspace node={createNode()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    await act(async () => {
+      dispatchResolvers[0]({
+        operationId: "00000000-0000-4000-8000-000000000001",
+        status: "applied",
+      });
+    });
+    expect(screen.getByTestId("archive-live-region")).toHaveTextContent(
+      "Scratch archived.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    expect(dispatchArchiveMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("dismisses a live non-success result without a write when the selected Scratch changes", async () => {
+    render(<TriageWorkspace node={createNode()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    await act(async () => {
+      dispatchResolvers[0]({
+        operationId: "00000000-0000-4000-8000-000000000001",
+        status: "conflict",
+      });
+    });
+    expect(screen.getByTestId("breakdown-panel")).toHaveAttribute(
+      "data-archive-phase",
+      "terminal",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Second Scratch" }));
+    await act(async () => {});
+
+    expect(screen.getByTestId("breakdown-panel")).not.toHaveAttribute(
+      "data-archive-phase",
+    );
+    expect(screen.queryByTestId("archive-recovery-card")).not.toBeInTheDocument();
+    expect(dispatchArchiveMock).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    expect(dispatchArchiveMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a pre-dispatch storage failure on the activated Scratch and dismisses it on a Scratch change", async () => {
+    storageFailsOnSet = true;
+    render(<TriageWorkspace node={createNode()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    expect(dispatchArchiveMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId("breakdown-panel")).toHaveAttribute(
+      "data-archive-phase",
+      "storage_failed",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Second Scratch" }));
+    await act(async () => {});
+    expect(screen.getByTestId("breakdown-panel")).not.toHaveAttribute(
+      "data-archive-phase",
+    );
+  });
+
+  it("keeps a restored not applied result in place, and the workspace identity through Retry → applied", async () => {
+    window.sessionStorage.setItem(
+      RECOVERY_KEY,
+      JSON.stringify({
+        operationId: "00000000-0000-4000-8000-0000000000aa",
+        kind: "archive_scratch",
+        scratchBitId: ARCHIVE_SCRATCH_ID,
+        expectedVersion: 7,
+        startedAt: 100,
+      }),
+    );
+    reconcileArchiveMock.mockResolvedValue({
+      operationId: "00000000-0000-4000-8000-0000000000aa",
+      status: "not_applied",
+    });
+    const { container } = render(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByTestId("archive-recovery-card")).toBeInTheDocument();
+    await act(async () => {});
+    const region = screen.getByTestId("triage-workspace");
+    expect(screen.getByTestId("breakdown-panel")).toHaveAttribute(
+      "data-archive-phase",
+      "terminal",
+    );
+
+    screen.getByRole("button", { name: "Archive completion" }).focus();
+    const observed = observeSamples(container);
+    await act(async () => {
+      void lastCoordinator().retry();
+    });
+    await act(async () => {
+      dispatchResolvers[0]({
+        operationId: "00000000-0000-4000-8000-0000000000aa",
+        status: "applied",
+      });
+    });
+    observed.stop();
+
+    expect(screen.getByTestId("triage-workspace")).toBe(region);
+    expect(observed.samples.every((sample) => !sample.boundary)).toBe(true);
+    expect(observed.samples.every((sample) => sample.active !== document.body)).toBe(true);
+  });
+
+  it("keeps the card in the recovery projection when a Retry started from it fails before dispatch", async () => {
+    useTriageStore.setState({ selectedScratchId: "scratch-2" });
+    window.sessionStorage.setItem(
+      RECOVERY_KEY,
+      JSON.stringify({
+        operationId: "00000000-0000-4000-8000-0000000000cc",
+        kind: "archive_scratch",
+        scratchBitId: ARCHIVE_SCRATCH_ID,
+        expectedVersion: 7,
+        startedAt: 100,
+      }),
+    );
+    reconcileArchiveMock.mockResolvedValue({
+      operationId: "00000000-0000-4000-8000-0000000000cc",
+      status: "not_applied",
+    });
+    render(<TriageWorkspace node={createNode()} />);
+    await act(async () => {});
+    storageFailsOnSet = true;
+    await act(async () => {
+      void lastCoordinator().retry();
+    });
+
+    expect(screen.queryByTestId("breakdown-panel")).not.toBeInTheDocument();
+    expect(screen.getByTestId("archive-recovery-card")).toHaveAttribute(
+      "data-phase",
+      "storage_failed",
+    );
+  });
+
+  it("does not dismiss a restored result held in the recovery projection on an unrelated selection change", async () => {
+    useTriageStore.setState({ selectedScratchId: "scratch-2" });
+    window.sessionStorage.setItem(
+      RECOVERY_KEY,
+      JSON.stringify({
+        operationId: "00000000-0000-4000-8000-0000000000bb",
+        kind: "archive_scratch",
+        scratchBitId: ARCHIVE_SCRATCH_ID,
+        expectedVersion: 7,
+        startedAt: 100,
+      }),
+    );
+    reconcileArchiveMock.mockResolvedValue({
+      operationId: "00000000-0000-4000-8000-0000000000bb",
+      status: "conflict",
+    });
+    render(<TriageWorkspace node={createNode()} />);
+    await act(async () => {});
+    expect(screen.getByTestId("archive-recovery-card")).toHaveAttribute(
+      "data-is-recovery-projection",
+      "true",
+    );
+
+    act(() => useTriageStore.getState().selectScratch("scratch-3"));
+    await act(async () => {});
+    expect(screen.getByTestId("archive-recovery-card")).toHaveAttribute(
+      "data-phase",
+      "terminal",
+    );
   });
 });

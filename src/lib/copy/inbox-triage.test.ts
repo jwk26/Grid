@@ -6,6 +6,10 @@ import {
 } from "./inbox-triage";
 
 describe("Inbox/Triage core-English copy", () => {
+  it("owns only the approved static Explorer Bit accessibility labels", () => {
+    expect(INBOX_TRIAGE_COPY).toHaveProperty("explorerBitStatus", {overdue:"Overdue",completed:"Completed"});
+  });
+
   it("owns the source-approved section names and base actions", () => {
     expect(INBOX_TRIAGE_COPY.sectionNames).toEqual({
       scratchPool: "Scratch Pool",
@@ -26,6 +30,16 @@ describe("Inbox/Triage core-English copy", () => {
       collapseScratchPool: "Collapse Scratch Pool",
       sortNewestFirst: "Sort: newest first",
       sortOldestFirst: "Sort: oldest first",
+    });
+  });
+
+  it("owns the approved Context decoration and next-order labels", () => {
+    expect(INBOX_TRIAGE_COPY).toHaveProperty("contextPresentation", {
+      folderDialogInfo: "[ FOLDER DIALOG: INFO ]",
+      decorativeClose: "[X]",
+      lastStampPrefix: "LAST_STAMP:",
+      nextOldestFirst: "OLD FIRST",
+      nextNewestFirst: "NEW FIRST",
     });
   });
 
@@ -479,5 +493,12 @@ describe("Inbox/Triage core-English copy", () => {
     expect(INBOX_TRIAGE_COPY).not.toHaveProperty("locale");
     expect(INBOX_TRIAGE_COPY).not.toHaveProperty("translations");
     expect(INBOX_TRIAGE_COPY).not.toHaveProperty("ko");
+  });
+});
+
+
+it("Task170 Cycle5 owns only the two new Placement presentation labels", () => {
+  expect(INBOX_TRIAGE_COPY).toHaveProperty("placementPresentation", {
+    stagedConfirm: "OK", cancelPlacement: "Cancel placement",
   });
 });

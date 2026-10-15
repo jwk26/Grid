@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const Icon = isDark ? Sun : Moon;
 
   return (
     <button
@@ -19,7 +18,8 @@ export function ThemeToggle({ className }: { className?: string }) {
       )}
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
-      <Icon className="h-5 w-5" />
+      <Moon className="h-5 w-5 dark:hidden" />
+      <Sun className="hidden h-5 w-5 dark:block" />
     </button>
   );
 }

@@ -245,12 +245,12 @@ describe("ScratchPool", () => {
     expect(screen.getByLabelText("2 scratches")).toHaveClass("bg-primary");
   });
 
-  it("does not show a collapsed count badge when the pool is empty", () => {
+  it("shows the all-active zero count in the compact empty Pool", () => {
     render(<ScratchPool />);
 
     fireEvent.click(screen.getByLabelText("Collapse Scratch Pool"));
 
-    expect(screen.queryByText("0")).not.toBeInTheDocument();
+    expect(screen.getByText("0")).toHaveAttribute("data-triage-role", "pool-total-count");
     expect(screen.queryByText("No active scratches")).not.toBeInTheDocument();
   });
 
@@ -855,5 +855,22 @@ describe("ScratchPool", () => {
     useTriageStore.getState().selectScratch("scratch-2");
 
     expect(useTriageStore.getState().scratchPoolManualExpandedForId).toBeNull();
+  });
+});
+
+describe("common Scratch createdAt metadata", () => {
+  it("renders the padded local date from createdAt while preserving selection and search", () => {
+    const bit = createBit({ id: "date-owner", title: "Date owner", createdAt: new Date(2026, 4, 4).getTime(), mtime: Date.now() });
+    useInboxMock.mockReturnValue({ activeScratchBits: [bit], poolLifecycleProjection: { revision: 0, changes: [] } });
+    const { rerender } = render(<ScratchPool />);
+    const row = screen.getByRole("button", { name: /Date owner/ });
+    expect(row.querySelector(".scratch-pool__row-time")).toHaveTextContent("4/05/26");
+    expect(row).not.toHaveTextContent("LAST_STAMP:");
+    fireEvent.click(row);
+    expect(useTriageStore.getState().selectedScratchId).toBe(bit.id);
+    fireEvent.change(screen.getByRole("textbox", { name: "Search scratches" }), { target: { value: "Date" } });
+    rerender(<ScratchPool />);
+    expect(screen.getByRole("button", { name: /Date owner/ })).toBe(row);
+    expect(row.querySelector(".scratch-pool__row-time")).toHaveTextContent("4/05/26");
   });
 });

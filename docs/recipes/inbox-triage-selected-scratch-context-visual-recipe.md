@@ -16,15 +16,31 @@
 
 - The Context is a standalone signature section above rows, not heading metadata and not a row-like strip.
 - Target roughly `2–2.5×` ordinary row height without breaking section ratios.
-- Always include Scratch title, creation date/time, visible Scratch Edit entry, and Breakdown ASC/DESC sort. Remove duplicate selected title/meta from the Breakdown heading.
+- Always include Scratch title, creation-date metadata under [SPEC — Scratch Pool and Context creation-date metadata](../SPEC.md#scratch-pool-and-context-creation-date-metadata), visible Scratch Edit entry, and Breakdown ASC/DESC sort. Remove duplicate selected title/meta from the Breakdown heading.
 - Working and `Scratch complete` are distinct base presentations of the same semantic surface.
 - Exact source copy is not product authority. Theme labels may express the selected working/complete meaning only after copy ownership is canonical.
 
 ## Decision-Prerequisite Boundary
 
 - `VQ-04` — **resolved by `DP-VQ04` on 2026-08-09.** The user selected Choice A, the direct in-place Scratch-title and Breakdown-content editor system. This recipe owns the Context half specified below; Task 138 is the only realization edge and Task 137 remains headless.
-- Context subset of `VQ-11` — **behavior/copy resolved by `DP-VQ11` on 2026-08-11; fixed-geometry compatibility C1 approved on 2026-09-01.** Preserve the editor, exact blocker copy, logical focus, fixed `104px` Context geometry, and fixed `9.5rem` action region with no detached completion surface. Task 160 uses the existing eyebrow/meta line for `open|dirty|saving|reconciling` and the existing source-bound issue-overlay status column for visual `offline|not_applied|conflict`.
+- Context subset of `VQ-11` — **behavior/copy resolved by `DP-VQ11` on 2026-08-11; fixed-geometry compatibility C1 approved on 2026-09-01.** Preserve the editor, exact blocker copy, logical focus, fixed `104px` Context geometry except retro-mac `120.25px` under the Phase 34 / Task 167 P34-04 supplement, and fixed `9.5rem` action region with no detached completion surface. Task 160 uses the existing eyebrow/meta line for `open|dirty|saving|reconciling` and the existing source-bound issue-overlay status column for visual `offline|not_applied|conflict`.
 - `D-LENS` — Neumorphism water-lens sort treatment is deferred and excluded.
+
+### Phase 34 / Task 167 P34-04 Context-geometry supplement
+
+The approved supplemental receipt (`Issues_Phase_34.Task_167.task-scope-context-geometry.json` in tag `archive/phase-34-codex`)
+sets the retro-mac Selected Scratch Context alone to fixed `120.25px` outer
+border-box height in every mounted working/complete view, editor, progress,
+issue-overlay, completion-blocker, pending-intent, locked and departure state,
+in light and dark. Other themes retain `104px`, all action reserves remain
+`9.5rem`, and Breakdown row slots remain `48px`. View/edit/state transitions
+within a theme keep the same geometry and content/action anchors. Theme changes
+may change Context height without changing draft, logical focus or commands.
+Exact DP/C1 copy, actions, caret, lifetime, source-bound status/overlay placement
+and shared semantic tree remain unchanged. No state-driven auto-height or
+clipped action/status/focus is permitted. Task167 must freshly verify the new
+height and its following-content/scroll/theme-switch impact; historical
+Task138/160 evidence verifies only its original geometry.
 
 ## `DP-VQ11` Scratch-Title Completion Blocker Compatibility
 
@@ -58,7 +74,7 @@ eligible Scratch remain current.
 ### Task 160 Ownership — Approved C1 Compatibility
 
 Task 160 must verify that the approved source-bound expression coexists with the
-fixed `104px` Context geometry, title field and timestamp, fixed `9.5rem` action
+fixed `104px` Context geometry except retro-mac `120.25px` under the Phase 34 / Task 167 P34-04 supplement, title field and timestamp, fixed `9.5rem` action
 region, Save/Cancel, saving/reconciling progress action, and issue-overlay
 actions without expanding or displacing them. It must not add an ordinary
 status row, another overlay, panel, completion action, toast, dialog, detached
@@ -73,7 +89,7 @@ Dialog/AlertDialog, popover, detached card, or global conflict surface.
 
 ### Fixed Structure And Entry
 
-- Keep the Context at its existing fixed geometry in view and edit. Reserve the
+- Keep the Context at its existing fixed geometry in view and edit: `104px` except retro-mac `120.25px` under the Phase 34 / Task 167 P34-04 supplement. Reserve the
   existing fixed `9.5rem` action region; content and caret never enter it.
 - Use one labelled, single-line `Scratch title` text input capped at 60
   characters. Do not render a textarea, resize affordance, vertical scrolling,
@@ -119,10 +135,42 @@ acknowledged-latest CAS rule, but does not expose expanding comparison regions.
   mounted-page memory only.
 - All changes are static and immediate. Reduced motion is identical; no
   spinner rotation, pulse, bounce, blink, scale, or layout transition.
-- Every theme keeps the same fixed geometry and semantic tree. Theme variables
+- Every theme keeps one shared semantic tree and fixed view/edit/state geometry within that theme. Only the Phase 34 / Task 167 P34-04 supplement permits retro-mac Context height 120.25px in both modes, versus 104px for the other themes; theme activation preserves draft and logical focus without blur-save. Theme variables
   may style the field, text actions, progress action, blur, and source-bound
   overlay, but may not add a status row, comparison region, recovery expansion,
   or theme-specific behavior/copy branch.
+
+### Phase 34 / Task 167 P34-07 Context-copy supplement
+
+The approved copy receipt (`Issues_Phase_34.Task_167.task-scope-context-copy.json` in tag `archive/phase-34-codex`)
+adopts retro-mac's exact `[ FOLDER DIALOG: INFO ]` left strip text and `[X]`
+right decoration, centrally owned by `src/lib/copy/inbox-triage.ts`. Both are
+aria-hidden, non-focusable, pointer-inert decoration with no close command or
+state meaning. Preserve the16px strip and fixed120.25px Context.
+
+Retro-mac's sort label names the **next** order: currentDESC shows `OLD FIRST`,
+click selectsASC/oldest-first; currentASC shows `NEW FIRST`, click selectsDESC/
+newest-first. The active visible text is also the accessible button name.
+Shared current-order and next-order DOM roles are selected only by central
+theme CSS. Other7 themes retain visible ASC/DESC and existing canonical
+current-order accessible names. No theme-ID behavior/copy branch or change
+to comparator, sort persistence/lifetime, operation-lock disabling or commands.
+The four new presentation strings alone are centralized; every DP/C1 blocker,
+state, recovery and base-action copy remains unchanged.
+
+Retain the existing common Context+Breakdown row scroll viewport. Context
+co-scrolls with its rows for all themes; future L2 theme realization retains
+this user-dispositioned structure when separately authorized. This is not a
+sticky Context requirement or authority to execute a later task now. The
+P34-04 geometry,152px action reserve and48px row remain intact.
+
+### Common creation-date presentation and retro-mac decoration
+
+Pool and Context use the common creation-date body defined only in [SPEC — Scratch Pool and Context creation-date metadata](../SPEC.md#scratch-pool-and-context-creation-date-metadata). Context view and Scratch-title editor reference that same contract; this recipe does not define a separate age calculation, cutoff, calendar format or refresh policy. This presentation contract continues through subsequent theme and phase realization.
+
+Retro-mac Context alone visibly prepends `LAST_STAMP:` followed by one ASCII space to the common date body in both view and editor. Own `lastStampPrefix: "LAST_STAMP:"` centrally in `INBOX_TRIAGE_COPY.contextPresentation`. Mount the same `context-timestamp-prefix` and `context-timestamp-value` roles for every theme and select prefix visibility only through central theme CSS: default hidden, retro-mac Context visible. The prefix is aria-hidden, non-focusable, pointer-inert decoration, not a last-modification label or state announcement. Other themes' Context and every Pool expose only the common date body, with no visible or accessible `LAST_STAMP:` prefix. Keep one semantic tree; do not introduce a theme-ID behavior/copy branch or a CSS-generated copy string.
+
+Preserve the existing working/complete and editor-state meanings, fixed geometry, DP-VQ02/03/04/05/11 and Task160 C1, actions/draft/caret/focus/recovery and centralized theme roles. The P34-09 execution receipt (`Issues_Phase_34.Task_167.task-scope-created-at.json` in tag `archive/phase-34-codex`) binds the first bounded implementation to Task167; the shared date rule and this presentation contract are not limited to that task. Visual disposition and task acceptance remain separate.
 
 ## Theme Realizations
 

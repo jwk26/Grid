@@ -1,7 +1,7 @@
 "use client";
 
 import { DndContext, DragOverlay, useDroppable, type Modifier } from "@dnd-kit/core";
-import { X } from "lucide-react";
+import { Monitor, Trash2, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -616,7 +616,7 @@ function TriageRemoveDropTarget({
   const isStagedDrag =
     activeDragItem?.kind === "triage-staged-node" ||
     activeDragItem?.kind === "triage-staged-bit";
-  const isOver = overTargetId === id;
+  const isOver = overTargetId === id && activeDragItem?.integrity !== "invalidated";
 
   if (!isStagedDrag) return null;
 
@@ -624,14 +624,17 @@ function TriageRemoveDropTarget({
     <div
       ref={setNodeRef}
       aria-label="Drop staged item here to remove from staging"
+      data-triage-role="staging-unstage-target"
+      data-triage-state={isOver ? "active-hover" : "available"}
       className={cn(
-        "flex h-12 w-full items-center justify-center gap-2 border-t bg-transparent px-3 text-xs font-medium transition-[background-color,border-color,color] motion-reduce:transition-none",
+        "triage-staging__remove absolute inset-x-0 bottom-0 z-10 flex h-12 w-full items-center justify-center gap-2 border-t bg-card px-3 text-xs font-medium transition-[background-color,border-color,color] motion-reduce:transition-none",
         isOver
           ? "border-solid border-destructive bg-destructive/10 text-destructive"
-          : "border-dashed border-border text-muted-foreground motion-safe:animate-jiggle",
+          : "border-dashed border-border text-muted-foreground",
       )}
     >
-      <X aria-hidden="true" className="h-4 w-4 flex-shrink-0" />
+      <X aria-hidden="true" className="triage-staging__remove-default-icon h-4 w-4 flex-shrink-0" />
+      <Trash2 aria-hidden="true" className="triage-staging__remove-trash h-4 w-4 flex-shrink-0" />
       <span>Remove from staging</span>
     </div>
   );
@@ -689,6 +692,7 @@ export function TriageWorkspace({ node }: { node: Node }) {
   const poolCreatedAtSort = useTriagePreferencesStore(
     (state) => state.poolCreatedAtSort,
   );
+  const pendingArchiveFocusRef = useRef<ArchiveHandoffFocusKind | null>(null);
   const handleArchiveApplied = useCallback(
     async (
       recovery: { scratchBitId: string },
@@ -706,7 +710,7 @@ export function TriageWorkspace({ node }: { node: Node }) {
           activeIds: poolSnapshot.scratchPoolActiveIds,
           visibleIds: poolSnapshot.scratchPoolResultIds,
         });
-        requestAnimationFrame(() => focusArchiveDestination(destination.kind));
+        pendingArchiveFocusRef.current = destination.kind;
         return;
       }
       const { projectedActiveScratchBits, source } = terminalSnapshot;
@@ -742,9 +746,7 @@ export function TriageWorkspace({ node }: { node: Node }) {
         activeIds: orderedWithSource.map((scratch) => scratch.id),
         visibleIds: visible.map((scratch) => scratch.id),
       });
-      requestAnimationFrame(() => {
-        focusArchiveDestination(destination.kind);
-      });
+      pendingArchiveFocusRef.current = destination.kind;
     },
     [
       finishScratchArchive,
@@ -790,6 +792,17 @@ export function TriageWorkspace({ node }: { node: Node }) {
     dismissTerminal: archiveCoordinator.dismissTerminal,
   };
   const archiveState = archiveCoordinator.state;
+  const archiveOwnScratchId = archiveOwnScratchIdOf(archiveState);
+  const archiveOperationId =
+    "recovery" in archiveState && archiveState.recovery !== null
+      ? archiveState.recovery.operationId
+      : null;
+  // An operation restored after a reload may show the section-recovery
+  // projection only until it has been shown in the workspace once.
+  const [restoredOperationId] = useState(() => archiveOperationId);
+  const [shownRestoredOperationId, setShownRestoredOperationId] = useState<
+    string | null
+  >(null);
   const terminalSuccess =
     archiveState.phase === "terminal" &&
     (archiveState.terminalStatus === "applied" ||
@@ -799,10 +812,46 @@ export function TriageWorkspace({ node }: { node: Node }) {
     archiveState.recovery !== null &&
     archiveState.recovery.scratchBitId !== selectedScratchId;
 
-  if (
+  const restoredNotYetShown =
+    restoredOperationId !== null &&
+    archiveOperationId === restoredOperationId &&
+    shownRestoredOperationId !== restoredOperationId;
+  const showsRecoveryProjection =
     !archiveCoordinator.isProjectionReady ||
-    (!terminalSuccess && recoveryScratchIsNotSelected)
+    (!terminalSuccess && recoveryScratchIsNotSelected && restoredNotYetShown) ||
+    // A pre-dispatch storage failure of a Retry started from the projection
+    // has no recovery id; its card stays in the projection until shown.
+    (archiveState.phase === "storage_failed" &&
+      archiveState.recovery === null &&
+      restoredOperationId !== null &&
+      shownRestoredOperationId !== restoredOperationId &&
+      archiveOwnScratchId !== selectedScratchId);
+
+  if (
+    !showsRecoveryProjection &&
+    restoredOperationId !== null &&
+    archiveOperationId === restoredOperationId &&
+    shownRestoredOperationId !== restoredOperationId
   ) {
+    // Once shown in the workspace, the restored operation never returns to
+    // the recovery projection.
+    setShownRestoredOperationId(restoredOperationId);
+  }
+
+  const previousSelectedScratchIdRef = useRef(selectedScratchId);
+  const { dismissTerminal } = archiveCoordinator;
+  useEffect(() => {
+    const previous = previousSelectedScratchIdRef.current;
+    previousSelectedScratchIdRef.current = selectedScratchId;
+    if (previous === selectedScratchId) return;
+    // A Scratch change away from the card's own Scratch dismisses a
+    // non-success result like Cancel; the coordinator refuses other states.
+    if (archiveOwnScratchId !== null && previous === archiveOwnScratchId) {
+      dismissTerminal();
+    }
+  }, [archiveOwnScratchId, dismissTerminal, selectedScratchId]);
+
+  if (showsRecoveryProjection) {
     const recoveryOperation = {
       ...archiveOperation,
       isRecoveryProjection: true,
@@ -864,6 +913,7 @@ export function TriageWorkspace({ node }: { node: Node }) {
             node={node}
             operationLock={operationLock}
             onAddDraftBlockerChange={setCurrentAddDraftBlocker}
+            pendingArchiveFocusRef={pendingArchiveFocusRef}
             readTerminalSnapshot={readTerminalSnapshot}
             selectedScratchId={selectedScratchId}
             titleBlocker={titleBlocker}
@@ -875,16 +925,24 @@ export function TriageWorkspace({ node }: { node: Node }) {
   );
 }
 
-function focusArchiveDestination(
-  kind: "scratch" | "search-empty" | "inbox-empty",
-): void {
-  const selector =
-    kind === "scratch"
-      ? '[data-testid="selected-scratch-context"]'
-      : kind === "search-empty"
-        ? '[data-archive-handoff-focus="search-empty"]'
-        : 'button[aria-label="Add item"]';
-  document.querySelector<HTMLElement>(selector)?.focus();
+type ArchiveHandoffFocusKind = "scratch" | "search-empty" | "inbox-empty";
+
+function archiveOwnScratchIdOf(
+  state: ArchiveOperationProjection["state"],
+): string | null {
+  if (state.phase === "idle") return null;
+  if (state.recovery !== null) return state.recovery.scratchBitId;
+  return state.phase === "storage_failed"
+    ? (state.attemptedScratchBitId ?? null)
+    : null;
+}
+
+function archiveHandoffFocusSelector(kind: ArchiveHandoffFocusKind): string {
+  return kind === "scratch"
+    ? '[data-testid="selected-scratch-context"]'
+    : kind === "search-empty"
+      ? '[data-archive-handoff-focus="search-empty"]'
+      : 'button[aria-label="Add item"]';
 }
 
 function archiveLiveSentence(
@@ -934,6 +992,7 @@ function ReadyTriageWorkspace({
   node,
   operationLock,
   onAddDraftBlockerChange,
+  pendingArchiveFocusRef,
   readTerminalSnapshot,
   selectedScratchId,
   titleBlocker,
@@ -945,6 +1004,7 @@ function ReadyTriageWorkspace({
   node: Node;
   operationLock: ReturnType<typeof useTriageOperationLock>;
   onAddDraftBlockerChange: (blocked: boolean) => void;
+  pendingArchiveFocusRef: React.RefObject<ArchiveHandoffFocusKind | null>;
   readTerminalSnapshot: ReturnType<
     typeof useExternalScratchRemovalData
   >["readTerminalSnapshot"];
@@ -963,7 +1023,8 @@ function ReadyTriageWorkspace({
       archiveOperation.state.phase === "idle" ||
       (archiveOperation.state.phase === "terminal" &&
         (archiveOperation.state.terminalStatus === "applied" ||
-          archiveOperation.state.terminalStatus === "already_applied"))
+          archiveOperation.state.terminalStatus === "already_applied")) ||
+      archiveOwnScratchIdOf(archiveOperation.state) !== selectedScratchId
         ? undefined
         : archiveOperation,
     archive: async () => {
@@ -980,6 +1041,7 @@ function ReadyTriageWorkspace({
       node={node}
       operationLock={operationLock}
       onAddDraftBlockerChange={onAddDraftBlockerChange}
+      pendingArchiveFocusRef={pendingArchiveFocusRef}
       readTerminalSnapshot={readTerminalSnapshot}
     />
   );
@@ -992,6 +1054,7 @@ function TriageWorkspaceContent({
   node,
   operationLock,
   onAddDraftBlockerChange,
+  pendingArchiveFocusRef,
   readTerminalSnapshot,
 }: {
   completion: BreakdownCompletionProjection;
@@ -1000,6 +1063,7 @@ function TriageWorkspaceContent({
   node: Node;
   operationLock: ReturnType<typeof useTriageOperationLock>;
   onAddDraftBlockerChange: (blocked: boolean) => void;
+  pendingArchiveFocusRef: React.RefObject<ArchiveHandoffFocusKind | null>;
   readTerminalSnapshot: ReturnType<
     typeof useExternalScratchRemovalData
   >["readTerminalSnapshot"];
@@ -1055,6 +1119,8 @@ function TriageWorkspaceContent({
   }>({ node: new Set(), bit: new Set() });
   const breakdownHeadingRef = useRef<HTMLHeadingElement>(null);
   const stagingHeadingRef = useRef<HTMLHeadingElement>(null);
+  const nodeStagingHeadingRef = useRef<HTMLHeadingElement>(null);
+  const bitStagingHeadingRef = useRef<HTMLHeadingElement>(null);
   const [operationMeta, setOperationMeta] = useState(
     new Map<string, StagingOperationMeta>(),
   );
@@ -1623,7 +1689,7 @@ function TriageWorkspaceContent({
     const target = Array.from(
       workspaceRef.current?.querySelectorAll<HTMLElement>("[data-candidate-id]") ?? [],
     ).find((element) => ids.includes(element.dataset.candidateId ?? ""));
-    (target ?? stagingHeadingRef.current)?.focus();
+    (target ?? (type === "node" ? nodeStagingHeadingRef.current : bitStagingHeadingRef.current))?.focus();
     setNewCandidateIds((previous) => ({ ...previous, [type]: new Set() }));
   }, [newCandidateIds]);
 
@@ -1689,6 +1755,22 @@ function TriageWorkspaceContent({
       unsubscribe();
     };
   }, []);
+
+  // The Archive handoff changes the selected Scratch in the same commit that
+  // removes the Archive button, so focus moves here, never on a later frame.
+  useLayoutEffect(() => {
+    const archiveFocus = pendingArchiveFocusRef.current;
+    if (archiveFocus === null) return;
+    pendingArchiveFocusRef.current = null;
+    // The removal-focus effect below must not override this destination.
+    preTransitionFocusRef.current = null;
+    previousRemovalIdRef.current = null;
+    const target =
+      document.querySelector<HTMLElement>(
+        archiveHandoffFocusSelector(archiveFocus),
+      ) ?? breakdownHeadingRef.current;
+    target?.focus();
+  }, [pendingArchiveFocusRef, selectedScratchId]);
 
   useLayoutEffect(() => {
     if (externalScratchRemoval !== null) return;
@@ -1816,6 +1898,19 @@ function TriageWorkspaceContent({
         );
       }}
     >
+      <div className="triage-shell__desktop-menu" data-triage-role="desktop-menu-bar" aria-hidden="true">
+        <div className="triage-shell__desktop-menu-labels">
+          <span data-triage-role="desktop-menu-label">
+            <Monitor aria-hidden="true" strokeWidth={2.5} />
+            File
+          </span>
+          <span data-triage-role="desktop-menu-label">Edit</span>
+          <span data-triage-role="desktop-menu-label">View</span>
+          <span data-triage-role="desktop-menu-label">Label</span>
+          <span data-triage-role="desktop-menu-label">Special</span>
+        </div>
+        <span data-triage-role="desktop-menu-clock">12:00 PM</span>
+      </div>
       <section
         aria-labelledby="triage-scratch-pool-heading"
         className="triage-shell__pool relative flex h-full min-h-0 shrink-0"
@@ -1823,16 +1918,8 @@ function TriageWorkspaceContent({
         data-triage-state="default"
         inert={isDepartureDecision || isExternalRemoval ? true : undefined}
       >
-        <h2
-          className="triage-shell__pool-heading"
-          data-triage-role="section-header"
-          id="triage-scratch-pool-heading"
-          tabIndex={-1}
-        >
-          {INBOX_TRIAGE_COPY.sectionNames.scratchPool}
-        </h2>
         <div
-          className="min-h-0"
+          className="triage-shell__pool-body h-full min-h-0"
           data-triage-role="internal-scroll-viewport"
         >
           <ScratchPool />
@@ -1861,7 +1948,7 @@ function TriageWorkspaceContent({
           >
             <section
               aria-labelledby="triage-breakdown-heading"
-              className="flex min-h-0 min-w-0 flex-col border-r border-border bg-card"
+              className="triage-shell__section flex min-h-0 min-w-0 flex-col border-r border-border bg-card"
               data-triage-role="section-surface"
               data-triage-state="default"
             >
@@ -1872,7 +1959,7 @@ function TriageWorkspaceContent({
                 id="triage-breakdown-heading"
                 tabIndex={-1}
               >
-                {INBOX_TRIAGE_COPY.sectionNames.breakdown}
+                <span className="triage-shell__heading-label">{INBOX_TRIAGE_COPY.sectionNames.breakdown}</span>
               </h2>
               <div
                 className="min-h-0 flex-1 overflow-hidden"
@@ -1901,7 +1988,7 @@ function TriageWorkspaceContent({
 
             <section
               aria-labelledby="triage-staging-heading"
-              className="flex min-h-0 min-w-0 flex-col bg-card"
+              className="triage-shell__section triage-staging relative flex min-h-0 min-w-0 flex-col bg-card"
               data-triage-role="section-surface"
               data-triage-state="default"
               inert={isDepartureDecision ? true : undefined}
@@ -1913,7 +2000,7 @@ function TriageWorkspaceContent({
                 id="triage-staging-heading"
                 tabIndex={-1}
               >
-                {INBOX_TRIAGE_COPY.sectionNames.staging}
+                <span className="triage-shell__heading-label">{INBOX_TRIAGE_COPY.sectionNames.staging}</span>
               </h2>
               {stagingAlert !== null ? (
                 <StagingAlertBand
@@ -1935,13 +2022,14 @@ function TriageWorkspaceContent({
                 className="triage-shell__staging min-h-0 flex-1"
                 data-layout-ratio="35/65"
                 data-testid="triage-staging-columns"
+                data-triage-role="staging-display-columns"
               >
-                <div className="flex min-w-0 basis-[35%] flex-col">
-                  <h3 className="triage-shell__subsection-heading flex items-center justify-between gap-2">
+                <div className="triage-staging__subsection flex min-h-0 min-w-0 basis-[35%] flex-col">
+                  <h3 ref={nodeStagingHeadingRef} tabIndex={-1} data-triage-role="staging-node-heading" className="triage-shell__subsection-heading flex items-center justify-between gap-2">
                     <span>
                       {formatStagingHeading(
                         INBOX_TRIAGE_COPY.sectionNames.stagingNodes,
-                        stagedCandidateCounts.nodes,
+                        stagedCandidateCounts.visibleNodes,
                       )}
                     </span>
                     {newCandidateIds.node.size > 0 ? (
@@ -1961,7 +2049,7 @@ function TriageWorkspaceContent({
                     ) : null}
                   </h3>
                   <div
-                    className="flex min-h-0 flex-1 overflow-y-auto p-3"
+                    className="triage-staging__viewport flex min-h-0 flex-1 overflow-hidden"
                     data-triage-role="internal-scroll-viewport"
                   >
                     <StagingZone
@@ -1980,12 +2068,12 @@ function TriageWorkspaceContent({
                   </div>
                 </div>
 
-                <div className="flex min-w-0 basis-[65%] flex-col border-l border-dashed border-border/80">
-                  <h3 className="triage-shell__subsection-heading flex items-center justify-between gap-2">
+                <div className="triage-staging__subsection triage-staging__subsection--bits flex min-h-0 min-w-0 basis-[65%] flex-col border-l border-dashed border-border/80">
+                  <h3 ref={bitStagingHeadingRef} tabIndex={-1} data-triage-role="staging-bit-heading" className="triage-shell__subsection-heading flex items-center justify-between gap-2">
                     <span>
                       {formatStagingHeading(
                         INBOX_TRIAGE_COPY.sectionNames.stagingBits,
-                        stagedCandidateCounts.bits,
+                        stagedCandidateCounts.visibleBits,
                       )}
                     </span>
                     {newCandidateIds.bit.size > 0 ? (
@@ -2005,7 +2093,7 @@ function TriageWorkspaceContent({
                     ) : null}
                   </h3>
                   <div
-                    className="flex min-h-0 flex-1 overflow-y-auto p-3"
+                    className="triage-staging__viewport flex min-h-0 flex-1 overflow-hidden"
                     data-triage-role="internal-scroll-viewport"
                   >
                     <StagingZone
@@ -2037,24 +2125,18 @@ function TriageWorkspaceContent({
 
           <section
             aria-labelledby="triage-grid-explorer-heading"
-            className="flex min-h-0 flex-col bg-background"
+            className="triage-shell__section flex min-h-0 flex-col bg-background"
             data-triage-role="section-surface"
             data-triage-state="default"
             inert={isDepartureDecision ? true : undefined}
           >
-            <h2
-              className="triage-shell__section-heading"
-              data-triage-role="section-header"
-              id="triage-grid-explorer-heading"
-              tabIndex={-1}
-            >
-              {INBOX_TRIAGE_COPY.sectionNames.gridExplorer}
-            </h2>
+
             <div
               className="flex min-h-0 flex-1 overflow-hidden"
               data-triage-role="internal-scroll-viewport"
             >
               <HierarchyExplorer
+                headingId="triage-grid-explorer-heading"
                 activeDragItem={activeDragItem}
                 onPendingPlacementInvalidated={handlePendingPlacementInvalidated}
                 onPointerGeometryChange={refreshRenderedTarget}

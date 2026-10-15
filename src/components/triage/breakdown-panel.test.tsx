@@ -294,6 +294,13 @@ function CompletionHarness({
 }
 
 beforeEach(() => {
+  const style = document.createElement("style");
+  style.dataset.task167SortLabels = "true";
+  // Load the actual label rules; jsdom does not load the app stylesheet.
+  style.textContent = globalsCss.match(
+    /(?:^|\n)[^{}]*\[data-triage-role="context-sort-(?:current|next)-label"\][^{]*\{[^}]*\}/g,
+  )?.join("\n") ?? "";
+  document.head.append(style);
   vi.spyOn(Date, "now").mockReturnValue(currentTime);
   hookState.breakdownsByScratch = {};
   hookState.operations = [];
@@ -422,6 +429,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  document.head.querySelectorAll("[data-task167-sort-labels]").forEach(style => style.remove());
+  document.documentElement.removeAttribute("data-color-theme");
   vi.useRealTimers();
   cleanup();
   vi.clearAllMocks();
@@ -696,12 +705,23 @@ describe("BreakdownPanel", () => {
     expect(
       screen.getByRole("region", { name: "Return staged item to Breakdown" }),
     ).toHaveAttribute("data-drop-active", "true");
+    expect(
+      screen.getByRole("region", { name: "Return staged item to Breakdown" }).parentElement,
+    ).toHaveAttribute("data-triage-role", "breakdown-body");
 
     cleanup();
     render(<BreakdownPanel />);
     expect(
       screen.queryByRole("region", { name: "Return staged item to Breakdown" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("does not emphasize Return for an invalidated staged source even if its previous target is retained", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    render(<BreakdownPanel activeDragItem={{ kind: "triage-staged-node", id: "candidate-1", label: "Return me", integrity: "invalidated" }} overTargetId="triage-remove-drop:breakdown" />);
+    const target = screen.getByRole("region", { name: "Return staged item to Breakdown" });
+    expect(target).toHaveAttribute("data-drop-active", "false");
+    expect(target).not.toHaveClass("border-primary", "bg-accent", "text-foreground");
   });
 
   it("renders the empty state when no Scratch is selected", () => {
@@ -1150,6 +1170,100 @@ describe("BreakdownPanel", () => {
     view.rerender(<BreakdownPanel />);
     expectContextSlots();
     expectBreakdownSlots();
+  });
+
+  it("keeps Context Home/End in the draft while preserving guarded keys and commands", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    editorState.snapshot = {
+      target: { kind: "scratch-title", id: "scratch-1" }, phase: "dirty",
+      base: { value: "Scratch", version: 1 }, draft: "T".repeat(60),
+      latest: null, copyableDraft: null, pendingIntent: false,
+      focusIntent: "field-end", command: null,
+    };
+    render(<BreakdownPanel />);
+    const field = screen.getByRole("textbox", { name: "Scratch title" }) as HTMLInputElement;
+    expect(fireEvent.keyDown(field, { key: "Home" })).toBe(false);
+    expect(field.selectionStart).toBe(0);
+    expect(field.selectionEnd).toBe(0);
+    expect(fireEvent.keyDown(field, { key: "End" })).toBe(false);
+    expect(field.selectionStart).toBe(60);
+    expect(field.selectionEnd).toBe(60);
+    for (const key of ["Home", "End"]) {
+      for (const modifier of ["shiftKey", "ctrlKey", "metaKey", "altKey"]) {
+        expect(fireEvent.keyDown(field, { key, [modifier]: true })).toBe(true);
+        expect(field.selectionStart).toBe(60);
+      }
+    }
+    fireEvent.compositionStart(field);
+    expect(fireEvent.keyDown(field, { key: "Home" })).toBe(true);
+    expect(field.selectionStart).toBe(60);
+    fireEvent.compositionEnd(field);
+    expect(fireEvent.keyDown(field, { key: "Home", isComposing: true })).toBe(true);
+    expect(field.selectionStart).toBe(60);
+    expect(field).toHaveValue("T".repeat(60));
+    expect(field).toHaveFocus();
+    expect(editorState.changeDraft).not.toHaveBeenCalled();
+    expect(editorState.save).not.toHaveBeenCalled();
+    expect(editorState.cancel).not.toHaveBeenCalled();
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(editorState.save).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(field, { key: "Escape" });
+    expect(editorState.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["saving", "reconciling"] as const)(
+    "leaves read-only Context %s Home/End to the existing browser boundary",
+    (phase) => {
+      triageStoreState.selectedScratchId = "scratch-1";
+      editorState.snapshot = {
+        target: { kind: "scratch-title", id: "scratch-1" }, phase,
+        base: { value: "Scratch", version: 1 }, draft: "T".repeat(60),
+        latest: null, copyableDraft: null, pendingIntent: true,
+        focusIntent: "field-end", command: null,
+      };
+      render(<BreakdownPanel />);
+      const field = screen.getByRole("textbox", { name: "Scratch title" }) as HTMLInputElement;
+      expect(field).toHaveAttribute("readonly");
+      expect(fireEvent.keyDown(field, { key: "Home" })).toBe(true);
+      expect(fireEvent.keyDown(field, { key: "End" })).toBe(true);
+      expect(field.selectionStart).toBe(60);
+      expect(field).toHaveValue("T".repeat(60));
+      expect(field).toHaveFocus();
+      expect(editorState.changeDraft).not.toHaveBeenCalled();
+      expect(editorState.save).not.toHaveBeenCalled();
+      expect(editorState.cancel).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps plain row Home/End in the draft without saving or changing it", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [createScratchBreakdown({ id: "row-1", content: "Row" })];
+    editorState.snapshot = {
+      target: { kind: "breakdown", id: "row-1" }, phase: "dirty",
+      base: { value: "Row", version: 1, order: 0 }, draft: "R".repeat(120),
+      latest: null, copyableDraft: null, pendingIntent: false,
+      focusIntent: "field", command: null,
+    };
+    render(<BreakdownPanel />);
+    const field = screen.getByRole("textbox", { name: "Breakdown content" }) as HTMLInputElement;
+    expect(fireEvent.keyDown(field, { key: "End" })).toBe(false);
+    expect(field.selectionStart).toBe(120);
+    expect(fireEvent.keyDown(field, { key: "Home" })).toBe(false);
+    expect(field.selectionStart).toBe(0);
+    expect(fireEvent.keyDown(field, { key: "End" })).toBe(false);
+    expect(field.selectionStart).toBe(120);
+    expect(field).toHaveValue("R".repeat(120));
+    expect(field).toHaveFocus();
+    expect(editorState.changeDraft).not.toHaveBeenCalled();
+    expect(editorState.save).not.toHaveBeenCalled();
+    expect(editorState.cancel).not.toHaveBeenCalled();
+    for (const modifier of ["shiftKey", "ctrlKey", "metaKey", "altKey"]) {
+      expect(fireEvent.keyDown(field, { key: "Home", [modifier]: true })).toBe(true);
+      expect(field.selectionStart).toBe(120);
+    }
+    fireEvent.compositionStart(field);
+    expect(fireEvent.keyDown(field, { key: "Home", isComposing: true })).toBe(true);
+    expect(field.selectionStart).toBe(120);
   });
 
   it("opens both DP-VQ04 editors from their exact source surfaces", () => {
@@ -3486,7 +3600,7 @@ describe("BreakdownPanel", () => {
     expect(hookState.deleteBreakdown).not.toHaveBeenCalled();
   });
 
-  it("renders the selected Scratch Context with title and full time", () => {
+  it("renders the selected Scratch Context with title and shared date", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     useInboxMock.mockReturnValue({
       activeScratchBits: [
@@ -3505,7 +3619,7 @@ describe("BreakdownPanel", () => {
     const title = within(strip).getByText("Inbox planning note");
     expect(title).toHaveClass("break-words", "whitespace-pre-wrap");
     expect(title).not.toHaveClass("truncate");
-    expect(within(strip).getByText(/Jun 17, 2026, 11:15 AM/)).toBeInTheDocument();
+    expect(within(strip).getByText("45m ago")).toBeInTheDocument();
   });
 
   it("clicking the add-note placeholder does not collapse the Scratch Pool", () => {
@@ -3637,7 +3751,7 @@ describe("BreakdownPanel", () => {
     expect(rowContainer).not.toHaveAttribute("aria-label", "Drag breakdown");
   });
 
-  it("renders a standalone Context with full created time, Edit, and Breakdown sort", () => {
+  it("renders a standalone Context with common creation-date metadata, Edit, and Breakdown sort", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     useInboxMock.mockReturnValue({
       activeScratchBits: [
@@ -3665,8 +3779,7 @@ describe("BreakdownPanel", () => {
       "data-triage-role",
       "context-title",
     );
-    expect(within(context).getByText(/Jun 17, 2026/)).toBeVisible();
-    expect(within(context).getByText(/11:15/)).toBeVisible();
+    expect(within(context).getByText("45m ago")).toBeVisible();
     const contextEdit = within(context).getByRole("button", { name: "Edit" });
     expect(contextEdit).toBeVisible();
     expect(contextEdit).not.toHaveAttribute(
@@ -3676,6 +3789,48 @@ describe("BreakdownPanel", () => {
     expect(
       within(context).getByRole("button", { name: "Sort: newest first" }),
     ).toBeVisible();
+  });
+
+  it("mounts Context strip text and X as inert decoration", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    render(<BreakdownPanel />);
+    const strip = screen.getByTestId("selected-scratch-context")
+      .querySelector('[data-triage-role="context-title-strip"]');
+    expect(strip).toHaveAttribute("aria-hidden", "true");
+    expect(strip).toHaveTextContent("[ FOLDER DIALOG: INFO ]");
+    const close = strip?.querySelector('[data-triage-role="context-decoration-close"]');
+    expect(close).toHaveTextContent("[X]");
+    expect(close?.tagName).toBe("SPAN");
+    expect(close).not.toHaveAttribute("tabindex");
+    expect(strip?.querySelector("button, a, input, [tabindex]")).toBeNull();
+  });
+
+  it("keeps icon-only Context Edit accessible and opens the same Scratch editor", () => {
+    document.documentElement.dataset.colorTheme = "retro-mac";
+    triageStoreState.selectedScratchId = "scratch-1";
+    render(<div className="triage-shell"><BreakdownPanel /></div>);
+    const context = screen.getByTestId("selected-scratch-context");
+    const edit = within(context).getByRole("button", { name: "Edit" });
+    expect(edit).toHaveAttribute("aria-label", "Edit");
+    expect(edit.querySelector('[data-triage-role="context-edit-label"]')).toHaveTextContent("Edit");
+    fireEvent.click(edit);
+    expect(editorState.openScratchTitle).toHaveBeenCalledWith(expect.objectContaining({ id: "scratch-1" }));
+  });
+
+  it("names the next retro sort order and preserves operation-lock disabling", () => {
+    document.documentElement.dataset.colorTheme = "retro-mac";
+    triageStoreState.selectedScratchId = "scratch-1";
+    const { rerender } = render(<div className="triage-shell"><BreakdownPanel /></div>);
+    fireEvent.click(screen.getByRole("button", { name: "OLD FIRST" }));
+    expect(useTriagePreferencesStore.getState().breakdownCreatedAtSort).toBe("ASC");
+    fireEvent.click(screen.getByRole("button", { name: "NEW FIRST" }));
+    expect(useTriagePreferencesStore.getState().breakdownCreatedAtSort).toBe("DESC");
+    operationLockState.activeOperation = { kind: "add", operationId: "sort-lock" };
+    rerender(<div className="triage-shell"><BreakdownPanel /></div>);
+    const sort = screen.getByRole("button", { name: "OLD FIRST" });
+    expect(sort).toBeDisabled();
+    fireEvent.click(sort);
+    expect(useTriagePreferencesStore.getState().breakdownCreatedAtSort).toBe("DESC");
   });
 
   it("toggles stable Breakdown created-at ordering without row time labels", () => {
@@ -3851,5 +4006,75 @@ describe("BreakdownPanel", () => {
       "ordinary",
     );
     expect(screen.queryByText("All items processed")).not.toBeInTheDocument();
+  });
+});
+
+
+describe("Task167 shared Context/Breakdown presentation", () => {
+  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("retains source slots, grip-only activation and canonical actions in %s", (theme) => {
+    document.documentElement.dataset.colorTheme = theme;
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [createScratchBreakdown({ id: "row-1", content: "Arrange workshop materials" })];
+    const view = render(<BreakdownPanel />);
+    const context = screen.getByTestId("selected-scratch-context");
+    expect(context.querySelector('[data-triage-role="context-title-strip"]')).toHaveAttribute("aria-hidden", "true");
+    expect(context.querySelector('[data-triage-role="context-identity-object"]')).toHaveAttribute("aria-hidden", "true");
+    expect(context.querySelector('[data-triage-role="context-timestamp"]')).toBeVisible();
+    fireEvent.click(within(context).getByRole("button", { name: "Edit" }));
+    expect(editorState.openScratchTitle).toHaveBeenCalledOnce();
+    expect(editorState.openScratchTitle).toHaveBeenCalledWith(expect.objectContaining({ id: "scratch-1" }));
+    const row = screen.getByTestId("breakdown-row");
+    expect(within(row).getByRole("button", { name: "Drag breakdown" })).toHaveAttribute("data-triage-role", "breakdown-grip-control");
+    expect(row).not.toHaveAttribute("draggable");
+    fireEvent.click(within(row).getByRole("button", { name: "Edit" }));
+    expect(editorState.openBreakdown).toHaveBeenCalled();
+    document.documentElement.dataset.colorTheme = "graphite";
+    view.rerender(<BreakdownPanel />);
+    expect(screen.getByTestId("selected-scratch-context")).toBe(context);
+    expect(context.querySelectorAll('[data-triage-role="context-title-strip"]')).toHaveLength(1);
+    document.documentElement.removeAttribute("data-color-theme");
+  });
+
+  it("keeps the same Context, protected draft and focus through a live theme change", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    editorState.snapshot = { target: { kind: "scratch-title", id: "scratch-1" }, phase: "dirty",
+      base: { value: "Scratch", version: 1 }, draft: "Preserve this draft", latest: null,
+      copyableDraft: null, pendingIntent: false, focusIntent: "field", command: null };
+    document.documentElement.dataset.colorTheme = "retro-mac";
+    const view = render(<BreakdownPanel />);
+    const context = screen.getByTestId("selected-scratch-context");
+    const field = screen.getByRole("textbox", { name: "Scratch title" });
+    field.focus();
+    document.documentElement.dataset.colorTheme = "griddo";
+    view.rerender(<BreakdownPanel />);
+    expect(screen.getByTestId("selected-scratch-context")).toBe(context);
+    expect(screen.getByRole("textbox", { name: "Scratch title" })).toBe(field);
+    expect(field).toHaveValue("Preserve this draft");
+    expect(field).toHaveFocus();
+    expect(field).toHaveAttribute("maxlength", "60");
+    expect(within(context).getByRole("button", { name: "Save" })).toBeEnabled();
+    expect(within(context).getByRole("button", { name: "Cancel" })).toBeEnabled();
+    document.documentElement.removeAttribute("data-color-theme");
+  });
+});
+
+describe("shared Context creation-date metadata", () => {
+  it("keeps the same createdAt date in view and every mounted editor state", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    useInboxMock.mockReturnValue({ activeScratchBits: [createBit({ id: "scratch-1", title: "Original title", createdAt: new Date(2026, 4, 4).getTime(), mtime: currentTime })] });
+    const view = render(<BreakdownPanel />);
+    const assertStamp = () => {
+      const context = screen.getByTestId("selected-scratch-context");
+      expect(context.querySelector('[data-triage-role="context-timestamp-value"]')).toHaveTextContent("4/05/26");
+      const prefix = context.querySelector('[data-triage-role="context-timestamp-prefix"]');
+      expect(prefix).toHaveTextContent("LAST_STAMP:");
+      expect(prefix).toHaveAttribute("aria-hidden", "true");
+      expect(prefix).not.toHaveAttribute("tabindex");
+    };
+    assertStamp();
+    for (const phase of ["pristine", "dirty", "saving", "reconciling", "offline", "not_applied", "conflict", "invalidated"] as const) {
+      editorState.snapshot = { target: { kind: "scratch-title", id: "scratch-1" }, phase, base: { value: "Original title", version: 1 }, draft: "Retained draft", latest: phase === "conflict" ? { value: "Remote title", version: 2 } : null, copyableDraft: null, pendingIntent: false, focusIntent: "field", command: null };
+      view.rerender(<BreakdownPanel />); assertStamp();
+    }
   });
 });

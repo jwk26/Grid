@@ -77,6 +77,10 @@
 
 **`eslint-disable exhaustive-deps` placement.** The `react-hooks/exhaustive-deps` disable comment must go on the line immediately before the closing `}, [deps])` of the `useEffect` — not inside the effect body. *(Phase 5.5)*
 
+**Run the real coordinator when a test proves handoff identity or focus.** With the Archive coordinator mocked, workspace-identity and marker tests passed while every successful Archive remounted the workspace. At least one test must drive the real hook through pending → selection change → terminal and fail on the old code. *(Phase 34, Task 171A)*
+
+**Don't retry CDP drags on dnd-kit surfaces.** The Chrome DevTools MCP `drag` never completed a Staging or Placement drop. A user drag in the MCP browser took about a minute per step, so ask for it after one failed attempt. *(Phase 34, Task 172)*
+
 ---
 
 ## Recipe-Driven Implementation
@@ -108,3 +112,5 @@
 **Canonical file boundaries must include the real composition owner.** When an accepted behavior requires a parent component to project child counts or close parent-owned transient state, include that parent and its focused test in the canonical task contract. A child-only file list cannot truthfully own cross-boundary callback or heading behavior. *(Phase 26, Tasks 133–134)*
 
 **Mounted components consume repository truth through dedicated reactive hooks.** Even read-only `liveQuery` and DataStore calls violate the component boundary when placed directly in a coordinator component. Move those reads behind a focused hook API and test both observation replacement and stale-result cancellation, including same-identity context replacement. *(Phase 27, P27-11)*
+
+**A regression task returns behavior defects through a bounded repair task.** When the final regression task finds a shared component or hook defect that predates the phase, an Opus session plans a separate repair task with its own scope review, and the regression task waits for its acceptance. The regression task never fixes it in place. *(Phase 34, Tasks 171A and 172)*

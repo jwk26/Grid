@@ -638,6 +638,203 @@
   --theme-shadow: 2px 2px 0px rgba(0, 0, 0, 1);
   --theme-shadow-hover: 4px 4px 0px rgba(0, 0, 0, 1);
 
+  /* L2: Context/Breakdown appearance; P34-04 alone approves the new height. */
+  --triage-context-height: 120.25px;
+  --triage-context-font: var(--font-mono);
+  --triage-context-frame-size: 4px;
+  --triage-context-frame-style: double;
+  --triage-context-surface: hsl(var(--background));
+  --triage-context-ink: hsl(var(--foreground));
+  --triage-context-shadow: 3px 3px 0 hsl(var(--foreground) / 0.15);
+  --triage-context-strip-height: 16px;
+  --triage-context-strip-text-size: 8px;
+  --triage-context-strip-text-weight: 700;
+  --triage-context-strip-inline-padding: 8px;
+  --triage-context-strip-tracking: 0.1em;
+  --triage-context-padding: 40px 20px 14px;
+  --triage-context-icon-size: 32px;
+  --triage-context-gap: 16px;
+  --triage-context-title-size: 13px;
+  --triage-context-title-weight: 800;
+  --triage-context-title-line: 16.25px;
+  --triage-context-title-slot-height: 24px;
+  --triage-context-small-padding: 20px 20px 8px;
+  --triage-context-small-meta-height: 38.25px;
+  --triage-context-meta-size: 8.5px;
+  --triage-context-meta-line: 12.75px;
+  --triage-context-time-size: 9px;
+  --triage-context-time-line: 13.5px;
+  --triage-context-edit-size: 20px;
+  --triage-context-sort-size: 8px;
+  --triage-context-sort-fill: color-mix(in srgb, hsl(var(--background)) 81.57%, yellow);
+  --triage-context-sort-hover: color-mix(in srgb, hsl(var(--background)) 87.84%, yellow);
+  --triage-breakdown-font: var(--theme-font);
+  --triage-breakdown-title-size: 11px;
+  --triage-breakdown-painted-height: 40px;
+  --triage-breakdown-row-gap: 8px;
+  --triage-breakdown-row-frame: 2px;
+  --triage-breakdown-row-shadow: 2px 2px 0 hsl(var(--foreground));
+  --triage-breakdown-control-size: 20px;
+  --triage-breakdown-control-gap: 6px;
+  --triage-breakdown-success-reserve: clamp(5rem, 20%, 10rem);
+  --triage-breakdown-field-size: 11px;
+  --triage-breakdown-footer-padding: 12px;
+
+  /* L1: independently authored frame/Pool roles, sourced by the approved recipes. */
+  --triage-desktop-menu-layout: grid;
+  --triage-desktop-menu-display: flex;
+  --triage-desktop-menu-size: 32px;
+  --triage-desktop-menu-body-gap: 16px;
+  --triage-desktop-menu-padding: 16px;
+  --triage-desktop-menu-border: 2px;
+  --triage-desktop-menu-radius: 4px;
+  --triage-desktop-menu-shadow: 2px 2px 0 hsl(var(--foreground));
+  --triage-desktop-menu-font: var(--theme-font);
+  --triage-desktop-menu-font-size: 11px;
+  --triage-desktop-menu-icon-size: 14px;
+  --triage-desktop-menu-label-gap: 24px;
+  --triage-desktop-menu-icon-gap: 8px;
+  --triage-frame-gap: 1rem;
+  --triage-frame-top-divider-size: 0px;
+  --triage-frame-padding: 1rem;
+  --triage-frame-border-size: 2px;
+  --triage-frame-inner-border-size: 1px;
+  --triage-frame-inset: 5px;
+  --triage-frame-background-image: radial-gradient(circle at center, hsl(var(--foreground)) 0 25%, transparent 25% 100%), radial-gradient(circle at center, hsl(var(--foreground)) 0 25%, transparent 25% 100%);
+  --triage-frame-background-size: 4px 4px;
+  --triage-frame-background-position: 0 0, 2px 2px;
+  --triage-frame-surface: var(--page-bg);
+  --triage-frame-radius: var(--theme-radius);
+  --triage-frame-shadow: 3px 3px 0 hsl(var(--foreground));
+  --triage-frame-close-display: block;
+  --triage-frame-close-fill: hsl(240 5% 84%);
+  --triage-frame-focus-color: hsl(var(--foreground));
+  --triage-frame-heading-size: 24px;
+  --triage-frame-heading-font-size: 9px;
+  --triage-frame-heading-weight: 700;
+  --triage-frame-heading-tracking: 0.1em;
+  --triage-frame-heading-justify: center;
+  --triage-frame-title-stripes: repeating-linear-gradient(to top, hsl(var(--foreground)) 0 1px, transparent 1px 3px);
+  --triage-frame-title-label-padding: 12px;
+  --triage-explorer-heading-size: 32px;
+  --triage-explorer-heading-label-size: 0px;
+  --triage-explorer-heading-alias: "Finder";
+  --triage-explorer-heading-justify: flex-start;
+  --triage-explorer-heading-icon-display: block;
+  --triage-explorer-heading-badge-border: 1px;
+  --triage-explorer-heading-badge-padding: 2px 8px;
+  --triage-explorer-heading-font-size: 10px;
+  --triage-pool-inline-size: 260px;
+  --triage-pool-compact-inline-size: 48px;
+  --triage-pool-font: var(--theme-font);
+  --triage-pool-header-size: 40px;
+  --triage-pool-header-border-size: 0px;
+  --triage-pool-heading-font-size: 10px;
+  --triage-pool-heading-line-height: 15px;
+  --triage-pool-heading-weight: 700;
+  --triage-pool-heading-tracking: 0.1em;
+  --triage-pool-heading-position: absolute;
+  --triage-pool-heading-left: 50%;
+  --triage-pool-heading-transform: translateX(-50%);
+  --triage-pool-identity-order: 3;
+  --triage-pool-heading-order: 2;
+  --triage-pool-toggle-order: 1;
+  --triage-pool-identity-icon-display: none;
+  --triage-pool-count-radius: 0px;
+  --triage-pool-count-background: hsl(var(--background));
+  --triage-pool-count-foreground: hsl(var(--foreground));
+  --triage-pool-count-border-size: 1px;
+  --triage-pool-toggle-size: 14px;
+  --triage-pool-toggle-border-size: 1px;
+  --triage-pool-toggle-radius: 0px;
+  --triage-pool-collapse-icon-display: none;
+  --triage-pool-collapse-glyph: "x";
+  --triage-pool-tools-columns: minmax(0, 1fr);
+  --triage-pool-tools-size: auto;
+  --triage-pool-tools-gap: 0px;
+  --triage-pool-tools-padding: 0px;
+  --triage-pool-tools-rule-size: 0px;
+  --triage-pool-search-row-size: 30px;
+  --triage-pool-search-row-padding: 0 8px 8px;
+  --triage-pool-search-rule-size: 2px;
+  --triage-pool-search-icon-display: none;
+  --triage-pool-find-display: inline;
+  --triage-pool-field-size: 20px;
+  --triage-pool-field-background: hsl(var(--background));
+  --triage-pool-field-border-size: 1px;
+  --triage-pool-field-radius: 0px;
+  --triage-pool-field-padding: 0 6px;
+  --triage-pool-field-font-size: 9px;
+  --triage-pool-field-font-weight: 700;
+  --triage-pool-field-tracking: 0.05em;
+  --triage-pool-field-line-height: 13.5px;
+  --triage-pool-field-placeholder: hsl(var(--foreground) / 0.3);
+  --triage-pool-field-focus-background: hsl(var(--foreground));
+  --triage-pool-field-focus-color: hsl(var(--background));
+  --triage-pool-field-focus-shadow: none;
+  --triage-pool-focus-ring-color: hsl(var(--foreground));
+  --triage-pool-clear-icon-display: none;
+  --triage-pool-clear-glyph: "[X]";
+  --triage-pool-clear-inset: 12px;
+  --triage-pool-sort-icon-display: none;
+  --triage-pool-sort-label-display: inline;
+  --triage-pool-sort-badge-display: inline-flex;
+  --triage-pool-sort-size: 24px;
+  --triage-pool-sort-padding: 4px 12px;
+  --triage-pool-sort-background: color-mix(in srgb, hsl(var(--background)) 80%, hsl(var(--foreground)));
+  --triage-pool-sort-hover-background: color-mix(in srgb, hsl(var(--background)) 73.33%, hsl(var(--foreground)));
+  --triage-pool-sort-radius: 0px;
+  --triage-pool-sort-rule-size: 1px;
+  --triage-pool-sort-font: var(--font-mono);
+  --triage-pool-sort-font-size: 9px;
+  --triage-pool-sort-font-weight: 700;
+  --triage-pool-sort-badge-background: color-mix(in srgb, hsl(var(--background)) 81.57%, yellow);
+  --triage-pool-status-background: var(--page-bg);
+  --triage-pool-status-font-size: 9px;
+  --triage-pool-status-rule-size: 1px;
+  --triage-pool-compact-tools-background: hsl(var(--background));
+  --triage-pool-compact-tools-padding: 16px 8px;
+  --triage-pool-compact-tools-rule-size: 2px;
+  --triage-pool-compact-icon-size: 18px;
+  --triage-pool-expand-size: 24px;
+  --triage-pool-expand-icon-size: 14px;
+  --triage-pool-expand-padding: 0px;
+  --triage-pool-expand-shadow: 1px 1px 0 hsl(var(--foreground));
+  --triage-pool-list-padding: 8px;
+  --triage-pool-row-size: 48px;
+  --triage-pool-row-padding: 8px;
+  --triage-pool-row-gap: 4px;
+  --triage-pool-row-border-size: 0px;
+  --triage-pool-row-title-size: 11px;
+  --triage-pool-row-title-weight: 700;
+  --triage-pool-row-title-tracking: -0.025em;
+  --triage-pool-row-title-transform: uppercase;
+  --triage-pool-row-title-line-height: 16.5px;
+  --triage-pool-row-time-size: 9px;
+  --triage-pool-row-time-line-height: 13.5px;
+  --triage-pool-row-time-color: hsl(var(--foreground) / 0.5);
+  --triage-pool-row-hover-background: hsl(var(--foreground) / 0.1);
+  --triage-pool-row-selected-background: hsl(var(--foreground));
+  --triage-pool-row-selected-foreground: hsl(var(--background));
+  --triage-pool-row-selected-meta: hsl(var(--background) / 0.7);
+  --triage-pool-row-focus-background: hsl(var(--foreground));
+  --triage-pool-row-focus-foreground: hsl(var(--background));
+  --triage-pool-row-focus-meta: hsl(var(--background) / 0.7);
+  --triage-pool-row-focus-shadow: none;
+  --triage-pool-selected-marker-display: none;
+  --triage-pool-compact-marker-display: block;
+  --triage-pool-compact-button-inline-size: 18px;
+  --triage-pool-compact-button-block-size: 24px;
+  --triage-pool-compact-button-padding: 8px;
+  --triage-pool-compact-button-justify: flex-start;
+  --triage-pool-compact-default-background: transparent;
+  --triage-pool-compact-selected-background: hsl(var(--foreground));
+  --triage-pool-compact-hover-background: hsl(var(--foreground) / 0.1);
+  --triage-pool-compact-list-gap: 4px;
+  --triage-pool-compact-button-radius: 0px;
+  --triage-pool-compact-button-border-size: 0px;
+  --triage-pool-motion-duration: 0s;
+
   --calendar-cell-bg: #ffffff;
   --calendar-header-bg: repeating-linear-gradient(45deg, #eeeeee, #eeeeee 2px, #ffffff 2px, #ffffff 4px);
   --calendar-cell-radius: 0px;
@@ -718,6 +915,424 @@
   --triage-fixed-row-block-size: 3rem;
   min-inline-size: 0;
   position: relative;
+  display: var(--triage-desktop-menu-layout, flex);
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-rows: var(--triage-desktop-menu-size, 0px) minmax(0, 1fr);
+  gap: var(--triage-frame-gap, 0px);
+  row-gap: var(--triage-desktop-menu-body-gap, var(--triage-frame-gap, 0px));
+  padding: var(--triage-frame-padding, 0px);
+  background-image: var(--triage-frame-background-image, none);
+  background-size: var(--triage-frame-background-size, auto);
+  background-position: var(--triage-frame-background-position, 0 0);
+}
+
+/* One shared decorative DOM; only the adopted retro aliases display it. */
+.triage-shell__desktop-menu {
+  display: var(--triage-desktop-menu-display, none);
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  block-size: var(--triage-desktop-menu-size, 0px);
+  min-inline-size: 0;
+  padding-inline: var(--triage-desktop-menu-padding, 0px);
+  border: var(--triage-desktop-menu-border, 0px) solid hsl(var(--foreground));
+  border-radius: var(--triage-desktop-menu-radius, 0px);
+  box-shadow: var(--triage-desktop-menu-shadow, none);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--triage-desktop-menu-font, var(--theme-font));
+  font-size: var(--triage-desktop-menu-font-size, 11px);
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.triage-shell__desktop-menu-labels {
+  display: flex;
+  align-items: center;
+  gap: var(--triage-desktop-menu-label-gap, 0px);
+}
+
+.triage-shell__desktop-menu [data-triage-role="desktop-menu-label"] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--triage-desktop-menu-icon-gap, 0px);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.triage-shell__desktop-menu svg {
+  inline-size: var(--triage-desktop-menu-icon-size, 14px);
+  block-size: var(--triage-desktop-menu-icon-size, 14px);
+}
+
+/* Common semantic frame. Theme values live in the centralized alias owner. */
+.triage-shell .triage-shell__section {
+  position: relative;
+  border: var(--triage-frame-border-size, 0px) solid hsl(var(--border));
+  border-radius: var(--triage-frame-radius, 0px);
+  background: var(--triage-frame-surface, hsl(var(--card)));
+  box-shadow: var(--triage-frame-shadow, none);
+  padding: var(--triage-frame-inset, 0px);
+}
+
+.triage-shell__section::before {
+  border: var(--triage-frame-inner-border-size, 0px) solid hsl(var(--border));
+  border-radius: 2px;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.triage-shell__main,
+.triage-shell__top {
+  gap: var(--triage-frame-gap, 0px);
+}
+
+.triage-shell__top {
+  border-block-end-width: var(--triage-frame-top-divider-size, 1px);
+}
+
+.triage-shell__top > .triage-shell__section:first-child {
+  border-inline-end-width: var(--triage-frame-border-size, 1px);
+}
+
+.scratch-pool {
+  inline-size: var(--triage-pool-inline-size, 18rem);
+  font-family: var(--triage-pool-font, inherit);
+  background: var(--triage-frame-surface, hsl(var(--muted) / 0.1));
+  border-block: var(--triage-frame-border-size, 0px) solid hsl(var(--border));
+  border-inline-start: var(--triage-frame-border-size, 0px) solid hsl(var(--border));
+  border-inline-end: var(--triage-frame-border-size, 1px) solid hsl(var(--border));
+  border-radius: var(--triage-frame-radius, 0px);
+  box-shadow: var(--triage-frame-shadow, none);
+  padding: 0;
+  transition-duration: var(--triage-pool-motion-duration, 200ms);
+}
+
+.scratch-pool[data-triage-state="collapsed"] {
+  inline-size: var(--triage-pool-compact-inline-size, 3rem);
+}
+
+.scratch-pool__frame {
+  border: var(--triage-frame-inner-border-size, 0px) solid hsl(var(--border));
+  border-radius: 2px;
+  padding: calc(var(--triage-frame-inset, 0px) - var(--triage-frame-inner-border-size, 0px));
+}
+
+.scratch-pool__header {
+  block-size: var(--triage-pool-header-size, 2rem);
+  border-block-end-width: var(--triage-pool-header-border-size, 1px);
+  background: var(--triage-frame-surface, hsl(var(--muted) / 0.3));
+  padding-inline: var(--triage-pool-list-padding, 12px);
+}
+
+.scratch-pool__header::before {
+  background-image: var(--triage-frame-title-stripes, none);
+  block-size: 14px;
+  content: "";
+  inset-inline: var(--triage-pool-list-padding, 12px);
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.scratch-pool__header > div {
+  order: var(--triage-pool-identity-order, 0);
+  position: relative;
+}
+
+.scratch-pool__header > div > svg {
+  display: var(--triage-pool-identity-icon-display, block);
+}
+
+.scratch-pool__heading {
+  background: var(--triage-frame-surface, transparent);
+  color: hsl(var(--foreground));
+  font-family: var(--theme-font);
+  font-size: var(--triage-pool-heading-font-size, 12px);
+  font-weight: var(--triage-pool-heading-weight, 600);
+  letter-spacing: var(--triage-pool-heading-tracking, normal);
+  line-height: var(--triage-pool-heading-line-height, 1rem);
+  order: var(--triage-pool-heading-order, 0);
+  padding-inline: var(--triage-pool-list-padding, 0px);
+  position: var(--triage-pool-heading-position, relative);
+  left: var(--triage-pool-heading-left, auto);
+  transform: var(--triage-pool-heading-transform, none);
+  text-transform: var(--triage-pool-row-title-transform, none);
+  white-space: nowrap;
+}
+
+.scratch-pool [data-triage-role="pool-total-count"] {
+  background: var(--triage-pool-count-background, hsl(var(--primary)));
+  border: var(--triage-pool-count-border-size, 0px) solid hsl(var(--border));
+  border-radius: var(--triage-pool-count-radius, 999px);
+  color: var(--triage-pool-count-foreground, hsl(var(--primary-foreground)));
+}
+
+.scratch-pool__toggle {
+  align-items: center;
+  background: var(--triage-pool-count-background, transparent);
+  border: var(--triage-pool-toggle-border-size, 0px) solid hsl(var(--border));
+  border-radius: var(--triage-pool-toggle-radius, 6px);
+  color: hsl(var(--foreground));
+  display: flex;
+  min-block-size: var(--triage-pool-toggle-size, 20px);
+  min-inline-size: var(--triage-pool-toggle-size, 20px);
+  justify-content: center;
+  order: var(--triage-pool-toggle-order, 0);
+  position: relative;
+  transition-duration: var(--triage-pool-motion-duration, 150ms);
+}
+
+.scratch-pool[data-triage-state="expanded"] .scratch-pool__toggle svg {
+  display: var(--triage-pool-collapse-icon-display, block);
+}
+
+.scratch-pool[data-triage-state="expanded"] .scratch-pool__toggle::after {
+  content: var(--triage-pool-collapse-glyph, none);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.scratch-pool__list {
+  padding: var(--triage-pool-list-padding, 0px);
+  scrollbar-width: none;
+}
+
+.scratch-pool__list::-webkit-scrollbar,
+.scratch-pool__compact-list::-webkit-scrollbar {
+  display: none;
+}
+
+.scratch-pool__compact-list { scrollbar-width: none; }
+
+.scratch-pool__row {
+  --triage-pool-current-row-background: transparent;
+  --triage-pool-current-row-title: hsl(var(--foreground));
+  --triage-pool-current-row-meta: var(--triage-pool-row-time-color, hsl(var(--muted-foreground) / 0.7));
+  background: var(--triage-pool-current-row-background);
+  block-size: var(--triage-pool-row-size, 52px);
+  border-block-end-width: var(--triage-pool-row-border-size, 1px);
+  margin-block-end: var(--triage-pool-row-gap, 0px);
+  padding: var(--triage-pool-row-padding, 8px 12px);
+  transition-duration: var(--triage-pool-motion-duration, 150ms);
+}
+
+.scratch-pool__row:hover {
+  --triage-pool-current-row-background: var(--triage-pool-row-hover-background, hsl(var(--accent) / 0.6));
+  background: var(--triage-pool-current-row-background);
+}
+
+.scratch-pool__row-title {
+  color: var(--triage-pool-current-row-title);
+  font-size: var(--triage-pool-row-title-size, 12px);
+  font-weight: var(--triage-pool-row-title-weight, 500);
+  letter-spacing: var(--triage-pool-row-title-tracking, normal);
+  line-height: var(--triage-pool-row-title-line-height, 1rem);
+  text-transform: var(--triage-pool-row-title-transform, none);
+}
+
+.scratch-pool__row-time {
+  color: var(--triage-pool-current-row-meta);
+  font-size: var(--triage-pool-row-time-size, 10px);
+  line-height: var(--triage-pool-row-time-line-height, 15px);
+}
+
+.scratch-pool__row[data-triage-state="selected"],
+.scratch-pool__row[data-triage-state="selected"]:hover {
+  --triage-pool-current-row-background: var(--triage-pool-row-selected-background, hsl(var(--primary) / 0.1));
+  --triage-pool-current-row-title: var(--triage-pool-row-selected-foreground, hsl(var(--primary)));
+  --triage-pool-current-row-meta: var(--triage-pool-row-selected-meta, hsl(var(--primary) / 0.7));
+  background: var(--triage-pool-current-row-background);
+  color: var(--triage-pool-row-selected-foreground, hsl(var(--primary)));
+}
+
+.scratch-pool__row[data-triage-state="selected"] .scratch-pool__row-title {
+  color: var(--triage-pool-current-row-title);
+}
+
+.scratch-pool__row[data-triage-state="selected"] .scratch-pool__row-time {
+  color: var(--triage-pool-current-row-meta);
+}
+
+.scratch-pool__row:focus-visible {
+  background: var(--triage-pool-row-focus-background, var(--triage-pool-current-row-background));
+  box-shadow: var(--triage-pool-row-focus-shadow, var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000), var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow, 0 0 #0000));
+}
+
+.scratch-pool__row:focus-visible .scratch-pool__row-title { color: var(--triage-pool-row-focus-foreground, var(--triage-pool-current-row-title)); }
+.scratch-pool__row:focus-visible .scratch-pool__row-time { color: var(--triage-pool-row-focus-meta, var(--triage-pool-current-row-meta)); }
+
+.scratch-pool__selected-marker {
+  display: var(--triage-pool-selected-marker-display, block);
+}
+
+.scratch-pool [data-triage-role="pool-compact-switcher"] {
+  align-items: center;
+  block-size: var(--triage-pool-compact-button-block-size, 10px);
+  border: var(--triage-pool-compact-button-border-size, 0px) solid hsl(var(--border));
+  border-radius: var(--triage-pool-compact-button-radius, 999px);
+  display: flex;
+  inline-size: var(--triage-pool-compact-button-inline-size, 8px);
+  justify-content: var(--triage-pool-compact-button-justify, center);
+  padding: var(--triage-pool-compact-button-padding, 0px);
+  background: var(--triage-pool-compact-default-background, hsl(var(--muted-foreground) / 0.3));
+  transition-duration: var(--triage-pool-motion-duration, 150ms);
+}
+
+.scratch-pool [data-triage-role="pool-compact-switcher"]:hover {
+  background: var(--triage-pool-compact-hover-background, hsl(var(--muted-foreground) / 0.5));
+}
+
+.scratch-pool [data-triage-role="pool-compact-switcher"][aria-pressed="true"] {
+  block-size: var(--triage-pool-compact-button-block-size, 32px);
+  background: var(--triage-pool-compact-selected-background, hsl(var(--primary)));
+}
+
+.scratch-pool__compact-marker {
+  background: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  block-size: 8px;
+  display: var(--triage-pool-compact-marker-display, none);
+  inline-size: 8px;
+  flex-shrink: 0;
+}
+
+.scratch-pool [aria-pressed="true"] .scratch-pool__compact-marker {
+  background: hsl(var(--background));
+}
+
+.scratch-pool__tools {
+  align-items: center;
+  display: grid;
+  grid-template-columns: var(--triage-pool-tools-columns, minmax(0, 1fr) auto);
+  block-size: var(--triage-pool-tools-size, 32px);
+  gap: var(--triage-pool-tools-gap, 4px);
+  padding: var(--triage-pool-tools-padding, 0 8px);
+  border-block-end: var(--triage-pool-tools-rule-size, 1px) solid hsl(var(--border) / 0.5);
+}
+
+.scratch-pool__search-row {
+  block-size: var(--triage-pool-search-row-size, auto);
+  padding: var(--triage-pool-search-row-padding, 0px);
+  border-block-end: var(--triage-pool-search-rule-size, 0px) solid hsl(var(--border));
+}
+
+.scratch-pool__find-label {
+  display: var(--triage-pool-find-display, none);
+  font-size: var(--triage-pool-field-font-size, 9px);
+  font-weight: var(--triage-pool-field-font-weight, 700);
+  margin-inline-end: 4px;
+}
+
+.scratch-pool__search-icon { display: var(--triage-pool-search-icon-display, block); }
+
+.scratch-pool__field {
+  block-size: var(--triage-pool-field-size, 24px);
+  background: var(--triage-pool-field-background, hsl(var(--muted) / 0.4));
+  border: var(--triage-pool-field-border-size, 0px) solid hsl(var(--border));
+  border-radius: var(--triage-pool-field-radius, 6px);
+  padding: var(--triage-pool-field-padding, 0 4px 0 20px);
+  font-size: var(--triage-pool-field-font-size, 10px);
+  font-weight: var(--triage-pool-field-font-weight, 400);
+  letter-spacing: var(--triage-pool-field-tracking, normal);
+  line-height: var(--triage-pool-field-line-height, 15px);
+  text-transform: var(--triage-pool-row-title-transform, none);
+}
+
+.scratch-pool__field::placeholder {
+  color: var(--triage-pool-field-placeholder, hsl(var(--muted-foreground) / 0.5));
+}
+
+.scratch-pool__field:focus {
+  background: var(--triage-pool-field-focus-background, hsl(var(--muted) / 0.4));
+  color: var(--triage-pool-field-focus-color, hsl(var(--foreground)));
+  box-shadow: var(--triage-pool-field-focus-shadow, var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000), var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow, 0 0 #0000));
+}
+
+.scratch-pool :focus-visible {
+  --tw-ring-color: var(--triage-pool-focus-ring-color, hsl(var(--ring)));
+}
+
+.scratch-pool__clear {
+  color: hsl(var(--foreground));
+  inset-inline-end: var(--triage-pool-clear-inset, 4px);
+  font-size: 8px;
+}
+
+.scratch-pool__clear svg { display: var(--triage-pool-clear-icon-display, block); }
+.scratch-pool__clear::after { content: var(--triage-pool-clear-glyph, none); }
+.scratch-pool__field:focus + .scratch-pool__clear { color: var(--triage-pool-field-focus-color, hsl(var(--foreground))); }
+
+.scratch-pool__sort {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  block-size: var(--triage-pool-sort-size, auto);
+  padding: var(--triage-pool-sort-padding, 4px);
+  background: var(--triage-pool-sort-background, transparent);
+  border-block-end: var(--triage-pool-sort-rule-size, 0px) solid hsl(var(--border));
+  border-radius: var(--triage-pool-sort-radius, 6px);
+  color: hsl(var(--foreground));
+  font-family: var(--triage-pool-sort-font, inherit);
+  font-size: var(--triage-pool-sort-font-size, inherit);
+  font-weight: var(--triage-pool-sort-font-weight, inherit);
+  transition-duration: var(--triage-pool-motion-duration, 150ms);
+}
+
+.scratch-pool__sort:hover { background: var(--triage-pool-sort-hover-background, hsl(var(--muted))); }
+.scratch-pool__sort-icon { display: var(--triage-pool-sort-icon-display, block); }
+.scratch-pool__sort-label { display: var(--triage-pool-sort-label-display, none); }
+.scratch-pool__sort-direction {
+  display: var(--triage-pool-sort-badge-display, none);
+  background: var(--triage-pool-sort-badge-background, hsl(var(--background)));
+  border: 1px solid hsl(var(--border));
+  border-radius: 2px;
+  box-shadow: 1px 1px 0 hsl(var(--foreground));
+  font-size: 7px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.scratch-pool__compact-tools {
+  background: var(--triage-pool-compact-tools-background, transparent);
+  border-block-end: var(--triage-pool-compact-tools-rule-size, 0px) solid hsl(var(--border));
+  padding: var(--triage-pool-compact-tools-padding, 8px 0);
+}
+
+.scratch-pool__compact-tools > div > svg {
+  inline-size: var(--triage-pool-compact-icon-size, 16px);
+  block-size: var(--triage-pool-compact-icon-size, 16px);
+}
+
+.scratch-pool__compact-tools .scratch-pool__toggle {
+  inline-size: var(--triage-pool-expand-size, auto);
+  block-size: var(--triage-pool-expand-size, auto);
+  padding: var(--triage-pool-expand-padding, 2px);
+  box-shadow: var(--triage-pool-expand-shadow, none);
+}
+
+.scratch-pool__compact-tools .scratch-pool__toggle svg {
+  inline-size: var(--triage-pool-expand-icon-size, 16px);
+  block-size: var(--triage-pool-expand-icon-size, 16px);
+}
+
+.scratch-pool__compact-list > [role="group"] { gap: var(--triage-pool-compact-list-gap, 6px); }
+
+.scratch-pool .pool-status-band {
+  background: var(--triage-pool-status-background, hsl(var(--muted) / 0.24));
+  border-block-end-width: var(--triage-pool-status-rule-size, var(--theme-border-width));
+  font-size: var(--triage-pool-status-font-size, 10px);
+}
+
+.scratch-pool .pool-status-action:focus-visible {
+  outline-color: var(--triage-pool-focus-ring-color, hsl(var(--ring)));
 }
 
 /* DP-VQ01 is a dedicated Inbox-workspace transition, not Dialog/Archive/Pool chrome. */
@@ -1166,28 +1781,421 @@
   font-family: var(--font-mono);
 }
 
-:root[data-color-theme="retro-mac"] .explorer-search-body {
-  background: hsl(var(--background));
+/* Shared Explorer behavior: explicit consumer, ordinary Grid remains unchanged. */
+@layer components {
+  .theme-node-card[data-card-presentation="inbox-explorer"]:hover {
+    box-shadow: var(--theme-shadow);
+  }
 }
 
-:root[data-color-theme="retro-mac"] .explorer-search-field,
-:root[data-color-theme="retro-mac"] .explorer-search-result {
-  border-color: hsl(var(--foreground));
-  border-radius: 0;
-  box-shadow: 1px 1px 0 hsl(var(--foreground));
+:root {
+  --triage-explorer-overdue-surface: hsl(var(--muted) / 0.35);
+  --triage-explorer-state-ink: hsl(var(--foreground));
+  --triage-explorer-state-size: 0.75rem;
 }
 
-:root[data-color-theme="retro-mac"] .explorer-search-entry {
-  border: 1px solid hsl(var(--foreground));
+[data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"][data-card-state="overdue"] {
+  background: var(--triage-explorer-overdue-surface);
+}
+
+[data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-state"] {
+  align-items: center;
+  color: var(--triage-explorer-state-ink);
+  display: inline-flex;
+  flex: none;
+  font-size: var(--triage-explorer-state-size);
+  font-weight: 700;
+  justify-content: center;
+  line-height: 1;
+  min-inline-size: var(--triage-explorer-state-size);
+}
+
+[data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-state"] svg {
+  inline-size: var(--triage-explorer-state-size);
+  block-size: var(--triage-explorer-state-size);
+}
+
+/* Q01: actual shared cards, explicit Finder consumer, retro-mac compact values. */
+:root[data-color-theme="retro-mac"] {
+  --triage-explorer-card-font: var(--theme-font);
+  --triage-explorer-card-title-size: 9px;
+  --triage-explorer-card-padding: 4px;
+  --triage-explorer-card-gap: 8px;
+  --triage-explorer-card-row-gap: 4px;
+  --triage-explorer-card-ink: hsl(var(--foreground));
+  --triage-explorer-card-paper: hsl(var(--background));
+  --triage-explorer-card-node-surface: hsl(var(--background));
+  --triage-explorer-node-padding: 6px;
+  --triage-explorer-node-icon-size: 14px;
+  --triage-explorer-node-title-size: 10px;
+  --triage-explorer-folder-tab: 28%;
+  --triage-explorer-folder-rise: 3px;
+  --triage-explorer-bit-border: hsl(var(--foreground) / 0.4);
+  --triage-explorer-bit-min-height: 34px;
+  --triage-explorer-card-bit-surface: hsl(var(--foreground) / 0.04);
+  --triage-explorer-overdue-surface: hsl(var(--foreground) / 0.06);
+  --triage-explorer-state-size: 10px;
+}
+
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-card-list"], [data-triage-role="explorer-bit-list"]) {
+  gap: var(--triage-explorer-card-row-gap);
+}
+
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-card-shell"] {
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] {
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"]:is([data-triage-role="explorer-card-node"], [data-triage-role="explorer-card-bit"]) {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  min-width: 0;
   border-radius: 0;
+  box-shadow: none;
+  color: var(--triage-explorer-card-ink);
+  font-family: var(--triage-explorer-card-font);
+  font-size: var(--triage-explorer-card-title-size);
+  line-height: 1.5;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] {
+  --triage-explorer-card-icon-color: currentColor;
+  display: flex;
+  align-items: center;
+  gap: var(--triage-explorer-card-gap);
+  --triage-explorer-node-fill: var(--triage-explorer-card-node-surface);
+  isolation: isolate;
+  padding: calc(var(--triage-explorer-node-padding) + var(--triage-explorer-folder-rise)) var(--triage-explorer-node-padding) var(--triage-explorer-node-padding);
+  border: 0;
+  background: transparent;
+}
+
+/* The actual button owns decorative contours; content and focus are never clipped. */
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]::before,
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]::before {
+  background: var(--triage-explorer-node-fill);
+  clip-path: polygon(0 0, var(--triage-explorer-folder-tab) 0, calc(var(--triage-explorer-folder-tab) + var(--triage-explorer-folder-rise)) var(--triage-explorer-folder-rise), 100% var(--triage-explorer-folder-rise), 100% 100%, 0 100%);
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]::after {
+  background: currentColor;
+  /* Two one-pixel contours, with a clear gap, follow the same responsive tab. */
+  clip-path: polygon(evenodd,
+    0 100%, 0 0, var(--triage-explorer-folder-tab) 0, calc(var(--triage-explorer-folder-tab) + 3px) 3px, 100% 3px, 100% 100%, 0 100%,
+    1px calc(100% - 1px), calc(100% - 1px) calc(100% - 1px), calc(100% - 1px) 4px, calc(var(--triage-explorer-folder-tab) + 2.5px) 4px, calc(var(--triage-explorer-folder-tab) - 0.5px) 1px, 1px 1px, 1px calc(100% - 1px), 0 100%,
+    3px calc(100% - 3px), 3px 3px, calc(var(--triage-explorer-folder-tab) - 1.5px) 3px, calc(var(--triage-explorer-folder-tab) + 1.5px) 6px, calc(100% - 3px) 6px, calc(100% - 3px) calc(100% - 3px), 3px calc(100% - 3px),
+    4px calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 7px, calc(var(--triage-explorer-folder-tab) + 1px) 7px, calc(var(--triage-explorer-folder-tab) - 2px) 4px, 4px 4px, 4px calc(100% - 4px), 3px calc(100% - 3px), 0 100%);
+
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]:hover {
+  --triage-explorer-node-fill: hsl(var(--muted));
+  background: transparent;
+  box-shadow: none;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][aria-current="true"] {
+  --triage-explorer-node-fill: var(--triage-explorer-card-ink);
+  background: transparent;
+  color: var(--triage-explorer-card-paper);
+  --tw-ring-shadow: 0 0 transparent;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"]:is([data-triage-role="explorer-card-node"], [data-triage-role="explorer-card-bit"]):focus-visible {
+  outline: 1px dotted currentColor;
+  outline-offset: -2px;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-icon-slot"] {
+  flex: none;
+  padding: 0;
+  align-self: center;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-title-slot"] {
+  height: auto;
+  min-width: 0;
+  flex: 1;
+  align-self: center;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-title"] {
+  text-align: left;
+  font-family: var(--triage-explorer-card-font);
+  font-size: var(--triage-explorer-card-title-size);
+  font-weight: 700;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: inherit;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] [data-triage-role="explorer-card-icon"] {
+  width: var(--triage-explorer-node-icon-size);
+  height: var(--triage-explorer-node-icon-size);
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] [data-triage-role="explorer-card-title"] {
+  font-size: var(--triage-explorer-node-title-size);
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-chevron"] {
+  display: block;
+  width: 10px;
+  height: 10px;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-card-has-actions="true"] [data-triage-role="explorer-card-title-slot"] {
+  margin-inline-end: 20px;
+}
+
+
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-marker"] {
+  position: static;
+  flex: none;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-undo"] {
+  position: static;
+  margin: 4px 4px 4px auto;
+  flex: none;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] {
+  align-items: center;
+  flex-wrap: nowrap;
+  min-block-size: var(--triage-explorer-bit-min-height);
+  border: 1px solid var(--triage-explorer-bit-border);
+  background: var(--triage-explorer-card-bit-surface);
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"][data-card-state="overdue"] {
+  background: var(--triage-explorer-overdue-surface);
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-accent"] {
+  display: none;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-content"] {
+  min-width: 0;
+  padding: 4px;
+  gap: 4px;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-primary"] {
+  align-items: center;
+  gap: var(--triage-explorer-card-gap);
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-icon"] {
+  width: 10px;
+  height: 10px;
+  color: inherit;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-title"] {
+  font-style: italic;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-card-muted="true"] [data-triage-role="explorer-card-title"] {
+  color: hsl(var(--muted-foreground));
+}
+
+
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-marker"] {
+  order: -1;
+  align-self: center;
+  margin: 4px;
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-undo"] {
+  margin-inline-end: 4px;
+}
+
+
+
+/* L4 pane/target roles; Q01 card roles above require explicit presentation. */
+:root[data-color-theme="retro-mac"] {
+  --explorer-pane-surface: var(--page-bg);
+  --explorer-ink: hsl(var(--foreground));
+  --explorer-paper: hsl(var(--background));
+  --explorer-label-size: 9px;
+  --explorer-rule: 1px solid var(--explorer-ink);
+}
+
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-root"] {
+  border: 0;
+  border-radius: 0;
+  background: var(--explorer-pane-surface);
+}
+
+
+
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-panes"] {
+  gap: 1px;
+  background: var(--explorer-ink);
+}
+
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-pane"] {
+  background: var(--explorer-pane-surface);
+  border: 0;
+  padding: 8px;
+}
+
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-column-header"] {
+  background: transparent;
+  border-block-end: 1px solid hsl(var(--foreground) / 0.2);
+  margin-block-end: 8px;
+  padding: 0 0 4px;
+}
+
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-column-label"] {
+  color: var(--explorer-ink);
+  font-family: var(--theme-font);
+  font-size: var(--explorer-label-size);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
+}
+
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-viewport"] {
+  background-color: transparent;
+  padding: 0 0 16px;
+  scrollbar-width: none;
+}
+
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-viewport"]::-webkit-scrollbar,
+:root[data-color-theme="retro-mac"] .explorer-search-results::-webkit-scrollbar {
+  display: none;
+}
+
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-empty"] {
+  color: var(--explorer-ink);
   font-family: var(--theme-font);
 }
 
-:root[data-color-theme="retro-mac"] .explorer-search-status,
-:root[data-color-theme="retro-mac"] .explorer-reveal-status {
-  background: hsl(var(--background));
-  border-color: hsl(var(--foreground));
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-node-target"] {
   border-radius: 0;
+  padding: 0;
+  border-width: 0;
+}
+
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"]) {
+  animation: none;
+  transition: none;
+  box-shadow: none;
+}
+
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-target-state="idle-valid"] {
+  outline: 1px dashed var(--explorer-ink);
+  outline-offset: -1px;
+}
+
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-target-state="valid"] {
+  background-image: repeating-linear-gradient(45deg, var(--explorer-ink) 0 4px, var(--explorer-paper) 4px 8px);
+  outline: 2px solid var(--explorer-ink);
+  outline-offset: -2px;
+}
+
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"]):is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+  background-image: repeating-conic-gradient(hsl(var(--foreground) / 0.18) 0% 25%, transparent 0% 50%);
+  background-size: 2px 2px;
+  outline: 3px double var(--explorer-ink);
+  outline-offset: -3px;
+  cursor: not-allowed;
+}
+
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-target-state="pending-confirmation"] {
+  outline: 3px double var(--explorer-ink);
+  outline-offset: -3px;
+}
+
+:root[data-color-theme="retro-mac"] .explorer-search-body {
+  background: var(--explorer-pane-surface);
+  padding: 8px;
+  font-family: var(--theme-font);
+}
+
+:root[data-color-theme="retro-mac"] .explorer-search-field {
+  background: var(--explorer-paper);
+  border: var(--explorer-rule);
+  border-radius: 0;
+  padding: 4px 8px;
+  box-shadow: 1px 1px 0 var(--explorer-ink);
+  font-size: 10px;
+}
+
+:root[data-color-theme="retro-mac"] .explorer-search-field:focus-within {
+  outline: 1px solid var(--explorer-ink);
+  outline-offset: 2px;
+}
+
+:root[data-color-theme="retro-mac"] .explorer-search-entry,
+:root[data-color-theme="retro-mac"] .explorer-search-close,
+:root[data-color-theme="retro-mac"] .explorer-search-retry,
+:root[data-color-theme="retro-mac"] .explorer-search-undo {
+  background: var(--explorer-paper);
+  border: var(--explorer-rule);
+  border-radius: 0;
+  color: var(--explorer-ink);
+  font-family: var(--theme-font);
+  font-size: 10px;
+  padding: 2px 4px;
+}
+
+:root[data-color-theme="retro-mac"] .explorer-search-status,
+:root[data-color-theme="retro-mac"] .explorer-reveal-status,
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-search-undo-status"] {
+  background: var(--explorer-paper);
+  border: var(--explorer-rule);
+  border-radius: 0;
+  color: var(--explorer-ink);
+  font-family: var(--theme-font);
+  font-size: 10px;
+  line-height: 1.5;
+  min-height: 24px;
+  padding: 4px 8px;
+}
+
+:root[data-color-theme="retro-mac"] .explorer-search-results {
+  background: var(--explorer-paper);
+  border: var(--explorer-rule);
+  gap: 0;
+  margin-block-start: 8px;
+  padding: 0;
+  scrollbar-width: none;
+}
+
+:root[data-color-theme="retro-mac"] .explorer-search-result {
+  border: 0;
+  border-block-end: var(--explorer-rule);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 8px;
+}
+
+:root[data-color-theme="retro-mac"] [data-triage-role="explorer-search-result-shell"][data-undo-state] {
+  gap: 4px;
+  padding: 4px;
 }
 
 :root[data-color-theme="graphite"] .explorer-search-body {
@@ -1500,14 +2508,33 @@
 }
 
 .placement-result-title-continue:focus-visible,
-.placement-direct-type-option button:focus-visible {
+.placement-direct-action:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
 .placement-direct-types {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-inline-size: 0;
+}
+
+.placement-direct-action {
+  flex: 0 0 auto;
+  inline-size: 100%;
+  min-width: 0;
+}
+
+.placement-direct-reasons {
   display: grid;
   gap: 0.375rem;
+  min-inline-size: 0;
+}
+
+.placement-direct-reasons .placement-direct-type-option {
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
 }
 
 .placement-direct-type-option {
@@ -1764,6 +2791,381 @@
     scroll-behavior: auto !important;
     transition: none !important;
   }
+}
+
+/* Task170 L5 Placement: shared roles, retro-mac values only. The column owns scroll. */
+:root {
+  --triage-placement-rail-height: 3rem;
+  --triage-placement-font: var(--theme-font);
+}
+
+.placement-reliability-slot {
+  min-block-size: var(--triage-placement-rail-height);
+  margin-block-start: 0.5rem;
+}
+
+.placement-reliability-slot .placement-reliability-rail {
+  margin-block-start: 0;
+}
+
+.placement-affordance,
+.placement-affordance * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.placement-staged-summary-row {
+  align-items: center;
+  display: grid;
+  gap: 0.375rem;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  min-inline-size: 0;
+}
+
+.placement-staged-information {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.placement-staged-summary-row .placement-reliability-actions {
+  align-self: center;
+  flex-wrap: nowrap;
+  margin-block-start: 0;
+}
+
+:root[data-color-theme="retro-mac"] {
+  --triage-placement-font: var(--font-geist-mono), monospace;
+  --triage-placement-surface: var(--triage-context-surface);
+  --triage-placement-ink: var(--triage-context-ink);
+  --triage-placement-border: 2px;
+  --triage-placement-shadow: 2px 2px 0 var(--triage-placement-ink);
+  --triage-placement-prompt-padding: 8px;
+  --triage-placement-card-padding: 4px;
+  --triage-placement-content-gap: 4px;
+  --triage-placement-rail-line-height: 14px;
+  --triage-placement-rail-padding: 2px;
+  --triage-placement-rail-height: calc(2 * var(--triage-placement-rail-line-height) + 2 * var(--triage-placement-rail-padding));
+  --triage-placement-strip-size: 7px;
+  --triage-placement-content-size: 9px;
+  --triage-placement-control-size: 8px;
+  --triage-placement-cancel-surface: hsl(var(--muted));
+  --triage-placement-cancel-border: 3px double var(--triage-placement-ink);
+  --triage-placement-staged-action-width: max-content;
+  --triage-placement-header-surface: #000;
+  --triage-placement-header-ink: #fff;
+  --triage-placement-cancel-ink: hsl(var(--muted-foreground));
+  --triage-placement-staged-action-padding: 1px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance {
+  background: var(--triage-placement-surface);
+  border: var(--triage-placement-border) solid var(--triage-placement-ink);
+  border-radius: 0;
+  box-shadow: var(--triage-placement-shadow);
+  color: var(--triage-placement-ink);
+  font-family: var(--triage-placement-font);
+  min-inline-size: 0;
+  padding: var(--triage-placement-card-padding);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance[data-placement-title-step] {
+  padding: var(--triage-placement-prompt-padding);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-direct-limit-shell,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-result-title-shell {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  gap: var(--triage-placement-content-gap);
+  padding: 0;
+  font-family: var(--triage-placement-font);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-direct-eyebrow,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-result-title-eyebrow {
+  background: hsl(var(--muted));
+  border-block-end: 1px solid var(--triage-placement-ink);
+  color: var(--triage-placement-ink);
+  font-size: var(--triage-placement-strip-size);
+  line-height: 16px;
+  letter-spacing: 0;
+  padding-inline: 4px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-direct-heading,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-result-title-heading {
+  font-size: 11px;
+  line-height: 16px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-confirm-heading {
+  font-size: var(--triage-placement-strip-size);
+  line-height: 12px;
+  text-transform: uppercase;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-confirm-source,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-result-title-source {
+  color: var(--triage-placement-ink);
+  font-size: var(--triage-placement-content-size);
+  font-weight: 700;
+  line-height: 14px;
+  overflow-wrap: anywhere;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-confirm-source {
+  text-transform: uppercase;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-target-path,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-source-truth,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-result-type {
+  color: var(--triage-placement-ink);
+  font-size: var(--triage-placement-content-size);
+  line-height: 14px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance:not([data-placement-title-step]) {
+  outline: 1px dotted var(--triage-placement-ink);
+  outline-offset: -3px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-direct-type-option {
+  border: 0;
+  box-shadow: none;
+  min-block-size: 22px;
+  padding: 0;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button {
+  background: var(--triage-placement-surface);
+  border: 1px solid var(--triage-placement-ink);
+  border-radius: 0;
+  box-shadow: 1px 1px 0 var(--triage-placement-ink);
+  color: var(--triage-placement-ink);
+  font-family: var(--triage-placement-font);
+  font-size: var(--triage-placement-control-size);
+  font-weight: 700;
+  height: 22px;
+  line-height: 12px;
+  min-inline-size: 0;
+  padding: 2px 8px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button:hover:not(:disabled):not([aria-disabled="true"]),
+:root[data-color-theme="retro-mac"] .triage-shell .placement-confirm:not(:disabled):not([aria-disabled="true"]),
+:root[data-color-theme="retro-mac"] .triage-shell .placement-result-title-continue:not(:disabled) {
+  background: var(--triage-placement-ink);
+  color: var(--triage-placement-surface);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button:focus-visible {
+  outline: 2px solid var(--triage-placement-ink);
+  outline-offset: 2px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button:disabled,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button[aria-disabled="true"] {
+  opacity: 0.58;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-reliability-actions {
+  justify-content: flex-end;
+  min-block-size: 22px;
+  margin-block-start: var(--triage-placement-content-gap);
+  gap: var(--triage-placement-content-gap);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-reliability-rail {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--triage-placement-ink);
+  font-family: var(--triage-placement-font);
+  min-block-size: var(--triage-placement-rail-height);
+  font-size: var(--triage-placement-content-size);
+  line-height: var(--triage-placement-rail-line-height);
+  padding: var(--triage-placement-rail-padding) 0;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-full-target-warning,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-direct-limit-summary {
+  background: var(--triage-placement-surface);
+  border: 3px double var(--triage-placement-ink);
+  color: var(--triage-placement-ink);
+  font-family: var(--triage-placement-font);
+  font-size: 10px;
+  line-height: 14px;
+  padding: 6px;
+}
+
+/* Compact spacing stays with retro-mac; the column retains all scroll ownership. */
+:root[data-color-theme="retro-mac"] .triage-shell .placement-direct-heading {
+  font-size: var(--triage-placement-strip-size);
+  line-height: 16px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-direct-types {
+  gap: var(--triage-placement-content-gap);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-direct-action {
+  padding-inline: 1px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-direct-cancel {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--triage-placement-cancel-ink);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-summary-row {
+  gap: var(--triage-placement-content-gap);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-summary-row .placement-reliability-actions {
+  font-family: var(--triage-placement-font);
+  font-size: var(--triage-placement-control-size);
+  min-inline-size: var(--triage-placement-staged-action-width);
+  margin-block-start: 0;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-summary-row .placement-reliability-action {
+  padding-inline: var(--triage-placement-staged-action-padding);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-confirm-source {
+  margin-block-start: 2px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-result-type,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-reliability-slot {
+  margin-block-start: var(--triage-placement-content-gap);
+}
+
+/* Cycle5 presentation retains the actual commands and owning column scroll. */
+.placement-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-inline-size: 0;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-header {
+  background: var(--triage-placement-header-surface);
+  color: var(--triage-placement-header-ink);
+  padding-inline: 4px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-header .placement-direct-heading,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-header .placement-confirm-heading {
+  background: transparent;
+  border: 0;
+  color: var(--triage-placement-header-ink);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-header-close,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-header-close:hover:not([aria-disabled="true"]) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--triage-placement-header-ink);
+  flex: 0 0 22px;
+  padding: 0;
+  font-size: 14px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-header-close:focus-visible {
+  outline-color: var(--triage-placement-header-ink);
+  outline-offset: -2px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-direct-type:focus:not(:disabled) {
+  background: var(--triage-placement-ink);
+  color: var(--triage-placement-surface);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-direct-cancel:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: transparent;
+  color: var(--triage-placement-ink);
+  text-decoration: underline;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-direct-limit-shell .placement-result-title-source,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-information .placement-confirm-source {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-type-row .placement-staged-type {
+  border: 1px solid var(--triage-placement-ink);
+  display: inline-block;
+  font-size: 8px;
+  line-height: 12px;
+  padding-inline: 3px;
+}
+
+/* Cycle6 selected frames: flush strip, inset content and a separate type row. */
+.placement-staged-type-row {
+  align-items: flex-start;
+  display: flex;
+  min-inline-size: 0;
+}
+
+:root[data-color-theme="retro-mac"] {
+  --triage-placement-body-inset: 4px;
+  --triage-placement-frame-gap: 2px;
+  --triage-placement-title-size: 11px;
+  --triage-placement-title-line-height: 16px;
+  --triage-placement-title-padding: 6px;
+  --triage-placement-action-padding-block: 3px;
+  --triage-placement-action-padding-inline: 2px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance[data-placement-frame] {
+  outline: none;
+  padding: 0;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-frame-body {
+  display: grid;
+  gap: var(--triage-placement-frame-gap);
+  min-inline-size: 0;
+  padding: var(--triage-placement-body-inset);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance[data-placement-frame] .placement-header h3 {
+  padding-inline: 0;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance[data-placement-frame] .placement-confirm-source {
+  font-size: var(--triage-placement-title-size);
+  line-height: var(--triage-placement-title-line-height);
+  margin-block-start: 0;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-direct-limit-shell .placement-result-title-source {
+  font-size: calc(var(--triage-placement-title-size) + 1px);
+  line-height: calc(var(--triage-placement-title-line-height) + 2px);
+  margin: 0;
+  padding-block: var(--triage-placement-title-padding);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-summary-row .placement-reliability-action {
+  height: auto;
+  padding-block: var(--triage-placement-action-padding-block);
+  padding-inline: var(--triage-placement-action-padding-inline);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-type-row .placement-staged-type,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-frame-body .placement-reliability-slot {
+  margin-block-start: 0;
 }
 
 /* DP-VQ10 layers static Newly/Undo roles around the unchanged actual card. */
@@ -2287,6 +3689,77 @@
   padding-inline: 0.75rem;
 }
 
+.triage-shell__section-heading {
+  height: var(--triage-frame-heading-size, 2rem);
+  background: var(--triage-frame-surface, hsl(var(--muted) / 0.3));
+  font-size: var(--triage-frame-heading-font-size, 12px);
+  font-weight: var(--triage-frame-heading-weight, 600);
+  justify-content: var(--triage-frame-heading-justify, flex-start);
+  letter-spacing: var(--triage-frame-heading-tracking, normal);
+  position: relative;
+  text-transform: var(--triage-pool-row-title-transform, none);
+}
+
+.triage-shell__section-heading::before {
+  background-image: var(--triage-frame-title-stripes, none);
+  block-size: 14px;
+  content: "";
+  inset-inline: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.triage-shell__section-heading::after {
+  background: var(--triage-frame-close-fill, transparent);
+  border: 1px solid hsl(var(--border));
+  box-shadow: inset 1px 1px 0 hsl(var(--background) / 0.7);
+  content: "";
+  display: var(--triage-frame-close-display, none);
+  inline-size: 14px;
+  block-size: 14px;
+  inset-inline-start: 8px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.triage-shell__heading-label {
+  background: var(--triage-frame-surface, transparent);
+  padding-inline: var(--triage-frame-title-label-padding, 0px);
+  position: relative;
+}
+
+.triage-shell__section-heading--explorer {
+  height: var(--triage-explorer-heading-size, 2rem);
+  justify-content: var(--triage-explorer-heading-justify, var(--triage-frame-heading-justify, flex-start));
+}
+
+.triage-shell__section-heading--explorer::after { display: none; }
+
+.triage-shell__heading-label--explorer {
+  font-size: var(--triage-explorer-heading-label-size, inherit);
+  letter-spacing: normal;
+  align-items: center;
+  border: var(--triage-explorer-heading-badge-border, 0px) solid hsl(var(--border));
+  border-radius: 2px;
+  display: inline-flex;
+  padding: var(--triage-explorer-heading-badge-padding, 0px);
+}
+
+.triage-shell__explorer-icon {
+  display: var(--triage-explorer-heading-icon-display, none);
+  inline-size: 14px;
+  block-size: 14px;
+  margin-inline-end: 8px;
+}
+
+.triage-shell__heading-label--explorer::after {
+  content: var(--triage-explorer-heading-alias, none);
+  font-size: var(--triage-explorer-heading-font-size, var(--triage-frame-heading-font-size, 12px));
+  letter-spacing: var(--triage-frame-heading-tracking, normal);
+}
+
 .triage-shell__subsection-heading {
   color: hsl(var(--muted-foreground));
   font-size: 0.625rem;
@@ -2313,13 +3786,193 @@
 }
 
 .triage-shell [data-triage-role="section-surface"] {
-  background: hsl(var(--card));
+  background: var(--triage-frame-surface, hsl(var(--card)));
   border-color: hsl(var(--border));
 }
 
 .triage-shell [data-triage-role="section-header"]:focus-visible {
-  outline: 2px solid hsl(var(--ring));
+  outline: 2px solid var(--triage-frame-focus-color, hsl(var(--ring)));
   outline-offset: -2px;
+}
+
+/* L3 common owners; retro-mac aliases bind the same semantic tree. */
+.triage-staging__viewport { padding: 0.75rem; }
+.triage-staging__bit-icon { display: none; }
+.triage-staging__remove { animation: none; }
+.triage-staging__remove-default-icon { display: var(--triage-staging-remove-default-icon-display, block); }
+.triage-staging__remove-trash { display: var(--triage-staging-remove-trash-display, none); }
+.triage-staging:has([data-triage-role="staging-unstage-target"]) .triage-staging__well {
+  padding-block-end: 3rem;
+}
+
+:root[data-color-theme="retro-mac"] {
+  --triage-staging-font: var(--font-space-mono), monospace;
+  --triage-staging-ink: hsl(var(--foreground));
+  --triage-staging-surface: hsl(var(--background));
+  --triage-staging-border: 2px solid var(--triage-staging-ink);
+  --triage-staging-shadow: 2px 2px 0 var(--triage-staging-ink);
+  --triage-staging-icon-frame: 1px solid hsl(var(--foreground) / 0.35);
+  --triage-staging-gap: 0.75rem;
+  --triage-staging-padding: 0.5rem;
+  --triage-staging-node-height: 60px;
+  --triage-staging-bit-height: 36px;
+  --triage-staging-footer-height: 16px;
+  --triage-staging-arrival-height: 14px;
+  --triage-staging-hover-pattern: repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.12) 0 4px, transparent 4px 8px);
+  --triage-staging-remove-default-icon-display: none;
+  --triage-staging-remove-trash-display: block;
+  --triage-staging-remove-height: 60px;
+  --triage-staging-remove-inset: 12px;
+  --triage-staging-remove-radius: 4px;
+  --triage-staging-remove-hover-surface: hsl(var(--foreground));
+  --triage-staging-remove-hover-ink: hsl(var(--background));
+  --triage-return-positive: 142 68% 30%;
+  --triage-return-positive-ink: hsl(var(--triage-return-positive));
+  --triage-return-idle-surface: color-mix(in srgb, hsl(var(--triage-return-positive) / 0.90) 4%, hsl(var(--card) / 0.90));
+  --triage-return-hover-surface: color-mix(in srgb, hsl(var(--triage-return-positive) / 0.90) 12%, hsl(var(--card) / 0.90));
+  --triage-finder-unavailable-surface: color-mix(in srgb, hsl(var(--destructive) / 0.90) 12%, hsl(var(--card) / 0.90));
+}
+
+/* The existing shell pattern remains visible through the regional gaps. */
+:root[data-color-theme="retro-mac"] .triage-shell__main { background-color: transparent; }
+
+:root[data-color-theme="retro-mac"] .triage-staging .triage-shell__staging {
+  padding: var(--triage-staging-gap);
+  gap: var(--triage-staging-gap);
+}
+:root[data-color-theme="retro-mac"] .triage-staging__subsection {
+  background: var(--triage-staging-surface);
+  border: var(--triage-staging-border);
+  padding: var(--triage-staging-padding);
+}
+:root[data-color-theme="retro-mac"] .triage-staging .triage-shell__subsection-heading {
+  background: transparent; border-bottom: 1px solid var(--triage-staging-ink);
+  color: var(--triage-staging-ink);
+  font-family: var(--triage-staging-font); font-size: 9px; font-weight: 700;
+  height: auto; min-height: 19px; line-height: 13.5px;
+  justify-content: center; padding: 0 0 4px; margin-bottom: 8px;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__viewport { padding: 0; }
+:root[data-color-theme="retro-mac"] .triage-staging .staging-arrival-count {
+  block-size: var(--triage-staging-arrival-height); flex-shrink: 0;
+  line-height: 10px; padding: 0 2px;
+}
+:root[data-color-theme="retro-mac"] .triage-staging :is([data-triage-drag-source="staged-root"], h3):focus-visible {
+  outline: 2px solid var(--triage-staging-ink); outline-offset: 2px;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__well {
+  border-radius: 0; font-family: var(--triage-staging-font);
+  background: transparent;
+  transition: none;
+  padding-block-end: 0;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__well[data-triage-state="neutral"] {
+  background: transparent; border-color: transparent; box-shadow: none;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__well:is([data-triage-state="invalid"], [data-triage-state="unavailable"]) {
+  background: transparent; border: 1px dashed hsl(var(--muted-foreground));
+  color: hsl(var(--muted-foreground)); box-shadow: none;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__subsection:has(.triage-staging__well[data-triage-hover="true"]) {
+  background-image: var(--triage-staging-hover-pattern);
+}
+:root[data-color-theme="retro-mac"] .triage-staging__node,
+:root[data-color-theme="retro-mac"] .triage-staging__bit,
+:root[data-color-theme="retro-mac"] .staging-node-status-card,
+:root[data-color-theme="retro-mac"] .staging-bit-status-row {
+  background: var(--triage-staging-surface); border: var(--triage-staging-border);
+  border-radius: 0; box-shadow: var(--triage-staging-shadow);
+  color: var(--triage-staging-ink); font-family: var(--triage-staging-font);
+}
+:root[data-color-theme="retro-mac"] .triage-staging__node,
+:root[data-color-theme="retro-mac"] .staging-node-status-card {
+  aspect-ratio: auto; height: var(--triage-staging-node-height); min-height: var(--triage-staging-node-height);
+  max-width: none; max-inline-size: none;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__node-content {
+  display: grid; grid-template-rows: 20px 12px;
+  justify-items: center; padding: 8px; gap: 8px;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__node-content:has(.staging-operation-status) {
+  grid-template-rows: 20px 12px var(--triage-staging-footer-height);
+  padding: 4px; gap: 0;
+}
+:root[data-color-theme="retro-mac"] .staging-node-status-card {
+  display: grid; grid-template-rows: 20px var(--triage-staging-footer-height);
+  align-content: center; justify-items: center; gap: 4px; padding: 4px;
+}
+:root[data-color-theme="retro-mac"] .staging-node-status-card > svg,
+:root[data-color-theme="retro-mac"] .triage-staging__node-content > svg {
+  height: 20px; width: 20px; color: inherit;
+  border: var(--triage-staging-icon-frame); padding: 3px;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__node-label {
+  margin-top: 0; padding: 0; font-size: 8px; line-height: 12px; font-weight: 700; text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__bit {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr); grid-template-rows: 20px;
+  gap: 0 8px; padding: 6px 8px; height: var(--triage-staging-bit-height); min-height: var(--triage-staging-bit-height);
+}
+:root[data-color-theme="retro-mac"] .triage-staging__bit > div:first-of-type {
+  grid-column: 2; grid-row: 1 / -1; align-self: center;
+  font-size: 9px; line-height: 13.5px; font-weight: 700; text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__bit:has(.staging-operation-status) {
+  grid-template-rows: 12px 12px; padding: 4px 8px;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__bit:has(.staging-operation-status) > div:first-of-type {
+  grid-row: 1; line-height: 12px;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__bit-icon {
+  display: block; grid-column: 1; grid-row: 1 / -1; align-self: center;
+  flex-shrink: 0; width: 20px; height: 20px;
+  border: var(--triage-staging-icon-frame); padding: 4px;
+}
+:root[data-color-theme="retro-mac"] .staging-bit-status-row {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr); grid-template-rows: 12px 12px;
+  gap: 0 8px; padding: 4px 8px; height: var(--triage-staging-bit-height);
+}
+:root[data-color-theme="retro-mac"] .staging-operation-status,
+:root[data-color-theme="retro-mac"] [data-triage-role="staging-integrity-status"] {
+  width: 100%; font-family: var(--triage-staging-font); color: var(--triage-staging-ink);
+}
+:root[data-color-theme="retro-mac"] :is(.triage-staging__bit, .staging-bit-status-row) > :is(.staging-operation-status, [data-triage-role="staging-integrity-status"]) {
+  grid-column: 2; grid-row: 2; font-size: 8px; line-height: 10px;
+  min-block-size: 12px; padding-block-start: 0;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__remove {
+  font-family: var(--triage-staging-font); font-size: 10px;
+  inset-inline: var(--triage-staging-remove-inset);
+  bottom: var(--triage-staging-remove-inset);
+  height: var(--triage-staging-remove-height);
+  width: auto;
+  border: var(--triage-staging-border);
+  border-radius: var(--triage-staging-remove-radius);
+  background: var(--triage-staging-surface);
+  color: var(--triage-staging-ink);
+  transition: none;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__remove[data-triage-state="active-hover"] {
+  background: var(--triage-staging-remove-hover-surface);
+  color: var(--triage-staging-remove-hover-ink);
+}
+:root[data-color-theme="retro-mac"] .triage-breakdown__return {
+  background: var(--triage-return-idle-surface);
+  color: var(--triage-return-positive-ink);
+  transition: none;
+}
+:root[data-color-theme="retro-mac"] .triage-breakdown__return[data-drop-active="true"] {
+  background: var(--triage-return-hover-surface);
+  border-color: hsl(var(--destructive));
+  color: var(--triage-return-positive-ink);
+}
+:root[data-color-theme="retro-mac"] .triage-drag-token {
+  background: var(--triage-staging-surface); border: var(--triage-staging-border);
+  border-radius: 0; box-shadow: var(--triage-staging-shadow);
+  color: var(--triage-staging-ink); font-family: var(--triage-staging-font);
+}
+:root[data-color-theme="retro-mac"] .triage-drag-token > span {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
 }
 
 /* DP-VQ06-STAGING stays attached to its candidate, subsection, or Staging title. */
@@ -2709,13 +4362,23 @@
   animation: breakdown-success-wash 600ms ease-out forwards;
 }
 
+/* Inherit the existing row timeline into a theme's painted surface without
+   starting a second animation when the theme changes. */
+@property --breakdown-success-wash-progress {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
 @keyframes breakdown-success-wash {
   from {
+    --breakdown-success-wash-progress: 1;
     background-color: hsl(var(--primary) / 0.16);
     border-color: hsl(var(--primary) / 0.7);
     box-shadow: var(--breakdown-success-shadow);
   }
   to {
+    --breakdown-success-wash-progress: 0;
     background-color: transparent;
     border-color: hsl(var(--border) / 0.3);
     box-shadow: none;
@@ -2753,6 +4416,7 @@
 @media (prefers-reduced-motion: reduce) {
   [data-triage-role="breakdown-active-row"][data-triage-state~="success"] {
     animation: none;
+    --breakdown-success-wash-progress: 1;
     background-color: hsl(var(--primary) / 0.16);
     border-color: hsl(var(--primary) / 0.7);
     box-shadow: var(--breakdown-success-shadow);
@@ -2914,6 +4578,10 @@
   flex: 1;
   justify-content: center;
   padding: 1rem;
+}
+
+.archive-confirmation-detail {
+  display: none;
 }
 
 .archive-card,
@@ -3489,4 +5157,741 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+
+/* Shared L2 structure: only central theme bindings choose its appearance. */
+.triage-shell [data-triage-role="context-timestamp-prefix"] {
+  display: none;
+  pointer-events: none;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-timestamp-prefix"] {
+  display: inline;
+}
+
+.triage-shell [data-triage-role="context-title-strip"],
+.triage-shell [data-triage-role="context-folder-icon"],
+.triage-shell [data-triage-role="breakdown-empty-object"] { display: none; }
+.triage-shell [data-triage-role="context-identity-object"] { display: contents; }
+[data-triage-role="context-sort-current-label"] { display: inline; }
+[data-triage-role="context-sort-next-label"] { display: none; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-current-label"] { display: none; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-edit-label"],
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-icon"] { display: none; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-next-label"] { display: inline; }
+
+:root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-context {
+  block-size: var(--triage-context-height);
+  min-block-size: var(--triage-context-height);
+  max-block-size: var(--triage-context-height);
+  box-sizing: border-box;
+  background: var(--triage-context-surface);
+  border: var(--triage-context-frame-size) var(--triage-context-frame-style) var(--triage-context-ink);
+  border-radius: 0;
+  box-shadow: var(--triage-context-shadow);
+  color: var(--triage-context-ink);
+  column-gap: var(--triage-context-gap);
+  font-family: var(--triage-context-font);
+  grid-template-columns: var(--triage-context-icon-size) minmax(0, 1fr) var(--triage-fixed-action-inline-size);
+  padding: var(--triage-context-padding);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-title-strip"] {
+  background: var(--triage-context-ink);
+  block-size: var(--triage-context-strip-height);
+  color: var(--triage-context-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: var(--triage-context-strip-inline-padding);
+  font-size: var(--triage-context-strip-text-size);
+  font-weight: var(--triage-context-strip-text-weight);
+  line-height: var(--triage-context-strip-height);
+  letter-spacing: var(--triage-context-strip-tracking);
+  inset-block-start: 0;
+  inset-inline: 0;
+  position: absolute;
+  pointer-events: none;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-identity-object"] {
+  background: hsl(var(--muted));
+  border: 2px solid var(--triage-context-ink);
+  box-shadow: 1px 1px 0 var(--triage-context-ink);
+  display: grid;
+  place-items: center;
+  inline-size: var(--triage-context-icon-size);
+  block-size: var(--triage-context-icon-size);
+  position: relative;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-identity-object"]::before {
+  background: currentColor;
+  block-size: 4px;
+  content: "";
+  inset-block-start: 4px;
+  inset-inline: 4px;
+  opacity: 0.3;
+  position: absolute;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-base-icon"] { display: none; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-folder-icon"] {
+  display: block; inline-size: 14px; block-size: 14px; margin-block-start: 8px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-title"] {
+  font-family: var(--triage-context-font);
+  font-size: var(--triage-context-title-size);
+  font-weight: var(--triage-context-title-weight);
+  line-height: var(--triage-context-title-line);
+  margin-block-start: 2px;
+  block-size: var(--triage-context-title-slot-height);
+  display: flex; align-items: center;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-eyebrow-meta"],
+:root[data-color-theme="retro-mac"] .triage-shell .context-completion-blocker-mark {
+  color: hsl(var(--muted-foreground));
+  font-family: var(--triage-context-font);
+  font-size: var(--triage-context-meta-size);
+  font-weight: 700;
+  letter-spacing: normal;
+  line-height: var(--triage-context-meta-line);
+  text-transform: none;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-timestamp"] {
+  color: hsl(var(--muted-foreground)); font-family: var(--triage-context-font);
+  font-size: var(--triage-context-time-size); line-height: var(--triage-context-time-line);
+  margin-block-start: 4px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-action-slot"] {
+  align-items: flex-start; padding-block-start: 4px; padding-inline: 0;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-edit-control"],
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-control"] {
+  background: var(--triage-context-surface); border: 1px solid var(--triage-context-ink);
+  border-radius: 0; color: var(--triage-context-ink); gap: 4px;
+  height: var(--triage-context-edit-size); padding: 0 4px;
+  font-family: var(--triage-context-font); font-size: var(--triage-context-sort-size);
+  box-shadow: none;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-edit-control"] {
+  inline-size: var(--triage-context-edit-size);
+  padding: 0;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-control"] {
+  background: var(--triage-context-sort-fill); border-radius: 2px; font-weight: 900;
+  line-height: 8px; height: 18px; box-shadow: 1px 1px 0 var(--triage-context-ink);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-action-cluster"] { align-items: center; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-action-cluster"] svg { width: 10px; height: 10px; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-edit-control"]:hover,
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-edit-control"]:focus-visible {
+  background: var(--triage-context-ink); color: var(--triage-context-surface);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-control"]:hover { background: var(--triage-context-sort-hover); }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-control"]:focus-visible {
+  background: var(--triage-context-ink); color: var(--triage-context-surface);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"] [data-triage-role="context-title"] { text-decoration: line-through; opacity: 0.4; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-content-viewport"] { padding: 8px 16px; background: var(--triage-context-surface); }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-row-list"] { margin-block-start: 32px; }
+:root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-breakdown-row {
+  border: 0; padding: 0 8px var(--triage-breakdown-row-gap);
+  background-color: var(--triage-context-surface); font-family: var(--triage-breakdown-font);
+  column-gap: 8px; isolation: isolate;
+  grid-template-columns: 1.75rem minmax(0, 1fr) var(--triage-breakdown-success-reserve) var(--triage-fixed-action-inline-size);
+}
+:root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-breakdown-row::before {
+  background: inherit; block-size: var(--triage-breakdown-painted-height);
+  border: var(--triage-breakdown-row-frame) solid var(--triage-context-ink);
+  box-shadow: var(--triage-breakdown-row-shadow); content: "";
+  inset-block-start: 0; inset-inline: 0; pointer-events: none; position: absolute; z-index: -1;
+}
+/* The logical 48px row includes an 8px gap below its 40px frame. Keep the
+   shared success animation on the row, but paint its inherited progress only
+   inside that frame. Important overrides suppress the keyframe's parent paint. */
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-active-row"][data-triage-state~="success"] {
+  background-color: var(--triage-context-surface) !important;
+  box-shadow: none !important;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-active-row"][data-triage-state~="success"]::after {
+  background: hsl(var(--primary) / 0.16);
+  block-size: var(--triage-breakdown-painted-height);
+  border: var(--triage-breakdown-row-frame) solid hsl(var(--primary) / 0.7);
+  box-shadow: var(--breakdown-success-shadow);
+  content: "";
+  inset-block-start: 0;
+  inset-inline: 0;
+  opacity: var(--breakdown-success-wash-progress);
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-staged-row"]::before {
+  border-style: dotted; box-shadow: none;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-view-text"] {
+  font-size: var(--triage-breakdown-title-size); font-weight: 700; line-height: 16.5px;
+  letter-spacing: -0.025em; text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-grip-control"],
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-row-action"] {
+  background: var(--triage-context-surface); border: 1px solid var(--triage-context-ink);
+  border-radius: 0; color: var(--triage-context-ink);
+  width: var(--triage-breakdown-control-size); height: var(--triage-breakdown-control-size);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-row-action"] svg,
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-grip-control"] svg { width: 12px; height: 12px; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-action-slot"] { gap: var(--triage-breakdown-control-gap); }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-row-action"]:not(:disabled):hover,
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-grip-control"]:not(:disabled):hover,
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-row-action"]:focus-visible {
+  background: var(--triage-context-ink); color: var(--triage-context-surface);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-add-footer"] {
+  background: var(--page-bg); border-block-start: 2px solid var(--triage-context-ink);
+  padding: var(--triage-breakdown-footer-padding);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-add-field"] {
+  background: var(--triage-context-surface); border: 2px solid var(--triage-context-ink);
+  border-radius: 0; font-family: var(--triage-breakdown-font); font-size: var(--triage-breakdown-field-size);
+  font-weight: 700; letter-spacing: 0.1em; padding-inline: 12px; text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-add-field"]:focus {
+  background: var(--triage-context-ink); color: var(--triage-context-surface);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-add-control"] {
+  background: var(--triage-context-surface); border: 2px solid var(--triage-context-ink);
+  border-radius: 0; box-shadow: var(--triage-breakdown-row-shadow);
+  color: var(--triage-context-ink); font-family: var(--triage-breakdown-font);
+  font-size: var(--triage-breakdown-field-size); font-weight: 700;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-ordinary-empty"],
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-consumed-completion"] {
+  border: 0; border-radius: 0; background: transparent; font-family: var(--triage-breakdown-font);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-ordinary-empty"] > svg { display: none; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-ordinary-empty"] [data-triage-role="breakdown-empty-object"] {
+  display: block; width: 48px; height: 44px; border: 2px solid var(--triage-context-ink);
+  background: var(--triage-context-surface); box-shadow: var(--triage-breakdown-row-shadow); position: relative;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-empty-object"]::before,
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-empty-object"]::after {
+  content: ""; position: absolute; background: var(--triage-context-ink);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-empty-object"]::before { height: 2px; width: 16px; top: 8px; left: 12px; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-empty-object"]::after { height: 4px; width: 32px; bottom: 8px; left: 6px; opacity: 0.6; }
+:root[data-color-theme="retro-mac"] .triage-shell .triage-inline-editor__field {
+  border-radius: 0; font-family: var(--triage-context-font); font-size: 13px; border-color: var(--triage-context-ink);
+}
+:root[data-color-theme="retro-mac"] .triage-shell .triage-inline-editor__issue-overlay {
+  background: var(--triage-context-surface); border: 2px solid var(--triage-context-ink);
+}
+:root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-context .triage-inline-editor__issue-overlay [data-triage-role="inline-editor-issue-actions"] {
+  flex-wrap: wrap; white-space: normal; max-inline-size: var(--triage-fixed-action-inline-size);
+}
+:root[data-color-theme="retro-mac"] .triage-shell .triage-inline-editor__issue-overlay [data-triage-role="inline-editor-issue-status"] {
+  font-family: var(--triage-context-font); font-size: 10px; line-height: 14px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-context .triage-inline-editor__actions:has([data-triage-role="inline-editor-progress"]) {
+  flex-direction: column; align-items: flex-end; white-space: normal;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-context [data-triage-role="inline-editor-progress"] {
+  font-family: var(--triage-context-font); font-size: 10px; line-height: 12px;
+  white-space: normal; overflow-wrap: anywhere; max-inline-size: 100%;
+}
+
+/* Stable title slot fits both the view text and the actual single-line editor. */
+:root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-context .triage-inline-editor {
+  margin-block-start: 2px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-context .triage-inline-editor__field {
+  block-size: var(--triage-context-title-slot-height); padding-block: 0;
+  line-height: var(--triage-context-title-line);
+}
+:root[data-color-theme="retro-mac"] .triage-shell .breakdown-success-status {
+  font-size: 10px; line-height: 12px; white-space: normal;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-consumed-completion"] > svg {
+  border: 2px solid var(--triage-context-ink); border-radius: 0;
+  block-size: 40px; inline-size: 40px; padding: 8px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-content-viewport"]:has([data-triage-role="breakdown-ordinary-empty"]) {
+  background-image: linear-gradient(45deg, hsl(var(--foreground) / 0.015) 25%, transparent 25%, transparent 75%, hsl(var(--foreground) / 0.015) 75%), linear-gradient(45deg, hsl(var(--foreground) / 0.015) 25%, transparent 25%, transparent 75%, hsl(var(--foreground) / 0.015) 75%);
+  background-size: 16px 16px; background-position: 0 0, 8px 8px;
+}
+/* Decorative identity yields space at the approved bounded viewport; controls
+   and all source-bound C1 copy remain mounted in their existing semantic slots. */
+@media (max-width: 1100px) {
+  :root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-context {
+    grid-template-columns: minmax(0, 1fr) var(--triage-fixed-action-inline-size);
+    column-gap: 0; padding: var(--triage-context-small-padding);
+  }
+  :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-identity-object"] { display: none; }
+  :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-eyebrow-meta"],
+  :root[data-color-theme="retro-mac"] .triage-shell .context-completion-blocker-mark {
+    block-size: var(--triage-context-small-meta-height); flex-shrink: 0;
+  }
+}
+
+/* One Explorer section header; search input remains owned by SearchResults. */
+.explorer-header.triage-shell__section-heading {
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.explorer-header__identity {
+  flex: none;
+  margin: 0;
+  min-width: 0;
+  position: relative;
+}
+
+.explorer-header .triage-shell__explorer-icon {
+  display: var(--triage-explorer-heading-icon-display, block);
+}
+
+.explorer-header__control {
+  background: var(--triage-frame-surface, hsl(var(--background)));
+  display: flex;
+  flex: 0 1 auto;
+  max-width: 60%;
+  min-width: 0;
+  position: relative;
+  text-transform: none;
+}
+
+.explorer-header .explorer-search-field {
+  padding-block: 2px;
+  width: 100%;
+}
+
+.explorer-home-entry:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+
+/* Task170 Cycle7: ordinary Finder paint and Placement-only frame roles. */
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-viewport"] {
+  --triage-explorer-card-node-surface: var(--triage-staging-surface);
+  --triage-explorer-card-bit-surface: var(--triage-staging-surface);
+  position: relative;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance {
+  margin-inline: 0;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-viewport"]:has([data-triage-role="placement-affordance"]),
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-node-target"][data-triage-target-state="pending-confirmation"] {
+  border-width: 0;
+  outline: none;
+  box-shadow: none;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-node-target"] {
+  position: relative;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+  background-image: none;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.18) 0 4px, transparent 4px 8px);
+  outline: 2px solid var(--explorer-ink);
+  outline-offset: -2px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
+  background-image: repeating-conic-gradient(hsl(var(--foreground) / 0.18) 0% 25%, transparent 0% 50%);
+  background-size: 2px 2px;
+  outline: 3px double var(--explorer-ink);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"] {
+  outline-color: hsl(var(--destructive));
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"]::after {
+  background-image: repeating-conic-gradient(hsl(var(--destructive) / 0.18) 0% 25%, transparent 0% 50%);
+  outline-color: hsl(var(--destructive));
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-header-close,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-header-close:hover:not([aria-disabled="true"]) {
+  font-size: var(--triage-placement-strip-size);
+}
+
+:root[data-color-theme="retro-mac"] {
+  /* Fresh short Staged baseline106px,70% floor; natural content may grow. */
+  --triage-placement-staged-min-height: 74.2px;
+  --triage-placement-staged-control-size: 9px;
+  --triage-placement-staged-control-padding-block: 4px;
+  --triage-placement-staged-control-padding-inline: 3px;
+  --triage-placement-staged-reserve: 6.2px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-shell[data-placement-frame] {
+  min-block-size: var(--triage-placement-staged-min-height);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-shell .placement-frame-body {
+  padding: 2px;
+  gap: 1px;
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-shell .placement-frame-body .placement-reliability-slot {
+  min-block-size: var(--triage-placement-staged-reserve);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-shell .placement-staged-summary-row :is(.placement-cancel, .placement-confirm) {
+  font-size: var(--triage-placement-staged-control-size);
+  padding-block: var(--triage-placement-staged-control-padding-block);
+  padding-inline: var(--triage-placement-staged-control-padding-inline);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-shell .placement-staged-summary-row .placement-cancel:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--triage-placement-surface);
+  color: var(--triage-placement-ink);
+}
+
+:root[data-color-theme="retro-mac"] .triage-shell .placement-staged-shell .placement-staged-summary-row .placement-confirm:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--triage-placement-ink);
+  color: var(--triage-placement-surface);
+}
+
+/* Ordinary Finder amendment: stable internal action slot, centered NEW/content.
+   The Node contour/navigation remains the actual button; Undo is its sibling. */
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-newly-placed="true"] {
+  --newly-action-reserve: 34px;
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"][data-newly-placed="true"] {
+  flex-wrap: nowrap;
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][data-newly-placed="true"] {
+  padding-inline-end: var(--newly-action-reserve);
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-newly-placed="true"] [data-triage-role="explorer-card-marker"] {
+  align-self: center;
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-undo"] {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  min-inline-size: 24px;
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] [data-triage-role="explorer-card-undo"] {
+  position: absolute;
+  inset-inline-end: 5px;
+  inset-block-start: 50%;
+  bottom: auto;
+  margin: 0;
+  transform: translateY(-50%);
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"][data-newly-placed="true"] {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][data-newly-placed="true"] {
+  padding-inline-end: var(--newly-action-reserve);
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-newly-placed="true"] [data-triage-role="explorer-card-title-slot"] {
+  margin-inline-end: 0;
+}
+/* Portal content also needs the static contract; shared primitive stays intact. */
+.newly-undo-tooltip, .newly-undo-tooltip * {
+  animation: none !important;
+  transition: none !important;
+}
+.newly-undo-tooltip {
+  font-family: var(--theme-font);
+  max-inline-size: min(24rem, calc(100vw - 16px));
+}
+
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-newly-placed="true"],
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-newly-placed="true"] * {
+  animation: none !important;
+  transition: none !important;
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-newly-action-kind="recovery"] {
+  --newly-action-reserve: 6.25rem;
+}
+
+/* Task170 final P1-P8. Geometry/paint only; existing semantic targets remain. */
+:root[data-color-theme="retro-mac"] {
+  --triage-explorer-node-body-min-height: 44px;
+  --triage-explorer-node-body-padding-block: 8px;
+  --triage-placement-close-glyph-size: 9px;
+  --triage-finder-feedback-pattern: repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.18) 0 4px, transparent 4px 8px);
+  --triage-finder-feedback-surface: transparent;
+  --triage-finder-feedback-pattern-size: auto;
+  --triage-finder-feedback-outline: 2px solid var(--explorer-ink);
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] {
+  min-block-size: calc(var(--triage-explorer-node-body-min-height) + var(--triage-explorer-folder-rise));
+  padding-block-start: calc(var(--triage-explorer-node-body-padding-block) + var(--triage-explorer-folder-rise));
+  padding-block-end: var(--triage-explorer-node-body-padding-block);
+}
+:root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] [data-triage-role="explorer-card-undo"] {
+  inset-block-start: calc(50% + var(--triage-explorer-folder-rise) / 2);
+}
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+  --triage-finder-feedback-pattern: repeating-conic-gradient(hsl(var(--foreground) / 0.18) 0% 25%, transparent 0% 50%);
+  --triage-finder-feedback-pattern-size: 2px 2px;
+  --triage-finder-feedback-outline: 3px double var(--explorer-ink);
+}
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"] {
+  --triage-finder-feedback-pattern: repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.18) 0 4px, transparent 4px 8px);
+  --triage-finder-feedback-surface: var(--triage-finder-unavailable-surface);
+  --triage-finder-feedback-pattern-size: auto;
+  --triage-finder-feedback-outline: 2px solid var(--explorer-ink);
+  outline: var(--triage-finder-feedback-outline);
+}
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
+  background-image: var(--triage-finder-feedback-pattern);
+  background-color: var(--triage-finder-feedback-surface);
+}
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"]::after {
+  background-image: var(--triage-finder-feedback-pattern);
+  background-size: auto;
+  background-color: var(--triage-finder-feedback-surface);
+  outline: 2px solid var(--explorer-ink);
+  outline-offset: -2px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-node-target"][data-triage-feedback-source="node"][data-triage-target-state="invalid"][data-triage-paint-suppressed="unavailable"] {
+  background: transparent;
+  border-color: transparent;
+  outline: none;
+  box-shadow: none;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-node-target"][data-triage-feedback-source="node"][data-triage-target-state="invalid"][data-triage-paint-suppressed="unavailable"]::after {
+  content: none;
+}
+/* Local foreground coverage survives actual Bit z-10 paint and column scrolling. */
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-viewport"][data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"]) [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background-image: var(--triage-finder-feedback-pattern);
+  background-color: var(--triage-finder-feedback-surface);
+  background-size: var(--triage-finder-feedback-pattern-size);
+  outline: var(--triage-finder-feedback-outline);
+  outline-offset: -2px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-body"] > .triage-breakdown__return {
+  inset: 0;
+  border: 2px solid var(--explorer-ink);
+  border-radius: 0;
+  background-image: var(--triage-finder-feedback-pattern);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-body"] > .triage-breakdown__return[data-drop-active="true"] {
+  background-image: var(--triage-finder-feedback-pattern);
+  background-color: var(--triage-return-hover-surface);
+  border-color: var(--explorer-ink);
+  color: var(--triage-return-positive-ink);
+}
+:root[data-color-theme="retro-mac"] .triage-shell .triage-staging > [data-triage-role="staging-unstage-target"] {
+  position: static;
+  inset: auto;
+  flex: none;
+  width: auto;
+  align-self: stretch;
+  margin: 4px;
+}
+:root[data-color-theme="retro-mac"] .triage-staging:has([data-triage-role="staging-unstage-target"]) .triage-staging__well {
+  padding-block-end: 0;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-header-close,
+:root[data-color-theme="retro-mac"] .triage-shell .placement-affordance button.placement-header-close:hover:not([aria-disabled="true"]) {
+  font-size: var(--triage-placement-close-glyph-size);
+}
+
+.dark[data-color-theme="retro-mac"] {
+  --triage-return-positive: 142 65% 65%;
+}
+
+/* L6 (Task 171, retro-mac): Breakdown-scoped system alert for completion and Archive. */
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-operation-overlay {
+  background: hsl(var(--background) / 0.7);
+  backdrop-filter: blur(1px);
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card {
+  background: hsl(var(--background));
+  border: 4px double hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: 6px 6px 0 hsl(var(--foreground));
+  color: hsl(var(--foreground));
+  column-gap: 16px;
+  display: grid;
+  font-family: var(--triage-context-font);
+  grid-template-columns: 40px minmax(0, 1fr);
+  max-inline-size: 24rem;
+  min-block-size: 0;
+  padding: 24px;
+  text-align: start;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-status-mark {
+  align-self: start;
+  background: hsl(var(--background));
+  block-size: 40px;
+  border: 2px solid hsl(var(--foreground));
+  border-radius: 0;
+  color: hsl(var(--foreground));
+  font-size: 20px;
+  font-weight: 700;
+  grid-column: 1;
+  grid-row: 1;
+  inline-size: 40px;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-status-mark[data-archive-status-mark="confirmation"]::before {
+  content: "!";
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-status {
+  font-size: 10px;
+  font-weight: 700;
+  grid-column: 2;
+  grid-row: 1;
+  letter-spacing: 0.05em;
+  line-height: 14px;
+  margin-block-start: 0;
+  max-inline-size: none;
+  min-block-size: 14px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-confirmation-detail {
+  display: block;
+  font-size: 10px;
+  grid-column: 2;
+  grid-row: 2;
+  letter-spacing: 0.05em;
+  line-height: 14px;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  text-align: start;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-confirmation-detail strong {
+  font-weight: 800;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-confirmation-detail[data-archive-detail="reserved"] {
+  visibility: hidden;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-actions {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  gap: 12px;
+  justify-content: flex-end;
+  min-block-size: 0;
+  padding-block-start: 24px;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-current-action-slot {
+  min-block-size: 0;
+  min-inline-size: 0;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: none;
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 12px;
+  font-weight: 700;
+  height: auto;
+  letter-spacing: 0.05em;
+  line-height: 16px;
+  padding: 6px 16px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button.archive-current-action {
+  border-width: 2px;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:hover:not([aria-disabled="true"]):not(:disabled),
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:focus-visible {
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:active:not([aria-disabled="true"]):not(:disabled) {
+  transform: translate(1px, 1px);
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-status:focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+
+/* L6 Stage B (retro-mac): completed-file object, Reopen, blockers and withdrawal status. */
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-consumed-completion"] > span:not([data-triage-role]) {
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="archive-completion-reopen"] {
+  background: hsl(var(--background));
+  border: 2px solid hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: 2px 2px 0 hsl(var(--foreground));
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 10px;
+  font-weight: 700;
+  height: auto;
+  letter-spacing: 0.05em;
+  line-height: 14px;
+  padding: 4px 12px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="archive-completion-reopen"]:hover,
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="archive-completion-reopen"]:focus-visible {
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="archive-completion-reopen"]:focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="archive-completion-reopen"]:active {
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+:root[data-color-theme="retro-mac"] .triage-shell .breakdown-add-completion-blocker,
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-withdrawal-status {
+  background: hsl(var(--background));
+  border: 2px solid hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: 2px 2px 0 hsl(var(--foreground));
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 14px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-withdrawal-status [data-triage-role="archive-withdrawal-mark"] {
+  align-items: center;
+  border: 2px solid hsl(var(--foreground));
+  display: inline-flex;
+  flex: none;
+  font-size: 12px;
+  block-size: 20px;
+  inline-size: 20px;
+  justify-content: center;
+}
+:root[data-color-theme="retro-mac"] .triage-shell .context-completion-blocker-mark {
+  font-family: var(--triage-context-font);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }

@@ -54,6 +54,7 @@ describe("TriageDragToken", () => {
 
     const token = screen.getByText("Call Sam").parentElement;
     expect(token).toHaveClass("pointer-events-none", "h-8", "max-w-40");
+    expect(token).toHaveAttribute("data-triage-role", "drag-token");
     expect(token).toHaveAttribute("data-triage-drag-token", "triage-staged-bit");
     expect(token).toHaveAttribute("data-source-version", "1");
   });

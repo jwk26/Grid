@@ -19,6 +19,21 @@ type ReceiptCopyTask =
   | 162;
 
 export interface InboxTriageCopy {
+  readonly placementPresentation: {
+    readonly stagedConfirm: string;
+    readonly cancelPlacement: string;
+  };
+  readonly explorerBitStatus: {
+    readonly overdue: string;
+    readonly completed: string;
+  };
+  readonly contextPresentation: {
+    readonly folderDialogInfo: string;
+    readonly decorativeClose: string;
+    readonly lastStampPrefix: string;
+    readonly nextOldestFirst: string;
+    readonly nextNewestFirst: string;
+  };
   readonly sectionNames: {
     readonly scratchPool: string;
     readonly breakdown: string;
@@ -364,6 +379,21 @@ export interface InboxTriageCopy {
 const UNAVAILABLE = RECEIPT_COPY_UNAVAILABLE;
 
 export const INBOX_TRIAGE_COPY = {
+  placementPresentation: {
+    stagedConfirm: "OK",
+    cancelPlacement: "Cancel placement",
+  },
+  explorerBitStatus: {
+    overdue: "Overdue",
+    completed: "Completed",
+  },
+  contextPresentation: {
+    folderDialogInfo: "[ FOLDER DIALOG: INFO ]",
+    decorativeClose: "[X]",
+    lastStampPrefix: "LAST_STAMP:",
+    nextOldestFirst: "OLD FIRST",
+    nextNewestFirst: "NEW FIRST",
+  },
   sectionNames: {
     scratchPool: "Scratch Pool",
     breakdown: "Breakdown",
