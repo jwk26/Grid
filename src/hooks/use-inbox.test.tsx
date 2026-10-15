@@ -129,7 +129,9 @@ describe("useInbox", () => {
       expect(result.current.inboxNodeId).toBe(inbox.id);
     });
 
-    await result.current.createScratchBit(" Fast idea ");
+    await expect(result.current.createScratchBit(" Fast idea ")).resolves.toBe(
+      created.id,
+    );
 
     expect(createBitMock).toHaveBeenCalledWith({
       parentId: inbox.id,

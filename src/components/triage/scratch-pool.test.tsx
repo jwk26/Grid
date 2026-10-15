@@ -185,6 +185,81 @@ describe("ScratchPool", () => {
     expect(rows[1]).toHaveTextContent("2h ago");
   });
 
+  describe("capture reveal", () => {
+    const bits = [
+      createBit({ id: "a", title: "Alpha", createdAt: 2 }),
+      createBit({ id: "b", title: "Beta", createdAt: 1 }),
+    ];
+    let scrollSpy: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      scrollSpy = vi.fn();
+      Element.prototype.scrollIntoView = scrollSpy as unknown as typeof Element.prototype.scrollIntoView;
+      useInboxMock.mockReturnValue({
+        activeScratchBits: bits,
+        poolLifecycleProjection: { revision: 0, changes: [] },
+      });
+    });
+
+    it("scrolls the requested row into view once and clears the reveal, without moving focus", () => {
+      useTriageStore.setState({ selectedScratchId: "b", scratchRevealId: "b" });
+      const before = document.activeElement;
+      render(<ScratchPool />);
+      expect(scrollSpy).toHaveBeenCalledTimes(1);
+      expect(scrollSpy).toHaveBeenCalledWith({ block: "nearest" });
+      expect(useTriageStore.getState().scratchRevealId).toBeNull();
+      expect(document.activeElement).toBe(before);
+    });
+
+    it("never scrolls for a row click or ordinary selection", () => {
+      render(<ScratchPool />);
+      fireEvent.click(screen.getByRole("button", { name: /Beta/ }));
+      expect(scrollSpy).not.toHaveBeenCalled();
+    });
+
+    it("does not reveal a Scratch the query hides, and clears the reveal", () => {
+      useTriageStore.setState({
+        selectedScratchId: "b",
+        scratchRevealId: "b",
+        scratchPoolQuery: "alph",
+      });
+      render(<ScratchPool />);
+      expect(scrollSpy).not.toHaveBeenCalled();
+      expect(useTriageStore.getState().scratchRevealId).toBeNull();
+    });
+
+    it("keeps a collapsed Pool collapsed and reveals its switcher", () => {
+      useTriageStore.setState({
+        selectedScratchId: "b",
+        scratchRevealId: "b",
+        scratchPoolExpanded: false,
+      });
+      render(<ScratchPool />);
+      expect(useTriageStore.getState().scratchPoolExpanded).toBe(false);
+      expect(scrollSpy).toHaveBeenCalledTimes(1);
+      expect(useTriageStore.getState().scratchRevealId).toBeNull();
+    });
+
+    it("reveals the switcher of a collapsed Pool even when the query would hide it", () => {
+      useTriageStore.setState({
+        selectedScratchId: "b",
+        scratchRevealId: "b",
+        scratchPoolExpanded: false,
+        scratchPoolQuery: "alph",
+      });
+      render(<ScratchPool />);
+      expect(scrollSpy).toHaveBeenCalledTimes(1);
+      expect(useTriageStore.getState().scratchRevealId).toBeNull();
+    });
+
+    it("waits for a Scratch the Pool has not received yet", () => {
+      useTriageStore.setState({ selectedScratchId: "c", scratchRevealId: "c" });
+      render(<ScratchPool />);
+      expect(scrollSpy).not.toHaveBeenCalled();
+      expect(useTriageStore.getState().scratchRevealId).toBe("c");
+    });
+  });
+
   it("renders the expanded empty state", () => {
     render(<ScratchPool />);
 

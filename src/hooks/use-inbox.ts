@@ -36,7 +36,7 @@ const EMPTY_POOL_LIFECYCLE_PROJECTION: PoolLifecycleProjection = Object.freeze({
 
 export function useInbox(): {
   inboxNodeId: string | undefined;
-  createScratchBit: (title: string) => Promise<void>;
+  createScratchBit: (title: string) => Promise<string>;
   scratchCount: number;
   activeScratchBits: Bit[];
   poolLifecycleProjection: PoolLifecycleProjection;
@@ -302,6 +302,7 @@ export function useInbox(): {
         priority: null,
       });
       localCreatedScratchIds.add(created.id);
+      return created.id;
     },
     [inboxNodeId],
   );

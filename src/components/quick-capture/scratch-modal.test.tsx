@@ -200,4 +200,67 @@ describe("ScratchModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it("reports the last successfully captured ID when auto-close fires", async () => {
+    vi.useFakeTimers();
+    const onSubmit = vi.fn().mockResolvedValueOnce("s-1").mockResolvedValueOnce("s-2");
+    const onClose = vi.fn();
+
+    render(
+      <ScratchModal inboxNodeId="inbox-1" onClose={onClose} onSubmit={onSubmit} open={true} />,
+    );
+
+    for (const title of ["First", "Second"]) {
+      fireEvent.change(screen.getByRole("textbox", { name: "Scratch title" }), {
+        target: { value: title },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Capture scratch" }));
+      });
+      if (title === "First") {
+        await act(async () => {
+          fireEvent.click(screen.getByRole("button", { name: "Capture another" }));
+        });
+      }
+    }
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(onClose).toHaveBeenCalledWith("s-2");
+  });
+
+  it("reports the captured ID when the user closes with Escape or Open Inbox", async () => {
+    const onSubmit = vi.fn().mockResolvedValue("s-9");
+    const onClose = vi.fn();
+
+    render(
+      <ScratchModal inboxNodeId="inbox-1" onClose={onClose} onSubmit={onSubmit} open={true} />,
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Scratch title" }), {
+      target: { value: "First" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Capture scratch" }));
+    });
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenLastCalledWith("s-9");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Inbox" }));
+    expect(onClose).toHaveBeenLastCalledWith("s-9");
+  });
+
+  it("reports no ID when closed without a successful capture", () => {
+    const onClose = vi.fn();
+    render(
+      <ScratchModal
+        inboxNodeId="inbox-1"
+        onClose={onClose}
+        onSubmit={vi.fn().mockRejectedValue(new Error("x"))}
+        open={true}
+      />,
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledWith(undefined);
+  });
 });

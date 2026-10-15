@@ -386,6 +386,38 @@ export function ScratchPool() {
     setScratchPoolManualExpandedForId,
   ]);
 
+  const scratchRevealId = useTriageStore((state) => state.scratchRevealId);
+  const clearScratchReveal = useTriageStore((state) => state.clearScratchReveal);
+
+  // One-shot reveal of a capture-requested selection. A row click, a lifecycle
+  // handoff and re-entry never set the reveal ID, so they never scroll.
+  useEffect(() => {
+    if (scratchRevealId === null) return;
+    const isActive = activeScratchBits.some((bit) => bit.id === scratchRevealId);
+    if (!isActive) return;
+    // Collapsed switchers are never filtered by the query.
+    const isVisible = (scratchPoolExpanded ? sortedFilteredBits : orderedBits).some(
+      (bit) => bit.id === scratchRevealId,
+    );
+    if (isVisible) {
+      const element = scratchPoolExpanded
+        ? rowRefs.current.get(scratchRevealId)
+        : document.querySelector<HTMLElement>(
+            `[data-triage-role="pool-compact-switcher"][data-scratch-id="${scratchRevealId}"]`,
+          );
+      if (element === null || element === undefined) return;
+      element.scrollIntoView?.({ block: "nearest" });
+    }
+    clearScratchReveal();
+  }, [
+    activeScratchBits,
+    clearScratchReveal,
+    orderedBits,
+    scratchPoolExpanded,
+    scratchRevealId,
+    sortedFilteredBits,
+  ]);
+
   const handleSelect = useCallback(
     (id: string, focus: () => void) => {
       if (isLocked()) return;
@@ -754,6 +786,7 @@ export function ScratchPool() {
                     aria-label={bit.title}
                     aria-pressed={isSelected}
                     data-triage-role="pool-compact-switcher"
+                    data-scratch-id={bit.id}
                     data-triage-state={isSelected ? "selected" : "default"}
                     title={bit.title}
                     onClick={(event) => {

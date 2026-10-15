@@ -834,6 +834,69 @@ export function TriageWorkspace({ node }: { node: Node }) {
     return registerActiveTriageDeparture(departure);
   }, [departure]);
 
+  const setTriageWorkspaceMounted = useTriageStore(
+    (state) => state.setTriageWorkspaceMounted,
+  );
+  useEffect(() => {
+    setTriageWorkspaceMounted(true);
+    return () => setTriageWorkspaceMounted(false);
+  }, [setTriageWorkspaceMounted]);
+
+  // Consumes the one-shot capture selection through the ordinary Scratch switch.
+  const requestedScratchSelectionId = useTriageStore(
+    (state) => state.requestedScratchSelectionId,
+  );
+  const scratchPoolActiveIds = useTriageStore((state) => state.scratchPoolActiveIds);
+  const clearRequestedScratchSelection = useTriageStore(
+    (state) => state.clearRequestedScratchSelection,
+  );
+  const selectScratch = useTriageStore((state) => state.selectScratch);
+  const setScratchReveal = useTriageStore((state) => state.setScratchReveal);
+  useEffect(() => {
+    if (requestedScratchSelectionId === null) return;
+    // Wait for the Pool projection to contain the new Scratch.
+    if (!scratchPoolActiveIds.includes(requestedScratchSelectionId)) return;
+
+    clearRequestedScratchSelection();
+    const id = requestedScratchSelectionId;
+    if (id === selectedScratchId) return;
+    if (operationLock.isLocked() || departure.pendingDestination !== null) return;
+    // An external-removal transition owns the selection; it holds no lock.
+    if (externalScratchRemoval !== null) return;
+    if (
+      document.querySelector(".triage-inline-editor[data-triage-editor-state]") !==
+      null
+    ) {
+      return;
+    }
+
+    departure.requestDeparture({
+      id,
+      kind: "scratch",
+      perform: () => {
+        selectScratch(id);
+        setScratchReveal(id);
+      },
+      // Focus moves only after a VQ-03 Discard decision.
+      focus: departure.hasAddDraft()
+        ? () =>
+            document
+              .querySelector<HTMLElement>('[data-testid="selected-scratch-context"]')
+              ?.focus()
+        : undefined,
+    });
+  }, [
+    clearRequestedScratchSelection,
+    departure,
+    externalScratchRemoval,
+    operationLock,
+    requestedScratchSelectionId,
+    scratchPoolActiveIds,
+    selectScratch,
+    selectedScratchId,
+    setScratchReveal,
+  ]);
+
   useEffect(() => {
     if (
       observation === null ||

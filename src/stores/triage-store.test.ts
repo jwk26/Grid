@@ -18,6 +18,9 @@ beforeEach(() => {
     explorerPathStatus: null,
     externalScratchRemoval: null,
     ownTrashMarkers: {},
+    triageWorkspaceMounted: false,
+    requestedScratchSelectionId: null,
+    scratchRevealId: null,
   });
 });
 
@@ -38,6 +41,46 @@ afterEach(() => {
     explorerPathStatus: null,
     externalScratchRemoval: null,
     ownTrashMarkers: {},
+    triageWorkspaceMounted: false,
+    requestedScratchSelectionId: null,
+    scratchRevealId: null,
+  });
+});
+
+describe("useTriageStore requested Scratch selection", () => {
+  it("writes the one-shot request only while a workspace is mounted", () => {
+    const store = useTriageStore.getState();
+    store.requestScratchSelection("a");
+    expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+
+    store.setTriageWorkspaceMounted(true);
+    store.requestScratchSelection("a");
+    expect(useTriageStore.getState().requestedScratchSelectionId).toBe("a");
+
+    store.clearRequestedScratchSelection();
+    expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+  });
+
+  it("clears the request and the reveal when the workspace unmounts", () => {
+    const store = useTriageStore.getState();
+    store.setTriageWorkspaceMounted(true);
+    store.requestScratchSelection("a");
+    store.setScratchReveal("a");
+    store.setTriageWorkspaceMounted(false);
+    expect(useTriageStore.getState()).toMatchObject({
+      triageWorkspaceMounted: false,
+      requestedScratchSelectionId: null,
+      scratchRevealId: null,
+    });
+  });
+
+  it("keeps the request across a mount, unmount, mount cycle only if written after the last mount", () => {
+    const store = useTriageStore.getState();
+    store.setTriageWorkspaceMounted(true);
+    store.setTriageWorkspaceMounted(false);
+    store.setTriageWorkspaceMounted(true);
+    store.requestScratchSelection("b");
+    expect(useTriageStore.getState().requestedScratchSelectionId).toBe("b");
   });
 });
 
@@ -47,6 +90,8 @@ describe("useTriageStore app-session ownership", () => {
       "clearExplorerPathStatus",
       "clearExplorerRemoteArrivals",
       "clearExplorerRemotePresentation",
+      "clearRequestedScratchSelection",
+      "clearScratchReveal",
       "clearSelection",
       "explorerColumnScroll",
       "explorerLocalPlacementIdentities",
@@ -65,12 +110,15 @@ describe("useTriageStore app-session ownership", () => {
       "registerOwnTrash",
       "releaseOwnTrash",
       "removeExplorerRemoteArrival",
+      "requestScratchSelection",
+      "requestedScratchSelectionId",
       "scratchPoolActiveIds",
       "scratchPoolExpanded",
       "scratchPoolManualExpandedForId",
       "scratchPoolQuery",
       "scratchPoolResultIds",
       "scratchPoolScroll",
+      "scratchRevealId",
       "selectScratch",
       "selectedScratchId",
       "setExplorerColumnScroll",
@@ -83,6 +131,9 @@ describe("useTriageStore app-session ownership", () => {
       "setScratchPoolQuery",
       "setScratchPoolResultIds",
       "setScratchPoolScroll",
+      "setScratchReveal",
+      "setTriageWorkspaceMounted",
+      "triageWorkspaceMounted",
     ]);
   });
 

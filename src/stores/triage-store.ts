@@ -120,6 +120,14 @@ interface TriageState {
    * result for that Scratch, or for all of them when the workspace unmounts.
    */
   releaseOwnTrash: (scratchId?: string) => void;
+  triageWorkspaceMounted: boolean;
+  requestedScratchSelectionId: string | null;
+  scratchRevealId: string | null;
+  setTriageWorkspaceMounted: (mounted: boolean) => void;
+  requestScratchSelection: (id: string) => void;
+  clearRequestedScratchSelection: () => void;
+  setScratchReveal: (id: string) => void;
+  clearScratchReveal: () => void;
   selectScratch: (id: string) => void;
   clearSelection: () => void;
   setScratchPoolExpanded: (expanded: boolean) => void;
@@ -201,6 +209,26 @@ export const useTriageStore = create<TriageState>((set) => ({
   explorerPathStatus: null,
   externalScratchRemoval: null,
   ownTrashMarkers: {},
+  triageWorkspaceMounted: false,
+  requestedScratchSelectionId: null,
+  scratchRevealId: null,
+  setTriageWorkspaceMounted: (mounted) =>
+    set(
+      mounted
+        ? { triageWorkspaceMounted: true }
+        : {
+            triageWorkspaceMounted: false,
+            requestedScratchSelectionId: null,
+            scratchRevealId: null,
+          },
+    ),
+  requestScratchSelection: (id) =>
+    set((state) =>
+      state.triageWorkspaceMounted ? { requestedScratchSelectionId: id } : state,
+    ),
+  clearRequestedScratchSelection: () => set({ requestedScratchSelectionId: null }),
+  setScratchReveal: (id) => set({ scratchRevealId: id }),
+  clearScratchReveal: () => set({ scratchRevealId: null }),
   registerOwnTrash: (scratchId, expectedVersion) =>
     set((state) =>
       state.ownTrashMarkers[scratchId]?.expectedVersion === expectedVersion

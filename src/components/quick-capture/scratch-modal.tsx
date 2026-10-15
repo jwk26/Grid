@@ -23,8 +23,8 @@ import { cn } from "@/lib/utils";
 
 type ScratchModalProps = {
   open: boolean;
-  onClose: () => void;
-  onSubmit: (title: string) => Promise<void>;
+  onClose: (capturedId?: string) => void;
+  onSubmit: (title: string) => Promise<string | void>;
   inboxNodeId?: string;
 };
 
@@ -60,6 +60,7 @@ function ScratchModalContent({
   const shouldReduceMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
   const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const capturedIdRef = useRef<string | undefined>(undefined);
   const [title, setTitle] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [submissionState, setSubmissionState] =
@@ -84,7 +85,7 @@ function ScratchModalContent({
 
   const handleClose = useCallback(() => {
     clearAutoCloseTimer();
-    onClose();
+    onClose(capturedIdRef.current);
   }, [clearAutoCloseTimer, onClose]);
 
   const startAutoCloseTimer = useCallback(() => {
@@ -230,7 +231,10 @@ function ScratchModalContent({
     setSubmissionState("submitting");
 
     try {
-      await onSubmit(trimmedTitle);
+      const capturedId = await onSubmit(trimmedTitle);
+      if (typeof capturedId === "string") {
+        capturedIdRef.current = capturedId;
+      }
       setSubmissionState("success");
     } catch {
       setSubmissionState("idle");

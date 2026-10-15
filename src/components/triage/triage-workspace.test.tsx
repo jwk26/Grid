@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { StrictMode } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTriageStore } from "@/stores/triage-store";
@@ -1466,6 +1467,178 @@ describe("TriageWorkspace", () => {
     expect(screen.getByRole("region", { name: "Breakdown" })).not.toHaveAttribute(
       "inert",
     );
+  });
+
+  describe("requested Scratch selection after capture", () => {
+    function setup(activeIds = ["scratch-1", "scratch-2"]) {
+      useTriageStore.setState({
+        selectedScratchId: "scratch-1",
+        scratchPoolActiveIds: activeIds,
+      });
+      return render(<TriageWorkspace node={createNode()} />);
+    }
+    function request(id: string) {
+      act(() => {
+        useTriageStore.getState().requestScratchSelection(id);
+      });
+    }
+
+    afterEach(() => {
+      document.querySelectorAll("[data-test-editor]").forEach((el) => el.remove());
+      useTriageStore.setState({
+        triageWorkspaceMounted: false,
+        requestedScratchSelectionId: null,
+        scratchRevealId: null,
+        scratchPoolActiveIds: [],
+      });
+    });
+
+    it("marks the workspace mounted and clears the flag on unmount", () => {
+      const view = setup();
+      expect(useTriageStore.getState().triageWorkspaceMounted).toBe(true);
+      request("scratch-2");
+      view.unmount();
+      expect(useTriageStore.getState()).toMatchObject({
+        triageWorkspaceMounted: false,
+        requestedScratchSelectionId: null,
+      });
+    });
+
+    it("survives a StrictMode double mount without a stale or lost request", () => {
+      useTriageStore.setState({
+        selectedScratchId: "scratch-1",
+        scratchPoolActiveIds: ["scratch-1", "scratch-2"],
+      });
+      render(
+        <StrictMode>
+          <TriageWorkspace node={createNode()} />
+        </StrictMode>,
+      );
+      expect(useTriageStore.getState().triageWorkspaceMounted).toBe(true);
+      request("scratch-2");
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-2");
+    });
+
+    it("selects the captured Scratch, reveals it and moves no focus without a draft", () => {
+      setup();
+      const before = document.activeElement;
+      request("scratch-2");
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-2");
+      expect(useTriageStore.getState().scratchRevealId).toBe("scratch-2");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+      expect(document.activeElement).toBe(before);
+    });
+
+    it("opens the departure sheet with an Add draft; Continue keeps, Discard selects and focuses the Context", () => {
+      setup();
+      act(() => departureControllerState.controller?.setAddDraft("draft"));
+      request("scratch-2");
+      expect(departureControllerState.controller?.pendingDestination).toEqual({
+        id: "scratch-2",
+        kind: "scratch",
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+      expect(useTriageStore.getState().scratchRevealId).toBeNull();
+
+      act(() => {
+        departureControllerState.controller?.continueWriting();
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+
+      request("scratch-2");
+      act(() => {
+        departureControllerState.controller?.discardAndMove();
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-2");
+      expect(useTriageStore.getState().scratchRevealId).toBe("scratch-2");
+      expect(screen.getByTestId("selected-scratch-context")).toHaveFocus();
+    });
+
+    it("does nothing while an operation locks switching", () => {
+      setup();
+      const lock = useArchiveScratchMock.mock.calls.at(-1)?.[0].operationLock;
+      act(() => {
+        lock.acquire("archive", "op-1");
+      });
+      request("scratch-2");
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+    });
+
+    it.each(["pristine", "dirty"])(
+      "does nothing while an inline editor is open (%s)",
+      (state) => {
+        setup();
+        const editor = document.createElement("div");
+        editor.className = "triage-inline-editor";
+        editor.dataset.triageEditorState = state;
+        editor.dataset.testEditor = "";
+        document.body.append(editor);
+        request("scratch-2");
+        expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+        expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+      },
+    );
+
+    it("skips the selection when a departure decision is already pending and keeps it", () => {
+      setup(["scratch-1", "scratch-2", "scratch-3"]);
+      act(() => departureControllerState.controller?.setAddDraft("draft"));
+      act(() => {
+        requestActiveTriageDeparture({ id: "scratch-3", kind: "scratch", perform: vi.fn() });
+      });
+      request("scratch-2");
+      expect(departureControllerState.controller?.pendingDestination).toEqual({
+        id: "scratch-3",
+        kind: "scratch",
+      });
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+    });
+
+    it("does nothing while an external-removal transition owns the selection", () => {
+      setup();
+      act(() => {
+        useTriageStore.setState({
+          externalScratchRemoval: {
+            scratchId: "scratch-1",
+            lifecycle: "archive",
+            destinationId: "scratch-2",
+            destinationKind: "scratch",
+            removalOrder: ["scratch-1", "scratch-2"],
+          },
+        });
+      });
+      request("scratch-2");
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+      act(() => useTriageStore.setState({ externalScratchRemoval: null }));
+    });
+
+    it("waits for the Pool projection to contain the captured Scratch", () => {
+      setup(["scratch-1"]);
+      request("scratch-2");
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBe("scratch-2");
+
+      act(() => {
+        useTriageStore.setState({ scratchPoolActiveIds: ["scratch-1", "scratch-2"] });
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-2");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+    });
+
+    it("applies the lock and editor checks when the Scratch appears, not at close", () => {
+      setup(["scratch-1"]);
+      request("scratch-2");
+      const lock = useArchiveScratchMock.mock.calls.at(-1)?.[0].operationLock;
+      act(() => {
+        lock.acquire("archive", "op-2");
+      });
+      act(() => {
+        useTriageStore.setState({ scratchPoolActiveIds: ["scratch-1", "scratch-2"] });
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+    });
   });
 
   it("registers the mounted controller for Inbox route owners outside the Workspace", () => {
