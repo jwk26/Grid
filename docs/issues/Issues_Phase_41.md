@@ -139,3 +139,12 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 - Please check: the capture flows above, especially Discard focus and a collapsed Pool.
 - Unresolved: none; MI-4 and MI-5 fixed per the Decisions.
 - Review (expert): (1) a capture could change the selection during an external-removal transition → fixed (skip, with test); (2) `onClose` lost identity and restarted the auto-close timer → fixed (`useCallback`); (4) collapsed Pool with a saved query skipped the reveal → fixed (collapsed checks the unfiltered order, with test); (3) Cmd+K palette opened right after a capture closes the modal without reporting the ID, so nothing is selected → fixed as MI-4; (5) a request whose Scratch was seen in the Pool and then removed waits until it returns and may fire late → fixed as MI-5. The timer-identity regression test for (2) was added.
+
+## Phase close (2026-10-16)
+
+- Tasks 209–212 accepted. MI-1 closed with the Task 209 acceptance (2026-10-15); MI-3, MI-4, MI-5, mi-1 and mi-2 closed as recorded above.
+- MI-2 [Deferred]: Task 180 (Phase 36). Row added to `Issues_Deferred.md` and a line written into the Task 180 plan section.
+- Outside the task scopes: `e887d90` changed the ledger convention in `CLAUDE.md` and `docs/WORKFLOW.md` (issue IDs continue per phase; an entry committed with its fix omits the commit). It is a workflow change, not product code.
+- Close alignment: SPEC lifetime table now lists the new-capture selection request and its one-shot Pool reveal as mounted Inbox page state. The archive's completion-time scope records where the build differs from the task contracts (Trash Scratch Zod schemas in `indexeddb.ts`, CSS-only `!` mark, `onCaptured`).
+- Close Advisory A1: `triage-store.ts` now holds mounted-page state (own-Trash markers, capture request, reveal ID, mounted flag), as Tasks 209 and 212 planned and as `externalScratchRemoval` already did. The PLANNING_STANDARD §6 Blocking item "State ownership by lifetime" still says the store owns only app-session state; an Opus session should align its wording.
+- Carried over: MI-2.
