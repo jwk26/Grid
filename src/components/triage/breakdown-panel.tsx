@@ -1738,7 +1738,7 @@ export function BreakdownPanel({
   const trashEntryReasonCopy =
     trashEntryReason === null ? null : scratchTrashDisabledCopy(trashEntryReason);
   // The strip is inert with the rest of the Breakdown while the completion
-  // overlay or the VQ-03 sheet is up; the Pool entry stays available then.
+  // overlay or the VQ-03 sheet is up.
   const isTrashEntryDisabled =
     trashEntries === null ||
     selectedScratchId === null ||

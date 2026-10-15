@@ -15,7 +15,13 @@ import {
   type TriageDepartureController,
 } from "@/hooks/use-triage-departure";
 import type { Node } from "@/types";
-import { TriageWorkspace, trashEntryFocus, trashNeighborFocus } from "./triage-workspace";
+import {
+  TriageWorkspace,
+  focusTrashOpener,
+  pickTrashNeighbor,
+  trashEntryFocus,
+  trashNeighborFocus,
+} from "./triage-workspace";
 
 const globalsCss = readFileSync(
   join(process.cwd(), "src/app/globals.css"),
@@ -3360,5 +3366,48 @@ describe("Scratch Trash success focus targets (Task 210)", () => {
     expect(activeLabel()).toBe("previous row");
     trashNeighborFocus(undefined)();
     expect(activeLabel()).toBe("search");
+  });
+});
+
+describe("Scratch Trash neighbour and opener focus helpers (Task 210 review)", () => {
+  it("picks the next, then the previous, row that is still visible", () => {
+    const order = ["a", "b", "c", "d"];
+    expect(pickTrashNeighbor(order, "b", ["a", "c", "d"])).toBe("c");
+    expect(pickTrashNeighbor(order, "d", ["a", "b", "c"])).toBe("c");
+    // The next row left meanwhile: skip it rather than point at a gone row.
+    expect(pickTrashNeighbor(order, "b", ["a", "d"])).toBe("d");
+    expect(pickTrashNeighbor(order, "b", ["a"])).toBe("a");
+    expect(pickTrashNeighbor(order, "b", [])).toBeUndefined();
+    expect(pickTrashNeighbor(order, "x", order)).toBeUndefined();
+  });
+
+  describe("focusTrashOpener", () => {
+    afterEach(() => {
+      document.body.innerHTML = "";
+    });
+
+    it("refocuses a usable opener", () => {
+      document.body.innerHTML = '<button id="entry">Trash</button>';
+      focusTrashOpener(document.getElementById("entry"));
+      expect(document.activeElement?.id).toBe("entry");
+    });
+
+    it("falls back to the row's selection button when the opener is disabled", () => {
+      document.body.innerHTML = `
+        <div data-triage-role="pool-row-container">
+          <button aria-pressed="false" id="row">Row</button>
+          <button disabled id="entry">Trash</button>
+        </div>`;
+      focusTrashOpener(document.getElementById("entry"));
+      expect(document.activeElement?.id).toBe("row");
+    });
+
+    it("falls back to the Context for a disabled [X]", () => {
+      document.body.innerHTML = `
+        <div data-testid="selected-scratch-context" tabindex="-1" id="ctx"></div>
+        <button disabled id="close">[X]</button>`;
+      focusTrashOpener(document.getElementById("close"));
+      expect(document.activeElement?.id).toBe("ctx");
+    });
   });
 });

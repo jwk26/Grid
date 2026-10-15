@@ -455,6 +455,13 @@ export function useTrashScratch({
       state.phase === "conflict") &&
     !snapshot.scratches.some(({ id }) => id === state.target.scratchId);
 
+  // Close for real, not just in the projection: a Scratch that comes back
+  // (restore, unarchive) must not resurrect this dialog or its old operation.
+  if (targetGone) setState(CLOSED);
+  useEffect(() => {
+    if (targetGone) stateRef.current = CLOSED;
+  }, [targetGone]);
+
   return {
     state: targetGone ? CLOSED : state,
     view,

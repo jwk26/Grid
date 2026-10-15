@@ -768,11 +768,13 @@ export function TriageWorkspace({ node }: { node: Node }) {
         trashDraftOwnerRef.current?.discard();
         await handoffTrashLifecycle(scratchId, result);
       } else {
-        const order = trashVisibleOrderRef.current;
-        const index = order.indexOf(scratchId);
-        const neighbor =
-          index < 0 ? undefined : (order[index + 1] ?? order[index - 1]);
-        trashCloseFocusRef.current = trashNeighborFocus(neighbor);
+        trashCloseFocusRef.current = trashNeighborFocus(
+          pickTrashNeighbor(
+            trashVisibleOrderRef.current,
+            scratchId,
+            useTriageStore.getState().scratchPoolResultIds,
+          ),
+        );
       }
       setTrashAnnouncement(
         INBOX_TRIAGE_COPY.scratchTrash.states.success.replace("{title}", title),
@@ -825,7 +827,7 @@ export function TriageWorkspace({ node }: { node: Node }) {
     }
     const opener = trashOpenerRef.current;
     trashOpenerRef.current = null;
-    if (opener?.isConnected) opener.focus();
+    focusTrashOpener(opener);
   }, []);
 
   useEffect(() => {
@@ -1058,6 +1060,50 @@ export function trashEntryFocus(
       document.querySelector<HTMLElement>("#triage-scratch-pool-heading")
     )?.focus();
   };
+}
+
+/**
+ * The row to focus after trashing an unselected Scratch: the next, then the
+ * previous, row of the order read at confirm that is still visible now, so a
+ * Retry or Check again after the Pool changed still lands on a real row.
+ */
+export function pickTrashNeighbor(
+  orderAtConfirm: readonly string[],
+  scratchId: string,
+  visibleNow: readonly string[],
+): string | undefined {
+  const index = orderAtConfirm.indexOf(scratchId);
+  if (index < 0) return undefined;
+  const alive = new Set(visibleNow);
+  const isAlive = (id: string) => id !== scratchId && alive.has(id);
+  return (
+    orderAtConfirm.slice(index + 1).find(isAlive) ??
+    orderAtConfirm.slice(0, index).reverse().find(isAlive)
+  );
+}
+
+/**
+ * Cancel returns focus to the activated entry. When that entry is disabled
+ * (a rejected Trash leaves the same unresolved source in place) focus would
+ * silently drop to the body, so it falls back to its row or the Context.
+ */
+export function focusTrashOpener(opener: HTMLElement | null): void {
+  const usable =
+    opener !== null &&
+    opener.isConnected &&
+    !(opener instanceof HTMLButtonElement && opener.disabled);
+  if (usable) {
+    opener.focus();
+    return;
+  }
+  const row = opener?.isConnected
+    ? opener.closest('[data-triage-role="pool-row-container"]')
+    : null;
+  (
+    row?.querySelector<HTMLElement>("button[aria-pressed]") ??
+    document.querySelector<HTMLElement>('[data-testid="selected-scratch-context"]') ??
+    document.querySelector<HTMLElement>("#triage-scratch-pool-heading")
+  )?.focus();
 }
 
 /** Focus after trashing an unselected Scratch: next, then previous visible row, else search. */

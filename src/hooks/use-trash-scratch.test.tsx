@@ -549,4 +549,19 @@ describe("useTrashScratch", () => {
     });
     expect(dispatchTrash).toHaveBeenCalledTimes(1);
   });
+
+  it("closes for good when the target leaves the Pool; a later reappearance does not reopen the dialog", () => {
+    const { result: hook, rerender } = setup({ snapshot: emptySnapshot });
+    act(() => {
+      hook.current.trash.open(A);
+    });
+    expect(hook.current.trash.state.phase).toBe("confirming");
+
+    rerender({ snapshot: { ...emptySnapshot, scratches: [bit(B)] } });
+    expect(hook.current.trash.state.phase).toBe("closed");
+
+    // Restored or unarchived elsewhere: nothing resurrects the old dialog.
+    rerender({ snapshot: emptySnapshot });
+    expect(hook.current.trash.state.phase).toBe("closed");
+  });
 });

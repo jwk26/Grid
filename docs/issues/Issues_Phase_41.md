@@ -33,9 +33,9 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 ## Task 210 — Pool Trash control, Scratch Trash dialog, Retro Mac Context [X], Breakdown Delete dialog
 
 ### Current state
-- Status: In Progress
-- Next: user check of the remaining visual items; then expert review, final gate (build included), checkpoint
-- Open: none
+- Status: Implemented, awaiting acceptance
+- Next: user acceptance; mi-3 needs an advisory-session decision (SPEC wording), not blocking acceptance of the implementation
+- Open: mi-3 (Awaiting User Decision)
 
 ### Log
 - Decision: plan approved with amendments after an Opus review (user, 2026-10-15): Trash-only pre-update focus destination (A2 trap; Archive path untouched), a dedicated data attribute for the H17 blur exemption and its move into step 3, extra acceptance coverage, per-theme Pool row visual check, `overlayClassName` regression test.
@@ -59,3 +59,13 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 - Review (advisory, 2026-10-16, stage): approve; proceed to expert review, final gate (build included) and checkpoint. Apply: (1) turn the Terminal hover Observation into `MI-2 [Deferred → Phase 36 Task 180]` (agent-found, so Main; pre-existing, Terminal Pool region); (2) correct the reserved-status-line rationale per the Decision below. Not applied: none.
 - Decision: MI-2 (Terminal Pool row hover contrast) is deferred to Phase 36 Task 180 (user, 2026-10-16).
 - Decision: the base Scratch Trash dialog keeps its reserved status line (user, 2026-10-16). Reason: the pending or failure status appears without shifting the buttons; the polite region alone would not need visible space.
+- Review (expert, 2026-10-16, range 4ebce7b..62450b5): no Archive regression, no lock/race or stale-ref defect found. Fixed: (a) a target that left the Pool only closed in the projection, so a restore or unarchive elsewhere reopened the old dialog (and an old Retry) — `useTrashScratch` now commits CLOSED, with a failing test first; (b) Cancel after a `rejected` result focused a disabled opener and dropped focus to the body — `focusTrashOpener` falls back to the row or Context; (c) Retry and Check again reused a stale confirm-time order for the unselected-Scratch focus — `pickTrashNeighbor` keeps only rows still visible. The helper tests were written with the fixes, not before. Disputed: the success announcement being unreadable because the dialog hides the live region — `aria-hidden` (used by Radix `hideOthers`) skips every `[aria-live]` element (`aria-hidden/dist/es2015/index.js:131-133`), so the region stays exposed; not verified with a screen reader.
+- mi-3 [Awaiting User Decision]: SPEC says the Pool Trash entry stays available while the VQ-03 departure sheet is up, but the whole Pool section is `inert` then (existing behavior), so it is not — cause: SPEC wording vs the existing inert Pool — fix options: (A, recommended) change the SPEC sentence so both entries are unavailable under VQ-03; (B) make the Pool entry usable under VQ-03, which means un-inerting part of the Pool and reopening the sheet's contract. A requirement change, so it needs an Opus session; the code comment that promised it was corrected.
+- Advisory: the H17 exemption keys on focus arriving at a Trash entry, not on activation, so a dirty editor is not saved on blur when Shift+Tab reaches a Pool Trash button (nothing is lost; the editor stays open and dirty). This is the same limit as the existing theme-toggle exemption; narrowing it needs pointer tracking. Not changed.
+
+### Checkpoint
+- Changed: `scratch-trash-dialog.tsx` (new), `scratch-pool.tsx` (row container + Trash entry), `triage-workspace.tsx` (coordinator mount, contexts, handoff/focus, announcement), `breakdown-panel.tsx` (`[X]` button, blur exemption, draft owner, Delete dialog classes), `use-trash-scratch.ts` (entry/registry contexts, `title`, close on target loss), shared handoff + `resolveScratchLifecycleDestination`, `alert-dialog.tsx` (`overlayClassName`), `hierarchy-explorer.tsx` (Undo reasons), `bit-detail-popup.tsx` (H21), copy, `globals.css`, tests.
+- Verified: `git diff --check`, `pnpm test` (1639), `lint` (0 errors, 11 warnings = baseline), `typecheck`, `build`; browser (Playwright, fixtures) for eight themes, Retro Mac light/dark and GridDO dialogs, every success-focus path, `/trash` restore; user visual dispositions recorded above.
+- Please check: mi-3 (SPEC vs inert Pool under VQ-03); the Advisory on the blur exemption.
+- Unresolved: mi-3.
+- Review: see the expert review entry above — three findings fixed, one disputed with evidence, one conformance question raised as mi-3, one Advisory.
