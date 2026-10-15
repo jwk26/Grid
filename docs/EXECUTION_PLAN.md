@@ -2806,7 +2806,7 @@ Mac also dark, re-confirming the Phase 34 Retro Mac Pool disposition;
 
 **Commit message:** `feat(triage): add Scratch Trash UI`.
 
-### Task 211: [ ] Realize the Retro Mac departure sheet
+### Task 211: [x] Realize the Retro Mac departure sheet
 
 **Files and actions:** `src/app/globals.css`: Retro Mac rules for
 `breakdown-departure-sheet` per the Breakdown recipe's Phase 41 Retro Mac

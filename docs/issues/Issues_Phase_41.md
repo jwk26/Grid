@@ -77,8 +77,8 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 ## Task 211 — Realize the Retro Mac departure sheet
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: your acceptance of Task 211
+- Status: Accepted
+- Next: Task 212
 - Open: none
 
 ### Log
@@ -94,9 +94,10 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 - User visual judgment, first pass (user, 2026-10-16): the Retro Mac sheet is fine except one issue: hovering `Continue writing` shrinks the whole sheet's height.
 - Review (advisory, 2026-10-16, visual disposition): fix before commit. Cause of the hover shrink, measured in a separate headless Chromium with the task's rules: the shared reset list includes `…__actions button:hover` (0,4,1), which beats the Continue default-border rule (0,4,0), so on hover the border falls from `2px` to `1px` and the button from `32px` to `30px`; the 210 dialogs are not affected (Cancel stays `2px` on hover). Apply: (1) record the issue as a user-reported `mi-N`; (2) drop `button:hover` and `button:active` from the reset list, leaving `…__actions button` (0,3,1), which still beats the base `[continue]:hover/:active` and `__discard:hover` (0,2,0); update the test regex that expects `__actions button,`; (3) add a regression assertion that the Retro Mac hover/focus rules change colors and outline only (no border, padding, font or size property); (4) per the Decision below, remove `margin-inline-end: 6px` so the sheet's left and right edges align with the Add row as the recipe says; the Retro Mac footer padding is `12px`, so the `6px` shadow should still fit; measure in the browser that it is not clipped; (5) show the user the fixed hover and alignment for the final visual judgment. Not applied: none.
 - Decision: the sheet aligns with both Add-row edges per the recipe; the `6px` inline-end inset is removed (user, 2026-10-16).
-- mi-2 [Fixed]: on hover the Retro Mac departure buttons shrank (Continue border `2px`→`1px`, `32px`→`30px`) — cause: the shared reset list included `…__actions button:hover`/`:active` (0,4,1), which beat the Continue default-border rule (0,4,0) — fix: the reset is now `…__actions button` only (0,3,1; still above the base `[continue]:hover` and `__discard:hover`), hover/focus rules change colors and outline only (user-reported Minor). Final judgment: see below.
+- mi-2 [Fixed]: on hover the Retro Mac departure buttons shrank (Continue border `2px`→`1px`, `32px`→`30px`) — cause: the shared reset list included `…__actions button:hover`/`:active` (0,4,1), which beat the Continue default-border rule (0,4,0) — fix: the reset is now `…__actions button` only (0,3,1; still above the base `[continue]:hover` and `__discard:hover`), hover/focus rules change colors and outline only (user-reported Minor) (654c82c). Final judgment: see below.
 - Check (Sonnet session, 2026-10-16, browser, 1920×1080, Retro Mac light): Continue `160.8×32` and Discard `158.8×30` are identical at rest and on hover (Continue border stays `2px`). The sheet spans `359`–`1249.8`, the same as the Add row (`359`–`1249.8`). The `6px` shadow reaches `1255.8`/`635.4`, inside the clipping parent (`1261.8`/`647.4`), so it is not clipped. Regression test: hover/focus rules contain no border, padding, font, size or spacing property, the reset list has no `:hover`/`:active`, and the sheet has no `margin-inline`.
 - User visual judgment, final (user, 2026-10-16): Retro Mac departure sheet (light/dark), hover without shrinking and Add-row edge alignment: OK. mi-2 closed by this judgment. Other themes unchanged.
+- Review (advisory, 2026-10-16, finish): accept. Commit `654c82c` matches the reviewed diff (Retro Mac departure block and its test only, no markup change); gates and the final user visual judgment recorded; skipping the expert review fits a styling-only change. No Task 212 note is needed: the sheet's copy, focus, lifecycle and markup are unchanged. Apply: add `Commit: 654c82c` to the `mi-2` entry. Not applied: none.
 
 ### Checkpoint
 - Changed: `globals.css` (Retro Mac `breakdown-departure-sheet` block only: Archive-alert surface, `!` mark by `::before`, square buttons, Continue `2px` default border, inversion on hover/focus); `inbox-triage-theme-realization.test.tsx` (Task 211 block). No markup change.
