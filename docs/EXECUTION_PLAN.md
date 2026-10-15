@@ -2638,7 +2638,7 @@ Execution order is 209 → 210 → 211 → 212. 211 has no product dependency on
 209/210, but shares `globals.css` and possibly `breakdown-panel.tsx`, so the
 writer register serializes it.
 
-### Task 209: [ ] Add the Trash Scratch command, the Undo active-Scratch precondition and the Trash coordinator
+### Task 209: [x] Add the Trash Scratch command, the Undo active-Scratch precondition and the Trash coordinator
 
 **Files and actions:**
 - `src/lib/db/schema.ts`: add the Trash Scratch command and result Zod

@@ -6,8 +6,8 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 ## Task 209 — Trash Scratch command, Undo active-Scratch precondition, Trash coordinator
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: user review of the checkpoint; Task 210 wires the coordinator into the UI
+- Status: Accepted
+- Next: Task 210 wires the coordinator into the UI
 - Open: none
 
 ### Log
