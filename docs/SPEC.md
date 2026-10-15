@@ -238,6 +238,9 @@ unchanged; only its Retro Mac realization changes in the recipe.
 - **Empty state:** Timeline structure visible (vertical line, dot placeholder) + "Add a step" CTA button.
 - **Timeline behavior:** Order-based by default. Chunks with `time` sort by time within the timeline; chunks without `time` follow user-defined `order`.
 - **Close:** Click outside, press ESC, or browser back (removes `?bit` param).
+- **Scratch exception (Phase 41, H21):** for an Inbox-parented Bit the popup
+  does not offer "Move to trash". Scratch Trash goes only through the Inbox
+  Trash Scratch flow.
 
 ### Route: `/calendar/weekly` (Calendar:Weekly)
 
@@ -416,13 +419,16 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   fallback; automatic selection changes data context without stealing focus.
   Archive and Trash success use their own visible-order rule before this
   general fallback.
-- **New capture:** When Scratch capture succeeds while the Inbox workspace is
-  mounted, the new Scratch becomes selected once the capture surface closes,
-  whether by auto-close or by the user. It is an ordinary Scratch switch: a
-  dirty inline Save resolves first and a non-empty Add draft opens the
-  `VQ-03` sheet, where Continue keeps the current selection and leaves the
-  new Scratch unselected in the Pool. If a pending operation locks Scratch
-  switching, the selection is skipped. The Pool reveals the new row without
+- **New capture:** When Scratch capture succeeds and the Inbox workspace is
+  mounted at the moment the capture surface closes (by auto-close or by the
+  user), the last captured Scratch becomes selected. The request exists only
+  while that workspace stays mounted; unmount clears it, and it is skipped if
+  the Scratch is no longer active. It is an ordinary Scratch switch: a
+  non-empty Add draft opens the `VQ-03` sheet, where Continue keeps the
+  current selection and leaves the new Scratch unselected in the Pool, and
+  Discard and move selects it and focuses its Selected Scratch Context. If a
+  pending operation locks Scratch switching, or an inline editor is still
+  open, the selection is skipped. The Pool reveals the new row without
   moving focus; a collapsed Pool stays collapsed; an active Pool query is kept,
   and a new Scratch that does not match it shows the existing hidden-selection
   status. A capture from any other route does not navigate to the Inbox.
@@ -478,34 +484,54 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   right, separate from the row's selection control; activating it never
   selects the row. Collapsed switchers have no Trash control. In Retro Mac the
   Selected Scratch Context title-strip `[X]` is a second entry for the
-  selected Scratch; other themes keep that strip hidden. Both are disabled
-  while any Inbox operation is pending.
+  selected Scratch; other themes keep that strip hidden. Both are disabled,
+  with a visible reason, while any Inbox operation is pending, while a
+  placement flow is open, and while that Scratch has a staged candidate whose
+  source cannot be resolved (confirmed-orphan cleanup resolves it first).
+  `[X]` is also unavailable while the completion overlay or the `VQ-03` sheet
+  makes the Breakdown inert; the Pool entry stays available then.
 - Either entry opens one confirmation dialog for that Scratch. It names the
   Scratch, says the Scratch moves to Trash and can be restored from Trash,
   states the staged-candidate count when it is above zero, and states that
   the unsaved Add draft or open editor will be discarded when that Scratch
-  has one. Counts stay live while the dialog is open, and confirm submits the
-  candidate set currently shown. Cancel has initial focus; Cancel or Escape
-  closes it without a write and returns focus to the entry control.
+  has one. The Scratch version and candidate set stay live while the dialog
+  is open, and confirm submits the version and set currently shown. Cancel has
+  initial focus; Cancel or Escape closes it without a write and returns focus
+  to the entry control, leaving any open editor as it was.
 - Confirm runs SCHEMA `Trash Scratch` non-optimistically. The dialog stays
   open with locked actions and a pending status, the Pool row stays in place,
+  Cancel and Escape do nothing while pending or reconciling (the dialog stays
+  the visible owner of the lock; unknown offers only Check again),
   Scratch switching and internal route exit are locked, and browser exit uses
   the native unload guard. Explicit failure or not-applied keeps the dialog
   with Retry (same operation) and Cancel. An unknown outcome checks again
   before any new operation. Conflict updates the dialog to the latest counts
   with a changed-state status and needs a new confirmation as a new
-  operation. If the Scratch becomes inactive elsewhere meanwhile, the dialog
-  closes and the external-removal rule applies.
-- Success removes the row once, discards that Scratch's drafts and editors,
-  makes Undo unavailable for placements from that Scratch (markers stay), and
-  announces the move politely. Trashing the selected Scratch hands off like
+  operation. If the Scratch becomes inactive elsewhere meanwhile, or a
+  conflict result finds it inactive, the dialog closes and the
+  external-removal rule applies.
+- If an unresolved-source candidate appears while the dialog is open, Confirm
+  is disabled with that reason. A `rejected` result shows the same reason
+  with Cancel only; Cancel and Escape close it and the operation lock is
+  released.
+- This page's own-Trash marker is `{Scratch ID, expected version}`, set at
+  dispatch and cleared once the Pool lifecycle projection has observed that
+  deletion, or at a terminal result other than applied/already applied
+  (being version-keyed, keeping it until page unmount is also safe). Observing that Scratch trashed
+  at expected version + 1 is own Trash: it never creates the external-removal
+  transition or a Pool deleted status. Any other inactive observation is
+  external removal.
+- Success removes the row once, discards that Scratch's drafts and editors
+  (so no unload guard or `VQ-03` remains for them), makes Undo unavailable for
+  placements from that Scratch (markers stay), and announces the move
+  politely. Trashing the selected Scratch hands off like
   Archive success: next visible, then previous visible, then filtered-empty
   or true Inbox empty, never through the `VQ-01` transition. Focus goes, for
   a Pool entry, to the destination's Pool row, else to search input/clear for
   filtered-empty or the Inbox empty primary action; for the Context `[X]`
   entry, it follows the Archive success focus rule. Trashing an unselected
   Scratch keeps the selection and focuses the next, then previous, visible
-  Pool row. Restore from `/trash` returns the Scratch through the existing
+  Pool row, else the search input. Restore from `/trash` returns the Scratch through the existing
   restore lifecycle with its rows active and no staged candidates.
 
 #### Breakdown and Selected Scratch Context
@@ -538,8 +564,10 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
 - **Inline editing:** Context Edit changes only Scratch title; row Edit changes
   only row content. Both stay in their source surfaces. Save commits, Cancel or
   Escape restores base, valid blur saves, empty stays in validation, and an
-  unchanged value exits without a write. Theme/locale toggle activation is the
-  explicit blur-save exception. During Save/reconcile, the editor/draft stays
+  unchanged value exits without a write. Theme/locale toggle activation and
+  Trash entry activation (Pool row Trash, Retro Mac Context `[X]`) are the
+  explicit blur-save exceptions: the editor stays open and dirty while the
+  Trash dialog is open. During Save/reconcile, the editor/draft stays
   visible and conflicting Edit/Trash/DnD/Cancel actions lock. Failure or offline
   preserves draft and logical focus; reconnection enables manual Retry but does
   not auto-save or create an offline queue.
@@ -848,8 +876,11 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   row. It never cascades or best-effort restores one side.
 - Undo is eligible only while the result's creation snapshot/lifecycle/direct
   mutation evidence is unchanged, its source Scratch is active, and it has no
-  surviving descendants or unknown mutation. Trash Scratch dispatch makes
-  Undo unavailable for that Scratch's placements, with an accessible reason. Same-session reversible children can be undone child-first;
+  surviving descendants or unknown mutation. While Trash is pending the
+  operation lock already blocks Undo; an applied Trash, an Archive success or
+  any other inactive owning Scratch makes Undo unavailable without a click,
+  with the reason `Its Scratch was moved to Trash.` or
+  `Its Scratch was archived.` Same-session reversible children can be undone child-first;
   once dependencies disappear, parent eligibility may recover. Non-mutating
   selection/navigation/search reveal does not revoke eligibility. An
   unavailable control stays exposed with an accessible non-color reason.

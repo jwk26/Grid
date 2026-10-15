@@ -295,8 +295,15 @@ is a user decision, not prototype evidence; no prototype source exists for it.
 - The Trash button reuses the Breakdown row Trash control exactly: the
   `Trash2` icon at `h-3.5 w-3.5`, the `h-7 w-7` square hit area, the muted
   resting colour, the same hover/focus treatment (base: destructive tint;
-  Retro Mac: the existing `breakdown-row-action` hover inversion) and the same
-  disabled treatment. It is visible without hover, like the Breakdown row.
+  Retro Mac: the hover inversion used by `[data-triage-role="breakdown-row-action"]`)
+  and the same disabled treatment. It has its own role,
+  `data-triage-role="pool-row-trash-action"`; only the CSS is shared. It is
+  visible without hover, like the Breakdown row.
+- A disabled Trash control exposes its reason as an accessible description
+  and tooltip:
+  - placement open: `Finish or cancel placement to move a Scratch to Trash.`
+  - unresolved-source candidate: `A staged item in this Scratch lost its source. Resolve it in Staging first.`
+  - another operation pending: the existing operation-lock reason.
 - Accessible name `Move "<Scratch title>" to Trash`; tooltip `Move to Trash`.
   Collapsed switchers have no Trash control.
 
@@ -315,8 +322,17 @@ is a user decision, not prototype evidence; no prototype source exists for it.
   - Failure / not applied: `Couldn't move this Scratch to Trash.` with `Retry`
   - Unknown: `Checking whether this Scratch moved to Trash…` with `Check again`
   - Conflict: `This Scratch changed. Review and confirm again.`
+  - Rejected (unresolved-source candidate): `A staged item in this Scratch lost its source. Resolve it in Staging first.` with Cancel only
   - Success announcement (polite live region): `Moved "<Scratch title>" to Trash.`
-  - Undo unavailable reason: `Its Scratch was moved to Trash.`
+  - Undo unavailable reasons: `Its Scratch was moved to Trash.` and `Its Scratch was archived.`
+- Dismissal: Cancel and Escape close the dialog only in the confirmation,
+  failure, conflict and rejected states. While pending or reconciling they do nothing;
+  unknown offers only `Check again`.
+- `src/components/ui/alert-dialog.tsx` may gain one optional, non-breaking
+  `overlayClassName` prop on `AlertDialogContent` so theme CSS can reach the
+  scrim; every other app dialog keeps its current look. Retro Mac turns off
+  the content's open/close animation through `.scratch-trash-dialog` and
+  `.breakdown-delete-dialog` only.
 - Base themes: the existing `AlertDialog` look used by Breakdown row Delete,
   with the destructive variant on `Move to Trash`.
 - Retro Mac: the Retro Mac Archive alert family. Scrim `background / 0.7`

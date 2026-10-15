@@ -37,6 +37,16 @@ It reopens no accepted task and no closed phase.
 | H11 | Trash is an authoritative repository command with compare-and-set, like Archive. A direct `softDeleteBit` call from the Inbox is not allowed, because it would skip the version check, leave staged candidates under a trashed Scratch, and trigger the external-removal transition. |
 | H12 | Placement Undo additionally requires the source Scratch to be active, so Undo can never recreate a row or candidate under a trashed Scratch. |
 
+### Flow-review round 1 decisions (2026-10-15)
+
+| ID | Decision |
+|---|---|
+| H17 | Activating a Trash entry (Pool row Trash, Retro Mac `[X]`) is a blur-save exception, like the theme toggle. A dirty editor stays open and unsaved while the dialog is open; confirm discards it, Cancel leaves it as it was. |
+| H18 | Trash entries are disabled, with a reason, while a placement flow is open. |
+| H19 | Trash entries are disabled, with a reason, while that Scratch has a staged candidate whose source cannot be resolved. The existing confirmed-orphan cleanup resolves it first. |
+| H20 | Undo for a placement whose Scratch was archived shows the dedicated reason `Its Scratch was archived.` |
+| H21 | The Bit detail popup hides "Move to trash" for an Inbox-parented Bit. Pool row Trash and the Retro Mac `[X]` are the only Scratch Trash entries. |
+
 ## 3. Departure sheet in Retro Mac
 
 | ID | Decision |

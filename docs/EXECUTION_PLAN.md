@@ -14,7 +14,11 @@
 > **Task state:** Tasks 101–163 and 105A retain explicit user acceptance.
 > Tasks 164–165 are historical, unaccepted `[ ]` transfer records.
 > Tasks 166–172 and 171A are accepted `[x]` and Phase 34 is closed; Tasks
-> 173–208 are `[ ]`, planned and unstarted. Phases 32–33 remain reserved.
+> 173–212 are `[ ]`, planned and unstarted. Phases 32–33 remain reserved.
+> **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
+> corrections, Tasks 209–212, from
+> [DECISION](brainstorming/2026-10-15-scratch-trash-hotfix/DECISION.md). It
+> runs before Phase 35.
 > **Workflow:** from Task 171, tasks run under the lightweight workflow in
 > [WORKFLOW.md](WORKFLOW.md) (`/run-phase`, `/run-task`, `/end-phase`).
 > Planning approval and technical gates never grant visual acceptance.
@@ -121,7 +125,7 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 34 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phases 35–40 start through `/run-phase`. |
+| Execution lifecycle | Phase 34 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15). Phase 41 (hotfix) starts next through `/run-phase 41`; Phases 35–40 follow it. |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
 | Headless/base UI | Tasks 127–163 accepted | Task 163 integration and bounded R01/I01 corrections are included in the Phase 31 Final Close transaction. Original task evidence is retained; correction/candidate evidence is separate. |
@@ -175,7 +179,8 @@ boundaries. No canonical Task 164 receipt or experiment fingerprint is reused.
                       ├─Phase 31 gated correction + technical Final Close
                       └─166→167→168→169→170→171→172  Retro Mac
                                                   └171A┘ (repair; gates 172 acceptance)
-                          →173→174→175→176→177→178→179  Neumorphism
+                          →209→210→211→212  Phase 41 Scratch Trash hotfix
+                                          └→173→174→175→176→177→178→179  Neumorphism
                           →180→181→182→183→184→185→186  Terminal
                           →187→188→189→190→191→192→193  Claymorphism + Origami
                           →194→195→196→197→198→199→200  GridDO + Tiny Desk
@@ -183,7 +188,7 @@ boundaries. No canonical Task 164 receipt or experiment fingerprint is reused.
                           →208 full implementation/preservation gate
 
 Every accepted foundation, including 105/105A and every DP edge, plus all
-Tasks 166–207 feeds Task 208. Retired 164/165 are not dependency nodes.
+Tasks 166–207 and 209–212 feeds Task 208. Retired 164/165 are not dependency nodes.
 Cross-phase arrows also require the preceding phase's actual Final Close/main
 sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 ```
@@ -204,7 +209,8 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 32 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 34 | Completed | [Retro Mac regional realization](execution-plan/archive/phase-34.md) | 166–172 + 171A | Accepted and archived; MI-5/6/9 and close Advisory A2 carried in `Issues_Deferred.md`, MI-9 and A2 bound to Task 178. |
-| Phase 35 | Planned / unstarted | Neumorphism, region-by-region then supported-mode conformance | 173–179 | 172 accepted + Phase 34 close/main sync. |
+| Phase 41 | Planned / unstarted | [Scratch Trash and post-Phase-34 Inbox corrections](#phase-41--scratch-trash-and-post-phase-34-inbox-corrections) (runs before Phase 35) | 209–212 | Phase 34 close/main sync + approved Phase 41 flow review. |
+| Phase 35 | Planned / unstarted | Neumorphism, region-by-region then supported-mode conformance | 173–179 | 172 accepted + Phase 41 close/main sync. |
 | Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 accepted + Phase 35 close/main sync. |
 | Phase 37 | Planned / unstarted | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
 | Phase 38 | Planned / unstarted | GridDO + Tiny Desk, one shared writer | 194–200 | 193 accepted + Phase 37 close/main sync; both themes require regional dispositions. |
@@ -237,13 +243,13 @@ to the owners named in the inventories.
 | `UF-02` | Initial/re-entry/reload Scratch selection, invalid prior selection, and true empty state. | 127, 130; POOL, ARCHIVE |
 | `UF-03` | Expanded Pool search, sort, total/filtered counts, selection, and hidden-selected state. | 127, 130, 144; POOL |
 | `UF-04` | Collapsed switching, first-printable-key collapse, manual reopen, and session restoration. | 127, 130; POOL |
-| `UF-05` | External archive/delete transition, destination changes, draft copy, and restore. | 106, 141; POOL |
+| `UF-05` | External archive/delete transition, destination changes, draft copy, and restore. | 106, 141, 209; POOL |
 | `UF-06` | Context, Breakdown sort, rows/actions, and ordinary/completion empty distinctions. | 132; BREAKDOWN |
 | `UF-07` | Add by Enter/explicit Add with authoritative pending/reconcile/failure/success/focus. | 120, 136, 143, 148; BREAKDOWN |
-| `UF-08` | Leave with an Add draft through continue-writing or discard-and-move. | 108, 139, 140; BREAKDOWN |
+| `UF-08` | Leave with an Add draft through continue-writing or discard-and-move. | 108, 139, 140, 211, 212; BREAKDOWN |
 | `UF-09` | Edit Scratch title with conditional Save/Cancel/validation/offline/conflict/invalidation. | 109, 120, 137, 138; BREAKDOWN |
 | `UF-10` | Edit Breakdown content with lifecycle guards and deterministic focus. | 109, 120, 137, 138; BREAKDOWN |
-| `UF-11` | Delete non-optimistically with confirmation, recovery, and focus handoff. | 120, 136, 143; BREAKDOWN |
+| `UF-11` | Delete non-optimistically with confirmation, recovery, and focus handoff. | 120, 136, 143, 210; BREAKDOWN |
 | `UF-12` | Active, staged, consumed-removal, never-used, all-deleted, and completion row lifecycle. | 132, 136, 142, 145; BREAKDOWN, ARCHIVE |
 | `UF-13` | Durable Node/Bit candidates, counts, sort, quiet empty state, and full-card drag. | 121, 131, 133; STAGING |
 | `UF-14` | Stage with source validation, pending projection, result, and navigation guard. | 121, 145, 147; STAGING, BREAKDOWN |
@@ -257,11 +263,13 @@ to the owners named in the inventories.
 | `UF-22` | Valid/invalid/full feedback, visible full reason, and valid-column edge scroll. | 149, 152; EXPLORER, PLACE |
 | `UF-23` | Staged Result Title and direct type-limit surfaces without truncation/fallback. | 116, 154; PLACE |
 | `UF-24` | Actual-card Newly marker, type pinning, normal navigation, mounted-page lifetime. | 155, 157, 171A; EXPLORER, PLACE |
-| `UF-25` | Ordinary/search Undo, dependency reasons, child-first recovery, reconcile, focus. | 124, 156–158; EXPLORER, PLACE |
+| `UF-25` | Ordinary/search Undo, dependency reasons, child-first recovery, reconcile, focus. | 124, 156–158, 209; EXPLORER, PLACE |
 | `UF-26` | Exact durable completion plus Add/title blocker reporting. | 125, 159, 160; BREAKDOWN, ARCHIVE |
 | `UF-27` | Section-scoped overlay, Cancel, complete Context, explicit reopen, switch/re-entry. | 159, 160; ARCHIVE |
 | `UF-28` | Archive pending/recovery/retry and next→previous→filtered-null/true-empty handoff. | 125, 126, 161, 162, 171A; ARCHIVE, POOL |
 | `UF-29` | Theme/mode change preserves all work state and causes no mutation/navigation. | THEMES; complete matrix 208 |
+| `UF-30` | Move a Scratch to Trash from its Pool row or the Retro Mac Context `[X]`: confirmation with staged/draft disclosure, pending/failure/unknown/conflict, handoff/focus, Trash restore. | 209, 210; POOL from Phase 35 |
+| `UF-31` | A Scratch captured while the Inbox is mounted becomes selected through the ordinary switch path. | 212 |
 
 ## Architecture Flow Inventory
 
@@ -274,11 +282,11 @@ unchanged data foundations.
 | `AF-01` | DataStore and Zod write boundary remain the only command/storage boundary. | 101–105, 105A, 120–126, 163 |
 | `AF-02` | UI reads stay reactive; components do not import Dexie. | 131, 135, 163 |
 | `AF-03` | Canonical URL/system-node routing is retained; only Inbox body dispatch changes. | 129, 163; POOL, CONFORM, 208 |
-| `AF-04` | Lifecycle filters, retention, and unrelated Archive/Trash behavior remain intact. | 102, 105, 122, 125; ARCHIVE, CONFORM, 208 |
+| `AF-04` | Lifecycle filters, retention, and unrelated Archive/Trash behavior remain intact. | 102, 105, 122, 125, 209; ARCHIVE, CONFORM, 208 |
 | `AF-05` | Durable, app-session, mounted-page, recovery, and preference state use correct owners. | 101, 127, 131, 137, 139, 155, 159, 161, 163; THEMES, 208 preservation |
-| `AF-06` | Node/Bit/Breakdown/Candidate mutations use monotonic CAS/ABA protection. | 103, 120–125 |
-| `AF-07` | Commands use complete atomic postconditions and real transaction rollback, without a general log. | 104, 120–126 |
-| `AF-08` | Candidates join source truth; uniqueness, aggregate deletion, orphan audit, and Archive integrity stay repository-owned. | 101, 105, 121, 122, 131; STAGING, ARCHIVE, 208 preservation |
+| `AF-06` | Node/Bit/Breakdown/Candidate mutations use monotonic CAS/ABA protection. | 103, 120–125, 209 |
+| `AF-07` | Commands use complete atomic postconditions and real transaction rollback, without a general log. | 104, 120–126, 209 |
+| `AF-08` | Candidates join source truth; uniqueness, aggregate deletion, orphan audit, Archive and Trash integrity stay repository-owned. | 101, 105, 121, 122, 131, 209; STAGING, ARCHIVE, 208 preservation |
 | `AF-09` | Dedicated Explorer query, existing triage DnD owner, placement, Newly, and Archive coordinators own distinct slices. | 135, 142, 149, 151, 152, 155, 161, 163; STAGING, EXPLORER, PLACE, ARCHIVE, 208 preservation |
 | `AF-10` | One semantic production tree, centralized copy, task-local render evidence, and no theme-ID branching. | 128, 129; THEMES, 208 |
 
@@ -298,17 +306,18 @@ regional bindings consume and preserve them; none creates another command.
 | Confirmed-orphan cleanup | 122 | 146, 147 |
 | Place staged source | 123 | 152–154 |
 | Place direct source | 123 | 152–154 |
-| Source-aware Undo | 124 | 156–158 |
+| Source-aware Undo | 124; active-Scratch precondition 209 | 156–158 |
 | Archive Scratch | 125 | 161, 162 |
+| Trash Scratch | 209 | 210 |
 
 ## Recipe Surface Inventory
 
 | Recipe surface | Production implementation owner(s) |
 |---|---|
 | Shell and section chrome | 129; POOL; aggregate CONFORM/208 |
-| Scratch Pool | 130, 141, 144; POOL; aggregate CONFORM/208 |
-| Selected Scratch Context | 132, 138, 160; BREAKDOWN and complete variant ARCHIVE; aggregate CONFORM/208 |
-| Breakdown rows and empty states | 132, 136–140, 143, 148, 159–160; BREAKDOWN/ARCHIVE; aggregate CONFORM/208 |
+| Scratch Pool | 130, 141, 144, 210; POOL; aggregate CONFORM/208 |
+| Selected Scratch Context | 132, 138, 160, 210; BREAKDOWN and complete variant ARCHIVE; aggregate CONFORM/208 |
+| Breakdown rows and empty states | 132, 136–140, 143, 148, 159–160, 210, 211; BREAKDOWN/ARCHIVE; aggregate CONFORM/208 |
 | Staging | 133, 142, 145–148; STAGING; aggregate CONFORM/208 |
 | Grid Explorer | 134–135, 149–151, 158; EXPLORER; aggregate CONFORM/208 |
 | Placement affordances | 149, 152–154; PLACE; aggregate CONFORM/208 |
@@ -2193,6 +2202,11 @@ AF-03/05/10; all applicable NEG. Preserve DP-VQ01 and DP-VQ06-POOL.
 **Recipe:** [Shell/chrome](recipes/inbox-triage-shell-section-chrome-visual-recipe.md)
 and [Scratch Pool](recipes/inbox-triage-scratch-pool-visual-recipe.md).
 
+**Phase 41 surfaces (from Phase 35 on):** every later L1 binding also realizes
+the Pool row Trash control and the Scratch Trash dialog for its theme(s), per
+the Scratch Pool recipe's Phase 41 supplement (UF-30). The L2 counterpart is in
+the L2 section. Behavior stays as Tasks 209–212 left it.
+
 **Shared creation-date contract:** Every current and subsequent L1 theme/phase binding must follow [SPEC — Scratch Pool and Context creation-date metadata](SPEC.md#scratch-pool-and-context-creation-date-metadata), shared with L2. Scratch Pool's recipe references that single product contract; theme realization must preserve its common formatter and date body. This requirement is not limited to Task167/P34-09 and does not grant a later task/phase execution gate or reopen accepted Task166.
 
 **Observable acceptance:** fixed approved common geometry; sourced header,
@@ -2293,6 +2307,10 @@ receipt evidence packet. Preserve prior cycles/receipts/evidence and DP/C1,
 at Implemented / awaiting review, Task167 [ ]. No extra cycle, visual/task
 acceptance, Task168+, publication or topology/history change. This task-scoped
 execution grant does not limit the shared SPEC/L1/L2 product contract to Task167.
+
+**Phase 41 surfaces (from Phase 35 on):** every later L2 binding realizes the
+`DP-VQ03` departure sheet and the Breakdown Delete dialog for its theme(s),
+and the Context `[X]` stays hidden outside Retro Mac.
 
 **Retained common L2 scroll direction:** user disposition preserves Context
 and rows in their existing common scroll viewport. Future L2 theme bindings
@@ -2572,7 +2590,7 @@ conformance; extend the shared realization test and
 No component/hook/data repair is hidden here; a structural/behavior regression
 returns to its named regional owner under an exact approved repair scope.
 
-**Authority / flows:** D07/D19/D21–D27; UF-01–29 preservation, especially
+**Authority / flows:** D07/D19/D21–D27; UF-01–31 preservation, especially
 UF-29; AF-03/10; all NEG. All nine recipe targets and exact existing DP roles
 are checked, not automatically promoted.
 
@@ -2603,6 +2621,263 @@ contracts and completion-time scope are in
 [Issues_Deferred.md](issues/Issues_Deferred.md); MI-9 and A2 are also bound
 to Task 178 below.
 
+## Phase 41 — Scratch Trash And Post-Phase-34 Inbox Corrections
+
+Found in real use after Phase 34 closed. Phase 34 stays closed; this phase
+uses the next unallocated numbers and runs before Phase 35 (DECISION H01–H02).
+Authority: [DECISION](brainstorming/2026-10-15-scratch-trash-hotfix/DECISION.md)
+H01–H21 (H17–H21 from flow-review round 1), SCHEMA `Trash Scratch` and Undo rows, SPEC Scratch Pool (Trash
+Scratch, New capture) and Newly/Undo, and the Phase 41 recipe supplements.
+
+Theme scope: shared behavior for every theme; Retro Mac realization only.
+The other seven themes keep the base look until their Phases 35–39 (H03).
+
+Flow review: [Phase 41 flow review](reviews/phase-41-flow-review.md).
+
+Execution order is 209 → 210 → 211 → 212. 211 has no product dependency on
+209/210, but shares `globals.css` and possibly `breakdown-panel.tsx`, so the
+writer register serializes it.
+
+### Task 209: [ ] Add the Trash Scratch command, the Undo active-Scratch precondition and the Trash coordinator
+
+**Files and actions:**
+- `src/lib/db/schema.ts`: add the Trash Scratch command and result Zod
+  schemas, reusing the shared repository status set.
+- `src/lib/db/datastore.ts`, `src/lib/db/indexeddb.ts`: add `trashScratch`
+  and `reconcileTrashScratch` as one write transaction per the SCHEMA row
+  (exact Scratch version, exact submitted candidate set and source versions,
+  `deletedAt` + one Scratch version increment + Inbox `mtime`, candidate
+  deletes with one source-version increment each, no audit event). Add the
+  active-owning-Scratch check to placement Undo (staged and direct), returning
+  `rejected` with no write. The Inbox must not call `softDeleteBit` for a
+  Scratch.
+- `restoreBit` in `src/lib/db/indexeddb.ts`: never relocate an
+  Inbox-parented Bit by occupancy (keep `x = 0, y = 0`); test in
+  `src/lib/db/cascade-restore.test.ts`.
+- Trash Scratch rejects when a current candidate's source cannot be resolved.
+- New `src/lib/db/trash-scratch-command.test.ts`; extend
+  `src/lib/db/triage-undo.test.ts` (and `inbox-operations.test.ts` where its
+  harness is needed) for the Undo precondition in both the command and its
+  reconciliation.
+- New `src/hooks/use-trash-scratch.ts` and test: the mounted-page coordinator.
+  It holds the dialog target, projects the live candidate set and the
+  draft/editor disclosure flag, dispatches under
+  `use-triage-operation-lock`, keeps pending/failure/unknown/conflict state
+  with one operation ID per confirmation, reads the Scratch version and
+  candidate set live at confirm, refuses to open or confirm while a placement
+  flow is open or an unresolved-source candidate exists (with reason keys),
+  reconciles unknown outcomes, holds the native unload guard while pending,
+  and owns the own-Trash marker `{scratchId, expectedVersion}` (set at
+  dispatch; cleared once the Pool lifecycle projection has observed the
+  deletion, or at a non-applied terminal result). It keeps a live
+  per-Scratch unresolved-source flag over the Inbox's `stagedCandidates` and
+  `scratchBreakdowns`, so every Pool row can show its disabled reason.
+- `src/hooks/use-triage-operation-lock.ts` and test: add a `"trash"`
+  operation kind.
+- `src/stores/triage-store.ts` and test: `reconcileScratchPoolContext` creates
+  no `externalScratchRemoval` for an own-Trash observation; reuse
+  `finishScratchArchive` (or rename it to a shared lifecycle handoff) for the
+  success handoff, and extract the visible-order computation from
+  `triage-workspace.tsx` `handleArchiveApplied` so Archive and Trash share it.
+  `use-archive-scratch.ts` is unchanged.
+- `src/hooks/use-external-scratch-removal-data.ts` and test: an own-Trash
+  observation sets no external lifecycle.
+- `src/hooks/use-inbox.ts` and test: no Pool deleted status for own Trash.
+- `src/hooks/use-triage-newly-placed.ts` and test: an inactive owning Scratch
+  (Trash applied, Archive success, or external) makes Undo unavailable without
+  a click, with distinct trashed/archived reason keys; markers stay. The hook
+  reads the owning Scratch lifecycle through the DataStore (the Undo result
+  shape is unchanged), and owner-inactive takes precedence over
+  `invalid-provenance`.
+
+**Dependencies:** Phase 34 Final Close/main sync; approved Phase 41 documents
+and flow review; Phase 41 lifecycle gate.
+
+**Authority / flows:** H05, H07–H09, H11–H12, H18–H20; SCHEMA Trash Scratch,
+Hooks 4/13/14, Undo row and conformance cases; SPEC Scratch Pool Trash Scratch
+and Newly/Undo; UF-05, UF-25, UF-28 preservation, UF-30; AF-01, AF-04–AF-08.
+
+**Recipe:** none; headless.
+
+**Observable acceptance:**
+- Repository: applied/already applied, not applied, and conflict follow the
+  SCHEMA row exactly, including a candidate staged after confirmation, a
+  changed source row, a changed Scratch version, and ambiguous Trash followed
+  by Trash restore (conflict, no re-trash).
+- An injected failure at every transaction checkpoint leaves no partial
+  write. Breakdown rows survive Trash.
+- Trash restore, while at least one other active Scratch exists, returns the
+  Scratch with its `x = 0, y = 0` sentinel, its rows active and no candidate.
+- An unresolved-source candidate makes Trash rejected with no write.
+- Undo with a trashed or archived owning Scratch is rejected with no write, in
+  the command and in reconciliation. After Archive success, a placement from
+  that Scratch shows Undo unavailable with its reason without a click.
+  Existing Undo and Archive handoff tests stay green.
+- Coordinator: own Trash never enters the `VQ-01` state, including when the
+  live query emits the trashed Scratch before dispatch resolves, and no Pool
+  deleted status appears when it emits after dispatch resolves; a conflict
+  result with the Scratch inactive enters `VQ-01`; the handoff target matches
+  Archive's rule; the lock blocks switching, other operations and a second
+  Trash; placement-open and unresolved-source states refuse with reasons.
+
+**Verification:** write each failing test first and observe the failure, then
+implement; focused tests, then the `CLAUDE.md` gates. Expert review before
+the checkpoint (repository logic).
+
+**Commit message:** `feat(triage): add Trash Scratch command and coordinator`.
+
+### Task 210: [ ] Add the Pool Trash control, the Scratch Trash dialog, the Retro Mac Context [X] and the Retro Mac Breakdown Delete dialog
+
+**Files and actions:**
+- `src/components/triage/scratch-pool.tsx` and test: expanded rows become a
+  container with the existing selection button plus a sibling Trash button
+  (no nested buttons; row height `52px`); collapsed switchers unchanged.
+- New `src/components/triage/scratch-trash-dialog.tsx` and test: the shared
+  `AlertDialog` with class `scratch-trash-dialog`, exact copy, live staged
+  count and draft line, Cancel initial focus, pending/failure/unknown/
+  conflict variants driven by the Task 209 coordinator.
+- `src/components/triage/breakdown-panel.tsx` and test: the Context
+  title-strip `[X]` becomes a button (the left strip text stays
+  aria-hidden), superseding the accepted Phase 34 assertions that the strip
+  is aria-hidden with no button (H10); add a semantic blur-save exemption in
+  `handleFieldBlur` for Trash entry activation, keyed on a data attribute,
+  not a theme (H17); on Trash success discard that Scratch's Add draft
+  (including `departure.setAddDraft("")`) and editors; add
+  `breakdown-delete-dialog` to the row Delete `AlertDialog`.
+- `src/components/ui/alert-dialog.tsx`: one optional, non-breaking
+  `overlayClassName` prop on `AlertDialogContent`.
+- `src/components/triage/hierarchy-explorer.tsx` and test: render the
+  trashed/archived Undo reasons.
+- `src/components/bit-detail/bit-detail-popup.tsx` and its test: hide "Move
+  to trash" for an Inbox-parented Bit (H21).
+- `src/components/triage/triage-workspace.tsx` and test: mount the dialog,
+  connect both entries and the coordinator, apply the success selection
+  handoff and the per-entry focus rules.
+- `src/lib/copy/inbox-triage.ts` and test: every Phase 41 string in the
+  Scratch Pool recipe supplement, the Context `[X]` accessible name, and the
+  Undo-unavailable reason.
+- `src/app/globals.css`: base and Retro Mac rules for the Pool Trash control,
+  the Scratch Trash dialog, the `[X]` button and the Breakdown Delete dialog.
+- `src/components/triage/inbox-triage-theme-realization.test.tsx`: Retro Mac
+  assertions; `[X]` neither visible nor focusable in the other themes.
+
+**Dependencies:** Task 209 accepted.
+
+**Authority / flows:** H04, H06–H10, H14A, H17–H21; SPEC Scratch Pool Trash
+Scratch, Inline editing, Newly/Undo and Bit Detail Popup; Scratch Pool recipe
+Phase 41 supplement, Context recipe Phase 41 amendment, Breakdown recipe
+Phase 41 Delete dialog; UF-11, UF-25, UF-29 preservation, UF-30; AF-10.
+
+**Recipe:** those three Phase 41 sections only.
+
+**Observable acceptance:**
+- Pool row Trash and the Context `[X]` open the dialog for the right Scratch.
+  Activating Trash never selects the row.
+- The dialog shows the exact copy, a live staged count and the draft line.
+  Cancel/Escape writes nothing and returns focus to the entry.
+- Confirm shows pending, then on success removes the row once, hands off
+  selection and focus per SPEC, announces the move and discards drafts.
+- Failure, unknown and conflict show their variants without closing or
+  resending blindly. Escape does nothing while pending or unknown. A
+  `rejected` result shows its reason and closes on Cancel.
+- With a dirty row editor and with a dirty title editor, activating Pool
+  Trash or `[X]` opens the dialog with the draft line and dispatches no Save;
+  Cancel leaves the editor dirty; success leaves no unload guard or `VQ-03`.
+- With a placement open, or an unresolved-source candidate, the entries are
+  disabled and expose their reasons.
+- Changing color theme or light/dark while the dialog is open or pending keeps
+  its target, counts, state, operation ID and focus; nothing is written or
+  resent.
+- Undo shows the trashed and archived reasons. The Bit detail popup of a
+  Scratch has no "Move to trash"; ordinary Bits still do.
+- Retro Mac light and dark match the recipe, including the Breakdown Delete
+  dialog. One base theme (GridDO) shows the base look and no `[X]`.
+- Restore from `/trash` brings the Scratch back to the Pool.
+- The user gives a separate visual disposition for the Retro Mac surfaces.
+
+**Verification:** component tests for structure, focus and states; running-app
+check (Playwright MCP, seeded fixtures) in Retro Mac light/dark and GridDO,
+keyboard path included; Pool rows (default/selected/hover/focus, 52px,
+truncation before the control) in all eight themes at 1920×1080 light, Retro
+Mac also dark, re-confirming the Phase 34 Retro Mac Pool disposition;
+`CLAUDE.md` gates.
+
+**Commit message:** `feat(triage): add Scratch Trash UI`.
+
+### Task 211: [ ] Realize the Retro Mac departure sheet
+
+**Files and actions:** `src/app/globals.css`: Retro Mac rules for
+`breakdown-departure-sheet` per the Breakdown recipe's Phase 41 Retro Mac
+realization. Add one aria-hidden `!` mark element to the shared sheet in
+`src/components/triage/breakdown-panel.tsx` (and its test) only if CSS cannot
+place the mark; it is hidden in other themes. Extend
+`src/components/triage/inbox-triage-theme-realization.test.tsx`.
+
+**Dependencies:** Phase 41 lifecycle gate; writer-register serialization after
+Task 210.
+
+**Authority / flows:** H13–H14; DP-VQ03; UF-08; AF-10.
+
+**Recipe:** Breakdown recipe `DP-VQ03` and its Phase 41 Retro Mac realization.
+
+**Observable acceptance:** in Retro Mac light and dark, the sheet takes the
+Archive-alert family and stays in flow under the Add row with no scrim,
+portal, title bar or motion. Copy, action order, focus (Continue first, Escape
+returns to Add with caret) and lifecycle are unchanged. The other themes are
+unchanged. The user gives a separate visual disposition.
+
+**Verification:** running-app check of a Scratch switch with an Add draft in
+Retro Mac light/dark and one other theme; existing departure tests stay green;
+`CLAUDE.md` gates.
+
+**Commit message:** `feat(triage): realize retro-mac departure sheet`.
+
+### Task 212: [ ] Select a Scratch captured while the Inbox is mounted
+
+**Files and actions:**
+- `src/hooks/use-inbox.ts` and test: `createScratchBit` returns the created
+  ID.
+- `src/components/quick-capture/scratch-modal.tsx`,
+  `src/components/quick-capture/quick-capture-overlays.tsx` and their tests:
+  remember the last successful capture ID and report it when the capture
+  surface closes, by auto-close or by the user.
+- `src/stores/triage-store.ts` and test: a one-shot requested-selection slot,
+  written only while a `TriageWorkspace` is mounted and cleared on its
+  unmount.
+- `src/components/triage/triage-workspace.tsx` (and `scratch-pool.tsx` only
+  for revealing the row) with tests: consume the slot through the existing
+  Scratch-switch path (`VQ-03` for an Add draft; Discard and move focuses the
+  Selected Scratch Context); skip it while switching is locked, while an
+  inline editor is open, or when the Scratch is no longer active; reveal the
+  row and do not move focus otherwise.
+
+**Dependencies:** Phase 41 lifecycle gate; writer-register serialization after
+Task 211.
+
+**Authority / flows:** H15–H16; SPEC Scratch Pool New capture and Quick
+Capture; UF-31, UF-08 preservation; AF-05.
+
+**Recipe:** none; no visual change.
+
+**Observable acceptance:**
+- In the Inbox with no draft, the captured Scratch is selected after the
+  capture surface closes and its row is revealed; focus does not move.
+- With an Add draft, the departure sheet appears. Continue keeps the current
+  Scratch; Discard selects the new one.
+- While an operation locks switching, or an inline editor is still open when
+  the capture surface closes, nothing changes.
+- Under an active Pool query the new Scratch is selected with the
+  hidden-selection status. A collapsed Pool stays collapsed.
+- A capture from another route does not navigate, and a later Inbox entry
+  keeps the ordinary re-entry selection. A new Scratch never shows as a remote
+  arrival.
+
+**Verification:** write each failing hook/component test first, then
+implement; running-app check of capture from the Inbox (with and without a
+draft) and from another route; `CLAUDE.md` gates.
+
+**Commit message:** `feat(triage): select newly captured Scratch in Inbox`.
+
 ## Phase 35 — Neumorphism Regional Realization
 
 Theme set: `neumorphism`. This phase is proposed and unstarted.
@@ -2615,9 +2890,9 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Files and actions:** bind L1's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 
-**Dependencies:** Task 172 accepted and actual Phase 34 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
+**Dependencies:** Task 172 accepted and actual Phase 34 Final Close/main sync; Tasks 209–212 accepted and actual Phase 41 close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–29, its AF/NEG constraints and no-storage boundary.
+**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–30, its AF/NEG constraints and no-storage boundary.
 
 **Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
 
@@ -2714,7 +2989,7 @@ Carried from Phase 34 (`Issues_Deferred.md`): move the Archive confirmation deta
 
 **Dependencies:** Task 178 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–29 preservation, its AF/NEG constraints and no-storage boundary.
+**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–31 preservation, its AF/NEG constraints and no-storage boundary.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
@@ -2738,7 +3013,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Dependencies:** Task 179 accepted and actual Phase 35 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–29, its AF/NEG constraints and no-storage boundary.
+**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–30, its AF/NEG constraints and no-storage boundary.
 
 **Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
 
@@ -2834,7 +3109,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Dependencies:** Task 185 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–29 preservation, its AF/NEG constraints and no-storage boundary.
+**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–31 preservation, its AF/NEG constraints and no-storage boundary.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
@@ -2858,7 +3133,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Dependencies:** Task 186 accepted and actual Phase 36 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–29, its AF/NEG constraints and no-storage boundary.
+**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–30, its AF/NEG constraints and no-storage boundary.
 
 **Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
 
@@ -2954,7 +3229,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Dependencies:** Task 192 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–29 preservation, its AF/NEG constraints and no-storage boundary.
+**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–31 preservation, its AF/NEG constraints and no-storage boundary.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
@@ -2978,7 +3253,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Dependencies:** Task 193 accepted and actual Phase 37 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–29, its AF/NEG constraints and no-storage boundary.
+**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–30, its AF/NEG constraints and no-storage boundary.
 
 **Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
 
@@ -3074,7 +3349,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Dependencies:** Task 199 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–29 preservation, its AF/NEG constraints and no-storage boundary.
+**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–31 preservation, its AF/NEG constraints and no-storage boundary.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
@@ -3098,7 +3373,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Dependencies:** Task 200 accepted and actual Phase 38 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–29, its AF/NEG constraints and no-storage boundary.
+**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–30, its AF/NEG constraints and no-storage boundary.
 
 **Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
 
@@ -3194,7 +3469,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Dependencies:** Task 206 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–29 preservation, its AF/NEG constraints and no-storage boundary.
+**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–31 preservation, its AF/NEG constraints and no-storage boundary.
 
 **Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
 
@@ -3214,20 +3489,20 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Files and actions:** make no production/test/config change. Run the full
 matrix below on the current code with test data and record the outcome in the
-Phase 40 ledger checkpoint: the accepted dispositions of Tasks 129–163 and
-166–207, the approved SCHEMA grid correction, all 29 UF/10 AF/21 NEG outcomes,
+Phase 40 ledger checkpoint: the accepted dispositions of Tasks 129–163,
+166–207 and 209–212, the approved SCHEMA grid correction, all 31 UF/10 AF/21 NEG outcomes,
 nine recipes, fourteen accepted DP receipts covering twelve VQs and
 migration/rollback/ABA/aggregate-retention/recovery/unrelated-surface results.
 Failures return to their exact owner.
 
 **Dependencies:** all accepted Tasks 101–163 including 105A; all accepted Tasks
-166–207; actual Phase 39 Final Close/main sync and all prior phase publication/
+166–207 and 209–212; actual Phase 39 Final Close/main sync and all prior phase publication/
 integration proofs; the approved SCHEMA grid correction and fourteen retained
 DP receipts; complete approved C04/C05/C06/flow-review chain and this phase's
 exact lifecycle gate. Transferred 164/165 are explicitly excluded from the
 dependency set, never treated as accepted.
 
-**Authority / flows:** every UF-01–29, AF-01–10, NEG-01–21 and VQ-01–12,
+**Authority / flows:** every UF-01–31, AF-01–10, NEG-01–21 and VQ-01–12,
 all independent command/data foundations and DECISION D07/D19/D24.
 No new data or product decision is derived.
 
@@ -3245,7 +3520,7 @@ consumer evidence. No unknown result, skipped check, unresolved decision,
 known failure or source-only claim is represented as completion.
 
 **Verification:** run the `CLAUDE.md` full gate; run the complete v3→v4
-migration/rollback, real transaction, ABA-1/2/3, aggregate retention, 29-flow/10-AF/21-NEG, fourteen-DP/nine-recipe,
+migration/rollback, real transaction, ABA-1/2/3, aggregate retention, 31-flow/10-AF/21-NEG, fourteen-DP/nine-recipe,
 16-theme/mode × 1024px/1920×1080, route/reload/remote/concurrent/focus,
 accessibility/motion and unrelated-surface matrices. Browser-dependent
 results need a fresh check on the current code. Finish with a clean working
@@ -3278,43 +3553,45 @@ This register covers every implementation/test path declared by two or more task
 | `decision-explorer-recipe` | `docs/recipes/inbox-triage-grid-explorer-visual-recipe.md` | 113, 114 |
 | `decision-placement-recipe` | `docs/recipes/inbox-triage-placement-affordances-visual-recipe.md` | 115, 116 |
 | `decision-archive-recipe` | `docs/recipes/inbox-triage-archive-completion-visual-recipe.md` | 118, 119 |
-| `db-implementation` | `src/lib/db/indexeddb.ts` | 101, 102, 103, 104, 105, 120–126 |
-| `db-interface` | `src/lib/db/datastore.ts` | 103, 105, 120–126 |
-| `db-revision-fixtures` | `src/lib/db/auto-completion.test.ts`; `src/lib/db/cascade-delete.test.ts`; `src/lib/db/cascade-restore.test.ts`; `src/lib/db/deadline-hierarchy.test.ts`; `src/lib/db/grid-uniqueness.test.ts`; `src/lib/db/indexeddb.migration.test.ts`; `src/lib/db/indexeddb.test.ts`; `src/lib/db/mtime-cascade.test.ts`; `src/lib/db/promotion.test.ts`; `src/lib/db/system-nodes.test.ts` | 101, 103 |
+| `db-implementation` | `src/lib/db/indexeddb.ts` | 101, 102, 103, 104, 105, 120–126, 209 |
+| `db-interface` | `src/lib/db/datastore.ts` | 103, 105, 120–126, 209 |
+| `db-revision-fixtures` (209 writes `cascade-restore.test.ts` only) | `src/lib/db/auto-completion.test.ts`; `src/lib/db/cascade-delete.test.ts`; `src/lib/db/cascade-restore.test.ts`; `src/lib/db/deadline-hierarchy.test.ts`; `src/lib/db/grid-uniqueness.test.ts`; `src/lib/db/indexeddb.migration.test.ts`; `src/lib/db/indexeddb.test.ts`; `src/lib/db/mtime-cascade.test.ts`; `src/lib/db/promotion.test.ts`; `src/lib/db/system-nodes.test.ts` | 101, 103 |
 | `db-archive-regression` | `src/lib/db/archive.test.ts` | 101, 103, 125 |
 | `db-hard-delete-regression` | `src/lib/db/auto-cleanup.test.ts`; `src/lib/db/cascade-hard-delete.test.ts` | 101, 103, 105 |
 | `db-breakdown-regression` | `src/lib/db/scratch-breakdowns.test.ts` | 101, 103, 105, 120 |
-| `db-command-harness` | `src/lib/db/inbox-operations.test.ts` | 120 creates; 121, 123, 124 extend |
-| `copy` | `src/lib/copy/inbox-triage.ts`; `src/lib/copy/inbox-triage.test.ts` | 128, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162 |
-| `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162; THEMES |
-| `triage-state` | `src/stores/triage-store.ts`; `src/stores/triage-store.test.ts` | 127, 130, 134, 141, 150, 161, 163 |
+| `db-command-harness` | `src/lib/db/inbox-operations.test.ts` | 120 creates; 121, 123, 124, 209 extend |
+| `copy` | `src/lib/copy/inbox-triage.ts`; `src/lib/copy/inbox-triage.test.ts` | 128, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 210 |
+| `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 210, 211; THEMES |
+| `triage-state` | `src/stores/triage-store.ts`; `src/stores/triage-store.test.ts` | 127, 130, 134, 141, 150, 161, 163, 209, 212 |
 | `triage-preferences` | `src/stores/triage-preferences-store.ts`; `src/stores/triage-preferences-store.test.ts` | 127, 130, 132 |
-| `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162; BREAKDOWN, ARCHIVE |
+| `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162, 210, 211 (conditional); BREAKDOWN, ARCHIVE |
 | `breakdown-component-test` | `src/components/triage/breakdown-panel.test.tsx` | 101 plus every `breakdown-component` writer |
-| `workspace-component` | `src/components/triage/triage-workspace.tsx` | 129, 136, 137, 139, 140, 141, 145, 149, 152, 155, 159, 160, 161, 163, 171A; POOL, BREAKDOWN, STAGING, PLACE, ARCHIVE |
+| `workspace-component` | `src/components/triage/triage-workspace.tsx` | 129, 136, 137, 139, 140, 141, 145, 149, 152, 155, 159, 160, 161, 163, 171A, 209 (handoff extraction), 210, 212; POOL, BREAKDOWN, STAGING, PLACE, ARCHIVE |
 | `workspace-component-test` | `src/components/triage/triage-workspace.test.tsx` | 101 plus every `workspace-component` writer |
-| `pool-component` | `src/components/triage/scratch-pool.tsx` | 130, 136, 141, 144, 161; POOL |
+| `pool-component` | `src/components/triage/scratch-pool.tsx` | 130, 136, 141, 144, 161, 210, 212 (conditional); POOL |
 | `pool-component-test` | `src/components/triage/scratch-pool.test.tsx` | 101 plus every `pool-component` writer |
 | `staging-component` | `src/components/triage/staging-zone.tsx`; `src/components/triage/staging-zone.test.tsx` | 133, 142, 145, 146, 147, 148; STAGING |
 | `drag-token` | `src/components/triage/triage-drag-token.tsx`; `src/components/triage/triage-drag-token.test.tsx` | 133, 142; STAGING |
-| `explorer-component` | `src/components/triage/hierarchy-explorer.tsx` | 134, 149–158; EXPLORER, PLACE |
-| `explorer-component-test` | `src/components/triage/hierarchy-explorer.test.tsx` | 101, 134, 149–158; EXPLORER, PLACE |
+| `explorer-component` | `src/components/triage/hierarchy-explorer.tsx` | 134, 149–158, 210; EXPLORER, PLACE |
+| `explorer-component-test` | `src/components/triage/hierarchy-explorer.test.tsx` | 101, 134, 149–158, 210; EXPLORER, PLACE |
 | `explorer-results` | `src/components/triage/grid-explorer-search-results.tsx`; `src/components/triage/grid-explorer-search-results.test.tsx` | 151, 158, 171A (conditional); EXPLORER, PLACE |
 | `actual-node-card` | `src/components/grid/node-card.tsx` | 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
 | `actual-node-card-test` | `src/components/grid/node-card.test.tsx` | 101, 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
 | `actual-bit-card` | `src/components/grid/bit-card.tsx` | 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
 | `actual-bit-card-test` | `src/components/grid/bit-card.test.tsx` | 101, 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
-| `theme-realization-test` | `src/components/triage/inbox-triage-theme-realization.test.tsx` | THEMES; 166 creates, later writers extend while preserving earlier assertions |
+| `theme-realization-test` | `src/components/triage/inbox-triage-theme-realization.test.tsx` | THEMES, 210, 211; 166 creates, later writers extend while preserving earlier assertions |
 | `theme-transition-test` | `src/app/theme-transition.test.ts` | CONFORM |
 | `breakdown-hook` | `src/hooks/use-scratch-breakdowns.ts` | 132, 136, 137 |
 | `breakdown-hook-test` | `src/hooks/use-scratch-breakdowns.test.tsx` | 101, 132, 136, 137 |
-| `operation-lock-test` | `src/hooks/use-triage-operation-lock.test.tsx` | 136, 137, 139, 145, 152, 156, 161 |
-| `inbox-hook-test` | `src/hooks/use-inbox.test.tsx` | 101, 130 |
+| `operation-lock` | `src/hooks/use-triage-operation-lock.ts` | 209 |
+| `operation-lock-test` | `src/hooks/use-triage-operation-lock.test.tsx` | 136, 137, 139, 145, 152, 156, 161, 209 |
+| `inbox-hook` | `src/hooks/use-inbox.ts` | 209, 212 |
+| `inbox-hook-test` | `src/hooks/use-inbox.test.tsx` | 101, 130, 209, 212 |
 | `candidate-hook` | `src/hooks/use-staged-candidates.ts`; `src/hooks/use-staged-candidates.test.tsx` | 131, 145, 146 |
 | `triage-dnd` | `src/hooks/use-dnd.ts`; `src/hooks/use-triage-dnd.test.ts` | 142, 145, 146, 149, 152, 163 |
 | `explorer-search-hook` | `src/hooks/use-grid-explorer-search.ts`; `src/hooks/use-grid-explorer-search.test.tsx` | 135, 151, 158, 171A |
 | `placement-hook` | `src/hooks/use-triage-placement.ts`; `src/hooks/use-triage-placement.test.tsx` | 152, 153, 154, 161 |
-| `newly-hook` | `src/hooks/use-triage-newly-placed.ts`; `src/hooks/use-triage-newly-placed.test.tsx` | 155, 156, 157, 158, 161 |
+| `newly-hook` | `src/hooks/use-triage-newly-placed.ts`; `src/hooks/use-triage-newly-placed.test.tsx` | 155, 156, 157, 158, 161, 209 |
 | `completion-hook` | `src/hooks/use-can-archive-scratch.ts` | 159, 160 |
 | `completion-hook-test` | `src/hooks/use-can-archive-scratch.test.ts` | 101, 159, 160 |
 | `archive-coordinator` | `src/hooks/use-archive-scratch.ts`; `src/hooks/use-archive-scratch.test.ts` | 161, 162, 171A |
@@ -3322,14 +3599,14 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 35 / Task 173. Phases 32
-  and 33 remain reserved with no tasks.
-- **Next unallocated numbers after this amendment:** Phase 41 / Task 209.
-  Planned Phases 34–40 and Tasks 166–208 are already allocated; none may be
+- **Next planned implementation phase/task:** Phase 41 / Task 209, then
+  Phase 35 / Task 173. Phases 32 and 33 remain reserved with no tasks.
+- **Next unallocated numbers after the Phase 41 amendment:** Phase 42 / Task 213.
+  Planned Phases 34–41 and Tasks 166–212 are already allocated; none may be
   reused for another meaning.
 - Graph reconciliation: 72 accepted tasks (101–163 plus 105A, 166–172 and 171A),
   ten completed archives (Phases 23–31 and 34), two historical unaccepted transfer
-  records (164/165), 36 unaccepted tasks (173–208) in Phases 35–40, and two reserved
+  records (164/165), 40 unaccepted tasks (173–212) in Phases 35–41, and two reserved
   phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

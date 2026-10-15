@@ -157,7 +157,11 @@ and the Retro Mac hover inversion, and is disabled while any Inbox operation
 is pending. The left `[ FOLDER DIALOG: INFO ]` text stays aria-hidden
 decoration, so the strip is no longer aria-hidden as a whole. Other themes
 keep the strip hidden, so the button is not rendered visibly or focusable
-there. No theme-ID branch.
+there. No theme-ID branch. The button is unavailable while the completion
+overlay or the `VQ-03` sheet makes the Breakdown inert, and disabled with the
+Pool control's reasons otherwise. Its 16px-tall target is below the WCAG
+2.5.8 24px minimum; the equivalent Pool row Trash control (28px) satisfies
+the equivalent-control exception, so the strip geometry stays unchanged.
 
 Retro-mac's sort label names the **next** order: currentDESC shows `OLD FIRST`,
 click selectsASC/oldest-first; currentASC shows `NEW FIRST`, click selectsDESC/
