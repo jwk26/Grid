@@ -488,8 +488,9 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   with a visible reason, while any Inbox operation is pending, while a
   placement flow is open, and while that Scratch has a staged candidate whose
   source cannot be resolved (confirmed-orphan cleanup resolves it first).
-  `[X]` is also unavailable while the completion overlay or the `VQ-03` sheet
-  makes the Breakdown inert; the Pool entry stays available then.
+  `[X]` is also unavailable while the completion overlay makes the Breakdown
+  inert; the Pool entry stays available then. While the `VQ-03` sheet is up,
+  the Pool and Breakdown are inert, so neither entry is available.
 - Either entry opens one confirmation dialog for that Scratch. It names the
   Scratch, says the Scratch moves to Trash and can be restored from Trash,
   states the staged-candidate count when it is above zero, and states that
