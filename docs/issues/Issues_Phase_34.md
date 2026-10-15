@@ -25,8 +25,8 @@ Read it at task start during Phases 34–35.
 ## Carried over
 
 ### Current state
-- Status: Open
-- Next: `/run-task 172`
+- Status: Closed at `/end-phase 34` (2026-10-15)
+- Next: none
 
 ### Log
 - Decision: carry-over dispositions below approved as proposed (user, 2026-10-15).
@@ -103,10 +103,8 @@ Read it at task start during Phases 34–35.
 ### Log
 - Decision: work plan approved by the user; proceed in Korean (user, 2026-10-15).
 - MI-10 [Open]: in dark mode the Context sort chip (`OLD FIRST`) was unreadable, white text on a fixed `#ffffd0` fill — cause: `--triage-context-sort-fill/-hover` were hex literals that ignore the mode — fix: derive both from `--background` with `color-mix` as the Pool chip does; light values unchanged (uncommitted until this checkpoint commit).
-
 - Decision: dark Context chip accepted, 1024px Breakdown truncation is not a defect (user, 2026-10-15).
 - Decision: option A, run the MI-3/MI-4/MI-8 rechecks in this task; the leftover `remote row` node in the MCP test profile may be deleted (user, 2026-10-15).
-
 - MI-8 [Open, diagnosed by expert, code-read only]: root cause is not frame timing alone. `applyTerminal` (`use-archive-scratch.ts:178-194`) awaits `onApplied` before recording the terminal state; `handleArchiveApplied` calls `finishScratchArchive`, which changes `selectedScratchId` while the coordinator is still `pending`; the recovery gate (`triage-workspace.tsx:800-808`) then reads it as a forced-reload mismatch and unmounts `ReadyTriageWorkspace`, taking the focused Archive button with it. The one-shot rAF focus (`:881-891`) finds no target. Proposed fix: parent-owned pending focus kind consumed in a `useLayoutEffect` once `terminalSuccess` renders (like `pendingTerminalFocusRef`, `:1698-1711`), plus a gate change so a normal Archive never shows the recovery boundary. The gate change alters the coordinator contract.
 - MI-11 [Open, needs browser confirmation]: the same unmount appears to discard page-session state owned under `TriageWorkspaceContent` on every successful Archive (Newly Placed markers and Undo, Staging alerts), against `SPEC.md` 785-786 and 908.
 - MI-4 [Open, diagnosed]: the BODY focus loss on Retry 150/151 is the Explorer search "Try again" button (`grid-explorer-search-results.tsx:267-276`), removed when the next run starts; `retry` (`use-grid-explorer-search.ts:386-390`) sets no new focus target. Different mechanism from MI-8. Where focus should land after Retry is a product decision the plan does not make.
@@ -114,11 +112,18 @@ Read it at task start during Phases 34–35.
 - Decision: MI-4 Retry focus lands on the Explorer search input, as in the P34-16 Undo repair (user, 2026-10-15). Not yet implemented.
 - Decision: MI-8/MI-11 repair owner and scope are settled in an Opus session; no plan, canonical-document or commit change in this task until that decision is committed (user, 2026-10-15).
 - Awaiting User Decision: L7 forbids hiding component/hook repair in this task. MI-8/MI-11 need a repair owner and scope, MI-4 needs a focus destination.
+- Decision: MI-8, MI-11 and the MI-4 Retry focus move to repair Task 171A; the MI-4 Undo recovery recheck stays here; Task 172 acceptance waits for 171A (user, 2026-10-15). Marker loss in MI-11 is to be proven by a direct test in 171A, since CDP drag could not complete a placement.
 - Decision: MI-8, MI-11, MI-12 and MI-10 closed by the user after Task 171A acceptance (2026-10-15). MI-4 Retry is partly done; only the Undo recovery recheck remains.
+- Awaiting User Decision (answered by the next Decision): Undo recovery states need a placed Bit and an injected Undo result; CDP drag could not complete a placement (Task 171A), and the logic is already covered by `use-triage-newly-placed.test.tsx` and `hierarchy-explorer.test.tsx`. Recommendation: A) user places one Bit by hand in the MCP browser, then I inject the four results and check visuals; alternative B) accept the existing mounted jsdom tests plus the static theme-realization state fixture as the recheck.
 - Decision: option A, the user places one Bit by hand and the four Undo results are injected (user, 2026-10-15).
 - MI-4 [Resolved, awaiting user close]: Undo recovery rechecked in the browser (retro-mac light, 1920×1080): pending, unknown (`Check again`), reconciling (button disabled), not applied (`Retry`, focus stays on it), and a changed-after-placement item (`result-mutated`, `Undo is unavailable`). Layout and copy intact in each. Note: a forced conflict shows `result-mutated`, not a dispatch conflict; the dispatch-time `conflict` path stays covered only by tests. In `result-mutated` the Undo icon stays visible with `aria-disabled=true` and `disabled=false`.
-- (earlier, superseded) Awaiting User Decision: Undo recovery states need a placed Bit and an injected Undo result; CDP drag could not complete a placement (Task 171A), and the logic is already covered by `use-triage-newly-placed.test.tsx` and `hierarchy-explorer.test.tsx`. Recommendation: A) user places one Bit by hand in the MCP browser, then I inject the four results and check visuals; alternative B) accept the existing mounted jsdom tests plus the static theme-realization state fixture as the recheck.
-- Decision: MI-8, MI-11 and the MI-4 Retry focus move to repair Task 171A; the MI-4 Undo recovery recheck stays here; Task 172 acceptance waits for 171A (user, 2026-10-15). Marker loss in MI-11 is to be proven by a direct test in 171A, since CDP drag could not complete a placement.
+- MI-13 [Fixed, awaiting user close]: the retro-mac Context sort chip (`OLD FIRST`) showed no focus indicator — cause: its fixed `box-shadow: 1px 1px 0` overrode the Tailwind focus ring and the chip had no `:focus-visible` rule — fix: ink/surface inversion like the Edit control, light and dark, with one test assertion (this commit).
+- MI-3 recheck (2026-10-15, retro-mac, 1920×1080, MCP browser): reduced-motion simulated by applying the 15 `prefers-reduced-motion` rules in the live page (the MCP tool cannot set the media feature): 541 elements, none with an animation or a transition above 0.01 ms. CSS only; JS-driven motion not covered. Focus-visible walk over 43 focusable elements in light and dark: all show a change except the sort chip (MI-13).
+- MI-3 not rechecked: the 21 Staging functional regressions and the Task 170 narrow-viewport keyboard/scroll/unavailable checks. They need real drags (Stage, Unstage, Direct placement), which CDP could not complete; Staging logic stays covered by the jsdom suites. Needs the user's decision.
+- Decision: the remaining MI-3 checks run now, with the user doing the drags in the MCP browser (user, 2026-10-15). The user confirmed the sort chip focus state as correct.
+- MI-3 rechecked with user drags (retro-mac light, 1920×1080 then 1024×768): Stage (Breakdown row dims in place, Staging header `2 BITS`), Unstage (card leaves Staging, row restored, focus on the `Drag breakdown` grip, not BODY), Direct placement confirmation (heading focused, Node/Bit/Cancel all visible). At 1024×768: no horizontal scroll, confirmation 158px in a 180px column with no scroll needed, native Tab goes `[×]` → Node → Bit → Cancel, each visible with a focus-visible change, Shift+Tab back, Enter on Cancel closes without writing and returns focus to the grip.
+- MI-3 still not covered: pointer-free (keyboard) Stage/Unstage, staged-result placement (Node/Bit title editing), Staging unknown/reconciling states, long-title (1000 character) scrolling, and 1024 dark. Left as waived or for the user to defer.
+- Task 172 accepted by the user (2026-10-15). MI-3 closed as waived, with the uncovered checks listed above; MI-4 and MI-13 closed.
 
 ### Checkpoint
 - Changed: `globals.css` (two Context sort tokens), one CSS assertion in `inbox-triage-theme-realization.test.tsx`.
@@ -126,14 +131,13 @@ Read it at task start during Phases 34–35.
 - Please check: the dark Context chip, and the 1024px Breakdown truncation (`ARCHI…`, title `Plan the field stud`), which I treated as the existing compact layout, not a defect.
 - Unresolved: MI-3, MI-4 and MI-8 rechecks (interactive keyboard/reduced-motion/Undo recovery states) and the other eight recipe surfaces in states beyond the default view were not run. The fixture was not re-seeded: the test browser holds one non-fixture node (`remote row`) that the guard refuses to clear, so data is the leftover fixture state.
 - Review: not run (CSS token change only).
-
 - Checkpoint (second round): Changed: ledger only. Verified: `git diff --check`, `pnpm test` (1508), `pnpm lint` (0 errors), `pnpm typecheck`, `pnpm build`; the browser states in MI-4 above. Please check: the five Undo states. Unresolved: MI-3 (Task 168 reduced-motion and Staging functional regressions, Task 170 keyboard/unavailable/scroll checks) not rerun; dark mode and 1024px not rechecked for Undo states. Review: skipped, no code change.
-
-- MI-13 [Fixed, awaiting user close]: the retro-mac Context sort chip (`OLD FIRST`) showed no focus indicator — cause: its fixed `box-shadow: 1px 1px 0` overrode the Tailwind focus ring and the chip had no `:focus-visible` rule — fix: ink/surface inversion like the Edit control, light and dark, with one test assertion (this commit).
-- MI-3 recheck (2026-10-15, retro-mac, 1920×1080, MCP browser): reduced-motion simulated by applying the 15 `prefers-reduced-motion` rules in the live page (the MCP tool cannot set the media feature): 541 elements, none with an animation or a transition above 0.01 ms. CSS only; JS-driven motion not covered. Focus-visible walk over 43 focusable elements in light and dark: all show a change except the sort chip (MI-13).
-- MI-3 not rechecked: the 21 Staging functional regressions and the Task 170 narrow-viewport keyboard/scroll/unavailable checks. They need real drags (Stage, Unstage, Direct placement), which CDP could not complete; Staging logic stays covered by the jsdom suites. Needs the user's decision.
 - Checkpoint (third round): Changed: `globals.css` (sort chip focus-visible), `inbox-triage-theme-realization.test.tsx`. Verified: `git diff --check`, `pnpm test` (1509), `pnpm lint` (0 errors), `pnpm typecheck`, `pnpm build`; chip focus in light and dark in the browser. Review: skipped, CSS only.
-- Decision: the remaining MI-3 checks run now, with the user doing the drags in the MCP browser (user, 2026-10-15). The user confirmed the sort chip focus state as correct.
-- MI-3 rechecked with user drags (retro-mac light, 1920×1080 then 1024×768): Stage (Breakdown row dims in place, Staging header `2 BITS`), Unstage (card leaves Staging, row restored, focus on the `Drag breakdown` grip, not BODY), Direct placement confirmation (heading focused, Node/Bit/Cancel all visible). At 1024×768: no horizontal scroll, confirmation 158px in a 180px column with no scroll needed, native Tab goes `[×]` → Node → Bit → Cancel, each visible with a focus-visible change, Shift+Tab back, Enter on Cancel closes without writing and returns focus to the grip.
-- MI-3 still not covered: pointer-free (keyboard) Stage/Unstage, staged-result placement (Node/Bit title editing), Staging unknown/reconciling states, long-title (1000 character) scrolling, and 1024 dark. Left as waived or for the user to defer.
-- Task 172 accepted by the user (2026-10-15). MI-3 closed as waived, with the uncovered checks listed above; MI-4 and MI-13 closed.
+
+## Phase close (2026-10-15)
+
+- MI-1 [Closed]: Pool recipe and DESIGN_TOKENS `DP-VQ06-POOL` placement now record the retro-mac two-row tools exception from the Task 166 Q02 disposition (user closed at `/end-phase 34`).
+- MI-9 [Deferred]: Task 178. The Archive recipe Retro Mac section and DESIGN_TOKENS record `archive-confirmation-detail` as hidden by default and shown only by retro-mac. Moving the string into `INBOX_TRIAGE_COPY` is written into the Task 178 plan section (user, 2026-10-15).
+- Correction to Task 171A: Stage A and Stage B were accepted together in one acceptance, not separately as the plan required. Not verified at acceptance: a direct test that a Newly Placed marker with Undo and an open Explorer search survive Archive, the previous-visible and filtered-null handoffs, and search `Try again` in the browser. The user accepted these as close Advisory A1.
+- Close Advisory A2 [Deferred]: Task 178. Archive handoff focus relies on setting `pendingArchiveFocusRef` after `finishScratchArchive` and before React flushes.
+- Carried to `Issues_Deferred.md`: MI-5, MI-6, MI-9, A2. The six Phase 31 `WF-*` rows moved to Resolved as Dropped.

@@ -401,7 +401,7 @@ or to promotion-map §11.4's shared implication.
 | Grid Explorer search | `explorer-search-entry`, `explorer-search-body`, `explorer-search-field`, `explorer-search-close`, `explorer-search-status`, `explorer-search-results`, `explorer-search-result`, `explorer-search-type`, `explorer-search-breadcrumb`, `explorer-search-duplicate`, `explorer-search-retry`, `explorer-search-undo`, `explorer-reveal-status`, `explorer-revealed-row` | `DP-VQ07`; complete body Task 151 and search-result Undo composition Task 158 only |
 | Placement base | `placement-direct-shell`, `placement-staged-shell`, `placement-target-path`, `placement-confirm`, `placement-cancel`, `placement-full-target-warning`, `placement-confirm-disabled`, `placement-result-title-shell`, `placement-result-title-source`, `placement-result-title-input`, `placement-result-title-count`, `placement-result-title-error`, `placement-result-title-continue`, `placement-direct-type-option`, `placement-direct-type-reason`, `placement-direct-limit-summary` | `R-PLACEMENT`; reliability extends through approved `DP-VQ08`, and title/limit replacement surfaces extend through approved `DP-VQ09`; Task 153 and Task 154 remain separate edges |
 | Newly Placed / Undo | `newly-marker`, `newly-dot`, `newly-new-badge`, `newly-undo-action`, `newly-status-rail`, `newly-status-mark`, `newly-status-action`, `newly-status-reason` | `R-NEWLY`; exact overlap/reason/reliability roles from approved `DP-VQ10`, Task 157 only; composes around the actual Node/Bit card and never replaces or redesigns it |
-| Archive / completion | `archive-section-scrim`, `archive-card`, `archive-complete-context`, `archive-reopen`, `archive-action`, `archive-cancel`, `archive-withdrawal-status`, `archive-withdrawal-mark`, `archive-status`, `archive-status-mark`, `archive-current-action` | `R-ARCHIVE`; blocker/withdrawal roles from approved `DP-VQ11`, Task 160 only; reliability/recovery roles from approved `DP-VQ12`, Task 162 only |
+| Archive / completion | `archive-section-scrim`, `archive-card`, `archive-complete-context`, `archive-reopen`, `archive-action`, `archive-cancel`, `archive-withdrawal-status`, `archive-withdrawal-mark`, `archive-status`, `archive-status-mark`, `archive-current-action`, `archive-confirmation-detail` | `R-ARCHIVE`; `archive-confirmation-detail` is hidden by default and shown only by themes that adopt it (retro-mac, Task 171 user decision); blocker/withdrawal roles from approved `DP-VQ11`, Task 160 only; reliability/recovery roles from approved `DP-VQ12`, Task 162 only |
 
 The shared state binding is a whitespace-delimited
 `data-triage-state="<state> …"` token list so independent states can coexist.
@@ -788,13 +788,13 @@ The same semantic tree consumes existing theme families:
 ### Approved Pool fixed-status realization — `DP-VQ06-POOL`
 
 **User-approved 2026-08-10:** Choice A establishes one fixed Pool-local status
-band directly below the expanded search/sort row and outside the scrolling
+band directly below the expanded search/sort tools and outside the scrolling
 Scratch list. It resolves only the Pool slice of `VQ-06`; Task 144 alone
 consumes it, while the Staging and Explorer slices remain unresolved.
 
 | Contract | Exact token requirement |
 |---|---|
-| Placement | `pool-status-band` follows the complete search/sort row and precedes `pool-scroll-viewport`; it has at most one search-context `pool-status-line` and one aggregate activity line and never becomes a list row, toast, panel, event history, or adjacent-surface status |
+| Placement | `pool-status-band` follows the complete search/sort tools (one row; in retro-mac two rows, search then sort, per the Task 166 Q02 disposition) and precedes `pool-scroll-viewport`; it has at most one search-context `pool-status-line` and one aggregate activity line and never becomes a list row, toast, panel, event history, or adjacent-surface status |
 | Count meaning | `pool-total-count` always means all active Scratches; non-empty search alone renders exact `{visible} of {total} Scratches` in `pool-filtered-count`; `pool-activity-marker` means mounted-page unseen remote arrivals or non-selected lifecycle activity and never replaces either count |
 | Hidden selection | Bind `hidden-selection`; render exact `Selected Scratch is hidden by this search.` plus `Clear search`; retain selection/Context, clear only the query, and keep focus in the search field |
 | Remote arrival | Bind `remote-arrival`; render `1 new Scratch arrived.` or `{count} new Scratches arrived.` plus `Review new`; revalidate, scroll/focus the first surviving unseen row without selecting it, and otherwise return focus to the search field |
