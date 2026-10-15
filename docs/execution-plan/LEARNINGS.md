@@ -79,7 +79,7 @@
 
 **Run the real coordinator when a test proves handoff identity or focus.** With the Archive coordinator mocked, workspace-identity and marker tests passed while every successful Archive remounted the workspace. At least one test must drive the real hook through pending → selection change → terminal and fail on the old code. *(Phase 34, Task 171A)*
 
-**Don't retry CDP drags on dnd-kit surfaces.** The Chrome DevTools MCP `drag` never completed a Staging or Placement drop. A user drag in the MCP browser took about a minute per step, so ask for it after one failed attempt. *(Phase 34, Task 172)*
+**dnd-kit drags need stepped pointer moves.** One-jump drag tools (Chrome DevTools MCP `drag`, Playwright `dragTo`) never pass the 8px sensor activation, so no Staging or Placement drop completed. Use `scripts/dev-fixtures/drag.js` in the Playwright MCP browser. *(Phase 34, Task 172; corrected after the drag trial)*
 
 ---
 

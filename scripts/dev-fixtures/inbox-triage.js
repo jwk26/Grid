@@ -1,8 +1,9 @@
 // GridDO Inbox/Triage test data for browser checks.
 //
-// Run only in the Chrome DevTools MCP browser against a local dev server.
-// Install: evaluate_script with `() => { <this file> }`.
-// Then: `() => window.griddoFixture.seed({ theme: "retro-mac" })`, and reload
+// Run only in the Playwright MCP browser against a local dev server.
+// Install: browser_run_code_unsafe with
+//   `async (page) => page.addScriptTag({ path: "scripts/dev-fixtures/inbox-triage.js" })`
+// Then: browser_evaluate `() => window.griddoFixture.seed({ theme: "retro-mac" })`, and reload
 // the page so the app reads the new data. Open the returned `inboxRoute`.
 //
 // seed() clears the GridDO database only when every record is fixture data,

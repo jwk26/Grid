@@ -46,7 +46,7 @@
 - **Close archive:** phase detail → `docs/execution-plan/archive/phase-N.md` plus its Phase Index row; deferred items → `docs/issues/Issues_Deferred.md`; cross-phase lessons → `docs/execution-plan/LEARNINGS.md`.
 - **Brainstorming:** topic folders follow `docs/brainstorming/readme.md`.
 - **References:** prototypes and visual references are view-only. Never copy their source or assets.
-- **Test data:** browser checks use the Chrome DevTools MCP browser seeded by `scripts/dev-fixtures/inbox-triage.js` (usage in its header). Never touch the user's own data or browser profile.
+- **Test data:** browser checks use the Playwright MCP browser, seeded by `scripts/dev-fixtures/inbox-triage.js`; drags go through `scripts/dev-fixtures/drag.js` (usage in each header). Never touch the user's own data or browser profile.
 - **Recovery:** restore state from documents, Git and rerun checks, not from chat memory.
 
 ## Planning Gate
