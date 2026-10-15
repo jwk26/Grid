@@ -159,4 +159,34 @@ describe("ScratchTrashDialog", () => {
     );
     expect(screen.getByRole("button", { name: "Move to Trash" })).toBeDisabled();
   });
+
+  it.each([
+    ["confirming", { phase: "confirming", target }],
+    ["pending", { phase: "pending", target, operation }],
+  ] as const)(
+    "UF-29: a color theme or light/dark change while %s keeps the node, text, state and focus and sends nothing",
+    (_name, state) => {
+      const { onCancel, onConfirm, onRetry, onCheckAgain } = setup(
+        state as TrashScratchState,
+        { candidateCount: 2, hasDiscardableWork: true },
+      );
+      const dialog = screen.getByRole("alertdialog");
+      const focused = document.activeElement;
+      const text = dialog.textContent;
+      for (const theme of ["retro-mac", "terminal", "griddo"]) {
+        document.documentElement.dataset.colorTheme = theme;
+        document.documentElement.classList.toggle("dark");
+      }
+      document.documentElement.classList.remove("dark");
+      delete document.documentElement.dataset.colorTheme;
+      expect(screen.getByRole("alertdialog")).toBe(dialog);
+      expect(dialog.textContent).toBe(text);
+      expect(dialog).toHaveAttribute("data-triage-state", state.phase);
+      expect(document.activeElement).toBe(focused);
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(onRetry).not.toHaveBeenCalled();
+      expect(onCheckAgain).not.toHaveBeenCalled();
+      expect(onCancel).not.toHaveBeenCalled();
+    },
+  );
 });

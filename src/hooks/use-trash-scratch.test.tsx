@@ -510,4 +510,43 @@ describe("useTrashScratch", () => {
     unmount();
     expect(useTriageStore.getState().ownTrashMarkers).toEqual({});
   });
+
+  it("UF-29: a theme or light/dark change while pending keeps the operation and resends nothing", async () => {
+    const gate = deferred<TrashScratchResult>();
+    const dispatchTrash = vi.fn(() => gate.promise);
+    const { result: hook, rerender } = setup(
+      { snapshot: emptySnapshot },
+      { dispatchTrash },
+    );
+    act(() => {
+      hook.current.trash.open(A);
+    });
+    let confirming!: Promise<boolean>;
+    act(() => {
+      confirming = hook.current.trash.confirm();
+    });
+    const before = hook.current.trash.state;
+    expect(before.phase).toBe("pending");
+
+    act(() => {
+      document.documentElement.dataset.colorTheme = "retro-mac";
+      document.documentElement.classList.add("dark");
+    });
+    rerender({ snapshot: emptySnapshot });
+    document.documentElement.classList.remove("dark");
+    delete document.documentElement.dataset.colorTheme;
+
+    expect(hook.current.trash.state).toBe(before);
+    expect(dispatchTrash).toHaveBeenCalledTimes(1);
+    expect(hook.current.operationLock.activeOperation).toEqual({
+      kind: "trash",
+      operationId: "op-1",
+    });
+
+    await act(async () => {
+      gate.resolve(result("applied", bit(A, { deletedAt: 9, version: 5 })));
+      await confirming;
+    });
+    expect(dispatchTrash).toHaveBeenCalledTimes(1);
+  });
 });

@@ -34,7 +34,7 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 
 ### Current state
 - Status: In Progress
-- Next: eight-theme Pool row check, Retro Mac dark/GridDO dialogs, remaining focus paths, UF-29 test, `/trash` restore; then user check, expert review, final gate, checkpoint
+- Next: user check of the remaining visual items; then expert review, final gate (build included), checkpoint
 - Open: none
 
 ### Log
@@ -52,3 +52,10 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 - mi-1 [Fixed]: Pool Trash icon off-centre — cause: the per-theme row gap (`margin-block-end`, 4px in Retro Mac) sat inside the shared `pool-row-container`, so `top: 50%` centred on row + gap — fix: the gap moves to the container and the row's own margin is zero, so the control centres on the row in every theme (measured offset 0, gap kept) (user-reported Minor). Final judgment: see below.
 - Decision: Retro Mac Pool Trash stays 20px visible with a 28px hit area through a `::before` (user, 2026-10-16), because the Context `[X]` 16px exception relies on the Pool control being the 28px equivalent, and `[X]` exists only in Retro Mac.
 - Note: the dev server served a stale CSS bundle from the `.next` cache until it was cleared; browser checks before that point of CSS-only changes were rechecked after it.
+- Check (Sonnet session, 2026-10-16, browser, fixture data): eight themes at 1920×1080 light — Pool row height 52px (Retro Mac 48px + 4px gap), icon centre offset 0, Trash control 28px (Retro Mac 20px visible, 28px hit area), no title/control overlap, the long title truncates with at least 6px clearance (Retro Mac 14px). Retro Mac dark and GridDO light: Scratch Trash dialog and Breakdown Delete dialog as the recipe (base: existing AlertDialog look). The `/trash` Empty-trash dialog keeps its base look in Retro Mac. Focus after success: Pool entry to the next row, `[X]` to the Context, unselected Scratch to its neighbour row, filtered-empty to the search input, true empty to Add item. `/trash` restore returns the Scratch to the Pool with no staged candidate and its rows active. UF-29 covered by a dialog test and a coordinator test (no re-dispatch, same operation).
+- MI-2 [Deferred → Phase 36 Task 180]: Terminal theme Pool row hover turns the row light grey under green text (low contrast) — cause: pre-existing Terminal hover background, not this task — fix: Terminal Pool region realization (Task 180). Agent-found; deferred by the user (2026-10-16).
+- Observation: the base Scratch Trash dialog reserves one status line, so the gap above the buttons is about one line taller than the Delete dialog's; kept by user decision (below) so the pending or failure status appears without shifting the buttons.
+- User visual judgment, remaining items, final (user, 2026-10-16): eight-theme Pool rows, Retro Mac light/dark and GridDO dialogs approved; this re-confirms the Phase 34 Retro Mac Pool disposition.
+- Review (advisory, 2026-10-16, stage): approve; proceed to expert review, final gate (build included) and checkpoint. Apply: (1) turn the Terminal hover Observation into `MI-2 [Deferred → Phase 36 Task 180]` (agent-found, so Main; pre-existing, Terminal Pool region); (2) correct the reserved-status-line rationale per the Decision below. Not applied: none.
+- Decision: MI-2 (Terminal Pool row hover contrast) is deferred to Phase 36 Task 180 (user, 2026-10-16).
+- Decision: the base Scratch Trash dialog keeps its reserved status line (user, 2026-10-16). Reason: the pending or failure status appears without shifting the buttons; the polite region alone would not need visible space.
