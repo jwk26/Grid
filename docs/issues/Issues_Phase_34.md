@@ -97,8 +97,8 @@ Read it at task start during Phases 34–35.
 
 ### Current state
 - Status: Implemented, awaiting acceptance
-- Next: user acceptance; MI-3 partly rechecked, rest waits for the user's decision
-- Open: MI-3 (partial)
+- Next: user acceptance and closing MI-3, MI-4, MI-13
+- Open: MI-3, MI-4, MI-13 (all awaiting the user's close)
 
 ### Log
 - Decision: work plan approved by the user; proceed in Korean (user, 2026-10-15).
@@ -133,3 +133,6 @@ Read it at task start during Phases 34–35.
 - MI-3 recheck (2026-10-15, retro-mac, 1920×1080, MCP browser): reduced-motion simulated by applying the 15 `prefers-reduced-motion` rules in the live page (the MCP tool cannot set the media feature): 541 elements, none with an animation or a transition above 0.01 ms. CSS only; JS-driven motion not covered. Focus-visible walk over 43 focusable elements in light and dark: all show a change except the sort chip (MI-13).
 - MI-3 not rechecked: the 21 Staging functional regressions and the Task 170 narrow-viewport keyboard/scroll/unavailable checks. They need real drags (Stage, Unstage, Direct placement), which CDP could not complete; Staging logic stays covered by the jsdom suites. Needs the user's decision.
 - Checkpoint (third round): Changed: `globals.css` (sort chip focus-visible), `inbox-triage-theme-realization.test.tsx`. Verified: `git diff --check`, `pnpm test` (1509), `pnpm lint` (0 errors), `pnpm typecheck`, `pnpm build`; chip focus in light and dark in the browser. Review: skipped, CSS only.
+- Decision: the remaining MI-3 checks run now, with the user doing the drags in the MCP browser (user, 2026-10-15). The user confirmed the sort chip focus state as correct.
+- MI-3 rechecked with user drags (retro-mac light, 1920×1080 then 1024×768): Stage (Breakdown row dims in place, Staging header `2 BITS`), Unstage (card leaves Staging, row restored, focus on the `Drag breakdown` grip, not BODY), Direct placement confirmation (heading focused, Node/Bit/Cancel all visible). At 1024×768: no horizontal scroll, confirmation 158px in a 180px column with no scroll needed, native Tab goes `[×]` → Node → Bit → Cancel, each visible with a focus-visible change, Shift+Tab back, Enter on Cancel closes without writing and returns focus to the grip.
+- MI-3 still not covered: pointer-free (keyboard) Stage/Unstage, staged-result placement (Node/Bit title editing), Staging unknown/reconciling states, long-title (1000 character) scrolling, and 1024 dark. Left as waived or for the user to defer.
