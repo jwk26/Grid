@@ -280,6 +280,71 @@ resume, dismiss, or otherwise mutate the transition.
 - Adopted fact: dense editorial tools, drafting labels, and monochrome selected rows are supported.
 - Token implication: dark Pool header/list, graphite field, and selected marker require shared semantic roles.
 
+## Phase 41 Scratch Trash Supplement (2026-10-15)
+
+Authority: [`DECISION.md`](../brainstorming/2026-10-15-scratch-trash-hotfix/DECISION.md)
+H04–H10 and SPEC [Scratch Pool](../SPEC.md#scratch-pool) Trash Scratch. This
+is a user decision, not prototype evidence; no prototype source exists for it.
+
+### Pool row Trash control
+
+- Each expanded Pool row becomes a row container holding the existing
+  selection button (title and creation date, unchanged) and a sibling Trash
+  button at the far right, vertically centred. Row height stays `52px`; the
+  title truncates before the control. A button is never nested in a button.
+- The Trash button reuses the Breakdown row Trash control exactly: the
+  `Trash2` icon at `h-3.5 w-3.5`, the `h-7 w-7` square hit area, the muted
+  resting colour, the same hover/focus treatment (base: destructive tint;
+  Retro Mac: the hover inversion used by `[data-triage-role="breakdown-row-action"]`)
+  and the same disabled treatment. It has its own role,
+  `data-triage-role="pool-row-trash-action"`; only the CSS is shared. It is
+  visible without hover, like the Breakdown row.
+- A disabled Trash control exposes its reason as an accessible description
+  and tooltip:
+  - placement open: `Finish or cancel placement to move a Scratch to Trash.`
+  - unresolved-source candidate: `A staged item in this Scratch lost its source. Resolve it in Staging first.`
+  - another operation pending: the existing operation-lock reason.
+- Accessible name `Move "<Scratch title>" to Trash`; tooltip `Move to Trash`.
+  Collapsed switchers have no Trash control.
+
+### Scratch Trash dialog
+
+- One shared `AlertDialog` (page-centred, portal) with the class
+  `scratch-trash-dialog`, so theme CSS reaches it outside `.triage-shell`.
+  Alert-dialog semantics; Cancel has initial focus.
+- Exact copy, owned centrally by `src/lib/copy/inbox-triage.ts`:
+  - Title: `Move Scratch to Trash?`
+  - Body: `"<Scratch title>" moves to Trash. You can restore it from Trash for 30 days.` (title in bold)
+  - Staged line, only when the count is above zero: `1 staged item will be removed from Staging.` / `<n> staged items will be removed from Staging.`
+  - Draft line, only when that Scratch has an unsaved Add draft or open editor: `Your unsaved draft in this Scratch will be discarded.`
+  - Actions: `Cancel`, `Move to Trash`
+  - Pending: `Moving to Trash…`
+  - Failure / not applied: `Couldn't move this Scratch to Trash.` with `Retry`
+  - Unknown: `Checking whether this Scratch moved to Trash…` with `Check again`
+  - Conflict: `This Scratch changed. Review and confirm again.`
+  - Rejected (unresolved-source candidate): `A staged item in this Scratch lost its source. Resolve it in Staging first.` with Cancel only
+  - Success announcement (polite live region): `Moved "<Scratch title>" to Trash.`
+  - Undo unavailable reasons: `Its Scratch was moved to Trash.` and `Its Scratch was archived.`
+- Dismissal: Cancel and Escape close the dialog only in the confirmation,
+  failure, conflict and rejected states. While pending or reconciling they do nothing;
+  unknown offers only `Check again`.
+- `src/components/ui/alert-dialog.tsx` may gain one optional, non-breaking
+  `overlayClassName` prop on `AlertDialogContent` so theme CSS can reach the
+  scrim; every other app dialog keeps its current look. Retro Mac turns off
+  the content's open/close animation through `.scratch-trash-dialog` and
+  `.breakdown-delete-dialog` only.
+- Base themes: the existing `AlertDialog` look used by Breakdown row Delete,
+  with the destructive variant on `Move to Trash`.
+- Retro Mac: the Retro Mac Archive alert family. Scrim `background / 0.7`
+  with `1px` blur; card with a `4px` double foreground border, radius `0`,
+  `6px 6px 0` foreground hard shadow, the Context font, `24px` padding, a
+  `40px` column holding the square `2px`-bordered `!` mark, and text in the
+  second column. Buttons are square with a hard border; Cancel, the default
+  action, carries the default-button outline. No title bar, drag, inversion
+  cycling or animation.
+- Phases 35–39 realize the control and dialog for their own themes inside
+  their Pool region; until then those themes use the base look.
+
 ## Exclusions And Verification
 
 - Excluded: any Pool status outside `DP-VQ06-POOL`, fold-lock review control, source selection persistence, copied source strings outside the exact approved decision copy above, and any source behavior conflicting with the selected session lifecycle.

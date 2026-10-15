@@ -148,6 +148,21 @@ right decoration, centrally owned by `src/lib/copy/inbox-triage.ts`. Both are
 aria-hidden, non-focusable, pointer-inert decoration with no close command or
 state meaning. Preserve the16px strip and fixed120.25px Context.
 
+**Phase 41 amendment (2026-10-15, DECISION H10):** the `[X]` is no longer
+decoration. It becomes a real button that opens the Scratch Trash dialog for
+the selected Scratch (see the Scratch Pool recipe's Phase 41 supplement). It
+keeps its visible `[X]` text, position and size inside the 16px strip, gets
+the accessible name `Move selected Scratch to Trash`, a visible focus ring
+and the Retro Mac hover inversion, and is disabled while any Inbox operation
+is pending. The left `[ FOLDER DIALOG: INFO ]` text stays aria-hidden
+decoration, so the strip is no longer aria-hidden as a whole. Other themes
+keep the strip hidden, so the button is not rendered visibly or focusable
+there. No theme-ID branch. The button is unavailable while the completion
+overlay or the `VQ-03` sheet makes the Breakdown inert, and disabled with the
+Pool control's reasons otherwise. Its 16px-tall target is below the WCAG
+2.5.8 24px minimum; the equivalent Pool row Trash control (28px) satisfies
+the equivalent-control exception, so the strip geometry stays unchanged.
+
 Retro-mac's sort label names the **next** order: currentDESC shows `OLD FIRST`,
 click selectsASC/oldest-first; currentASC shows `NEW FIRST`, click selectsDESC/
 newest-first. The active visible text is also the accessible button name.

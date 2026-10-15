@@ -18,6 +18,11 @@
 > **Scratch-promotion amendment status:** **User-approved 2026-07-28.** The
 > exact pre-receipt draft is identified in the approval receipt below. Task
 > 105A production implementation remains pending.
+> **Scratch Trash amendment (Phase 41):** 2026-10-15, from
+> [`DECISION.md`](brainstorming/2026-10-15-scratch-trash-hotfix/DECISION.md)
+> H05–H12. Adds the `Trash Scratch` command, its Hook 4/13/14 boundaries, and
+> the Undo active-Scratch precondition. No store, index, field or migration
+> changes.
 > **Promotion provenance:** selected topic
 > [`DECISION.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/DECISION.md),
 > approved [`PROMOTION_MAP.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/PROMOTION_MAP.md),
@@ -700,7 +705,7 @@ results; they do not sequence store writes themselves.
   so an older ambiguous operation cannot mistake a later inverse transition
   for `not_applied`: Breakdown Add/Delete increments the owning Scratch Bit
   version; Stage/Unstage/placement/Undo increments the source Breakdown row
-  version. Reconciliation accepts `not_applied` only when the complete original
+  version; Trash Scratch and Trash restore each increment the Scratch version. Reconciliation accepts `not_applied` only when the complete original
   precondition, including those versions, still holds. A later inverse action
   therefore produces `conflict`, never resurrection (ABA protection).
 - Node/Bit `version` advances for direct mutations of that record's editable,
@@ -744,9 +749,10 @@ stores. Validation failure writes nothing.
 | Unstage | `operationId`, candidate ID/`candidateExpectedVersion`, and source row ID/`sourceExpectedVersion`. Require the exact staged candidate and matching unconsumed source. | Delete only the candidate and increment the source row version once; content, `createdAt`, `order`, and `consumedAt` do not change. Postcondition: candidate absent and source unconsumed at `sourceExpectedVersion + 1`. | Candidate absent plus source next version = applied. Exact candidate/source base versions = not applied. A later Stage, placement, edit, deletion, or other revision = conflict. Orphan cleanup is not Unstage. |
 | Place staged candidate | `operationId`, preallocated result Node/Bit ID, candidate ID/version, source row ID/version, validated result title/type, target parent ID and expected ancestor chain. Revalidate Scratch/source/candidate identity, title limit, reachable active target/type/path, and an exact free cell immediately before write. | Create the result at the stable ID/cell, set source `consumedAt` to the shared transaction timestamp and increment source version, and delete the candidate. Postcondition requires all three: exact result exists, source is consumed at next version, candidate is absent. | All postconditions = applied; result absent + unchanged source/candidate = not applied; any partial/mismatched state = conflict and never compensation. |
 | Place direct row | Same as staged placement but no candidate: require source active/unconsumed, exact version, and candidate absence. Direct title limits are enforced before and again inside the command (`1–100`: Node/Bit, `101–200`: Bit only, `201–1000`: neither). | Create result and consume/increment source together. Postcondition requires exact result plus consumed source at next version. | Both = applied; neither with unchanged source = not applied; one-sided/mismatched state = conflict. No silent truncation or alternate target. |
-| Undo placement | `operationId`, original stable result/source/candidate IDs, placement post-state versions/timestamps, result creation snapshot, and staged/direct provenance held by the mounted page. Revalidate result lifecycle/direct-record version and creation fields, source consumed state/version, candidate uniqueness, and zero surviving descendants/unknown result mutation. | Delete the result and restore source to `consumedAt: null` with one version increment. For staged provenance, recreate the original candidate identity/type/`createdAt` at prior candidate version + 1 and `updatedAt = now`; for direct provenance create no candidate. | Complete source restoration plus result absence (and correct staged candidate presence/absence) = applied; exact placement post-state = not applied; any mutation/dependency/partial state = conflict. No cascade or best-effort source restore. |
+| Undo placement | `operationId`, original stable result/source/candidate IDs, placement post-state versions/timestamps, result creation snapshot, and staged/direct provenance held by the mounted page. Revalidate result lifecycle/direct-record version and creation fields, source consumed state/version, an active owning Scratch (`deletedAt == null` and `archivedAt == null`), candidate uniqueness, and zero surviving descendants/unknown result mutation. An inactive owning Scratch is `rejected` with no write, so Undo never restores a row or recreates a candidate under a trashed or archived Scratch. | Delete the result and restore source to `consumedAt: null` with one version increment. For staged provenance, recreate the original candidate identity/type/`createdAt` at prior candidate version + 1 and `updatedAt = now`; for direct provenance create no candidate. | Complete source restoration plus result absence (and correct staged candidate presence/absence) = applied; an inactive owning Scratch = rejected in both the command and its reconciliation; exact placement post-state with an active owning Scratch = not applied; any mutation/dependency/partial state = conflict. No cascade or best-effort source restore. |
 | Confirmed candidate orphan cleanup | `operationId`, preallocated audit-event ID, exact candidate ID/version/source/Scratch/type, and authoritative `source_deleted` or `source_tombstoned` proof. Cache miss, offline, or delayed subscription fails validation. Planned aggregate deletion is a different command. | In one transaction delete the candidate and append exactly one `candidateOrphanAuditEvents` row. Postcondition: candidate absent and the unique event contains the same candidate/source/Scratch/cause. | Exact event plus candidate absence = applied. Candidate/source precondition with no event = not applied. A different event, changed candidate, or unproven source state = conflict/rejected. Unique `candidateId` prevents duplicate audit append. |
 | Archive Scratch | `operationId`, Scratch ID/`expectedVersion`, and a caller assertion that the page-local Add draft and Scratch-title editor blockers are clear. Immediately before repository dispatch, the operation coordinator rechecks those transient blockers. Inside the transaction require an active Scratch, at least one consumed row, zero unconsumed rows, and zero staged candidates. | Set only the Scratch `archivedAt` to the transaction timestamp, update `mtime` under existing rules, and increment its version once. Rows/candidates are neither deleted nor rewritten. Postcondition: the exact Scratch is archived at the next version and Archive View restore remains available. | Archived Scratch at next version = applied; active Scratch at expected version with durable eligibility still true = not applied; changed lifecycle/version/eligibility = rejected/conflict. Pool removal/next selection waits for this terminal result. |
+| Trash Scratch | `operationId`, Scratch ID/`expectedVersion`, and the exact staged-candidate set the confirmation showed: each candidate ID/version with its source row ID/version (possibly empty). Immediately before dispatch the operation coordinator checks that no Inbox operation is pending and locks Scratch-switching actions; page-local drafts/editors for this Scratch were disclosed by the confirmation and are discarded only after success. Inside the transaction require an active Inbox-parented Scratch at the exact version and require the current `stagedCandidates` set for that Scratch to equal the submitted set, with every candidate and source row at its submitted version. A candidate whose source row cannot be resolved makes the command `rejected` with no write; the confirmed-orphan command resolves it first. | Set the Scratch `deletedAt` to the transaction timestamp and increment its version once; touch the Inbox Node `mtime` under Hook 1. For each submitted candidate, hard-delete it and increment its unconsumed source row version once (the Unstage effect; content, `order`, `createdAt` and `consumedAt` unchanged). No other row is deleted or rewritten, and no orphan-audit event is written. Postcondition: Scratch trashed at `expectedVersion + 1`, every submitted candidate absent, and each of their sources unconsumed at submitted version + 1. | Complete postcondition = applied/already applied. Active Scratch at the exact version with the exact submitted candidate set and source versions = not applied. Any other Scratch version/lifecycle, an added/removed/changed candidate, or a changed source = conflict; the user re-confirms against the latest state as a new operation. Reload needs no recovery descriptor: the Pool converges from durable Scratch state. |
 
 Target reachability, type, path, and capacity checks for placement run in the
 same transaction as result/source/candidate writes. The page-local Archive
@@ -809,7 +815,12 @@ is code-ready:
   direct mutation increments exactly once, and `mtime`-only cascades do not;
 - Archive dispatch fails closed when its recovery descriptor cannot be stored,
   and reload reconciliation reads Scratch/postcondition state rather than an
-  operation-log entry.
+  operation-log entry;
+- an ambiguous Trash Scratch, followed by a confirmed Trash restore,
+  reconciles as conflict (the restore advanced the Scratch version) and never
+  re-trashes; a candidate staged after the confirmation was shown makes Trash
+  conflict instead of removing an undisclosed candidate; and
+- Undo whose owning Scratch was trashed or archived is rejected with no write.
 
 ---
 
@@ -882,6 +893,14 @@ When a **Node** is soft-deleted (`deletedAt = Date.now()`):
 When a **Bit** is soft-deleted:
 1. Set `deletedAt = Date.now()` on the Bit only.
 2. Chunks are implicitly trashed.
+
+An Inbox-parented Scratch is trashed from the Inbox only through the
+`Trash Scratch` command in the
+[atomic command matrix](#atomic-command-matrix), which also removes its staged
+candidates. Its Breakdown rows stay in `scratchBreakdowns` for restore. Trash
+restore uses Hook 5, except that an Inbox-parented Bit is never relocated by
+occupancy: it keeps its `x = 0, y = 0` sentinel (Hook 8 exemption) even when
+other active Scratches exist. Restore recreates no candidate.
 
 ### 5. Cascade Restore
 
@@ -1005,8 +1024,8 @@ breakdown history for a potential restore.
 
 ### 13. Staged Candidate Integrity
 
-Stage, Unstage, staged-source Save/Delete, placement, Undo, and orphan cleanup
-transact over `bits`, `scratchBreakdowns`, `stagedCandidates`, and (for a
+Stage, Unstage, staged-source Save/Delete, placement, Undo, Trash Scratch, and
+orphan cleanup transact over `bits`, `scratchBreakdowns`, `stagedCandidates`, and (for a
 confirmed orphan only) `candidateOrphanAuditEvents` as their command requires.
 The repository enforces:
 
@@ -1020,12 +1039,15 @@ The repository enforces:
 5. source staged presentation is derived only from candidate existence; and
 6. authoritative orphan proof precedes atomic candidate cleanup and append-
    only audit creation. A normal candidate query never renders an unresolved
-   source miss as a valid card.
+   source miss as a valid card; and
+7. Trash Scratch removes exactly the confirmed candidate set as a planned
+   lifecycle cascade, not orphan cleanup, so it writes no audit event and
+   leaves no candidate owned by an inactive Scratch.
 
 ### 14. Inbox/Triage Atomic Operations
 
 Add, Save, Delete, Stage, Unstage, staged/direct placement, Undo, confirmed
-orphan cleanup, and Scratch Archive use the
+orphan cleanup, Scratch Archive, and Trash Scratch use the
 [Repository Operation Contract](#repository-operation-contract).
 Their transaction result is the only success authority. Components may show
 pending projections but may not optimistically clear/remove source truth,
@@ -1078,7 +1100,7 @@ before setting `archivedAt`.
 | Candidate by source | Stage uniqueness and staged-source guards | `stagedCandidates` | Unique lookup by `sourceBreakdownId`. Presence derives staged state and blocks source Edit/Delete; absence restores stage eligibility when the row remains active |
 | Archive eligibility | Completion and Archive transaction | `bits`, `scratchBreakdowns`, `stagedCandidates` | Read the active Scratch, require consumed count ≥ 1, unconsumed count = 0, and staged count = 0. Do not implement as `rows.every(...)` without the explicit consumed guard. Re-run inside Archive transaction |
 | CAS entity reload | Scratch/row/candidate reconcile | `bits`, `scratchBreakdowns`, `stagedCandidates` | Primary-key read returns value, lifecycle, and monotonic version. Compare exact expected precondition versus complete intended postcondition; never compare `mtime` |
-| Operation reconciliation | Add/Delete/Stage/Unstage/placement/Undo/orphan cleanup/Archive | Command-specific authoritative stores | Query the stable record/result/candidate/source IDs and the surviving Scratch/row expected/next versions listed in the command matrix. Classify complete precondition, complete postcondition, or conflict; inverse operations advance the surviving revision, so there is no ABA-based Retry and no general operation-log lookup |
+| Operation reconciliation | Add/Delete/Stage/Unstage/placement/Undo/orphan cleanup/Archive/Trash Scratch | Command-specific authoritative stores | Query the stable record/result/candidate/source IDs and the surviving Scratch/row expected/next versions listed in the command matrix. Classify complete precondition, complete postcondition, or conflict; inverse operations advance the surviving revision, so there is no ABA-based Retry and no general operation-log lookup |
 | Candidate orphan confirmation | Repository integrity | `stagedCandidates`, `scratchBreakdowns`, `candidateOrphanAuditEvents` plus future remote authority | Resolve source by stable ID. Cache miss/offline/delay returns unresolved, not orphan. Only authoritative deletion/tombstone permits atomic candidate deletion plus unique append-only audit creation |
 
 ---
