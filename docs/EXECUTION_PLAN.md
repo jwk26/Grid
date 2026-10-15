@@ -211,7 +211,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 34 | Completed | [Retro Mac regional realization](execution-plan/archive/phase-34.md) | 166–172 + 171A | Accepted and archived; MI-5/6/9 and close Advisory A2 carried in `Issues_Deferred.md`, MI-9 and A2 bound to Task 178. |
 | Phase 41 | Completed | [Scratch Trash and post-Phase-34 Inbox corrections](execution-plan/archive/phase-41.md) (ran before Phase 35) | 209–212 | Accepted and archived; MI-2 carried in `Issues_Deferred.md` and bound to Task 180. |
-| Phase 35 | Planned / unstarted | Neumorphism, region-by-region then supported-mode conformance | 173–179 | 172 accepted + Phase 41 close/main sync. |
+| Phase 35 | In progress | Neumorphism, region-by-region then supported-mode conformance | 173–179 | 172 accepted + Phase 41 close/main sync. |
 | Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 accepted + Phase 35 close/main sync. |
 | Phase 37 | Planned / unstarted | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
 | Phase 38 | Planned / unstarted | GridDO + Tiny Desk, one shared writer | 194–200 | 193 accepted + Phase 37 close/main sync; both themes require regional dispositions. |
@@ -2632,7 +2632,7 @@ MI-2 (Terminal Pool row hover contrast) is in
 
 ## Phase 35 — Neumorphism Regional Realization
 
-Theme set: `neumorphism`. This phase is proposed and unstarted.
+Theme set: `neumorphism`. This phase is in progress.
 
 Visual reference: prototype route `/prototype/inbox-triage-neumorphism` in the read-only worktree `/Users/jwk/Documents/griddo2-claude-themes2-3` (commit `4f39709`). View it only; never copy its source or assets.
 
