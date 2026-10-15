@@ -13,7 +13,7 @@
 > [Final Close Phase 31](issues/Final_Close_Phase_31.json).
 > **Task state:** Tasks 101–163 and 105A retain explicit user acceptance.
 > Tasks 164–165 are historical, unaccepted `[ ]` transfer records.
-> Tasks 166–171 are accepted `[x]`; Tasks 172–208 are `[ ]`, planned and
+> Tasks 166–172 are accepted `[x]`; Tasks 173–208 are `[ ]`, planned and
 > unstarted. Phases 32–33 remain reserved.
 > **Workflow:** from Task 171, tasks run under the lightweight workflow in
 > [WORKFLOW.md](WORKFLOW.md) (`/run-phase`, `/run-task`, `/end-phase`).
@@ -125,7 +125,7 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
 | Headless/base UI | Tasks 127–163 accepted | Task 163 integration and bounded R01/I01 corrections are included in the Phase 31 Final Close transaction. Original task evidence is retained; correction/candidate evidence is separate. |
-| Theme realization | `IN PROGRESS` | Retro Mac Tasks 166–171 accepted; repair Task 171A precedes Task 172 acceptance. Named regional owners below; Q01/Q02/Q05 gate only their affected slices. No old experiment is evidence of canonical conformance. |
+| Theme realization | `IN PROGRESS` | Retro Mac Tasks 166–172 and repair Task 171A accepted; Phase 34 awaits `/end-phase`. Named regional owners below; Q01/Q02/Q05 gate only their affected slices. No old experiment is evidence of canonical conformance. |
 | Phase 31 close | `COMPLETED / ARCHIVED` | R01/C01/I01 corrections are recorded in the archive; fresh candidate/output/browser checks and publication guards must pass before the Final Close receipt is created. No eight-theme-completion claim. |
 | Campaign full gate | `PLANNED / UNSTARTED` | Task 208 consumes every accepted foundation and new theme task plus the retained complete matrices. |
 
@@ -203,7 +203,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 31 | Completed | [Accepted route integration and technical close](execution-plan/archive/phase-31.md) | 163; 164/165 historical unaccepted transfer only | Technical corrections and fresh candidate verification are owned by Final Close; no theme completion or new task acceptance. |
 | Phase 32 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
-| Phase 34 | In progress | Retro Mac, region-by-region then supported-mode conformance | 166–172 + 171A | Tasks 166–171 accepted; repair Task 171A next, then Task 172 resumes. Subsequent tasks use exact predecessor edges. |
+| Phase 34 | In progress | Retro Mac, region-by-region then supported-mode conformance | 166–172 + 171A | Tasks 166–172 and repair Task 171A accepted; `/end-phase 34` next. Subsequent tasks use exact predecessor edges. |
 | Phase 35 | Planned / unstarted | Neumorphism, region-by-region then supported-mode conformance | 173–179 | 172 accepted + Phase 34 close/main sync. |
 | Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 accepted + Phase 35 close/main sync. |
 | Phase 37 | Planned / unstarted | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
@@ -3080,7 +3080,7 @@ change). Stage A and Stage B are accepted separately.
 **Commit messages:** `fix(triage): keep workspace mounted through Archive handoff`
 and `fix(explorer): focus search input after Try again`.
 
-### Task 172: [ ] Complete supported modes, accessibility and regression
+### Task 172: [x] Complete supported modes, accessibility and regression
 
 **Files and actions:** bind L7's exact per-file actions to `retro-mac` only. Conditional owner/decision gates remain in force.
 

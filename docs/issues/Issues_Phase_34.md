@@ -32,8 +32,8 @@ Read it at task start during Phases 34–35.
 - Decision: carry-over dispositions below approved as proposed (user, 2026-10-15).
 - MI-1 [Open]: Q02 canonical consistency from Task 166 (old P34-01, never closed) — the Scratch Pool recipe's shared-row and DP placement wording and the DESIGN_TOKENS singular-row wording still describe the pre-exception layout. Reconcile them to the approved retro-mac Q02 exception at `/end-phase 34`.
 - MI-2 [Awaiting User Decision]: DESIGN_TOKENS (3 places) and the shell-chrome, Context and Explorer recipes (5 places) cited Phase 34 receipts and `task-169.md`, which exist only in the archive tag. Fixed as directed by naming the file and the tag (914143c). Close when confirmed.
-- MI-3 [Open]: Verification the user waived at acceptance. Task 168: 2 of 16 reduced-motion checks failed (probe contamination suspected, not confirmed) and 21 Staging functional regressions were skipped. Task 170: 4 automated timeouts, with the following keyboard, unavailable and scroll checks unreached. The tooltip items were verified manually by the user. Recheck in Task 172. A reproduced failure returns to its regional owner.
-- MI-4 [Open]: Task 169 records left failed or unverified. Retry 150/151 failed, with a BODY focus loss and an error-only button lifetime mismatch. Mounted Undo recovery states (unknown, reconciling, not applied, conflict) are unverified. Recheck in Task 172 under the same rule as MI-3.
+- MI-3 [Closed, waived]: Verification the user waived at acceptance. Task 168: 2 of 16 reduced-motion checks failed (probe contamination suspected, not confirmed) and 21 Staging functional regressions were skipped. Task 170: 4 automated timeouts, with the following keyboard, unavailable and scroll checks unreached. The tooltip items were verified manually by the user. Recheck in Task 172. A reproduced failure returns to its regional owner.
+- MI-4 [Closed]: Task 169 records left failed or unverified. Retry 150/151 failed, with a BODY focus loss and an error-only button lifetime mismatch. Mounted Undo recovery states (unknown, reconciling, not applied, conflict) are unverified. Recheck in Task 172 under the same rule as MI-3.
 - MI-5 [Deferred]: Observations outside Phase 34 scope. On the ordinary Grid, Bit options lose pointer events to another element. On the old Finder menu, a click failed; the menu has since been removed. Index row added at `/end-phase 34`.
 - MI-6 [Deferred]: The Explorer locked-pane surface differs from the prototype, as left at Task 169 acceptance alongside D-CARD, P29-01 and Korean QA. Index row added at `/end-phase 34`.
 - Decision: the six Phase 31 `WF-*` rows in `Issues_Deferred.md` are Dropped; the Codex post-close audit they wait for no longer exists (user, 2026-10-15). Reflected in the index at `/end-phase 34`.
@@ -96,9 +96,9 @@ Read it at task start during Phases 34–35.
 ## Task 172 — Complete supported modes, accessibility and regression
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: user acceptance and closing MI-3, MI-4, MI-13
-- Open: MI-3, MI-4, MI-13 (all awaiting the user's close)
+- Status: Accepted
+- Next: none; `/end-phase 34`
+- Open: none
 
 ### Log
 - Decision: work plan approved by the user; proceed in Korean (user, 2026-10-15).
@@ -136,3 +136,4 @@ Read it at task start during Phases 34–35.
 - Decision: the remaining MI-3 checks run now, with the user doing the drags in the MCP browser (user, 2026-10-15). The user confirmed the sort chip focus state as correct.
 - MI-3 rechecked with user drags (retro-mac light, 1920×1080 then 1024×768): Stage (Breakdown row dims in place, Staging header `2 BITS`), Unstage (card leaves Staging, row restored, focus on the `Drag breakdown` grip, not BODY), Direct placement confirmation (heading focused, Node/Bit/Cancel all visible). At 1024×768: no horizontal scroll, confirmation 158px in a 180px column with no scroll needed, native Tab goes `[×]` → Node → Bit → Cancel, each visible with a focus-visible change, Shift+Tab back, Enter on Cancel closes without writing and returns focus to the grip.
 - MI-3 still not covered: pointer-free (keyboard) Stage/Unstage, staged-result placement (Node/Bit title editing), Staging unknown/reconciling states, long-title (1000 character) scrolling, and 1024 dark. Left as waived or for the user to defer.
+- Task 172 accepted by the user (2026-10-15). MI-3 closed as waived, with the uncovered checks listed above; MI-4 and MI-13 closed.
