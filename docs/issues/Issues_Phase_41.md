@@ -29,3 +29,26 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 - Verified: `git diff --check`, `pnpm test` (1579), `lint` (0 errors), `typecheck`, `build`; existing Archive/handoff/focus tests unchanged and green; mutation check 13/13.
 - Please check: the plan/SCHEMA conformance cases listed for Task 209; the marker policy (unmount-lifetime) and the follow-ups for SPEC/DECISION wording; nothing is visible in the UI yet.
 - Unresolved: SPEC/DECISION still say "released once the Pool projection observed the deletion".
+
+## Task 210 — Pool Trash control, Scratch Trash dialog, Retro Mac Context [X], Breakdown Delete dialog
+
+### Current state
+- Status: In Progress
+- Next: eight-theme Pool row check, Retro Mac dark/GridDO dialogs, remaining focus paths, UF-29 test, `/trash` restore; then user check, expert review, final gate, checkpoint
+- Open: none
+
+### Log
+- Decision: plan approved with amendments after an Opus review (user, 2026-10-15): Trash-only pre-update focus destination (A2 trap; Archive path untouched), a dedicated data attribute for the H17 blur exemption and its move into step 3, extra acceptance coverage, per-theme Pool row visual check, `overlayClassName` regression test.
+- Advisory: macOS Safari does not focus a button on click, so `relatedTarget` is null and the blur exemption may not apply (same limit as the theme toggle). Out of scope.
+- Note: Phase 34 assertions that the Context strip is aria-hidden with no button are superseded by H10.
+- Decision: the Trash focus target is settled before the store update, and the Archive path and its call order stay untouched (user direction, 2026-10-15). Implementation choice (Sonnet session, not user-approved): an optional `onBeforeDestination` on the shared handoff plus a pure `resolveScratchLifecycleDestination`; focus is applied from the dialog's `onCloseAutoFocus` so the modal focus trap cannot swallow it. An unselected Scratch focuses the next, then previous, row from the visible order read at confirm, else the search input.
+- Decision: one dedicated blur-save attribute for the H17 exemption, with the row and title editors both going through it (user direction, 2026-10-15). Implementation choice (Sonnet session): `data-scratch-trash-entry` = `pool` | `context`, checked in `handleFieldBlur`.
+- Implementation choice (Sonnet session): `TrashScratchApplied` gained `title` for the announcement; the draft line counts any open editor, pristine included (the pristine case follows the user's recommendation of 2026-10-15).
+- Implementation choice (Sonnet session): Retro Mac Pool Trash first used the Breakdown row control size variable (20px); the user then settled the visible size at 20px with a 28px hit area (below).
+- Measure: Retro Mac Pool row is 48px (`--triage-pool-row-size`) plus a 4px gap, a 52px pitch, before and after mi-1. The 52px in the recipe is the base fallback of that variable; it is not a Retro Mac row height. Phase 34 state and now: row 48px, pitch 52px.
+- Incident (Sonnet session, 2026-10-16): `pkill -f next-server`, used to restart this worktree's dev server, also ended the user's dev server on port 3000 (main checkout), because the pattern matched by name. Dev servers are stopped only by their own port's PID from now on (`lsof -ti tcp:3141 | xargs kill`). The user was told and restarts that server.
+- User visual judgment, steps 1–3, final (user, 2026-10-16): Pool Trash icon vertically centred: OK. Steps 1–3 accepted.
+- User visual judgment, steps 1–3, first pass (user, 2026-10-16): dialog look is good; the Pool row Trash icon is not vertically centred; size is fine. Final judgment after the fix is recorded separately below.
+- mi-1 [Fixed]: Pool Trash icon off-centre — cause: the per-theme row gap (`margin-block-end`, 4px in Retro Mac) sat inside the shared `pool-row-container`, so `top: 50%` centred on row + gap — fix: the gap moves to the container and the row's own margin is zero, so the control centres on the row in every theme (measured offset 0, gap kept) (user-reported Minor). Final judgment: see below.
+- Decision: Retro Mac Pool Trash stays 20px visible with a 28px hit area through a `::before` (user, 2026-10-16), because the Context `[X]` 16px exception relies on the Pool control being the 28px equivalent, and `[X]` exists only in Retro Mac.
+- Note: the dev server served a stale CSS bundle from the `.next` cache until it was cleared; browser checks before that point of CSS-only changes were rechecked after it.

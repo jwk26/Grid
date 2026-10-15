@@ -42,6 +42,7 @@ const undoRepository = vi.hoisted(() => ({
   reconcileStagedPlacementUndo: vi.fn(),
   undoDirectPlacement: vi.fn(),
   undoStagedPlacement: vi.fn(),
+  getBit: vi.fn(),
 }));
 
 vi.mock("@/lib/db/datastore", async (importOriginal) => ({
@@ -383,6 +384,10 @@ beforeEach(async () => {
   }));
   undoRepository.reconcileDirectPlacementUndo.mockImplementation(inspectUndo);
   undoRepository.reconcileStagedPlacementUndo.mockImplementation(inspectUndo);
+  undoRepository.getBit.mockImplementation(async () => ({
+    deletedAt: null,
+    archivedAt: null,
+  }));
   Object.assign(explorerSearchState, {
     mode: "closed",
     activeQuery: null,
@@ -1456,6 +1461,37 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
     expect(reason.parentElement).toHaveClass(kind === "terminal-conflict" ? "newly-status-rail" : "newly-status-announcement");
     expect(action).not.toBeDisabled();expect(screen.getByText("NEW")).toBeInTheDocument();
   });
+
+  it.each([
+    ["trashed", { deletedAt: 1, archivedAt: null }, "Its Scratch was moved to Trash."],
+    ["archived", { deletedAt: null, archivedAt: 1 }, "Its Scratch was archived."],
+  ] as const)(
+    "shows the dedicated reason without a click when the owning Scratch is %s",
+    async (_kind, owner, reason) => {
+      const target = createNode({ id: "owner-gone", title: "Owner gone" });
+      const entry = newlyPlacedEntry(target, "node", 1);
+      setGrid(null, [target]);
+      undoRepository.getBit.mockImplementation(async () => owner);
+      undoRepository.reconcileDirectPlacementUndo.mockImplementation(
+        async (command) => ({
+          operationId: command.operationId,
+          status: "rejected" as const,
+          result: command.resultSnapshot,
+          source: command.sourceSnapshot,
+          candidate: null,
+        }),
+      );
+
+      renderWithUndo([entry]);
+      const action = await screen.findByRole("button", {
+        name: "Undo placement of Owner gone",
+      });
+      await waitFor(() => expect(action).toHaveAttribute("aria-disabled", "true"));
+      expect(screen.getByText(reason)).toBeInTheDocument();
+      expect(screen.getByText("NEW")).toBeInTheDocument();
+      expect(undoRepository.undoDirectPlacement).not.toHaveBeenCalled();
+    },
+  );
 
   it("reactively blocks dirty Edit intent without dispatch or navigation and re-enables after resolution", async () => {
     const target = createNode({ id: "undo-target", title: "Undo target" });

@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import type { Bit } from "@/lib/db/schema";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import {
+  resolveScratchLifecycleDestination,
   useTriageStore,
   type ExternalScratchRemovalDestination,
 } from "@/stores/triage-store";
@@ -16,6 +17,12 @@ type UseScratchLifecycleHandoffOptions = Readonly<{
    * before the commit that the selection change triggers.
    */
   onDestination?: (destination: ExternalScratchRemovalDestination) => void;
+  /**
+   * Runs with the resolved destination before the store changes, so a caller
+   * that needs its focus target settled ahead of the selection change (Trash)
+   * can record it. Archive does not use it.
+   */
+  onBeforeDestination?: (destination: ExternalScratchRemovalDestination) => void;
   readTerminalSnapshot: (
     inboxNodeId: string,
     scratchId: string,
@@ -31,6 +38,7 @@ type UseScratchLifecycleHandoffOptions = Readonly<{
 export function useScratchLifecycleHandoff({
   inboxNodeId,
   onDestination,
+  onBeforeDestination,
   readTerminalSnapshot,
 }: UseScratchLifecycleHandoffOptions) {
   const scratchPoolQuery = useTriageStore((state) => state.scratchPoolQuery);
@@ -51,10 +59,18 @@ export function useScratchLifecycleHandoff({
       try {
         terminalSnapshot = await readTerminalSnapshot(inboxNodeId, scratchId);
       } catch {
-        const fallback = finishScratchArchive(scratchId, {
+        const fallbackContext = {
           activeIds: poolSnapshot.scratchPoolActiveIds,
           visibleIds: poolSnapshot.scratchPoolResultIds,
-        });
+        };
+        onBeforeDestination?.(
+          resolveScratchLifecycleDestination(
+            scratchId,
+            fallbackContext,
+            poolSnapshot.scratchPoolQuery,
+          ),
+        );
+        const fallback = finishScratchArchive(scratchId, fallbackContext);
         onDestination?.(fallback);
         return fallback;
       }
@@ -85,16 +101,21 @@ export function useScratchLifecycleHandoff({
           : orderedWithSource.filter((scratch) =>
               scratch.title.toLocaleLowerCase().includes(normalizedQuery),
             );
-      const destination = finishScratchArchive(scratchId, {
+      const context = {
         activeIds: orderedWithSource.map((scratch) => scratch.id),
         visibleIds: visible.map((scratch) => scratch.id),
-      });
+      };
+      onBeforeDestination?.(
+        resolveScratchLifecycleDestination(scratchId, context, scratchPoolQuery),
+      );
+      const destination = finishScratchArchive(scratchId, context);
       onDestination?.(destination);
       return destination;
     },
     [
       finishScratchArchive,
       inboxNodeId,
+      onBeforeDestination,
       onDestination,
       poolCreatedAtSort,
       readTerminalSnapshot,

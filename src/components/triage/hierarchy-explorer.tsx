@@ -221,6 +221,10 @@ function getNewlyUndoPresentation(
         return { copy: copy.eligibility.operationLocked, state: "operation-locked" };
       case "dirty-edit":
         return { copy: copy.eligibility.editBlocked, state: "edit-blocked" };
+      case "trashed":
+        return { copy: copy.eligibility.trashed, state: "scratch-trashed" };
+      case "archived":
+        return { copy: copy.eligibility.archived, state: "scratch-archived" };
       default:
         return { copy: copy.eligibility.conflict, state: "conflict" };
     }

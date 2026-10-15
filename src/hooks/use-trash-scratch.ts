@@ -1,7 +1,15 @@
 "use client";
 
 import { liveQuery } from "dexie";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   getDataStore,
   type TrashScratchCommand,
@@ -27,6 +35,35 @@ export type TrashScratchDisabledReason =
   | "operation-pending"
   | "placement-open"
   | "unresolved-source";
+
+/** What a Trash entry (Pool row, Context `[X]`) needs from the workspace coordinator. */
+export type TrashScratchEntries = Readonly<{
+  disabledReason: (scratchId: string) => TrashScratchDisabledReason | null;
+  /** `opener` is the activated control, so Cancel can return focus to it. */
+  request: (scratchId: string, opener: HTMLElement | null) => void;
+}>;
+
+export const TrashScratchEntriesContext =
+  createContext<TrashScratchEntries | null>(null);
+
+/**
+ * The selected Scratch's page-level drafts: the Breakdown panel owns the Add
+ * draft and the open inline editor, so it registers them here for the Trash
+ * dialog's draft line and for the discard on success.
+ */
+export type TrashDraftOwner = Readonly<{
+  /** True for a non-empty Add draft or any open inline editor. */
+  hasDiscardableWork: () => boolean;
+  discard: () => void;
+}>;
+
+export const TrashDraftRegistryContext = createContext<
+  ((owner: TrashDraftOwner) => () => void) | null
+>(null);
+
+export function useTrashScratchEntries(): TrashScratchEntries | null {
+  return useContext(TrashScratchEntriesContext);
+}
 
 export type TrashScratchTarget = Readonly<{ scratchId: string; title: string }>;
 
@@ -60,6 +97,8 @@ export type TrashScratchView = Readonly<{
 
 export type TrashScratchApplied = Readonly<{
   scratchId: string;
+  /** The title the confirmation showed, for the success announcement. */
+  title: string;
   wasSelected: boolean;
   result: TrashScratchResult;
 }>;
@@ -288,6 +327,7 @@ export function useTrashScratch({
         try {
           await onApplied?.({
             scratchId,
+            title: target.title,
             wasSelected: selectedRef.current === scratchId,
             result,
           });

@@ -390,3 +390,59 @@ it("Task172 retro-mac Context sort chip shows a focus-visible state over its fix
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
   expect(css).toMatch(/\[data-triage-role="context-sort-control"\]:focus-visible\s*\{[^}]*background: var\(--triage-context-ink\)/);
 });
+
+describe("Phase 41 Scratch Trash realization (Task 210)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const phase41 = css.slice(css.indexOf("/* Phase 41 (Task 210)"));
+
+  it("keeps the Context [X] hidden (and so unfocusable) outside Retro Mac, with no theme-id branch in the markup", () => {
+    expect(css).toMatch(
+      /\.triage-shell \[data-triage-role="context-title-strip"\],[\s\S]*?\{ display: none; \}/,
+    );
+    // Only Retro Mac re-shows the strip, and only there does the button take pointer input.
+    const shown = css.match(/:root\[data-color-theme="([^"]+)"\] \.triage-shell \[data-triage-role="context-title-strip"\] \{[^}]*display: flex/g) ?? [];
+    expect(shown).toHaveLength(1);
+    expect(shown[0]).toContain('data-color-theme="retro-mac"');
+    expect(phase41).toMatch(
+      /retro-mac"\] \.triage-shell \[data-triage-role="context-title-strip"\] \[data-triage-role="context-decoration-close"\] \{[^}]*pointer-events: auto/,
+    );
+  });
+
+  it("realizes the Retro Mac Archive-alert family for both portal dialogs without motion", () => {
+    expect(phase41).toMatch(/:is\(\.scratch-trash-dialog-overlay, \.breakdown-delete-dialog-overlay\) \{[^}]*animation: none;[^}]*hsl\(var\(--background\) \/ 0\.7\)[^}]*blur\(1px\)/);
+    const card = phase41.match(/:is\(\.scratch-trash-dialog, \.breakdown-delete-dialog\) \{([^}]*)\}/)?.[1] ?? "";
+    expect(card).toContain("border: 4px double hsl(var(--foreground))");
+    expect(card).toContain("border-radius: 0");
+    expect(card).toContain("box-shadow: 6px 6px 0 hsl(var(--foreground))");
+    expect(card).toContain("padding: 24px");
+    expect(card).toContain("grid-template-columns: 40px");
+    expect(card).toContain("animation: none");
+    const mark = phase41.match(/__mark, \.breakdown-delete-dialog__mark\) \{([^}]*)\}/)?.[1] ?? "";
+    expect(mark).toContain("inline-size: 40px");
+    expect(mark).toContain("border: 2px solid hsl(var(--foreground))");
+    expect(phase41).toMatch(/\[data-slot="alert-dialog-cancel"\] \{\s*border-width: 2px/);
+  });
+
+  it("scopes the dialog theming to the two classes so other app dialogs keep their look", () => {
+    const selectors = phase41.match(/^:root\[data-color-theme="retro-mac"\] :is\([^)]*\)/gm) ?? [];
+    for (const selector of selectors) {
+      expect(selector).toMatch(/scratch-trash-dialog|breakdown-delete-dialog/);
+    }
+  });
+
+  it("styles the Pool Trash control with the Breakdown row action treatment in Retro Mac", () => {
+    expect(phase41).toMatch(/pool-row-trash-action"\] \{[^}]*border-radius: 0[^}]*var\(--triage-breakdown-control-size\)/);
+    expect(phase41).toMatch(/pool-row-trash-action"\]:not\(:disabled\):hover,[\s\S]*?focus-visible \{[^}]*background: var\(--triage-context-ink\)/);
+  });
+
+  it("renders the Context [X] as a labelled button in every theme", () => {
+    for (const theme of ["griddo", "retro-mac", "graphite"]) {
+      document.documentElement.dataset.colorTheme = theme;
+      const view = render(<BreakdownPanel />);
+      expect(
+        screen.getByRole("button", { name: "Move selected Scratch to Trash", hidden: true }),
+      ).toHaveAttribute("data-scratch-trash-entry", "context");
+      view.unmount();
+    }
+  });
+});

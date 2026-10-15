@@ -161,6 +161,30 @@ interface TriageState {
   }) => void;
 }
 
+/**
+ * Where the selection goes when `scratchId` leaves the Pool by Archive or own
+ * Trash: next visible, then previous visible, then filtered-empty or true
+ * Inbox empty. Pure, so a caller can record its focus target before the store
+ * changes.
+ */
+export function resolveScratchLifecycleDestination(
+  scratchId: string,
+  context: ScratchPoolContext,
+  query: string,
+): ExternalScratchRemovalDestination {
+  const resolved = resolveExternalRemovalDestination(
+    context.activeIds,
+    scratchId,
+    {
+      activeIds: context.activeIds.filter((id) => id !== scratchId),
+      visibleIds: context.visibleIds.filter((id) => id !== scratchId),
+    },
+  );
+  return resolved.kind === "inbox-empty" && query.length > 0
+    ? { id: null, kind: "search-empty" }
+    : resolved;
+}
+
 export const useTriageStore = create<TriageState>((set) => ({
   selectedScratchId: null,
   scratchPoolExpanded: true,
@@ -372,18 +396,11 @@ export const useTriageStore = create<TriageState>((set) => ({
       kind: "inbox-empty",
     };
     set((state) => {
-      const resolved = resolveExternalRemovalDestination(
-        context.activeIds,
+      terminalDestination = resolveScratchLifecycleDestination(
         scratchId,
-        {
-          activeIds: context.activeIds.filter((id) => id !== scratchId),
-          visibleIds: context.visibleIds.filter((id) => id !== scratchId),
-        },
+        context,
+        state.scratchPoolQuery,
       );
-      terminalDestination =
-        resolved.kind === "inbox-empty" && state.scratchPoolQuery.length > 0
-          ? { id: null, kind: "search-empty" }
-          : resolved;
       return {
         selectedScratchId: terminalDestination.id,
         scratchPoolManualExpandedForId: null,

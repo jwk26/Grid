@@ -200,6 +200,26 @@ describe("BitDetailPopup", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("hides Move to trash for an Inbox-parented Scratch (H21)", () => {
+    mockBitDetail(
+      createBit({ parentId: "inbox-node" }),
+      [],
+      createNode({ id: "inbox-node", systemRole: "inbox", level: 0 }),
+    );
+
+    render(<BitDetailPopup />);
+
+    expect(screen.queryByText("Move to trash")).not.toBeInTheDocument();
+  });
+
+  it("still offers Move to trash for an ordinary Bit", () => {
+    mockBitDetail(createBit(), [], createNode({ level: 1 }));
+
+    render(<BitDetailPopup />);
+
+    expect(screen.getByText("Move to trash")).toBeInTheDocument();
+  });
+
   it("continues to offer Promote to Node for an ordinary eligible Bit with Chunks", () => {
     mockBitDetail(createBit(), [createChunk()], createNode({ level: 1 }));
 

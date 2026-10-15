@@ -98,4 +98,50 @@ describe("useScratchLifecycleHandoff", () => {
       result.current("selected", { scratch: selected }),
     ).resolves.toEqual({ id: "older", kind: "scratch" });
   });
+
+  it("reports the destination through onBeforeDestination before the selection changes (A2)", async () => {
+    const seenSelection: Array<string | null> = [];
+    const onBeforeDestination = vi.fn(() => {
+      seenSelection.push(useTriageStore.getState().selectedScratchId);
+    });
+    const readTerminalSnapshot = vi.fn().mockResolvedValue({
+      projectedActiveScratchBits: [newer, selected, older],
+      source: selected,
+    });
+    const { result } = renderHook(() =>
+      useScratchLifecycleHandoff({
+        inboxNodeId: "inbox",
+        onBeforeDestination,
+        readTerminalSnapshot,
+      }),
+    );
+    await expect(
+      result.current("selected", { scratch: selected }),
+    ).resolves.toEqual({ id: "older", kind: "scratch" });
+    expect(onBeforeDestination).toHaveBeenCalledWith({ id: "older", kind: "scratch" });
+    expect(seenSelection).toEqual(["selected"]);
+    expect(useTriageStore.getState().selectedScratchId).toBe("older");
+  });
+
+  it("also reports the destination before the selection changes on the fallback path", async () => {
+    useTriageStore.setState({
+      scratchPoolActiveIds: ["newer", "selected", "older"],
+      scratchPoolResultIds: ["newer", "selected", "older"],
+    });
+    const seenSelection: Array<string | null> = [];
+    const onBeforeDestination = vi.fn(() => {
+      seenSelection.push(useTriageStore.getState().selectedScratchId);
+    });
+    const readTerminalSnapshot = vi.fn().mockRejectedValue(new Error("read failed"));
+    const { result } = renderHook(() =>
+      useScratchLifecycleHandoff({
+        inboxNodeId: "inbox",
+        onBeforeDestination,
+        readTerminalSnapshot,
+      }),
+    );
+    await result.current("selected", { scratch: selected });
+    expect(onBeforeDestination).toHaveBeenCalledWith({ id: "older", kind: "scratch" });
+    expect(seenSelection).toEqual(["selected"]);
+  });
 });

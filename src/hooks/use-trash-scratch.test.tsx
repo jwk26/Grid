@@ -245,7 +245,11 @@ describe("useTrashScratch", () => {
       await confirming;
     });
     expect(onApplied).toHaveBeenCalledWith(
-      expect.objectContaining({ scratchId: A, wasSelected: true }),
+      expect.objectContaining({
+        scratchId: A,
+        title: `Scratch ${A.slice(-2)}`,
+        wasSelected: true,
+      }),
     );
     expect(hook.current.trash.state.phase).toBe("closed");
     expect(hook.current.operationLock.activeOperation).toBeNull();

@@ -87,6 +87,39 @@ describe("Inbox/Triage core-English copy", () => {
       gridExplorer: "Grid Explorer",
       searchScratches: "Search scratches",
       clearPoolSearch: "Clear search",
+      moveSelectedScratchToTrash: "Move selected Scratch to Trash",
+      moveScratchToTrash: 'Move "{title}" to Trash',
+    });
+  });
+
+  it("owns the exact Phase 41 Scratch Trash wording", () => {
+    expect(INBOX_TRIAGE_COPY.scratchTrash).toEqual({
+      title: "Move Scratch to Trash?",
+      body: '"{title}" moves to Trash. You can restore it from Trash for 30 days.',
+      stagedOne: "1 staged item will be removed from Staging.",
+      stagedMany: "{count} staged items will be removed from Staging.",
+      draft: "Your unsaved draft in this Scratch will be discarded.",
+      tooltip: "Move to Trash",
+      disabled: {
+        placementOpen: "Finish or cancel placement to move a Scratch to Trash.",
+        unresolvedSource:
+          "A staged item in this Scratch lost its source. Resolve it in Staging first.",
+      },
+      actions: {
+        cancel: "Cancel",
+        confirm: "Move to Trash",
+        retry: "Retry",
+        checkAgain: "Check again",
+      },
+      states: {
+        pending: "Moving to Trash…",
+        notApplied: "Couldn't move this Scratch to Trash.",
+        unknown: "Checking whether this Scratch moved to Trash…",
+        conflict: "This Scratch changed. Review and confirm again.",
+        rejected:
+          "A staged item in this Scratch lost its source. Resolve it in Staging first.",
+        success: 'Moved "{title}" to Trash.',
+      },
     });
   });
 
@@ -451,6 +484,8 @@ describe("Inbox/Triage core-English copy", () => {
         operationLocked: "Wait for the current action to finish.",
         editBlocked: "Save or cancel the current edit before undoing.",
         conflict: "This item or its source changed. Undo is unavailable.",
+        trashed: "Its Scratch was moved to Trash.",
+        archived: "Its Scratch was archived.",
       },
       operation: {
         pending: "Undoing “{title}”…",
