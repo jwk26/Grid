@@ -96,9 +96,9 @@ Read it at task start during Phases 34–35.
 ## Task 172 — Complete supported modes, accessibility and regression
 
 ### Current state
-- Status: Implemented, awaiting acceptance (MI-4 Undo recheck done; MI-3 recheck not run, see Checkpoint)
-- Next: user decides MI-3 (run now in this task, or close/defer as waived)
-- Open: MI-3
+- Status: Implemented, awaiting acceptance
+- Next: user acceptance; MI-3 partly rechecked, rest waits for the user's decision
+- Open: MI-3 (partial)
 
 ### Log
 - Decision: work plan approved by the user; proceed in Korean (user, 2026-10-15).
@@ -128,3 +128,8 @@ Read it at task start during Phases 34–35.
 - Review: not run (CSS token change only).
 
 - Checkpoint (second round): Changed: ledger only. Verified: `git diff --check`, `pnpm test` (1508), `pnpm lint` (0 errors), `pnpm typecheck`, `pnpm build`; the browser states in MI-4 above. Please check: the five Undo states. Unresolved: MI-3 (Task 168 reduced-motion and Staging functional regressions, Task 170 keyboard/unavailable/scroll checks) not rerun; dark mode and 1024px not rechecked for Undo states. Review: skipped, no code change.
+
+- MI-13 [Fixed, awaiting user close]: the retro-mac Context sort chip (`OLD FIRST`) showed no focus indicator — cause: its fixed `box-shadow: 1px 1px 0` overrode the Tailwind focus ring and the chip had no `:focus-visible` rule — fix: ink/surface inversion like the Edit control, light and dark, with one test assertion (this commit).
+- MI-3 recheck (2026-10-15, retro-mac, 1920×1080, MCP browser): reduced-motion simulated by applying the 15 `prefers-reduced-motion` rules in the live page (the MCP tool cannot set the media feature): 541 elements, none with an animation or a transition above 0.01 ms. CSS only; JS-driven motion not covered. Focus-visible walk over 43 focusable elements in light and dark: all show a change except the sort chip (MI-13).
+- MI-3 not rechecked: the 21 Staging functional regressions and the Task 170 narrow-viewport keyboard/scroll/unavailable checks. They need real drags (Stage, Unstage, Direct placement), which CDP could not complete; Staging logic stays covered by the jsdom suites. Needs the user's decision.
+- Checkpoint (third round): Changed: `globals.css` (sort chip focus-visible), `inbox-triage-theme-realization.test.tsx`. Verified: `git diff --check`, `pnpm test` (1509), `pnpm lint` (0 errors), `pnpm typecheck`, `pnpm build`; chip focus in light and dark in the browser. Review: skipped, CSS only.

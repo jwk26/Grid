@@ -385,3 +385,8 @@ it("Task172 retro-mac Context sort chip derives its fill from the mode backgroun
   expect(css).toMatch(/--triage-context-sort-fill:\s*color-mix\(in srgb, hsl\(var\(--background\)\)[^;]*yellow\);/);
   expect(css).toMatch(/--triage-context-sort-hover:\s*color-mix\(in srgb, hsl\(var\(--background\)\)[^;]*yellow\);/);
 });
+
+it("Task172 retro-mac Context sort chip shows a focus-visible state over its fixed shadow", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  expect(css).toMatch(/\[data-triage-role="context-sort-control"\]:focus-visible\s*\{[^}]*background: var\(--triage-context-ink\)/);
+});

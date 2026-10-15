@@ -5285,6 +5285,9 @@
   background: var(--triage-context-ink); color: var(--triage-context-surface);
 }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-control"]:hover { background: var(--triage-context-sort-hover); }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-control"]:focus-visible {
+  background: var(--triage-context-ink); color: var(--triage-context-surface);
+}
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"] [data-triage-role="context-title"] { text-decoration: line-through; opacity: 0.4; }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-content-viewport"] { padding: 8px 16px; background: var(--triage-context-surface); }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-row-list"] { margin-block-start: 32px; }
