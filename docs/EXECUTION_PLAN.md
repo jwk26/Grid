@@ -2834,7 +2834,7 @@ Retro Mac light/dark and one other theme; existing departure tests stay green;
 
 **Commit message:** `feat(triage): realize retro-mac departure sheet`.
 
-### Task 212: [ ] Select a Scratch captured while the Inbox is mounted
+### Task 212: [x] Select a Scratch captured while the Inbox is mounted
 
 **Files and actions:**
 - `src/hooks/use-inbox.ts` and test: `createScratchBit` returns the created
