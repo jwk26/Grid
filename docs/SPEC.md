@@ -514,13 +514,15 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   is disabled with that reason. A `rejected` result shows the same reason
   with Cancel only; Cancel and Escape close it and the operation lock is
   released.
-- This page's own-Trash marker is `{Scratch ID, expected version}`, set at
-  dispatch and cleared once the Pool lifecycle projection has observed that
-  deletion, or at a terminal result other than applied/already applied
-  (being version-keyed, keeping it until page unmount is also safe). Observing that Scratch trashed
-  at expected version + 1 is own Trash: it never creates the external-removal
-  transition or a Pool deleted status. Any other inactive observation is
-  external removal.
+- This page's own-Trash markers are kept per Scratch as `{Scratch ID,
+  expected version}`: set at dispatch, removed at a terminal result other
+  than applied/already applied, and otherwise kept until the Inbox workspace
+  unmounts. Being version-keyed, a kept marker never hides a later restore or
+  an external Trash. (Clearing on first observation was dropped because
+  several mounted Pool projections observe the deletion at different times.)
+  Observing that Scratch trashed at expected version + 1 is own Trash: it
+  never creates the external-removal transition or a Pool deleted status.
+  Any other inactive observation is external removal.
 - Success removes the row once, discards that Scratch's drafts and editors
   (so no unload guard or `VQ-03` remains for them), makes Undo unavailable for
   placements from that Scratch (markers stay), and announces the move
