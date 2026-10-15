@@ -73,3 +73,18 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 - Please check: the Advisory on the blur exemption (accepted as a known limit).
 - Unresolved: none (MI-3 resolved by SPEC option A, `7e75e50`).
 - Review: see the expert review entry above — three findings fixed, one disputed with evidence, one conformance question raised as MI-3, one Advisory.
+
+## Task 211 — Realize the Retro Mac departure sheet
+
+### Current state
+- Status: Awaiting User Decision
+- Next: go-ahead on the work plan
+- Open: none
+
+### Log
+- Work plan:
+  - `src/app/globals.css`: replace the current Retro Mac `breakdown-departure-sheet` rules (shadow card + Continue outline) with the recipe's Archive-alert family: `4px double` border, radius 0, `6px 6px 0` hard shadow, Context font, two-column grid (40px `!` mark, then eyebrow/heading/description/actions), uppercase-tracked eyebrow, bold heading, square hard-bordered buttons, Continue with 2px default outline, Discard plain (no red inset), hover/focus inversion. Reuse the values of the 210 dialog rules, not its overlay rules. Other themes untouched.
+  - The `!` mark: try CSS first (`::before` on the sheet in the grid column 1, hidden elsewhere by not being declared). Only if CSS cannot place it, add one aria-hidden `!` span to `breakdown-panel.tsx` (hidden by default like `.scratch-trash-dialog__mark`) and its test.
+  - `inbox-triage-theme-realization.test.tsx`: add a Task 211 block asserting the Retro Mac rules (double border, hard shadow, mark, outline on Continue, no red discard, no motion/overlay) and that other themes' rules are unchanged, plus a DOM check that copy, action order and the single mark do not vary by theme.
+  - Order: CSS → browser check (Playwright, `scripts/dev-fixtures/inbox-triage.js`, Scratch switch with an Add draft) in Retro Mac light/dark and GridDO, keyboard path (Continue first focus, Escape back to Add) → show screenshots → stop for your visual disposition → commit.
+  - Verify: focused theme-realization + breakdown-panel/workspace departure tests, then the full gate.
