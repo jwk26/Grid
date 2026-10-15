@@ -8,6 +8,8 @@ import type {
   ArchiveScratchCommand,
   ArchiveScratchRecoveryResult,
   ArchiveScratchResult,
+  TrashScratchCommand,
+  TrashScratchResult,
   ConfirmedCandidateOrphanCleanupCommand,
   ConfirmedCandidateOrphanCleanupResult,
   DataStore,
@@ -130,11 +132,20 @@ type PlacementUndoState = {
   sourceCandidate: StagedCandidate | undefined;
   nodes: Node[];
   bits: Bit[];
+  ownerIsActive: boolean;
 };
 
 type ScratchArchiveState = {
   eligibility: ScratchArchiveEligibility;
   activeInboxOwner: boolean;
+};
+
+type TrashScratchState = {
+  scratch: Bit | undefined;
+  ownerIsInbox: boolean;
+  ownerIsActive: boolean;
+  candidates: StagedCandidate[];
+  sources: Map<string, ScratchBreakdown>;
 };
 
 type IndexedDBTransactionCheckpointHook = (name: string) => undefined;
@@ -316,6 +327,30 @@ const archiveScratchCommandSchema = z.object({
     addDraftClear: z.literal(true),
     titleBlockerClear: z.literal(true),
   }).strict(),
+}).strict();
+
+const trashScratchCommandSchema = z.object({
+  operationId: repositoryOperationIdSchema,
+  scratchBitId: z.string().uuid(),
+  expectedVersion: commandVersionSchema,
+  candidates: z.array(z.object({
+    candidateId: z.string().uuid(),
+    candidateExpectedVersion: commandVersionSchema,
+    sourceBreakdownId: z.string().uuid(),
+    sourceExpectedVersion: commandVersionSchema,
+  }).strict()).refine(
+    (items) =>
+      new Set(items.map((item) => item.candidateId)).size === items.length &&
+      new Set(items.map((item) => item.sourceBreakdownId)).size === items.length,
+    "Trash Scratch candidates must be a set",
+  ),
+}).strict();
+
+const trashScratchResultSchema = z.object({
+  operationId: repositoryOperationIdSchema,
+  status: repositoryOperationStatusSchema,
+  scratch: bitSchema.nullable(),
+  candidates: z.array(stagedCandidateSchema),
 }).strict();
 
 const addBreakdownResultSchema = z.object({
@@ -980,10 +1015,12 @@ export class IndexedDBDataStore implements DataStore {
       ),
       allBits.filter((item) => item.deletedAt === null && item.archivedAt === null),
     );
-    const restoredBit = incrementVersion(placeRestoredGridItem(
-      { ...refreshedBit, deletedAt: null },
-      occupiedByParent,
-    ));
+    // Scratch Bits live under the Inbox without a grid cell: keep the 0,0 sentinel.
+    const restoredBit = incrementVersion(
+      parentNode.systemRole === "inbox"
+        ? { ...refreshedBit, deletedAt: null }
+        : placeRestoredGridItem({ ...refreshedBit, deletedAt: null }, occupiedByParent),
+    );
 
     await this.write(async () => {
       await this.database.bits.put(bitSchema.parse(restoredBit));
@@ -1140,6 +1177,97 @@ export class IndexedDBDataStore implements DataStore {
       operationId: parsed.operationId,
       status: "applied",
       scratch,
+    });
+  }
+
+  async trashScratch(command: TrashScratchCommand): Promise<TrashScratchResult> {
+    if (this.database instanceof GridDODatabase && !this.hasAmbientWriteTransaction()) {
+      return this.write(() => this.trashScratch(command));
+    }
+
+    const parsed = trashScratchCommandSchema.parse(command);
+    const state = await this.readTrashScratchState(parsed);
+    const respond = (status: TrashScratchResult["status"], scratch = state.scratch) =>
+      trashScratchResultSchema.parse({
+        operationId: parsed.operationId,
+        status,
+        scratch: scratch ?? null,
+        candidates: state.candidates,
+      });
+
+    if (matchesTrashScratchPostcondition(parsed, state)) {
+      return respond("already_applied");
+    }
+
+    if (state.scratch && !state.ownerIsInbox) {
+      return respond("rejected");
+    }
+
+    if (
+      state.scratch &&
+      state.candidates.some((candidate) => !state.sources.has(candidate.sourceBreakdownId))
+    ) {
+      return respond("rejected");
+    }
+
+    if (!matchesTrashScratchPrecondition(parsed, state)) {
+      return respond("conflict");
+    }
+
+    const timestamp = Date.now();
+    const scratch = bitSchema.parse({
+      ...state.scratch!,
+      deletedAt: timestamp,
+      mtime: timestamp,
+      version: state.scratch!.version + 1,
+    });
+    const candidates = this.requireStagedCandidates();
+    const breakdowns = this.requireScratchBreakdowns();
+
+    for (const item of parsed.candidates) {
+      await candidates.delete(item.candidateId);
+    }
+    this.emitTransactionCheckpoint("inbox.trash-scratch.after.candidates");
+    for (const item of parsed.candidates) {
+      await breakdowns.put(
+        scratchBreakdownSchema.parse(incrementVersion(state.sources.get(item.sourceBreakdownId)!)),
+      );
+    }
+    this.emitTransactionCheckpoint("inbox.trash-scratch.after.sources");
+    await this.database.bits.put(scratch);
+    this.emitTransactionCheckpoint("inbox.trash-scratch.after.scratch");
+    await this.touchNodeIds([scratch.parentId], timestamp);
+    this.emitTransactionCheckpoint("inbox.trash-scratch.after.inbox");
+
+    return trashScratchResultSchema.parse({
+      operationId: parsed.operationId,
+      status: "applied",
+      scratch,
+      candidates: [],
+    });
+  }
+
+  async reconcileTrashScratch(command: TrashScratchCommand): Promise<TrashScratchResult> {
+    if (
+      this.database instanceof GridDODatabase &&
+      !this.hasAmbientDatabaseTransaction()
+    ) {
+      return this.readInboxBreakdownSnapshot(() => this.reconcileTrashScratch(command));
+    }
+
+    const parsed = trashScratchCommandSchema.parse(command);
+    const state = await this.readTrashScratchState(parsed);
+    const status = matchesTrashScratchPostcondition(parsed, state)
+      ? "already_applied"
+      : matchesTrashScratchPrecondition(parsed, state)
+        ? "not_applied"
+        : "conflict";
+
+    return trashScratchResultSchema.parse({
+      operationId: parsed.operationId,
+      status,
+      scratch: state.scratch ?? null,
+      candidates: state.candidates,
     });
   }
 
@@ -2499,9 +2627,11 @@ export class IndexedDBDataStore implements DataStore {
       operationId: parsed.operationId,
       status: matchesPlacementUndoPostcondition(parsed, state, true)
         ? "already_applied"
-        : matchesPlacementUndoPrecondition(parsed, state, true)
-          ? "not_applied"
-          : "conflict",
+        : !state.ownerIsActive
+          ? "rejected"
+          : matchesPlacementUndoPrecondition(parsed, state, true)
+            ? "not_applied"
+            : "conflict",
       result: placementUndoStateResult(state),
       source: state.source ?? null,
       candidate: state.candidate ?? state.sourceCandidate ?? null,
@@ -2537,9 +2667,11 @@ export class IndexedDBDataStore implements DataStore {
       operationId: parsed.operationId,
       status: matchesPlacementUndoPostcondition(parsed, state, false)
         ? "already_applied"
-        : matchesPlacementUndoPrecondition(parsed, state, false)
-          ? "not_applied"
-          : "conflict",
+        : !state.ownerIsActive
+          ? "rejected"
+          : matchesPlacementUndoPrecondition(parsed, state, false)
+            ? "not_applied"
+            : "conflict",
       result: placementUndoStateResult(state),
       source: state.source ?? null,
       candidate: state.sourceCandidate ?? null,
@@ -2560,6 +2692,16 @@ export class IndexedDBDataStore implements DataStore {
         result: null,
         source: state.source ?? null,
         candidate: staged ? authoritativeCandidate ?? null : null,
+      });
+    }
+
+    if (!state.ownerIsActive) {
+      return placementUndoResultSchema.parse({
+        operationId: command.operationId,
+        status: "rejected",
+        result: placementUndoStateResult(state),
+        source: state.source ?? null,
+        candidate: authoritativeCandidate ?? null,
       });
     }
 
@@ -3519,6 +3661,44 @@ export class IndexedDBDataStore implements DataStore {
     );
   }
 
+  private async readTrashScratchState(
+    command: z.infer<typeof trashScratchCommandSchema>,
+  ): Promise<TrashScratchState> {
+    const breakdowns = this.requireScratchBreakdowns();
+    const candidates = this.requireStagedCandidates();
+    const [scratch, nodes, allCandidates, allBreakdowns] = await Promise.all([
+      this.database.bits.get(command.scratchBitId),
+      this.database.nodes.toArray(),
+      candidates.toArray(),
+      breakdowns.toArray(),
+    ]);
+    const owner = scratch
+      ? nodes.find((node) => node.id === scratch.parentId)
+      : undefined;
+    const current = allCandidates.filter(
+      (candidate) => candidate.scratchBitId === command.scratchBitId,
+    );
+    const wanted = new Set([
+      ...current.map((candidate) => candidate.sourceBreakdownId),
+      ...command.candidates.map((candidate) => candidate.sourceBreakdownId),
+    ]);
+
+    return {
+      scratch,
+      ownerIsInbox: owner?.systemRole === "inbox",
+      ownerIsActive:
+        owner?.systemRole === "inbox" &&
+        owner.deletedAt === null &&
+        owner.archivedAt === null,
+      candidates: current,
+      sources: new Map(
+        allBreakdowns
+          .filter((row) => wanted.has(row.id))
+          .map((row) => [row.id, row] as const),
+      ),
+    };
+  }
+
   private async readScratchArchiveState(
     scratchBitId: string,
   ): Promise<ScratchArchiveState> {
@@ -3620,6 +3800,11 @@ export class IndexedDBDataStore implements DataStore {
         candidates.toArray(),
       ]);
 
+    const owner = bits.find(({ id }) => id === command.sourceSnapshot.scratchBitId);
+    const ownerParent = owner
+      ? nodes.find(({ id }) => id === owner.parentId)
+      : undefined;
+
     return {
       resultNode,
       resultBit,
@@ -3630,6 +3815,13 @@ export class IndexedDBDataStore implements DataStore {
       ),
       nodes,
       bits,
+      ownerIsActive:
+        owner !== undefined &&
+        owner.deletedAt === null &&
+        owner.archivedAt === null &&
+        ownerParent?.systemRole === "inbox" &&
+        ownerParent.deletedAt === null &&
+        ownerParent.archivedAt === null,
     };
   }
 
@@ -4098,6 +4290,63 @@ function matchesCandidateOrphanAuditEvent(
     event.sourceBreakdownId === command.sourceBreakdownId &&
     event.scratchBitId === command.scratchBitId
   );
+}
+
+function matchesTrashScratchPrecondition(
+  command: z.infer<typeof trashScratchCommandSchema>,
+  state: TrashScratchState,
+): boolean {
+  const { scratch } = state;
+  if (
+    !scratch ||
+    !state.ownerIsActive ||
+    scratch.deletedAt !== null ||
+    scratch.archivedAt !== null ||
+    scratch.version !== command.expectedVersion ||
+    state.candidates.length !== command.candidates.length
+  ) {
+    return false;
+  }
+
+  return command.candidates.every((item) => {
+    const candidate = state.candidates.find(({ id }) => id === item.candidateId);
+    const source = state.sources.get(item.sourceBreakdownId);
+    return (
+      candidate !== undefined &&
+      candidate.version === item.candidateExpectedVersion &&
+      candidate.sourceBreakdownId === item.sourceBreakdownId &&
+      source !== undefined &&
+      source.scratchBitId === command.scratchBitId &&
+      source.consumedAt === null &&
+      source.version === item.sourceExpectedVersion
+    );
+  });
+}
+
+function matchesTrashScratchPostcondition(
+  command: z.infer<typeof trashScratchCommandSchema>,
+  state: TrashScratchState,
+): boolean {
+  const { scratch } = state;
+  if (
+    !scratch ||
+    !state.ownerIsInbox ||
+    scratch.deletedAt === null ||
+    scratch.archivedAt !== null ||
+    scratch.version !== command.expectedVersion + 1
+  ) {
+    return false;
+  }
+
+  return command.candidates.every((item) => {
+    const source = state.sources.get(item.sourceBreakdownId);
+    return (
+      !state.candidates.some(({ id }) => id === item.candidateId) &&
+      source !== undefined &&
+      source.consumedAt === null &&
+      source.version === item.sourceExpectedVersion + 1
+    );
+  });
 }
 
 function placementUndoStateResult(state: PlacementUndoState): Node | Bit | null {

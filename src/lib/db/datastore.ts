@@ -208,6 +208,25 @@ export type ArchiveScratchRecoveryResult =
     }>
   | UnknownRepositoryOperationOutcome;
 
+export type TrashScratchCandidate = Readonly<{
+  candidateId: string;
+  candidateExpectedVersion: number;
+  sourceBreakdownId: string;
+  sourceExpectedVersion: number;
+}>;
+
+export type TrashScratchCommand = RepositoryOperationCommand<{
+  scratchBitId: string;
+  expectedVersion: number;
+  candidates: readonly TrashScratchCandidate[];
+}>;
+
+export type TrashScratchResult = RepositoryOperationResult<{
+  status: RepositoryOperationStatus;
+  scratch: Bit | null;
+  candidates: StagedCandidate[];
+}>;
+
 export type AggregateHardDeleteResult =
   | { status: "deleted" }
   | {
@@ -251,6 +270,10 @@ export interface DataStore {
   classifyArchiveScratchRecovery(
     recovery: PendingOperationRecovery,
   ): Promise<ArchiveScratchRecoveryResult>;
+
+  // --- Authoritative Inbox Scratch Trash ---
+  trashScratch(command: TrashScratchCommand): Promise<TrashScratchResult>;
+  reconcileTrashScratch(command: TrashScratchCommand): Promise<TrashScratchResult>;
 
   // --- System Node Seeding ---
   /**

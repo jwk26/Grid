@@ -19,6 +19,7 @@ export const TRIAGE_OPERATION_KINDS = [
   "placement",
   "undo",
   "archive",
+  "trash",
 ] as const;
 
 export type TriageOperationKind = (typeof TRIAGE_OPERATION_KINDS)[number];

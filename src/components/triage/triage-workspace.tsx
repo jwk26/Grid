@@ -33,6 +33,7 @@ import {
   type TriageDragItem,
 } from "@/hooks/use-dnd";
 import { useExternalScratchRemovalData } from "@/hooks/use-external-scratch-removal-data";
+import { useScratchLifecycleHandoff } from "@/hooks/use-scratch-lifecycle-handoff";
 import { useArchiveScratch } from "@/hooks/use-archive-scratch";
 import { useCanArchiveScratch } from "@/hooks/use-can-archive-scratch";
 import {
@@ -75,7 +76,7 @@ import { cn } from "@/lib/utils";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { useTriageStore } from "@/stores/triage-store";
 import type { ExternalScratchRemovalState } from "@/stores/triage-store";
-import type { Bit, Node } from "@/types";
+import type { Node } from "@/types";
 
 function formatStagingHeading(label: string, count: number) {
   return count >= 2 ? `${count} ${label}` : label;
@@ -685,76 +686,23 @@ export function TriageWorkspace({ node }: { node: Node }) {
           ? externalScratchRemoval.scratchId
           : null,
     });
-  const scratchPoolQuery = useTriageStore((state) => state.scratchPoolQuery);
-  const finishScratchArchive = useTriageStore(
-    (state) => state.finishScratchArchive,
-  );
-  const poolCreatedAtSort = useTriagePreferencesStore(
-    (state) => state.poolCreatedAtSort,
-  );
   const pendingArchiveFocusRef = useRef<ArchiveHandoffFocusKind | null>(null);
-  const handleArchiveApplied = useCallback(
-    async (
-      recovery: { scratchBitId: string },
-      result: unknown,
-    ) => {
-      const poolSnapshot = useTriageStore.getState();
-      let terminalSnapshot: Awaited<ReturnType<typeof readTerminalSnapshot>>;
-      try {
-        terminalSnapshot = await readTerminalSnapshot(
-          node.id,
-          recovery.scratchBitId,
-        );
-      } catch {
-        const destination = finishScratchArchive(recovery.scratchBitId, {
-          activeIds: poolSnapshot.scratchPoolActiveIds,
-          visibleIds: poolSnapshot.scratchPoolResultIds,
-        });
-        pendingArchiveFocusRef.current = destination.kind;
-        return;
-      }
-      const { projectedActiveScratchBits, source } = terminalSnapshot;
-      const remaining = projectedActiveScratchBits.filter(
-        (scratch) => scratch.id !== recovery.scratchBitId,
-      );
-      const resultScratch =
-        typeof result === "object" &&
-        result !== null &&
-        "scratch" in result
-          ? (result.scratch as Bit | null)
-          : null;
-      const sourceForOrder = source ?? resultScratch;
-      const orderedWithSource = (
-        sourceForOrder === null ||
-        sourceForOrder === undefined ||
-        remaining.some((scratch) => scratch.id === sourceForOrder.id)
-          ? remaining
-          : [...remaining, sourceForOrder]
-      ).toSorted((left, right) =>
-        poolCreatedAtSort === "ASC"
-          ? left.createdAt - right.createdAt
-          : right.createdAt - left.createdAt,
-      );
-      const normalizedQuery = scratchPoolQuery.toLocaleLowerCase();
-      const visible =
-        normalizedQuery.length === 0
-          ? orderedWithSource
-          : orderedWithSource.filter((scratch) =>
-              scratch.title.toLocaleLowerCase().includes(normalizedQuery),
-            );
-      const destination = finishScratchArchive(recovery.scratchBitId, {
-        activeIds: orderedWithSource.map((scratch) => scratch.id),
-        visibleIds: visible.map((scratch) => scratch.id),
-      });
+  const recordArchiveHandoffFocus = useCallback(
+    (destination: { kind: ArchiveHandoffFocusKind }) => {
       pendingArchiveFocusRef.current = destination.kind;
     },
-    [
-      finishScratchArchive,
-      node.id,
-      poolCreatedAtSort,
-      readTerminalSnapshot,
-      scratchPoolQuery,
-    ],
+    [],
+  );
+  const handoffScratchLifecycle = useScratchLifecycleHandoff({
+    inboxNodeId: node.id,
+    onDestination: recordArchiveHandoffFocus,
+    readTerminalSnapshot,
+  });
+  const handleArchiveApplied = useCallback(
+    async (recovery: { scratchBitId: string }, result: unknown) => {
+      await handoffScratchLifecycle(recovery.scratchBitId, result);
+    },
+    [handoffScratchLifecycle],
   );
   const archiveCoordinator = useArchiveScratch({
     operationLock,

@@ -58,6 +58,8 @@ export type TriageNewlyPlacedUndoReason =
   | "candidate-mutated"
   | "dependencies"
   | "already-undone"
+  | "trashed"
+  | "archived"
   | "invalid-provenance"
   | "truth-unknown";
 
@@ -80,9 +82,14 @@ type PlacementUndoInvoker = (
   command: TriagePlacementUndoCommand,
 ) => Promise<PlacementUndoResult>;
 
+export type OwningScratchLifecycle = "active" | "trashed" | "archived";
+
 type PlacementUndoTruthObserver = (
   entries: readonly TriageNewlyPlacedProvenance[],
-  publish: (truth: ReadonlyMap<string, PlacementUndoResult>) => void,
+  publish: (
+    truth: ReadonlyMap<string, PlacementUndoResult>,
+    owners?: ReadonlyMap<string, OwningScratchLifecycle>,
+  ) => void,
 ) => () => void;
 
 type UseTriageNewlyPlacedUndoOptions = Readonly<{
@@ -145,12 +152,16 @@ export function createTriagePlacementUndoCommand(
 function classifyUndoTruth(
   provenance: TriageNewlyPlacedProvenance,
   truth: PlacementUndoResult | undefined,
+  owner: OwningScratchLifecycle | undefined,
 ): TriageNewlyPlacedUndoReason {
   if (truth === undefined) return "checking";
-  if (truth.status === "not_applied") return "available";
   if (truth.status === "applied" || truth.status === "already_applied") {
     return "already-undone";
   }
+  // An inactive owning Scratch makes Undo unavailable before any click; it
+  // outranks every other reason, invalid-provenance included.
+  if (owner === "trashed" || owner === "archived") return owner;
+  if (truth.status === "not_applied") return "available";
   if (truth.status === "rejected") return "invalid-provenance";
   if (truth.result === null) return "result-mutated";
   if (!sameFlatRecord(truth.result, provenance.resultSnapshot)) {
@@ -188,15 +199,39 @@ async function reconcileUndoWithRepository(
     : dataStore.reconcileDirectPlacementUndo(command);
 }
 
+async function readOwningScratchLifecycle(
+  scratchBitId: string,
+): Promise<OwningScratchLifecycle> {
+  const dataStore = await getDataStore();
+  const scratch = await dataStore.getBit(scratchBitId);
+  if (scratch === undefined || scratch.deletedAt !== null) return "trashed";
+  return scratch.archivedAt !== null ? "archived" : "active";
+}
+
 function observeUndoTruth(
   entries: readonly TriageNewlyPlacedProvenance[],
-  publish: (truth: ReadonlyMap<string, PlacementUndoResult>) => void,
+  publish: (
+    truth: ReadonlyMap<string, PlacementUndoResult>,
+    owners?: ReadonlyMap<string, OwningScratchLifecycle>,
+  ) => void,
 ): () => void {
   if (entries.length === 0) {
     publish(new Map());
     return () => undefined;
   }
   const subscription = liveQuery(async () => {
+    const scratchIds = [...new Set(entries.map((entry) => entry.source.scratchBitId))];
+    // An unreadable owner is left unknown; it never hides the Undo truth.
+    const owners = new Map<string, OwningScratchLifecycle>();
+    await Promise.all(
+      scratchIds.map(async (id) => {
+        try {
+          owners.set(id, await readOwningScratchLifecycle(id));
+        } catch {
+          // unknown owner
+        }
+      }),
+    );
     const results = await Promise.all(
       entries.map(async (entry) => {
         const command = createTriagePlacementUndoCommand(
@@ -207,9 +242,9 @@ function observeUndoTruth(
         return [placementKey(entry.resultType, entry.resultId), result] as const;
       }),
     );
-    return new Map(results);
+    return { truth: new Map(results), owners };
   }).subscribe({
-    next: publish,
+    next: ({ truth, owners }) => publish(truth, owners),
     error: () => publish(new Map()),
   });
   return () => subscription.unsubscribe();
@@ -236,6 +271,7 @@ export function useTriageNewlyPlacedUndo({
     new Map(),
   );
   const truthRef = useRef(truth);
+  const ownersRef = useRef<ReadonlyMap<string, OwningScratchLifecycle>>(new Map());
   const reenabledKeysRef = useRef(new Set<string>());
   const [, setEligibilityRevision] = useState(0);
   const [operations, setOperations] = useState<
@@ -265,15 +301,21 @@ export function useTriageNewlyPlacedUndo({
   );
 
   useEffect(() => {
-    return observeTruthRef.current(entriesRef.current, (next) => {
+    return observeTruthRef.current(entriesRef.current, (next, nextOwners) => {
       let eligibilityChanged = false;
+      const owners = nextOwners ?? ownersRef.current;
       for (const entry of entriesRef.current) {
         const key = placementKey(entry.resultType, entry.resultId);
         const previousReason = classifyUndoTruth(
           entry,
           truthRef.current.get(key),
+          ownersRef.current.get(entry.source.scratchBitId),
         );
-        const nextReason = classifyUndoTruth(entry, next.get(key));
+        const nextReason = classifyUndoTruth(
+          entry,
+          next.get(key),
+          owners.get(entry.source.scratchBitId),
+        );
         if (
           previousReason === "dependencies" &&
           nextReason === "available" &&
@@ -288,6 +330,7 @@ export function useTriageNewlyPlacedUndo({
           eligibilityChanged = true;
         }
       }
+      ownersRef.current = owners;
       truthRef.current = next;
       setTruth(next);
       if (eligibilityChanged) setEligibilityRevision((revision) => revision + 1);
@@ -335,7 +378,11 @@ export function useTriageNewlyPlacedUndo({
           : { ...operation, phase: "blocked", reason: blocker };
       }
       if (operation !== undefined) return operation;
-      const reason = classifyUndoTruth(provenance, truthRef.current.get(key));
+      const reason = classifyUndoTruth(
+        provenance,
+        truthRef.current.get(key),
+        ownersRef.current.get(provenance.source.scratchBitId),
+      );
       if (reason === "checking") return CHECKING_UNDO_STATE;
       return {
         phase: reason === "available" ? "available" : "blocked",
@@ -371,10 +418,31 @@ export function useTriageNewlyPlacedUndo({
             ? "already-undone"
             : provenance === null
               ? "truth-unknown"
-              : classifyUndoTruth(provenance, result),
+              : classifyUndoTruth(
+                  provenance,
+                  result,
+                  ownersRef.current.get(provenance.source.scratchBitId),
+                ),
         command,
         terminalStatus: result.status,
       });
+      if (result.status === "rejected" && provenance !== null) {
+        // The live owner observation may not have reported the inactive
+        // owner yet; ask the DataStore so the reason is trashed/archived,
+        // never a misleading invalid-provenance.
+        const operationState = operationsRef.current.get(key);
+        void readOwningScratchLifecycle(provenance.source.scratchBitId)
+          .then((owner) => {
+            if (
+              (owner === "trashed" || owner === "archived") &&
+              operationsRef.current.get(key) === operationState &&
+              operationState !== undefined
+            ) {
+              commitOperation(key, { ...operationState, reason: owner });
+            }
+          })
+          .catch(() => undefined);
+      }
       return result.status === "applied" || result.status === "already_applied";
     },
     [commitOperation, findEntry, operationLock],

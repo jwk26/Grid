@@ -2667,9 +2667,11 @@ writer register serializes it.
   candidate set live at confirm, refuses to open or confirm while a placement
   flow is open or an unresolved-source candidate exists (with reason keys),
   reconciles unknown outcomes, holds the native unload guard while pending,
-  and owns the own-Trash marker `{scratchId, expectedVersion}` (set at
-  dispatch; cleared once the Pool lifecycle projection has observed the
-  deletion, or at a non-applied terminal result). It keeps a live
+  and owns the own-Trash marker `{scratchId, expectedVersion}`, kept per
+  Scratch ID in a non-persisted map (set at dispatch; kept until the
+  workspace unmounts, released for that Scratch at a non-applied terminal
+  result, so every mounted Inbox projection still sees a late emission as
+  own Trash). It keeps a live
   per-Scratch unresolved-source flag over the Inbox's `stagedCandidates` and
   `scratchBreakdowns`, so every Pool row can show its disabled reason.
 - `src/hooks/use-triage-operation-lock.ts` and test: add a `"trash"`

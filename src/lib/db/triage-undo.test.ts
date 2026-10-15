@@ -217,6 +217,50 @@ describe("authoritative source-aware placement Undo", () => {
   });
 
   it.each([
+    ["staged", "trashed", true, { deletedAt: 300 }],
+    ["staged", "archived", true, { archivedAt: 300 }],
+    ["direct", "trashed", false, { deletedAt: 300 }],
+    ["direct", "archived", false, { archivedAt: 300 }],
+  ] as const)(
+    "%s Undo with a %s owning Scratch is rejected in the command and reconcile with no write",
+    async (_label, _reason, staged, lifecycle) => {
+      const prepared = await preparedUndo(staged, "bit");
+      try {
+        await prepared.database.bits.update(TRANSACTION_TEST_IDS.scratchBit, lifecycle);
+        const before = await snapshotSevenStores(prepared.database);
+        const { store, undo } = prepared;
+        const execute = staged
+          ? () => store.undoStagedPlacement(undo as StagedPlacementUndoCommand)
+          : () => store.undoDirectPlacement(undo);
+        const reconcile = staged
+          ? () => store.reconcileStagedPlacementUndo(undo as StagedPlacementUndoCommand)
+          : () => store.reconcileDirectPlacementUndo(undo);
+
+        await expect(reconcile()).resolves.toMatchObject({ status: "rejected" });
+        await expect(execute()).resolves.toMatchObject({ status: "rejected" });
+        expect(await snapshotSevenStores(prepared.database)).toEqual(before);
+      } finally {
+        prepared.database.close();
+      }
+    },
+  );
+
+  it("a completed Undo still reconciles as already_applied after its Scratch is later trashed", async () => {
+    const prepared = await preparedUndo(false, "bit");
+    try {
+      await expect(prepared.store.undoDirectPlacement(prepared.undo)).resolves.toMatchObject({
+        status: "applied",
+      });
+      await prepared.database.bits.update(TRANSACTION_TEST_IDS.scratchBit, { deletedAt: 300 });
+      await expect(
+        prepared.store.reconcileDirectPlacementUndo(prepared.undo),
+      ).resolves.toMatchObject({ status: "already_applied" });
+    } finally {
+      prepared.database.close();
+    }
+  });
+
+  it.each([
     "inbox.undo-staged.after.result",
     "inbox.undo-staged.after.source",
     "inbox.undo-staged.after.candidate",

@@ -48,7 +48,29 @@ export type ExternalScratchRemovalDestination = Readonly<{
 type ScratchPoolContext = {
   activeIds: string[];
   visibleIds: string[];
+  /** Selected-Scratch ids this page has just trashed itself; never external removal. */
+  ownTrashIds?: readonly string[];
 };
+
+export interface OwnTrashMarker {
+  scratchId: string;
+  expectedVersion: number;
+}
+
+/**
+ * Keeps a held own-Trash selection at its previous position in the tracked
+ * Pool order, so releasing the marker later still resolves next/previous
+ * against the right neighbours.
+ */
+function withHeldId(previous: string[], current: string[], heldId: string): string[] {
+  const previousIndex = previous.indexOf(heldId);
+  if (previousIndex < 0) return current;
+  const currentIds = new Set(current);
+  const position = previous
+    .slice(0, previousIndex)
+    .filter((id) => currentIds.has(id)).length;
+  return [...current.slice(0, position), heldId, ...current.slice(position)];
+}
 
 function resolveExternalRemovalDestination(
   removalOrder: string[],
@@ -91,6 +113,13 @@ interface TriageState {
   explorerLocalPlacementIdentities: ExplorerItemIdentity[];
   explorerPathStatus: ExplorerPathStatusState | null;
   externalScratchRemoval: ExternalScratchRemovalState | null;
+  ownTrashMarkers: Record<string, OwnTrashMarker>;
+  registerOwnTrash: (scratchId: string, expectedVersion: number) => void;
+  /**
+   * Markers are version-keyed and live until released here: at a non-applied
+   * result for that Scratch, or for all of them when the workspace unmounts.
+   */
+  releaseOwnTrash: (scratchId?: string) => void;
   selectScratch: (id: string) => void;
   clearSelection: () => void;
   setScratchPoolExpanded: (expanded: boolean) => void;
@@ -147,6 +176,30 @@ export const useTriageStore = create<TriageState>((set) => ({
   explorerLocalPlacementIdentities: [],
   explorerPathStatus: null,
   externalScratchRemoval: null,
+  ownTrashMarkers: {},
+  registerOwnTrash: (scratchId, expectedVersion) =>
+    set((state) =>
+      state.ownTrashMarkers[scratchId]?.expectedVersion === expectedVersion
+        ? state
+        : {
+            ownTrashMarkers: {
+              ...state.ownTrashMarkers,
+              [scratchId]: { scratchId, expectedVersion },
+            },
+          },
+    ),
+  releaseOwnTrash: (scratchId) =>
+    set((state) => {
+      if (scratchId === undefined) {
+        return Object.keys(state.ownTrashMarkers).length === 0
+          ? state
+          : { ownTrashMarkers: {} };
+      }
+      if (state.ownTrashMarkers[scratchId] === undefined) return state;
+      const rest = { ...state.ownTrashMarkers };
+      delete rest[scratchId];
+      return { ownTrashMarkers: rest };
+    }),
   selectScratch: (id) =>
     set((state) => ({
       selectedScratchId: id,
@@ -171,7 +224,7 @@ export const useTriageStore = create<TriageState>((set) => ({
   setScratchPoolQuery: (query) => set({ scratchPoolQuery: query }),
   setScratchPoolResultIds: (ids) => set({ scratchPoolResultIds: ids }),
   setScratchPoolScroll: (position) => set({ scratchPoolScroll: position }),
-  reconcileScratchPoolContext: ({ activeIds, visibleIds }) =>
+  reconcileScratchPoolContext: ({ activeIds, visibleIds, ownTrashIds }) =>
     set((state) => {
       const selectionIsActive =
         state.selectedScratchId !== null &&
@@ -183,9 +236,17 @@ export const useTriageStore = create<TriageState>((set) => ({
         selectionIsActive &&
         state.externalScratchRemoval?.scratchId === state.selectedScratchId &&
         state.externalScratchRemoval.lifecycle === "archive";
+      // An own Trash keeps the selection in place until its handoff runs; it
+      // never enters the external-removal transition.
+      const ownTrashSelected =
+        state.selectedScratchId !== null &&
+        !selectionIsActive &&
+        state.externalScratchRemoval === null &&
+        (ownTrashIds?.includes(state.selectedScratchId) ?? false);
       const shouldHoldExternalRemoval =
         state.selectedScratchId !== null &&
         !restoredExternalSelection &&
+        !ownTrashSelected &&
         (state.externalScratchRemoval !== null ||
           (!selectionIsActive && selectedWasObservedActive));
       const destinationContext = shouldHoldExternalRemoval
@@ -221,7 +282,7 @@ export const useTriageStore = create<TriageState>((set) => ({
               removalOrder,
             };
       const selectedScratchId =
-        selectionIsActive || shouldHoldExternalRemoval
+        selectionIsActive || shouldHoldExternalRemoval || ownTrashSelected
           ? state.selectedScratchId
           : (visibleIds[0] ?? null);
       const selectionChanged = selectedScratchId !== state.selectedScratchId;
@@ -231,12 +292,22 @@ export const useTriageStore = create<TriageState>((set) => ({
       const scratchPoolScroll = scrollAnchorIsVisible
         ? state.scratchPoolScroll
         : { anchorId: visibleIds[0] ?? null, offset: 0 };
+      // A held own Trash is still tracked as observed in the Pool order until
+      // its handoff runs, so a released marker (conflict) reads as external.
+      const trackedActiveIds =
+        ownTrashSelected && state.selectedScratchId !== null
+          ? withHeldId(state.scratchPoolActiveIds, activeIds, state.selectedScratchId)
+          : activeIds;
+      const trackedVisibleIds =
+        ownTrashSelected && state.selectedScratchId !== null
+          ? withHeldId(state.scratchPoolResultIds, visibleIds, state.selectedScratchId)
+          : visibleIds;
       const resultsUnchanged =
-        state.scratchPoolResultIds.length === visibleIds.length &&
-            state.scratchPoolResultIds.every((id, index) => id === visibleIds[index]);
+        state.scratchPoolResultIds.length === trackedVisibleIds.length &&
+        state.scratchPoolResultIds.every((id, index) => id === trackedVisibleIds[index]);
       const activeIdsUnchanged =
-        state.scratchPoolActiveIds.length === activeIds.length &&
-        state.scratchPoolActiveIds.every((id, index) => id === activeIds[index]);
+        state.scratchPoolActiveIds.length === trackedActiveIds.length &&
+        state.scratchPoolActiveIds.every((id, index) => id === trackedActiveIds[index]);
 
       if (
         !selectionChanged &&
@@ -253,13 +324,13 @@ export const useTriageStore = create<TriageState>((set) => ({
         externalScratchRemoval,
         scratchPoolActiveIds: activeIdsUnchanged
           ? state.scratchPoolActiveIds
-          : activeIds,
+          : trackedActiveIds,
         scratchPoolManualExpandedForId: selectionChanged
           ? null
           : state.scratchPoolManualExpandedForId,
         scratchPoolResultIds: resultsUnchanged
           ? state.scratchPoolResultIds
-          : visibleIds,
+          : trackedVisibleIds,
         scratchPoolScroll,
       };
     }),

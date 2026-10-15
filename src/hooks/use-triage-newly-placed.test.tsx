@@ -930,3 +930,118 @@ describe("useTriageNewlyPlacedUndo — Archive exclusion", () => {
     expect(operationLock.acquire).not.toHaveBeenCalled();
   });
 });
+
+describe("useTriageNewlyPlacedUndo — inactive owning Scratch", () => {
+  function provenanceFor(id: string) {
+    const placed = createNode(id, 10, 20);
+    return {
+      placed,
+      provenance: {
+        operationId: `operation-${id}`,
+        resultId: placed.id,
+        resultType: "node" as const,
+        resultVersion: placed.version,
+        resultSnapshot: placed,
+        source: {
+          scratchBitId: "scratch-1",
+          breakdownId: "source-1",
+          expectedVersion: 1,
+          snapshot: source(1),
+        },
+        candidate: null,
+        destination: { parentId: null, pathIds: [], x: 10, y: 20 },
+        completedOrder: 1,
+      },
+    };
+  }
+
+  const unlocked: TriageOperationLock = {
+    activeOperation: null,
+    isLocked: () => false,
+    acquire: vi.fn(() => true),
+    release: vi.fn(() => true),
+  };
+
+  function renderUndo(
+    id: string,
+    truthStatus: PlacementUndoResult["status"],
+    owner: "active" | "trashed" | "archived" | undefined,
+    dispatchUndo = vi.fn(),
+  ) {
+    const { placed, provenance } = provenanceFor(id);
+    const hook = renderHook(() =>
+      useTriageNewlyPlacedUndo({
+        entries: [provenance],
+        operationLock: unlocked,
+        placementOpen: false,
+        hasDirtyEdit: () => false,
+        dispatchUndo,
+        reconcileUndo: vi.fn(),
+        observeTruth: (_entries, emit) => {
+          emit(
+            new Map([[`node:${id}`, {
+              operationId: "truth-probe",
+              status: truthStatus,
+              result: placed,
+              source: source(1),
+              candidate: null,
+            }]]),
+            owner === undefined ? undefined : new Map([["scratch-1", owner]]),
+          );
+          return () => undefined;
+        },
+      }),
+    );
+    return { hook, placed, dispatchUndo };
+  }
+
+  it.each([
+    ["trashed", "trashed"],
+    ["archived", "archived"],
+  ] as const)(
+    "shows a distinct %s reason without a click, with owner-inactive taking precedence over invalid-provenance",
+    async (owner, reason) => {
+      const { hook, placed, dispatchUndo } = renderUndo(`node-${owner}`, "rejected", owner);
+
+      await waitFor(() =>
+        expect(hook.result.current.getState("node", placed.id)).toMatchObject({
+          phase: "blocked",
+          reason,
+        }),
+      );
+      await act(async () => {
+        await expect(hook.result.current.activate("node", placed.id)).resolves.toBe(false);
+      });
+      expect(dispatchUndo).not.toHaveBeenCalled();
+    },
+  );
+
+  it("an inactive owner also outranks a conflict reason such as dependencies", async () => {
+    const { hook, placed } = renderUndo("node-conflict-owner", "conflict", "trashed");
+    await waitFor(() =>
+      expect(hook.result.current.getState("node", placed.id).reason).toBe("trashed"),
+    );
+  });
+
+  it("keeps invalid-provenance for a rejected result whose owner is active or unknown", async () => {
+    const active = renderUndo("node-active-owner", "rejected", "active");
+    await waitFor(() =>
+      expect(active.hook.result.current.getState("node", active.placed.id).reason).toBe(
+        "invalid-provenance",
+      ),
+    );
+    const unknown = renderUndo("node-unknown-owner", "rejected", undefined);
+    await waitFor(() =>
+      expect(unknown.hook.result.current.getState("node", unknown.placed.id).reason).toBe(
+        "invalid-provenance",
+      ),
+    );
+  });
+
+  it("a completed Undo stays already-undone even after its owner is trashed", async () => {
+    const { hook, placed } = renderUndo("node-done", "already_applied", "trashed");
+    await waitFor(() =>
+      expect(hook.result.current.getState("node", placed.id).reason).toBe("already-undone"),
+    );
+  });
+});
