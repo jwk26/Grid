@@ -23,7 +23,9 @@ import { cn } from "@/lib/utils";
 
 type ScratchModalProps = {
   open: boolean;
-  onClose: (capturedId?: string) => void;
+  onClose: () => void;
+  /** Called once with the last captured ID when the surface goes away by any path. */
+  onCaptured?: (capturedId: string) => void;
   onSubmit: (title: string) => Promise<string | void>;
   inboxNodeId?: string;
 };
@@ -35,6 +37,7 @@ const AUTO_CLOSE_DELAY_MS = 3000;
 export function ScratchModal({
   open,
   onClose,
+  onCaptured,
   onSubmit,
   inboxNodeId,
 }: ScratchModalProps) {
@@ -43,6 +46,7 @@ export function ScratchModal({
       {open && (
         <ScratchModalContent
           inboxNodeId={inboxNodeId}
+          onCaptured={onCaptured}
           onClose={onClose}
           onSubmit={onSubmit}
         />
@@ -53,6 +57,7 @@ export function ScratchModal({
 
 function ScratchModalContent({
   onClose,
+  onCaptured,
   onSubmit,
   inboxNodeId,
 }: Omit<ScratchModalProps, "open">) {
@@ -61,6 +66,11 @@ function ScratchModalContent({
   const inputRef = useRef<HTMLInputElement>(null);
   const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const capturedIdRef = useRef<string | undefined>(undefined);
+  const capturedReportedRef = useRef(false);
+  const onCapturedRef = useRef(onCaptured);
+  useEffect(() => {
+    onCapturedRef.current = onCaptured;
+  }, [onCaptured]);
   const [title, setTitle] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [submissionState, setSubmissionState] =
@@ -83,10 +93,21 @@ function ScratchModalContent({
     }
   }, []);
 
+  const reportCaptured = useCallback(() => {
+    const capturedId = capturedIdRef.current;
+    if (capturedId === undefined || capturedReportedRef.current) return;
+    capturedReportedRef.current = true;
+    onCapturedRef.current?.(capturedId);
+  }, []);
+
+  // The surface can also go away without handleClose (another overlay replaces it).
+  useEffect(() => reportCaptured, [reportCaptured]);
+
   const handleClose = useCallback(() => {
     clearAutoCloseTimer();
-    onClose(capturedIdRef.current);
-  }, [clearAutoCloseTimer, onClose]);
+    reportCaptured();
+    onClose();
+  }, [clearAutoCloseTimer, onClose, reportCaptured]);
 
   const startAutoCloseTimer = useCallback(() => {
     clearAutoCloseTimer();

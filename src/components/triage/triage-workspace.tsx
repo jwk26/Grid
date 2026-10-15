@@ -852,10 +852,18 @@ export function TriageWorkspace({ node }: { node: Node }) {
   );
   const selectScratch = useTriageStore((state) => state.selectScratch);
   const setScratchReveal = useTriageStore((state) => state.setScratchReveal);
+  const seenActiveScratchIdsRef = useRef(new Set<string>());
   useEffect(() => {
+    for (const id of scratchPoolActiveIds) seenActiveScratchIdsRef.current.add(id);
     if (requestedScratchSelectionId === null) return;
-    // Wait for the Pool projection to contain the new Scratch.
-    if (!scratchPoolActiveIds.includes(requestedScratchSelectionId)) return;
+    if (!scratchPoolActiveIds.includes(requestedScratchSelectionId)) {
+      // Seen and now absent: no longer active, so the request is skipped.
+      // Never seen: the projection has not emitted it yet, keep waiting.
+      if (seenActiveScratchIdsRef.current.has(requestedScratchSelectionId)) {
+        clearRequestedScratchSelection();
+      }
+      return;
+    }
 
     clearRequestedScratchSelection();
     const id = requestedScratchSelectionId;

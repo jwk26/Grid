@@ -21,12 +21,14 @@ vi.mock("@/components/quick-capture/command-palette", () => ({
 vi.mock("@/components/quick-capture/scratch-modal", () => ({
   ScratchModal: ({
     inboxNodeId,
+    onCaptured,
     onClose,
     onSubmit,
     open,
   }: {
     open: boolean;
-    onClose: (capturedId?: string) => void;
+    onCaptured?: (capturedId: string) => void;
+    onClose: () => void;
     onSubmit: (title: string) => Promise<string | void>;
     inboxNodeId?: string;
   }) =>
@@ -41,7 +43,10 @@ vi.mock("@/components/quick-capture/scratch-modal", () => ({
         </button>
         <button
           aria-label="scratch-close-captured"
-          onClick={() => onClose("s-1")}
+          onClick={() => {
+            onCaptured?.("s-1");
+            onClose();
+          }}
           type="button"
         >
           Close captured

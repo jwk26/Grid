@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback } from "react";
 import { CommandPalette } from "@/components/quick-capture/command-palette";
 import { ScratchModal } from "@/components/quick-capture/scratch-modal";
 import { useInbox } from "@/hooks/use-inbox";
@@ -15,21 +14,13 @@ export function QuickCaptureOverlays() {
   );
   const { inboxNodeId, createScratchBit } = useInbox();
 
-  // The store ignores the request unless an Inbox workspace is mounted now.
-  const handleScratchClose = useCallback(
-    (capturedId?: string) => {
-      if (capturedId !== undefined) requestScratchSelection(capturedId);
-      closeAll();
-    },
-    [closeAll, requestScratchSelection],
-  );
-
   return (
     <>
       <CommandPalette />
       <ScratchModal
         open={activeOverlay === "scratch"}
-        onClose={handleScratchClose}
+        onCaptured={requestScratchSelection}
+        onClose={closeAll}
         onSubmit={createScratchBit}
         inboxNodeId={inboxNodeId}
       />

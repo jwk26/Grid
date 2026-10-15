@@ -1626,6 +1626,20 @@ describe("TriageWorkspace", () => {
       expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
     });
 
+    it("skips and clears a request whose Scratch was seen in the Pool and is now absent", () => {
+      setup(["scratch-1", "scratch-2"]);
+      act(() => {
+        useTriageStore.setState({ scratchPoolActiveIds: ["scratch-1"] });
+      });
+      request("scratch-2");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+
+      act(() => {
+        useTriageStore.setState({ scratchPoolActiveIds: ["scratch-1", "scratch-2"] });
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+    });
+
     it("applies the lock and editor checks when the Scratch appears, not at close", () => {
       setup(["scratch-1"]);
       request("scratch-2");
