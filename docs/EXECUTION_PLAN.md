@@ -209,7 +209,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 32 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 34 | Completed | [Retro Mac regional realization](execution-plan/archive/phase-34.md) | 166–172 + 171A | Accepted and archived; MI-5/6/9 and close Advisory A2 carried in `Issues_Deferred.md`, MI-9 and A2 bound to Task 178. |
-| Phase 41 | Planned / unstarted | [Scratch Trash and post-Phase-34 Inbox corrections](#phase-41--scratch-trash-and-post-phase-34-inbox-corrections) (runs before Phase 35) | 209–212 | Phase 34 close/main sync + approved Phase 41 flow review. |
+| Phase 41 | In progress | [Scratch Trash and post-Phase-34 Inbox corrections](#phase-41--scratch-trash-and-post-phase-34-inbox-corrections) (runs before Phase 35) | 209–212 | Phase 34 close/main sync + approved Phase 41 flow review. |
 | Phase 35 | Planned / unstarted | Neumorphism, region-by-region then supported-mode conformance | 173–179 | 172 accepted + Phase 41 close/main sync. |
 | Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 accepted + Phase 35 close/main sync. |
 | Phase 37 | Planned / unstarted | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
