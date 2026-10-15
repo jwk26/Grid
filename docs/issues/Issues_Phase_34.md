@@ -96,9 +96,9 @@ Read it at task start during Phases 34–35.
 ## Task 172 — Complete supported modes, accessibility and regression
 
 ### Current state
-- Status: In Progress
-- Next: paused until Task 171A is accepted; then remaining MI-3 and MI-4 Undo recovery rechecks and final regression on the repaired code
-- Open: MI-3, MI-4 (Undo recovery recheck part), MI-10
+- Status: Implemented, awaiting acceptance (MI-4 Undo recheck done; MI-3 recheck not run, see Checkpoint)
+- Next: user decides MI-3 (run now in this task, or close/defer as waived)
+- Open: MI-3
 
 ### Log
 - Decision: work plan approved by the user; proceed in Korean (user, 2026-10-15).
@@ -114,6 +114,10 @@ Read it at task start during Phases 34–35.
 - Decision: MI-4 Retry focus lands on the Explorer search input, as in the P34-16 Undo repair (user, 2026-10-15). Not yet implemented.
 - Decision: MI-8/MI-11 repair owner and scope are settled in an Opus session; no plan, canonical-document or commit change in this task until that decision is committed (user, 2026-10-15).
 - Awaiting User Decision: L7 forbids hiding component/hook repair in this task. MI-8/MI-11 need a repair owner and scope, MI-4 needs a focus destination.
+- Decision: MI-8, MI-11, MI-12 and MI-10 closed by the user after Task 171A acceptance (2026-10-15). MI-4 Retry is partly done; only the Undo recovery recheck remains.
+- Decision: option A, the user places one Bit by hand and the four Undo results are injected (user, 2026-10-15).
+- MI-4 [Resolved, awaiting user close]: Undo recovery rechecked in the browser (retro-mac light, 1920×1080): pending, unknown (`Check again`), reconciling (button disabled), not applied (`Retry`, focus stays on it), and a changed-after-placement item (`result-mutated`, `Undo is unavailable`). Layout and copy intact in each. Note: a forced conflict shows `result-mutated`, not a dispatch conflict; the dispatch-time `conflict` path stays covered only by tests. In `result-mutated` the Undo icon stays visible with `aria-disabled=true` and `disabled=false`.
+- (earlier, superseded) Awaiting User Decision: Undo recovery states need a placed Bit and an injected Undo result; CDP drag could not complete a placement (Task 171A), and the logic is already covered by `use-triage-newly-placed.test.tsx` and `hierarchy-explorer.test.tsx`. Recommendation: A) user places one Bit by hand in the MCP browser, then I inject the four results and check visuals; alternative B) accept the existing mounted jsdom tests plus the static theme-realization state fixture as the recheck.
 - Decision: MI-8, MI-11 and the MI-4 Retry focus move to repair Task 171A; the MI-4 Undo recovery recheck stays here; Task 172 acceptance waits for 171A (user, 2026-10-15). Marker loss in MI-11 is to be proven by a direct test in 171A, since CDP drag could not complete a placement.
 
 ### Checkpoint
@@ -122,3 +126,5 @@ Read it at task start during Phases 34–35.
 - Please check: the dark Context chip, and the 1024px Breakdown truncation (`ARCHI…`, title `Plan the field stud`), which I treated as the existing compact layout, not a defect.
 - Unresolved: MI-3, MI-4 and MI-8 rechecks (interactive keyboard/reduced-motion/Undo recovery states) and the other eight recipe surfaces in states beyond the default view were not run. The fixture was not re-seeded: the test browser holds one non-fixture node (`remote row`) that the guard refuses to clear, so data is the leftover fixture state.
 - Review: not run (CSS token change only).
+
+- Checkpoint (second round): Changed: ledger only. Verified: `git diff --check`, `pnpm test` (1508), `pnpm lint` (0 errors), `pnpm typecheck`, `pnpm build`; the browser states in MI-4 above. Please check: the five Undo states. Unresolved: MI-3 (Task 168 reduced-motion and Staging functional regressions, Task 170 keyboard/unavailable/scroll checks) not rerun; dark mode and 1024px not rechecked for Undo states. Review: skipped, no code change.
