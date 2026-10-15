@@ -446,3 +446,47 @@ describe("Phase 41 Scratch Trash realization (Task 210)", () => {
     }
   });
 });
+
+describe("Phase 41 Retro Mac departure sheet realization (Task 211)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const start = css.indexOf("/* Phase 41 (Task 211)");
+  const block = css.slice(start, css.indexOf(':root[data-color-theme="graphite"] .breakdown-departure-sheet', start));
+  const rule = (selector: string) =>
+    block.match(new RegExp(`${selector.replace(/[.[\]()*>]/g, "\\$&")} \\{([^}]*)\\}`))?.[1] ?? "";
+
+  it("takes the Archive-alert family in flow, with no scrim, portal, title bar or motion", () => {
+    const sheet = rule(':root[data-color-theme="retro-mac"] .breakdown-departure-sheet');
+    expect(sheet).toContain("border: 4px double hsl(var(--foreground))");
+    expect(sheet).toContain("border-radius: 0");
+    expect(sheet).toContain("box-shadow: 6px 6px 0 hsl(var(--foreground))");
+    expect(sheet).toContain("grid-template-columns: 40px");
+    expect(sheet).toContain("font-family: var(--triage-context-font)");
+    expect(block).not.toMatch(/position: (fixed|absolute)|backdrop-filter|animation: (?!none)/);
+  });
+
+  it("draws a silent 40px `!` mark with a pseudo-element, spanning the four children", () => {
+    const mark = rule(':root[data-color-theme="retro-mac"] .breakdown-departure-sheet::before');
+    expect(mark).toContain('content: "!" / ""');
+    expect(mark).toContain("inline-size: 40px");
+    expect(mark).toContain("border: 2px solid hsl(var(--foreground))");
+    expect(mark).toContain("grid-row: 1 / span 4");
+    expect(rule(':root[data-color-theme="retro-mac"] .breakdown-departure-sheet > *')).toContain("grid-column: 2");
+  });
+
+  it("gives Continue the 2px default border, keeps Discard plain and inverts on hover/focus", () => {
+    expect(block).toMatch(/__actions \[data-triage-role="breakdown-departure-continue"\] \{\s*border-width: 2px/);
+    const buttons = rule(':root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions button');
+    expect(buttons).toContain("background: hsl(var(--background))");
+    expect(buttons).toContain("box-shadow: none");
+    expect(buttons).toContain("border-radius: 0");
+    expect(block).toMatch(/__actions button:hover,[\s\S]*?focus-visible \{[^}]*background: hsl\(var\(--foreground\)\)/);
+    // mi-2: hover/focus change colors and outline only, so the button never changes size.
+    const state = block.match(/__actions button:hover,[\s\S]*?focus-visible \{([^}]*)\}/)?.[1] ?? "";
+    expect(state).not.toMatch(/border|padding|font|line-height|height|width|letter-spacing/);
+    const focus = block.match(/__actions button:focus-visible \{([^}]*)\}/)?.[1] ?? "";
+    expect(focus).not.toMatch(/border|padding|font|line-height|height|width|letter-spacing/);
+    expect(block).not.toContain("__actions button:active");
+    expect(rule(':root[data-color-theme="retro-mac"] .breakdown-departure-sheet')).not.toContain("margin-inline");
+    expect(block).toMatch(/button:focus-visible \{[^}]*outline: 2px solid/);
+  });
+});

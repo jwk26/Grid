@@ -5128,14 +5128,87 @@
   content: "]";
 }
 
+/* Phase 41 (Task 211): the sheet takes the Retro Mac Archive-alert family and stays in flow (no scrim, portal or title bar). */
 :root[data-color-theme="retro-mac"] .breakdown-departure-sheet {
   background: hsl(var(--background));
+  border: 4px double hsl(var(--foreground));
   border-radius: 0;
-  box-shadow: 2px 2px 0 hsl(var(--foreground));
+  box-shadow: 6px 6px 0 hsl(var(--foreground));
+  column-gap: 16px;
+  display: grid;
+  font-family: var(--triage-context-font);
+  grid-template-columns: 40px minmax(0, 1fr);
+  margin-block-end: 6px;
+  padding: 24px;
 }
-
-:root[data-color-theme="retro-mac"]
-  [data-triage-role="breakdown-departure-continue"] {
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet::before {
+  align-self: start;
+  background: hsl(var(--background));
+  block-size: 40px;
+  border: 2px solid hsl(var(--foreground));
+  color: hsl(var(--foreground));
+  content: "!" / "";
+  display: grid;
+  font-size: 20px;
+  font-weight: 700;
+  grid-column: 1;
+  grid-row: 1 / span 4;
+  inline-size: 40px;
+  place-items: center;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet > * {
+  grid-column: 2;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 16px;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__heading {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 16px;
+  margin-block-start: 0;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__description {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  margin-block-start: 0;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions {
+  gap: 12px;
+  justify-content: flex-end;
+  margin-block-start: 8px;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions button {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: none;
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 12px;
+  font-weight: 700;
+  height: auto;
+  letter-spacing: 0.05em;
+  line-height: 16px;
+  padding: 6px 16px;
+  text-transform: uppercase;
+}
+/* Continue writing is the default action: the default-button border. */
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions [data-triage-role="breakdown-departure-continue"] {
+  border-width: 2px;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions button:hover,
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions button:focus-visible {
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions button:focus-visible {
   outline: 2px solid hsl(var(--foreground));
   outline-offset: 2px;
 }
