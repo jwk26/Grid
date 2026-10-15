@@ -105,3 +105,20 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 - Please check: nothing visual remains; acceptance of the task.
 - Unresolved: none.
 - Review: expert review skipped — styling-only change, no logic, focus or data path touched (the visual acceptance is the check).
+
+## Task 212 — Select a Scratch captured while the Inbox is mounted
+
+### Current state
+- Status: Awaiting User Decision
+- Next: go-ahead on the work plan
+- Open: none
+
+### Log
+- Work plan:
+  - Order (tests first for each step): (1) `use-inbox.ts` — `createScratchBit` resolves with the created ID (`Promise<string>`; `ScratchModal.onSubmit` type adapts). (2) `triage-store.ts` — a one-shot `requestedScratchSelectionId` slot with `requestScratchSelection(id)` / `clearRequestedScratchSelection()`; not persisted; the key-set test is updated. (3) `scratch-modal.tsx` — remember the last successful capture ID in a ref (reset on "Capture another" only by the next success overwriting it) and pass it to `onClose(capturedId?)` from auto-close, Escape, backdrop, Open Inbox and the Inbox-less path; `quick-capture-overlays.tsx` — on close with an ID, call `requestScratchSelection` only when a `TriageWorkspace` is mounted (a store flag set by the workspace on mount and cleared on unmount, which also clears the slot), then `closeAll`. A capture from another route writes nothing, so a later Inbox entry keeps the ordinary re-entry selection. (4) `triage-workspace.tsx` — an effect consumes the slot: always clears it; skips when `operationLock.isLocked()`, when a Scratch-title or Breakdown inline editor is open (existing editor-state/blocker signals), or when the ID is not in the active Pool; otherwise `departure.requestDeparture({ kind: "scratch", perform: selectScratch(id), focus: Selected Scratch Context })`, so an Add draft opens the `VQ-03` sheet (Continue keeps the current Scratch, Discard selects and focuses the Context). Without a draft the switch performs and no focus moves (the `focus` callback is passed only when a draft decision was needed — see Question below). (5) `scratch-pool.tsx` — reveal the row of a newly selected Scratch (`scrollIntoView({block:"nearest"})`, no focus); a collapsed Pool stays collapsed; the search query is untouched, so a non-matching new Scratch shows the existing hidden-selection status. A new Scratch is never a remote arrival: it is already in `localCreatedScratchIds`.
+  - Files: `use-inbox.ts`, `scratch-modal.tsx`, `quick-capture-overlays.tsx`, `triage-store.ts`, `triage-workspace.tsx`, `scratch-pool.tsx` and their tests. No schema, CSS or copy change.
+  - Verify: focused tests per file, then the full gate; browser check (Playwright, `scripts/dev-fixtures/inbox-triage.js`): capture from the Inbox with no draft, with an Add draft (Continue / Discard), with a Pool query that hides it, with a collapsed Pool, while an inline editor is open, and from another route (no navigation, later Inbox entry unchanged). Expert review at the finish (state/focus logic).
+  - Question: `requestDeparture` runs `focus` after `perform` also when no draft exists (`destination.focus?.()`), but the plan says focus must not move in the no-draft case. I plan to pass `focus` only through the Discard path: the workspace first checks `departure.hasAddDraft()` and builds the destination with or without `focus` accordingly. Say if you prefer a different rule.
+
+### Checkpoint
+- (none yet)
