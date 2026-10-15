@@ -110,7 +110,7 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 
 ### Current state
 - Status: Implemented, awaiting acceptance
-- Next: advisory re-check of MI-4 and MI-5, then user acceptance
+- Next: user acceptance
 - Open: MI-4, MI-5 (fixed, pending acceptance)
 
 ### Log
@@ -130,10 +130,12 @@ Carried over: none. For reference only: Close Advisory A2 / MI-8 (Archive handof
 - MI-4 [Fixed]: Cmd+K opened right after a capture replaced the modal without reporting the captured ID, so nothing was selected — cause: the ID was reported only from `onClose` — fix: a separate once-only `onCaptured(id)` called from `handleClose` or the modal's unmount cleanup, whichever comes first; `onClose` takes no argument and unmount never closes the overlay; tests: auto-close, Escape, Open Inbox, replaced by another overlay, no capture (expert, Low).
 - MI-5 [Fixed]: a request for a Scratch seen in the Pool and then removed stayed pending and could fire after a restore — cause: the consumer waited for any ID missing from the projection — fix: the workspace remembers active IDs seen since mount; a seen-and-absent request is cleared and skipped, a never-seen one still waits; test with the restore (expert, Low).
 - Fixed: regression test that re-rendering `QuickCaptureOverlays` during the success state does not restart the auto-close timer (fails when `onClose` loses its stable identity).
+- Review (advisory, 2026-10-16, MI-4/MI-5 re-check): accept after the changes below. Checked: `b49dc9b` matches the Decisions (once-only `onCaptured` from `handleClose` or unmount, `onClose` back to `closeAll` only, so the replacing palette stays open; seen-and-absent requests cleared, never-seen ones still wait); timer regression test present; focused tests (163) pass; ledger entries for MI-4/MI-5 and the reachability check are in place. No next-task note: 212 is the last Phase 41 task, has no visual change, and the collapsed-switcher selector (`pool-compact-switcher` + `data-scratch-id`) is locked by tests. Apply: (1) rerun the full gate after `b49dc9b` and update Checkpoint Verified with the actual test count (it still reads 1667 from before the fix); (2) update Checkpoint Changed for `onCaptured` (reported once on close or unmount) and the workspace's seen-ID memory. Not applied: none.
+- Decision: running-app capture flows checked by the user — no-draft selection, `VQ-03` Continue and Discard (Context focus), collapsed Pool: OK (user, 2026-10-16).
 
 ### Checkpoint
-- Changed: `use-inbox.ts` (returns the created ID); `triage-store.ts` (non-persisted mounted flag, one-shot request slot, reveal ID); `scratch-modal.tsx` / `quick-capture-overlays.tsx` (last captured ID reported on close, request written only while a workspace is mounted); `triage-workspace.tsx` (consumer through the ordinary Scratch switch, focus only after a Discard decision); `scratch-pool.tsx` (one-shot reveal); tests for each.
-- Verified: `git diff --check`, `pnpm test` (1667), `lint` (0 errors, 11 warnings = baseline), `typecheck`, `build`; browser checks in the Log.
+- Changed: `use-inbox.ts` (returns the created ID); `triage-store.ts` (non-persisted mounted flag, one-shot request slot, reveal ID); `scratch-modal.tsx` / `quick-capture-overlays.tsx` (last captured ID reported once through `onCaptured` on close or unmount; `onClose` stays `closeAll`; the request is written only while a workspace is mounted); `triage-workspace.tsx` (consumer through the ordinary Scratch switch, focus only after a Discard decision, skip during external removal, memory of Pool IDs seen since mount); `scratch-pool.tsx` (one-shot reveal); tests for each.
+- Verified: `git diff --check`, `pnpm test` (1670), `lint` (0 errors, 11 warnings = baseline), `typecheck`, `build`; browser checks in the Log.
 - Please check: the capture flows above, especially Discard focus and a collapsed Pool.
 - Unresolved: none; MI-4 and MI-5 fixed per the Decisions.
 - Review (expert): (1) a capture could change the selection during an external-removal transition → fixed (skip, with test); (2) `onClose` lost identity and restarted the auto-close timer → fixed (`useCallback`); (4) collapsed Pool with a saved query skipped the reveal → fixed (collapsed checks the unfiltered order, with test); (3) Cmd+K palette opened right after a capture closes the modal without reporting the ID, so nothing is selected → fixed as MI-4; (5) a request whose Scratch was seen in the Pool and then removed waits until it returns and may fire late → fixed as MI-5. The timer-identity regression test for (2) was added.
