@@ -74,6 +74,39 @@ describe("useExternalScratchRemovalData", () => {
 
   afterEach(cleanup);
 
+  it("sets no external lifecycle for an own-Trash observation but does for any other deletion", async () => {
+    const getBit = vi
+      .fn()
+      .mockResolvedValue(bit("scratch-1", { deletedAt: 10, version: 5 }));
+    getDataStoreMock.mockResolvedValue({ getBit } as unknown as DataStore);
+
+    const { result } = renderHook(() =>
+      useExternalScratchRemovalData({
+        ownTrash: [{ scratchId: "scratch-1", expectedVersion: 4 }],
+        activeRemovalScratchId: null,
+        selectedScratchId: "scratch-1",
+        unresolvedRemovalContext: null,
+        unresolvedScratchId: null,
+      }),
+    );
+    await waitFor(() => expect(getBit).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.observation).toBeNull();
+
+    getBit.mockResolvedValue(bit("scratch-1", { deletedAt: 10, version: 9 }));
+    await act(async () => {
+      subscriptions[0]!.observer!.next(
+        bit("scratch-1", { deletedAt: 10, version: 9 }),
+      );
+    });
+    expect(result.current.observation).toEqual({
+      scratchId: "scratch-1",
+      lifecycle: "delete",
+    });
+  });
+
   it("reactively classifies the selected Scratch archive lifecycle", async () => {
     const dataStore = {
       getBit: vi.fn().mockResolvedValue(bit("scratch-1", { archivedAt: 10 })),

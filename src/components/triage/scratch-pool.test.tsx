@@ -12,6 +12,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bit } from "@/types";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { useTriageStore } from "@/stores/triage-store";
+import {
+  TrashScratchEntriesContext,
+  type TrashScratchDisabledReason,
+  type TrashScratchEntries,
+} from "@/hooks/use-trash-scratch";
 import { ScratchPool } from "./scratch-pool";
 
 const globalsCss = readFileSync(
@@ -178,6 +183,81 @@ describe("ScratchPool", () => {
     expect(rows[0]).toHaveTextContent("45m ago");
     expect(rows[1]).toHaveTextContent("Older scratch");
     expect(rows[1]).toHaveTextContent("2h ago");
+  });
+
+  describe("capture reveal", () => {
+    const bits = [
+      createBit({ id: "a", title: "Alpha", createdAt: 2 }),
+      createBit({ id: "b", title: "Beta", createdAt: 1 }),
+    ];
+    let scrollSpy: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      scrollSpy = vi.fn();
+      Element.prototype.scrollIntoView = scrollSpy as unknown as typeof Element.prototype.scrollIntoView;
+      useInboxMock.mockReturnValue({
+        activeScratchBits: bits,
+        poolLifecycleProjection: { revision: 0, changes: [] },
+      });
+    });
+
+    it("scrolls the requested row into view once and clears the reveal, without moving focus", () => {
+      useTriageStore.setState({ selectedScratchId: "b", scratchRevealId: "b" });
+      const before = document.activeElement;
+      render(<ScratchPool />);
+      expect(scrollSpy).toHaveBeenCalledTimes(1);
+      expect(scrollSpy).toHaveBeenCalledWith({ block: "nearest" });
+      expect(useTriageStore.getState().scratchRevealId).toBeNull();
+      expect(document.activeElement).toBe(before);
+    });
+
+    it("never scrolls for a row click or ordinary selection", () => {
+      render(<ScratchPool />);
+      fireEvent.click(screen.getByRole("button", { name: /Beta/ }));
+      expect(scrollSpy).not.toHaveBeenCalled();
+    });
+
+    it("does not reveal a Scratch the query hides, and clears the reveal", () => {
+      useTriageStore.setState({
+        selectedScratchId: "b",
+        scratchRevealId: "b",
+        scratchPoolQuery: "alph",
+      });
+      render(<ScratchPool />);
+      expect(scrollSpy).not.toHaveBeenCalled();
+      expect(useTriageStore.getState().scratchRevealId).toBeNull();
+    });
+
+    it("keeps a collapsed Pool collapsed and reveals its switcher", () => {
+      useTriageStore.setState({
+        selectedScratchId: "b",
+        scratchRevealId: "b",
+        scratchPoolExpanded: false,
+      });
+      render(<ScratchPool />);
+      expect(useTriageStore.getState().scratchPoolExpanded).toBe(false);
+      expect(scrollSpy).toHaveBeenCalledTimes(1);
+      expect(useTriageStore.getState().scratchRevealId).toBeNull();
+    });
+
+    it("reveals the switcher of a collapsed Pool even when the query would hide it", () => {
+      useTriageStore.setState({
+        selectedScratchId: "b",
+        scratchRevealId: "b",
+        scratchPoolExpanded: false,
+        scratchPoolQuery: "alph",
+      });
+      render(<ScratchPool />);
+      expect(scrollSpy).toHaveBeenCalledTimes(1);
+      expect(useTriageStore.getState().scratchRevealId).toBeNull();
+    });
+
+    it("waits for a Scratch the Pool has not received yet", () => {
+      useTriageStore.setState({ selectedScratchId: "c", scratchRevealId: "c" });
+      render(<ScratchPool />);
+      expect(scrollSpy).not.toHaveBeenCalled();
+      expect(useTriageStore.getState().scratchRevealId).toBe("c");
+    });
   });
 
   it("renders the expanded empty state", () => {
@@ -872,5 +952,91 @@ describe("common Scratch createdAt metadata", () => {
     rerender(<ScratchPool />);
     expect(screen.getByRole("button", { name: /Date owner/ })).toBe(row);
     expect(row.querySelector(".scratch-pool__row-time")).toHaveTextContent("4/05/26");
+  });
+});
+
+describe("ScratchPool Trash control (Task 210)", () => {
+  function renderWithTrash(
+    reasons: Record<string, TrashScratchDisabledReason | null> = {},
+  ) {
+    const request = vi.fn();
+    const entries: TrashScratchEntries = {
+      disabledReason: (id) => reasons[id] ?? null,
+      request,
+    };
+    useInboxMock.mockReturnValue({
+      activeScratchBits: [
+        createBit({ id: "a", title: "Alpha" }),
+        createBit({ id: "b", title: "Beta" }),
+      ],
+      poolLifecycleProjection: { revision: 0, changes: [] },
+    });
+    render(
+      <TrashScratchEntriesContext.Provider value={entries}>
+        <ScratchPool />
+      </TrashScratchEntriesContext.Provider>,
+    );
+    return { request };
+  }
+
+  it("renders a sibling Trash button per row, never nested in the selection button", () => {
+    renderWithTrash();
+    const trash = screen.getByRole("button", { name: 'Move "Alpha" to Trash' });
+    const select = screen.getByRole("button", { name: "Alpha" });
+    expect(trash).toHaveAttribute("data-triage-role", "pool-row-trash-action");
+    expect(trash).toHaveAttribute("data-scratch-trash-entry", "pool");
+    expect(trash).toHaveAttribute("title", "Move to Trash");
+    expect(select.contains(trash)).toBe(false);
+    expect(select.parentElement).toBe(trash.parentElement);
+    expect(select).toHaveClass("h-[52px]");
+  });
+
+  it("requests Trash for the right Scratch with the control as opener, without selecting the row", () => {
+    const { request } = renderWithTrash();
+    const trash = screen.getByRole("button", { name: 'Move "Beta" to Trash' });
+    fireEvent.click(trash);
+    expect(request).toHaveBeenCalledWith("b", trash);
+    expect(useTriageStore.getState().selectedScratchId).toBeNull();
+    expect(departureState.requestDeparture).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["placement-open", "Finish or cancel placement to move a Scratch to Trash."],
+    [
+      "unresolved-source",
+      "A staged item in this Scratch lost its source. Resolve it in Staging first.",
+    ],
+    ["operation-pending", "Wait for the current action to finish."],
+  ] as const)(
+    "disables the control for %s and exposes the reason as description and tooltip",
+    (reason, copy) => {
+      const { request } = renderWithTrash({ a: reason });
+      const trash = screen.getByRole("button", { name: 'Move "Alpha" to Trash' });
+      expect(trash).toBeDisabled();
+      expect(trash).toHaveAttribute("title", copy);
+      expect(trash).toHaveAccessibleDescription(copy);
+      fireEvent.click(trash);
+      expect(request).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole("button", { name: 'Move "Beta" to Trash' }),
+      ).toBeEnabled();
+    },
+  );
+
+  it("has no Trash control on collapsed switchers", () => {
+    useTriageStore.setState({ scratchPoolExpanded: false });
+    renderWithTrash();
+    expect(
+      screen.queryByRole("button", { name: /to Trash/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders no Trash control without a coordinator", () => {
+    useInboxMock.mockReturnValue({
+      activeScratchBits: [createBit({ id: "a", title: "Alpha" })],
+      poolLifecycleProjection: { revision: 0, changes: [] },
+    });
+    render(<ScratchPool />);
+    expect(screen.queryByRole("button", { name: /to Trash/ })).not.toBeInTheDocument();
   });
 });

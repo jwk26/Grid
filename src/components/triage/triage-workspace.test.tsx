@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { StrictMode } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTriageStore } from "@/stores/triage-store";
@@ -15,7 +16,13 @@ import {
   type TriageDepartureController,
 } from "@/hooks/use-triage-departure";
 import type { Node } from "@/types";
-import { TriageWorkspace } from "./triage-workspace";
+import {
+  TriageWorkspace,
+  focusTrashOpener,
+  pickTrashNeighbor,
+  trashEntryFocus,
+  trashNeighborFocus,
+} from "./triage-workspace";
 
 const globalsCss = readFileSync(
   join(process.cwd(), "src/app/globals.css"),
@@ -46,6 +53,14 @@ const stagingZoneRenderMock = vi.hoisted(() => vi.fn());
 const useGridDataMock = vi.hoisted(() => vi.fn());
 const useExplorerRemoteStatusMock = vi.hoisted(() => vi.fn());
 const useInboxMock = vi.hoisted(() => vi.fn());
+const useTrashScratchMock = vi.hoisted(() => vi.fn());
+const useTrashScratchSnapshotMock = vi.hoisted(() => vi.fn());
+const trashOwnerState = vi.hoisted(() => ({
+  owner: null as null | {
+    hasDiscardableWork: () => boolean;
+    discard: () => void;
+  },
+}));
 const getBitMock = vi.hoisted(() => vi.fn());
 const getBitsMock = vi.hoisted(() => vi.fn());
 const getDataStoreMock = vi.hoisted(() => vi.fn());
@@ -126,6 +141,15 @@ vi.mock("@/hooks/use-explorer-remote-status", () => ({
   useExplorerRemoteStatus: useExplorerRemoteStatusMock,
 }));
 
+vi.mock("@/hooks/use-trash-scratch", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/use-trash-scratch")>();
+  return {
+    ...actual,
+    useTrashScratch: useTrashScratchMock,
+    useTrashScratchSnapshot: useTrashScratchSnapshotMock,
+  };
+});
+
 vi.mock("@/hooks/use-inbox", () => ({
   useInbox: useInboxMock,
 }));
@@ -136,9 +160,22 @@ vi.mock("@/lib/db/datastore", () => ({
 
 vi.mock("@/components/triage/scratch-pool", async () => {
   const { useTriageStore } = await import("@/stores/triage-store");
+  const { useTrashScratchEntries } = await import("@/hooks/use-trash-scratch");
   return {
-    ScratchPool: () => (
+    ScratchPool: () => {
+      const entries = useTrashScratchEntries();
+      return (
       <div data-testid="scratch-pool">
+        <button
+          data-scratch-trash-entry="pool"
+          type="button"
+          onClick={(event) => entries?.request("scratch-2", event.currentTarget)}
+        >
+          Trash second
+        </button>
+        <span data-testid="trash-reason">
+          {entries?.disabledReason("scratch-2") ?? "none"}
+        </span>
         <h2 id="triage-scratch-pool-heading" data-triage-role="section-header" tabIndex={-1}>Scratch Pool</h2>
         {[
           ["scratch-2", "Second Scratch"],
@@ -158,7 +195,8 @@ vi.mock("@/components/triage/scratch-pool", async () => {
           </button>
         ))}
       </div>
-    ),
+      );
+    },
   };
 });
 
@@ -170,6 +208,8 @@ vi.mock("@/components/triage/breakdown-panel", async () => {
     "@/hooks/use-triage-departure"
   );
   const { useTriageStore } = await import("@/stores/triage-store");
+  const { TrashDraftRegistryContext } = await import("@/hooks/use-trash-scratch");
+  const { useContext, useEffect } = await import("react");
   return {
     ArchiveOperationCard: ({
       operation,
@@ -207,6 +247,15 @@ vi.mock("@/components/triage/breakdown-panel", async () => {
     }) => {
       titleBlockerHandleState.handle = useScratchTitleBlockerContext();
       departureControllerState.controller = useTriageDepartureContext();
+      const registerTrashOwner = useContext(TrashDraftRegistryContext);
+      useEffect(
+        () =>
+          registerTrashOwner?.({
+            hasDiscardableWork: () => trashOwnerState.owner?.hasDiscardableWork() ?? false,
+            discard: () => trashOwnerState.owner?.discard(),
+          }),
+        [registerTrashOwner],
+      );
       const selectedScratchId = useTriageStore((state) => state.selectedScratchId);
       return (
         <div
@@ -556,6 +605,11 @@ beforeEach(() => {
   archiveRetryMock.mockResolvedValue(false);
   archiveDismissMock.mockReset();
   archiveDismissMock.mockReturnValue(true);
+  trashOwnerState.owner = null;
+  useTrashScratchSnapshotMock.mockReset();
+  useTrashScratchSnapshotMock.mockReturnValue(null);
+  useTrashScratchMock.mockReset();
+  useTrashScratchMock.mockReturnValue(trashCoordinator());
   useArchiveScratchMock.mockReset();
   useArchiveScratchMock.mockReturnValue({
     state: { phase: "idle" },
@@ -571,6 +625,26 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
 });
+
+function trashCoordinator(overrides: Record<string, unknown> = {}) {
+  return {
+    state: { phase: "closed" },
+    view: {
+      scratch: null,
+      candidateCount: 0,
+      hasDiscardableWork: false,
+      confirmDisabledReason: null,
+    },
+    unresolvedScratchIds: new Set<string>(),
+    entryDisabledReason: vi.fn(() => null),
+    open: vi.fn(() => ({ opened: true })),
+    cancel: vi.fn(() => true),
+    confirm: vi.fn(async () => true),
+    retry: vi.fn(async () => true),
+    reconcile: vi.fn(async () => true),
+    ...overrides,
+  };
+}
 
 describe("TriageWorkspace", () => {
   it("wires the mounted blockers, shared lock, guarded Archive action, and projection gate into one coordinator", () => {
@@ -1393,6 +1467,192 @@ describe("TriageWorkspace", () => {
     expect(screen.getByRole("region", { name: "Breakdown" })).not.toHaveAttribute(
       "inert",
     );
+  });
+
+  describe("requested Scratch selection after capture", () => {
+    function setup(activeIds = ["scratch-1", "scratch-2"]) {
+      useTriageStore.setState({
+        selectedScratchId: "scratch-1",
+        scratchPoolActiveIds: activeIds,
+      });
+      return render(<TriageWorkspace node={createNode()} />);
+    }
+    function request(id: string) {
+      act(() => {
+        useTriageStore.getState().requestScratchSelection(id);
+      });
+    }
+
+    afterEach(() => {
+      document.querySelectorAll("[data-test-editor]").forEach((el) => el.remove());
+      useTriageStore.setState({
+        triageWorkspaceMounted: false,
+        requestedScratchSelectionId: null,
+        scratchRevealId: null,
+        scratchPoolActiveIds: [],
+      });
+    });
+
+    it("marks the workspace mounted and clears the flag on unmount", () => {
+      const view = setup();
+      expect(useTriageStore.getState().triageWorkspaceMounted).toBe(true);
+      request("scratch-2");
+      view.unmount();
+      expect(useTriageStore.getState()).toMatchObject({
+        triageWorkspaceMounted: false,
+        requestedScratchSelectionId: null,
+      });
+    });
+
+    it("survives a StrictMode double mount without a stale or lost request", () => {
+      useTriageStore.setState({
+        selectedScratchId: "scratch-1",
+        scratchPoolActiveIds: ["scratch-1", "scratch-2"],
+      });
+      render(
+        <StrictMode>
+          <TriageWorkspace node={createNode()} />
+        </StrictMode>,
+      );
+      expect(useTriageStore.getState().triageWorkspaceMounted).toBe(true);
+      request("scratch-2");
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-2");
+    });
+
+    it("selects the captured Scratch, reveals it and moves no focus without a draft", () => {
+      setup();
+      const before = document.activeElement;
+      request("scratch-2");
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-2");
+      expect(useTriageStore.getState().scratchRevealId).toBe("scratch-2");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+      expect(document.activeElement).toBe(before);
+    });
+
+    it("opens the departure sheet with an Add draft; Continue keeps, Discard selects and focuses the Context", () => {
+      setup();
+      act(() => departureControllerState.controller?.setAddDraft("draft"));
+      request("scratch-2");
+      expect(departureControllerState.controller?.pendingDestination).toEqual({
+        id: "scratch-2",
+        kind: "scratch",
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+      expect(useTriageStore.getState().scratchRevealId).toBeNull();
+
+      act(() => {
+        departureControllerState.controller?.continueWriting();
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+
+      request("scratch-2");
+      act(() => {
+        departureControllerState.controller?.discardAndMove();
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-2");
+      expect(useTriageStore.getState().scratchRevealId).toBe("scratch-2");
+      expect(screen.getByTestId("selected-scratch-context")).toHaveFocus();
+    });
+
+    it("does nothing while an operation locks switching", () => {
+      setup();
+      const lock = useArchiveScratchMock.mock.calls.at(-1)?.[0].operationLock;
+      act(() => {
+        lock.acquire("archive", "op-1");
+      });
+      request("scratch-2");
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+    });
+
+    it.each(["pristine", "dirty"])(
+      "does nothing while an inline editor is open (%s)",
+      (state) => {
+        setup();
+        const editor = document.createElement("div");
+        editor.className = "triage-inline-editor";
+        editor.dataset.triageEditorState = state;
+        editor.dataset.testEditor = "";
+        document.body.append(editor);
+        request("scratch-2");
+        expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+        expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+      },
+    );
+
+    it("skips the selection when a departure decision is already pending and keeps it", () => {
+      setup(["scratch-1", "scratch-2", "scratch-3"]);
+      act(() => departureControllerState.controller?.setAddDraft("draft"));
+      act(() => {
+        requestActiveTriageDeparture({ id: "scratch-3", kind: "scratch", perform: vi.fn() });
+      });
+      request("scratch-2");
+      expect(departureControllerState.controller?.pendingDestination).toEqual({
+        id: "scratch-3",
+        kind: "scratch",
+      });
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+    });
+
+    it("does nothing while an external-removal transition owns the selection", () => {
+      setup();
+      act(() => {
+        useTriageStore.setState({
+          externalScratchRemoval: {
+            scratchId: "scratch-1",
+            lifecycle: "archive",
+            destinationId: "scratch-2",
+            destinationKind: "scratch",
+            removalOrder: ["scratch-1", "scratch-2"],
+          },
+        });
+      });
+      request("scratch-2");
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+      act(() => useTriageStore.setState({ externalScratchRemoval: null }));
+    });
+
+    it("waits for the Pool projection to contain the captured Scratch", () => {
+      setup(["scratch-1"]);
+      request("scratch-2");
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBe("scratch-2");
+
+      act(() => {
+        useTriageStore.setState({ scratchPoolActiveIds: ["scratch-1", "scratch-2"] });
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-2");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+    });
+
+    it("skips and clears a request whose Scratch was seen in the Pool and is now absent", () => {
+      setup(["scratch-1", "scratch-2"]);
+      act(() => {
+        useTriageStore.setState({ scratchPoolActiveIds: ["scratch-1"] });
+      });
+      request("scratch-2");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+
+      act(() => {
+        useTriageStore.setState({ scratchPoolActiveIds: ["scratch-1", "scratch-2"] });
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+    });
+
+    it("applies the lock and editor checks when the Scratch appears, not at close", () => {
+      setup(["scratch-1"]);
+      request("scratch-2");
+      const lock = useArchiveScratchMock.mock.calls.at(-1)?.[0].operationLock;
+      act(() => {
+        lock.acquire("archive", "op-2");
+      });
+      act(() => {
+        useTriageStore.setState({ scratchPoolActiveIds: ["scratch-1", "scratch-2"] });
+      });
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+      expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+    });
   });
 
   it("registers the mounted controller for Inbox route owners outside the Workspace", () => {
@@ -3151,5 +3411,190 @@ describe("TriageWorkspace Archive handoff with the real coordinator", () => {
       "data-phase",
       "terminal",
     );
+  });
+});
+
+describe("TriageWorkspace Scratch Trash (Task 210)", () => {
+  const target = { scratchId: "scratch-2", title: "Second Scratch" };
+
+  it("mounts the coordinator at workspace lifetime with the shared lock and draft probe", () => {
+    trashOwnerState.owner = { hasDiscardableWork: () => true, discard: vi.fn() };
+    render(<TriageWorkspace node={createNode()} />);
+    const options = useTrashScratchMock.mock.calls.at(-1)?.[0];
+    expect(options).toMatchObject({
+      operationLock: expect.objectContaining({ acquire: expect.any(Function) }),
+      selectedScratchId: "scratch-1",
+      isPlacementOpen: expect.any(Function),
+      onApplied: expect.any(Function),
+    });
+    expect(options.isPlacementOpen()).toBe(false);
+    // Only the selected Scratch can have drafts, and the Breakdown owns them.
+    expect(options.hasDiscardableWork("scratch-1")).toBe(true);
+    expect(options.hasDiscardableWork("scratch-2")).toBe(false);
+  });
+
+  it("opens the coordinator from a Pool entry and exposes its disabled reason", () => {
+    const coordinator = trashCoordinator({
+      entryDisabledReason: vi.fn(() => "placement-open"),
+    });
+    useTrashScratchMock.mockReturnValue(coordinator);
+    render(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByTestId("trash-reason")).toHaveTextContent("placement-open");
+    fireEvent.click(screen.getByRole("button", { name: "Trash second" }));
+    expect(coordinator.open).toHaveBeenCalledWith("scratch-2");
+  });
+
+  it("renders the dialog from the coordinator state and routes its actions", () => {
+    const coordinator = trashCoordinator({
+      state: { phase: "confirming", target },
+    });
+    useTrashScratchMock.mockReturnValue(coordinator);
+    render(<TriageWorkspace node={createNode()} />);
+    const dialog = screen.getByRole("alertdialog", { name: "Move Scratch to Trash?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move to Trash" }));
+    expect(coordinator.confirm).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(coordinator.cancel).toHaveBeenCalled();
+  });
+
+  it("on success for an unselected Scratch announces, keeps selection and discards nothing", async () => {
+    const discard = vi.fn();
+    trashOwnerState.owner = { hasDiscardableWork: () => true, discard };
+    render(<TriageWorkspace node={createNode()} />);
+    const options = useTrashScratchMock.mock.calls.at(-1)?.[0];
+    await act(async () => {
+      await options.onApplied({
+        scratchId: "scratch-2",
+        title: "Second Scratch",
+        wasSelected: false,
+        result: { status: "applied" },
+      });
+    });
+    expect(screen.getByTestId("trash-live-region")).toHaveTextContent(
+      'Moved "Second Scratch" to Trash.',
+    );
+    expect(discard).not.toHaveBeenCalled();
+    expect(useTriageStore.getState().selectedScratchId).toBe("scratch-1");
+  });
+
+  it("on success for the selected Scratch discards its drafts, then hands off to the next visible Scratch", async () => {
+    const order: string[] = [];
+    const discard = vi.fn(() => order.push(`discard:${useTriageStore.getState().selectedScratchId}`));
+    trashOwnerState.owner = { hasDiscardableWork: () => true, discard };
+    render(<TriageWorkspace node={createNode()} />);
+    const options = useTrashScratchMock.mock.calls.at(-1)?.[0];
+    await act(async () => {
+      await options.onApplied({
+        scratchId: "scratch-1",
+        title: "First Scratch",
+        wasSelected: true,
+        result: { status: "applied", scratch: null },
+      });
+    });
+    // Drafts go while the Scratch is still selected; only then the selection moves.
+    expect(order).toEqual(["discard:scratch-1"]);
+    expect(useTriageStore.getState().selectedScratchId).not.toBe("scratch-1");
+    expect(screen.getByTestId("trash-live-region")).toHaveTextContent(
+      'Moved "First Scratch" to Trash.',
+    );
+  });
+});
+
+describe("Scratch Trash success focus targets (Task 210)", () => {
+  function mountTargets() {
+    document.body.innerHTML = `
+      <h2 id="triage-scratch-pool-heading" tabindex="-1"></h2>
+      <input data-archive-handoff-focus="search-empty" aria-label="search" />
+      <button aria-label="Add item"></button>
+      <div data-testid="selected-scratch-context" tabindex="-1"></div>
+      <button data-external-removal-destination="next" aria-label="next row"></button>
+      <button data-external-removal-destination="previous" aria-label="previous row"></button>`;
+  }
+  const activeLabel = () =>
+    document.activeElement?.getAttribute("aria-label") ??
+    document.activeElement?.getAttribute("data-testid");
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("Pool entry: a destination Scratch focuses its Pool row (next, or previous when it was last)", () => {
+    mountTargets();
+    trashEntryFocus("pool", { id: "next", kind: "scratch" })();
+    expect(activeLabel()).toBe("next row");
+    trashEntryFocus("pool", { id: "previous", kind: "scratch" })();
+    expect(activeLabel()).toBe("previous row");
+  });
+
+  it("Pool entry: filtered-empty focuses the search input and true empty the primary action", () => {
+    mountTargets();
+    trashEntryFocus("pool", { id: null, kind: "search-empty" })();
+    expect(activeLabel()).toBe("search");
+    trashEntryFocus("pool", { id: null, kind: "inbox-empty" })();
+    expect(activeLabel()).toBe("Add item");
+  });
+
+  it("Context entry follows the Archive rule: the selected Scratch Context", () => {
+    mountTargets();
+    trashEntryFocus("context", { id: "next", kind: "scratch" })();
+    expect(activeLabel()).toBe("selected-scratch-context");
+  });
+
+  it("falls back to the Pool heading when the recorded target is gone", () => {
+    mountTargets();
+    document.querySelector('[data-external-removal-destination="next"]')?.remove();
+    trashEntryFocus("pool", { id: "next", kind: "scratch" })();
+    expect(document.activeElement?.id).toBe("triage-scratch-pool-heading");
+  });
+
+  it("unselected Scratch: focuses the neighbour row, else the search input when no row is visible", () => {
+    mountTargets();
+    trashNeighborFocus("previous")();
+    expect(activeLabel()).toBe("previous row");
+    trashNeighborFocus(undefined)();
+    expect(activeLabel()).toBe("search");
+  });
+});
+
+describe("Scratch Trash neighbour and opener focus helpers (Task 210 review)", () => {
+  it("picks the next, then the previous, row that is still visible", () => {
+    const order = ["a", "b", "c", "d"];
+    expect(pickTrashNeighbor(order, "b", ["a", "c", "d"])).toBe("c");
+    expect(pickTrashNeighbor(order, "d", ["a", "b", "c"])).toBe("c");
+    // The next row left meanwhile: skip it rather than point at a gone row.
+    expect(pickTrashNeighbor(order, "b", ["a", "d"])).toBe("d");
+    expect(pickTrashNeighbor(order, "b", ["a"])).toBe("a");
+    expect(pickTrashNeighbor(order, "b", [])).toBeUndefined();
+    expect(pickTrashNeighbor(order, "x", order)).toBeUndefined();
+  });
+
+  describe("focusTrashOpener", () => {
+    afterEach(() => {
+      document.body.innerHTML = "";
+    });
+
+    it("refocuses a usable opener", () => {
+      document.body.innerHTML = '<button id="entry">Trash</button>';
+      focusTrashOpener(document.getElementById("entry"));
+      expect(document.activeElement?.id).toBe("entry");
+    });
+
+    it("falls back to the row's selection button when the opener is disabled", () => {
+      document.body.innerHTML = `
+        <div data-triage-role="pool-row-container">
+          <button aria-pressed="false" id="row">Row</button>
+          <button disabled id="entry">Trash</button>
+        </div>`;
+      focusTrashOpener(document.getElementById("entry"));
+      expect(document.activeElement?.id).toBe("row");
+    });
+
+    it("falls back to the Context for a disabled [X]", () => {
+      document.body.innerHTML = `
+        <div data-testid="selected-scratch-context" tabindex="-1" id="ctx"></div>
+        <button disabled id="close">[X]</button>`;
+      focusTrashOpener(document.getElementById("close"));
+      expect(document.activeElement?.id).toBe("ctx");
+    });
   });
 });

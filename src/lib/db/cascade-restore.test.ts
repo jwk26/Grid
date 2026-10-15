@@ -213,6 +213,32 @@ describe("cascade restore", () => {
     expect((await store.getBit(trashedBit.id))?.version).toBe(4);
   });
 
+  it("restoreBit keeps an Inbox-parented Scratch at the 0,0 sentinel even when other Scratches are active", async () => {
+    const inbox = makeNode("00000000-0000-4000-8000-000000000021", {
+      systemRole: "inbox",
+      x: 5,
+      y: 5,
+    });
+    const activeScratch = makeBit("00000000-0000-4000-8000-000000000022", inbox.id, { x: 0, y: 0 });
+    const trashedScratch = makeBit("00000000-0000-4000-8000-000000000023", inbox.id, {
+      deletedAt: CASCADE_TS,
+      x: 0,
+      y: 0,
+      version: 3,
+    });
+    const store = makeStore({ nodes: [inbox], bits: [activeScratch, trashedScratch] });
+
+    await store.restoreBit(trashedScratch.id);
+
+    expect(await store.getBit(trashedScratch.id)).toMatchObject({
+      deletedAt: null,
+      x: 0,
+      y: 0,
+      version: 4,
+    });
+    expect(await store.getBit(activeScratch.id)).toMatchObject({ x: 0, y: 0, version: 1 });
+  });
+
   it("restoreNode throws GRID_FULL when no cell is available in the target grid", async () => {
     const occupiedNodes = Array.from({ length: GRID_COLS * GRID_ROWS }, (_, index) =>
       makeNode(`00000000-0000-4000-8000-${String(index + 100).padStart(12, "0")}`, {

@@ -40,7 +40,7 @@
 `/craft-docs` → `/run-phase` → `/run-task` → `/end-phase` own the procedure. This section overrides their defaults.
 
 - **Gates:** `git diff --check`, `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`.
-- **Ledger:** `docs/issues/Issues_Phase_N.md`, rules in `docs/WORKFLOW.md` §Phase Execution Record. Open, In Progress and Awaiting User Decision block phase close. Only the user closes or defers an item.
+- **Ledger:** `docs/issues/Issues_Phase_N.md`, rules in `docs/WORKFLOW.md` §Phase Execution Record. Issue IDs run per phase, not per task: a new `MI-n` or `mi-n` takes the next number after the highest one of its kind in the phase ledger. Open, In Progress and Awaiting User Decision block phase close. Only the user closes or defers an item.
 - **Acceptance:** `[x]` in the plan means user-accepted, never just implemented or gate-green.
 - **Git:** `phase-N/<desc>` from `origin/main` → PR to `main`, regular merge commit (no squash).
 - **Close archive:** phase detail → `docs/execution-plan/archive/phase-N.md` plus its Phase Index row; deferred items → `docs/issues/Issues_Deferred.md`; cross-phase lessons → `docs/execution-plan/LEARNINGS.md`.

@@ -24,6 +24,13 @@ import {
 import type { ScratchBreakdown } from "@/lib/db/schema";
 import type { Bit } from "@/types";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
+import {
+  TrashDraftRegistryContext,
+  TrashScratchEntriesContext,
+  type TrashDraftOwner,
+  type TrashScratchDisabledReason,
+  type TrashScratchEntries,
+} from "@/hooks/use-trash-scratch";
 import { BreakdownPanel } from "./breakdown-panel";
 
 const hookState = vi.hoisted(() => ({
@@ -3791,18 +3798,21 @@ describe("BreakdownPanel", () => {
     ).toBeVisible();
   });
 
-  it("mounts Context strip text and X as inert decoration", () => {
+  it("mounts the Context strip text as aria-hidden decoration and [X] as the Trash button (H10)", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     render(<BreakdownPanel />);
     const strip = screen.getByTestId("selected-scratch-context")
       .querySelector('[data-triage-role="context-title-strip"]');
-    expect(strip).toHaveAttribute("aria-hidden", "true");
-    expect(strip).toHaveTextContent("[ FOLDER DIALOG: INFO ]");
+    // Phase 34 asserted the whole strip aria-hidden with no button; H10 supersedes it.
+    expect(strip).not.toHaveAttribute("aria-hidden");
+    const info = strip?.querySelector('[data-triage-role="context-dialog-info"]');
+    expect(info).toHaveAttribute("aria-hidden", "true");
+    expect(info).toHaveTextContent("[ FOLDER DIALOG: INFO ]");
     const close = strip?.querySelector('[data-triage-role="context-decoration-close"]');
     expect(close).toHaveTextContent("[X]");
-    expect(close?.tagName).toBe("SPAN");
-    expect(close).not.toHaveAttribute("tabindex");
-    expect(strip?.querySelector("button, a, input, [tabindex]")).toBeNull();
+    expect(close?.tagName).toBe("BUTTON");
+    expect(close).toHaveAttribute("aria-label", "Move selected Scratch to Trash");
+    expect(close).toHaveAttribute("data-scratch-trash-entry", "context");
   });
 
   it("keeps icon-only Context Edit accessible and opens the same Scratch editor", () => {
@@ -4017,7 +4027,7 @@ describe("Task167 shared Context/Breakdown presentation", () => {
     hookState.breakdownsByScratch["scratch-1"] = [createScratchBreakdown({ id: "row-1", content: "Arrange workshop materials" })];
     const view = render(<BreakdownPanel />);
     const context = screen.getByTestId("selected-scratch-context");
-    expect(context.querySelector('[data-triage-role="context-title-strip"]')).toHaveAttribute("aria-hidden", "true");
+    expect(context.querySelector('[data-triage-role="context-title-strip"] [data-triage-role="context-dialog-info"]')).toHaveAttribute("aria-hidden", "true");
     expect(context.querySelector('[data-triage-role="context-identity-object"]')).toHaveAttribute("aria-hidden", "true");
     expect(context.querySelector('[data-triage-role="context-timestamp"]')).toBeVisible();
     fireEvent.click(within(context).getByRole("button", { name: "Edit" }));
@@ -4076,5 +4086,182 @@ describe("shared Context creation-date metadata", () => {
       editorState.snapshot = { target: { kind: "scratch-title", id: "scratch-1" }, phase, base: { value: "Original title", version: 1 }, draft: "Retained draft", latest: phase === "conflict" ? { value: "Remote title", version: 2 } : null, copyableDraft: null, pendingIntent: false, focusIntent: "field", command: null };
       view.rerender(<BreakdownPanel />); assertStamp();
     }
+  });
+});
+
+describe("Task 210 Scratch Trash entry on the Context strip", () => {
+  function renderWithTrash(
+    reason: TrashScratchDisabledReason | null = null,
+    registerOwner?: (owner: TrashDraftOwner) => () => void,
+  ) {
+    const request = vi.fn();
+    const entries: TrashScratchEntries = {
+      disabledReason: () => reason,
+      request,
+    };
+    const view = render(
+      <TrashScratchEntriesContext.Provider value={entries}>
+        <TrashDraftRegistryContext.Provider value={registerOwner ?? null}>
+          <BreakdownPanel />
+        </TrashDraftRegistryContext.Provider>
+      </TrashScratchEntriesContext.Provider>,
+    );
+    return { ...view, request };
+  }
+
+  it("requests Trash for the selected Scratch with the button as opener", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    const { request } = renderWithTrash();
+    const close = screen.getByRole("button", { name: "Move selected Scratch to Trash" });
+    expect(close).toBeEnabled();
+    fireEvent.click(close);
+    expect(request).toHaveBeenCalledWith("scratch-1", close);
+  });
+
+  it.each([
+    ["placement-open", "Finish or cancel placement to move a Scratch to Trash."],
+    [
+      "unresolved-source",
+      "A staged item in this Scratch lost its source. Resolve it in Staging first.",
+    ],
+    ["operation-pending", "Wait for the current action to finish."],
+  ] as const)("is disabled for %s and exposes the reason", (reason, copy) => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    const { request } = renderWithTrash(reason);
+    const close = screen.getByRole("button", { name: "Move selected Scratch to Trash" });
+    expect(close).toBeDisabled();
+    expect(close).toHaveAttribute("title", copy);
+    expect(close).toHaveAccessibleDescription(copy);
+    fireEvent.click(close);
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("is disabled while the VQ-03 departure sheet makes the Breakdown inert", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    departureState.pendingDestination = { id: "scratch-2", kind: "scratch" };
+    renderWithTrash();
+    expect(
+      screen.getByRole("button", { name: "Move selected Scratch to Trash" }),
+    ).toBeDisabled();
+    departureState.pendingDestination = null;
+  });
+
+  it("is disabled without a Trash coordinator", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    render(<BreakdownPanel />);
+    expect(
+      screen.getByRole("button", { name: "Move selected Scratch to Trash" }),
+    ).toBeDisabled();
+  });
+
+  it("keeps a dirty Scratch-title editor unsaved when a Trash entry takes focus (H17)", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    editorState.snapshot = {
+      target: { kind: "scratch-title", id: "scratch-1" },
+      phase: "dirty",
+      base: { value: "Scratch", version: 1 },
+      draft: "Dirty title",
+      latest: null,
+      copyableDraft: null,
+      pendingIntent: false,
+      focusIntent: "field-end",
+      command: null,
+    };
+    renderWithTrash();
+    const field = screen.getByRole("textbox", { name: "Scratch title" });
+
+    const poolTrash = document.createElement("button");
+    poolTrash.setAttribute("data-scratch-trash-entry", "pool");
+    document.body.append(poolTrash);
+    fireEvent.blur(field, { relatedTarget: poolTrash });
+    expect(editorState.save).not.toHaveBeenCalled();
+    poolTrash.remove();
+
+    const other = document.createElement("button");
+    document.body.append(other);
+    fireEvent.blur(field, { relatedTarget: other });
+    expect(editorState.save).toHaveBeenCalledTimes(1);
+    other.remove();
+  });
+
+  it("keeps a dirty row editor unsaved when a Trash entry takes focus (H17)", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Row content" }),
+    ];
+    editorState.snapshot = {
+      target: { kind: "breakdown", id: "row-1" },
+      phase: "dirty",
+      base: { value: "Row content", version: 1 },
+      draft: "Dirty row",
+      latest: null,
+      copyableDraft: null,
+      pendingIntent: false,
+      focusIntent: "field-end",
+      command: null,
+    };
+    renderWithTrash();
+    const field = screen.getByRole("textbox", { name: "Breakdown content" });
+    const poolTrash = document.createElement("button");
+    poolTrash.setAttribute("data-scratch-trash-entry", "pool");
+    document.body.append(poolTrash);
+    fireEvent.blur(field, { relatedTarget: poolTrash });
+    expect(editorState.save).not.toHaveBeenCalled();
+    poolTrash.remove();
+  });
+
+  it("registers a draft owner: any open editor counts, and discard cancels it and clears the Add draft", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    let owner: TrashDraftOwner | null = null;
+    const unregister = vi.fn();
+    const register = vi.fn((next: TrashDraftOwner) => {
+      owner = next;
+      return unregister;
+    });
+    const view = renderWithTrash(null, register);
+    expect(owner).not.toBeNull();
+    expect(owner!.hasDiscardableWork()).toBe(false);
+
+    editorState.snapshot = {
+      target: { kind: "scratch-title", id: "scratch-1" },
+      phase: "pristine",
+      base: { value: "Scratch", version: 1 },
+      draft: "Scratch",
+      latest: null,
+      copyableDraft: null,
+      pendingIntent: false,
+      focusIntent: "field-end",
+      command: null,
+    };
+    view.rerender(
+      <TrashScratchEntriesContext.Provider
+        value={{ disabledReason: () => null, request: vi.fn() }}
+      >
+        <TrashDraftRegistryContext.Provider value={register}>
+          <BreakdownPanel />
+        </TrashDraftRegistryContext.Provider>
+      </TrashScratchEntriesContext.Provider>,
+    );
+    expect(owner!.hasDiscardableWork()).toBe(true);
+
+    owner!.discard();
+    expect(editorState.cancel).toHaveBeenCalled();
+    expect(departureState.setAddDraft).toHaveBeenCalledWith("");
+    view.unmount();
+    expect(unregister).toHaveBeenCalled();
+  });
+
+  it("gives the row Delete dialog and its overlay the Retro Mac theming hooks", async () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Delete me" }),
+    ];
+    render(<BreakdownPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog).toHaveClass("breakdown-delete-dialog");
+    expect(
+      document.querySelector('[data-slot="alert-dialog-overlay"]'),
+    ).toHaveClass("breakdown-delete-dialog-overlay");
   });
 });

@@ -26,6 +26,9 @@ export type PoolLifecycleProjection = Readonly<{
 
 type PoolScratchLifecycle = "active" | "archived" | "deleted";
 
+const EMPTY_IDS: readonly string[] = Object.freeze([]);
+const EMPTY_BITS: readonly Bit[] = Object.freeze([]);
+
 const EMPTY_POOL_LIFECYCLE_PROJECTION: PoolLifecycleProjection = Object.freeze({
   revision: 0,
   changes: Object.freeze([]),
@@ -33,7 +36,7 @@ const EMPTY_POOL_LIFECYCLE_PROJECTION: PoolLifecycleProjection = Object.freeze({
 
 export function useInbox(): {
   inboxNodeId: string | undefined;
-  createScratchBit: (title: string) => Promise<void>;
+  createScratchBit: (title: string) => Promise<string>;
   scratchCount: number;
   activeScratchBits: Bit[];
   poolLifecycleProjection: PoolLifecycleProjection;
@@ -47,6 +50,10 @@ export function useInbox(): {
     EMPTY_POOL_LIFECYCLE_PROJECTION,
   );
   const [systemNodes, setSystemNodes] = useState<Node[]>([]);
+  const [deletedScratchBits, setDeletedScratchBits] = useState<readonly Bit[]>(
+    EMPTY_BITS,
+  );
+  const ownTrashMarkers = useTriageStore((state) => state.ownTrashMarkers);
   const poolLifecycleRevisionRef = useRef(0);
   const previousPoolLifecycleRef = useRef<Map<string, PoolScratchLifecycle> | null>(
     null,
@@ -189,6 +196,15 @@ export function useInbox(): {
       };
     }).subscribe({
       next: ({ active, archived, deleted }) => {
+        // A Scratch this page trashed itself (version-keyed marker) is neither
+        // an external removal nor a Pool deleted status.
+        const markers = useTriageStore.getState().ownTrashMarkers;
+        const ownTrashed = deleted.filter(
+          (bit) => markers[bit.id]?.expectedVersion === bit.version - 1,
+        );
+        const ownTrashedIdSet = new Set(ownTrashed.map((bit) => bit.id));
+        setDeletedScratchBits(deleted.length === 0 ? EMPTY_BITS : deleted);
+
         const currentLifecycle = new Map<string, PoolScratchLifecycle>();
         for (const bit of archived) currentLifecycle.set(bit.id, "archived");
         for (const bit of deleted) currentLifecycle.set(bit.id, "deleted");
@@ -213,6 +229,7 @@ export function useInbox(): {
           for (const [scratchId, previous] of previousLifecycle) {
             const current = currentLifecycle.get(scratchId);
             if (current === previous || current === "active") continue;
+            if (ownTrashedIdSet.has(scratchId)) continue;
             if (current === "archived") {
               changes.push({ kind: "archive", scratchId });
             } else if (
@@ -242,16 +259,26 @@ export function useInbox(): {
     return () => subscription.unsubscribe();
   }, [inboxNodeId]);
 
+  // Derived, so releasing a marker (a conflict result) reclassifies at once.
+  const ownTrashIds = useMemo(() => {
+    const ids = deletedScratchBits
+      .filter((bit) => ownTrashMarkers[bit.id]?.expectedVersion === bit.version - 1)
+      .map((bit) => bit.id);
+    return ids.length === 0 ? EMPTY_IDS : ids;
+  }, [deletedScratchBits, ownTrashMarkers]);
+
   useEffect(() => {
     if (!activeScratchBitsReady) return;
 
     reconcileScratchPoolContext({
       activeIds: orderedActiveScratchBits.map((bit) => bit.id),
       visibleIds: visibleScratchBits.map((bit) => bit.id),
+      ownTrashIds,
     });
   }, [
     activeScratchBitsReady,
     orderedActiveScratchBits,
+    ownTrashIds,
     reconcileScratchPoolContext,
     visibleScratchBits,
   ]);
@@ -275,6 +302,7 @@ export function useInbox(): {
         priority: null,
       });
       localCreatedScratchIds.add(created.id);
+      return created.id;
     },
     [inboxNodeId],
   );

@@ -17,6 +17,10 @@ beforeEach(() => {
     explorerRemoteArrivalIds: {},
     explorerPathStatus: null,
     externalScratchRemoval: null,
+    ownTrashMarkers: {},
+    triageWorkspaceMounted: false,
+    requestedScratchSelectionId: null,
+    scratchRevealId: null,
   });
 });
 
@@ -36,6 +40,47 @@ afterEach(() => {
     explorerRemoteArrivalIds: {},
     explorerPathStatus: null,
     externalScratchRemoval: null,
+    ownTrashMarkers: {},
+    triageWorkspaceMounted: false,
+    requestedScratchSelectionId: null,
+    scratchRevealId: null,
+  });
+});
+
+describe("useTriageStore requested Scratch selection", () => {
+  it("writes the one-shot request only while a workspace is mounted", () => {
+    const store = useTriageStore.getState();
+    store.requestScratchSelection("a");
+    expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+
+    store.setTriageWorkspaceMounted(true);
+    store.requestScratchSelection("a");
+    expect(useTriageStore.getState().requestedScratchSelectionId).toBe("a");
+
+    store.clearRequestedScratchSelection();
+    expect(useTriageStore.getState().requestedScratchSelectionId).toBeNull();
+  });
+
+  it("clears the request and the reveal when the workspace unmounts", () => {
+    const store = useTriageStore.getState();
+    store.setTriageWorkspaceMounted(true);
+    store.requestScratchSelection("a");
+    store.setScratchReveal("a");
+    store.setTriageWorkspaceMounted(false);
+    expect(useTriageStore.getState()).toMatchObject({
+      triageWorkspaceMounted: false,
+      requestedScratchSelectionId: null,
+      scratchRevealId: null,
+    });
+  });
+
+  it("keeps the request across a mount, unmount, mount cycle only if written after the last mount", () => {
+    const store = useTriageStore.getState();
+    store.setTriageWorkspaceMounted(true);
+    store.setTriageWorkspaceMounted(false);
+    store.setTriageWorkspaceMounted(true);
+    store.requestScratchSelection("b");
+    expect(useTriageStore.getState().requestedScratchSelectionId).toBe("b");
   });
 });
 
@@ -45,6 +90,8 @@ describe("useTriageStore app-session ownership", () => {
       "clearExplorerPathStatus",
       "clearExplorerRemoteArrivals",
       "clearExplorerRemotePresentation",
+      "clearRequestedScratchSelection",
+      "clearScratchReveal",
       "clearSelection",
       "explorerColumnScroll",
       "explorerLocalPlacementIdentities",
@@ -55,17 +102,23 @@ describe("useTriageStore app-session ownership", () => {
       "externalScratchRemoval",
       "finishExternalScratchRemoval",
       "finishScratchArchive",
+      "ownTrashMarkers",
       "reconcileExplorerContext",
       "reconcileScratchPoolContext",
       "recordExplorerRemoteArrivals",
       "registerExplorerLocalPlacement",
+      "registerOwnTrash",
+      "releaseOwnTrash",
       "removeExplorerRemoteArrival",
+      "requestScratchSelection",
+      "requestedScratchSelectionId",
       "scratchPoolActiveIds",
       "scratchPoolExpanded",
       "scratchPoolManualExpandedForId",
       "scratchPoolQuery",
       "scratchPoolResultIds",
       "scratchPoolScroll",
+      "scratchRevealId",
       "selectScratch",
       "selectedScratchId",
       "setExplorerColumnScroll",
@@ -78,6 +131,9 @@ describe("useTriageStore app-session ownership", () => {
       "setScratchPoolQuery",
       "setScratchPoolResultIds",
       "setScratchPoolScroll",
+      "setScratchReveal",
+      "setTriageWorkspaceMounted",
+      "triageWorkspaceMounted",
     ]);
   });
 
@@ -189,6 +245,98 @@ describe("useTriageStore app-session ownership", () => {
       destinationId: "previous",
       destinationKind: "scratch",
     });
+  });
+
+  it("holds an own-Trash selection without creating an external removal, then hands off like Archive", () => {
+    useTriageStore.setState({
+      selectedScratchId: "selected",
+      scratchPoolResultIds: ["previous", "selected", "next"],
+      scratchPoolActiveIds: ["previous", "selected", "next"],
+    });
+    useTriageStore.getState().registerOwnTrash("selected", 4);
+
+    useTriageStore.getState().reconcileScratchPoolContext({
+      activeIds: ["previous", "next"],
+      visibleIds: ["previous", "next"],
+      ownTrashIds: ["selected"],
+    });
+
+    expect(useTriageStore.getState()).toMatchObject({
+      selectedScratchId: "selected",
+      externalScratchRemoval: null,
+      // The held selection stays tracked at its position until handoff/release.
+      scratchPoolActiveIds: ["previous", "selected", "next"],
+    });
+
+    expect(
+      useTriageStore.getState().finishScratchArchive("selected", {
+        activeIds: ["previous", "selected", "next"],
+        visibleIds: ["previous", "selected", "next"],
+      }),
+    ).toEqual({ id: "next", kind: "scratch" });
+    expect(useTriageStore.getState().externalScratchRemoval).toBeNull();
+  });
+
+  it("a released own-Trash marker reads as external removal against the tracked neighbours", () => {
+    useTriageStore.setState({
+      selectedScratchId: "selected",
+      scratchPoolResultIds: ["previous", "selected", "next"],
+      scratchPoolActiveIds: ["previous", "selected", "next"],
+    });
+    const store = useTriageStore.getState();
+    store.reconcileScratchPoolContext({
+      activeIds: ["previous", "next"],
+      visibleIds: ["previous", "next"],
+      ownTrashIds: ["selected"],
+    });
+    store.reconcileScratchPoolContext({
+      activeIds: ["previous", "next"],
+      visibleIds: ["previous", "next"],
+      ownTrashIds: [],
+    });
+
+    expect(useTriageStore.getState()).toMatchObject({
+      selectedScratchId: "selected",
+      externalScratchRemoval: { scratchId: "selected", destinationId: "next" },
+    });
+  });
+
+  it("still treats an inactive selection without an own-Trash id as external removal", () => {
+    useTriageStore.setState({
+      selectedScratchId: "selected",
+      scratchPoolResultIds: ["selected", "next"],
+      scratchPoolActiveIds: ["selected", "next"],
+    });
+    useTriageStore.getState().registerOwnTrash("other", 2);
+
+    useTriageStore.getState().reconcileScratchPoolContext({
+      activeIds: ["next"],
+      visibleIds: ["next"],
+      ownTrashIds: ["other"],
+    });
+
+    expect(useTriageStore.getState().externalScratchRemoval).toMatchObject({
+      scratchId: "selected",
+      destinationId: "next",
+    });
+  });
+
+  it("tracks own-Trash markers by Scratch and version without persistence", () => {
+    const store = useTriageStore.getState();
+    store.registerOwnTrash("a", 3);
+    store.registerOwnTrash("a", 3);
+    store.registerOwnTrash("b", 5);
+    expect(useTriageStore.getState().ownTrashMarkers).toEqual({
+      a: { scratchId: "a", expectedVersion: 3 },
+      b: { scratchId: "b", expectedVersion: 5 },
+    });
+
+    useTriageStore.getState().releaseOwnTrash("a");
+    expect(useTriageStore.getState().ownTrashMarkers).toEqual({
+      b: { scratchId: "b", expectedVersion: 5 },
+    });
+    useTriageStore.getState().releaseOwnTrash(undefined);
+    expect(useTriageStore.getState().ownTrashMarkers).toEqual({});
   });
 
   it("finishes owned Archive with exact next-visible then previous-visible handoff while preserving Pool state", () => {

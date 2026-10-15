@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Inbox,
   Search,
+  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -21,12 +22,14 @@ import {
   type PoolLifecycleProjection,
 } from "@/hooks/use-inbox";
 import { useTriageDepartureContext } from "@/hooks/use-triage-departure";
+import { useTrashScratchEntries } from "@/hooks/use-trash-scratch";
 import { useTriageOperationLockContext } from "@/hooks/use-triage-operation-lock";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { useTriageStore } from "@/stores/triage-store";
+import { scratchTrashDisabledCopy } from "./scratch-trash-dialog";
 import type { Bit } from "@/types";
 
 function EmptyState() {
@@ -60,55 +63,97 @@ function ScratchRow({
   onSelect: (id: string, focus: () => void) => void;
   rowRef: (element: HTMLButtonElement | null) => void;
 }) {
+  const trashEntries = useTrashScratchEntries();
+  const trashReason = trashEntries?.disabledReason(bit.id) ?? null;
+  const trashReasonCopy =
+    trashReason === null ? null : scratchTrashDisabledCopy(trashReason);
+  const trashReasonId = `scratch-trash-reason-${bit.id}`;
+  const trashCopy = INBOX_TRIAGE_COPY.scratchTrash;
+
   return (
-    <button
-      ref={rowRef}
-      aria-label={bit.title}
-      aria-pressed={isSelected}
-      data-external-removal-destination={bit.id}
-      data-triage-role={isSelected ? "pool-selected-row" : "pool-row"}
-      data-triage-state={isSelected ? "selected" : "default"}
-      className={cn(
-        "scratch-pool__row group relative h-[52px] w-full border-b border-border/30 px-3 py-2 text-left last:border-b-0",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-        isSelected ? "bg-primary/10" : "bg-transparent hover:bg-accent/60",
-        reducedMotion
-          ? "transition-none"
-          : isSelected
-            ? "transition-all duration-100 ease-out"
-            : "transition-colors duration-150 ease-out",
-      )}
-      type="button"
-      onClick={(event) => {
-        const target = event.currentTarget;
-        onSelect(bit.id, () => target.focus());
-      }}
+    <div
+      className="scratch-pool__row-container relative"
+      data-triage-role="pool-row-container"
     >
-      {isSelected ? (
-        <span
-          aria-hidden="true"
-          className="scratch-pool__selected-marker absolute bottom-0 left-0 top-0 w-1 bg-primary"
-        />
-      ) : null}
-      <div
+      <button
+        ref={rowRef}
+        aria-label={bit.title}
+        aria-pressed={isSelected}
+        data-external-removal-destination={bit.id}
+        data-triage-role={isSelected ? "pool-selected-row" : "pool-row"}
+        data-triage-state={isSelected ? "selected" : "default"}
         className={cn(
-          "scratch-pool__row-title truncate text-xs font-medium",
-          isSelected ? "text-primary" : "text-foreground",
+          "scratch-pool__row group relative h-[52px] w-full border-b border-border/30 px-3 py-2 text-left last:border-b-0",
+          trashEntries !== null && "scratch-pool__row--with-trash",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+          isSelected ? "bg-primary/10" : "bg-transparent hover:bg-accent/60",
+          reducedMotion
+            ? "transition-none"
+            : isSelected
+              ? "transition-all duration-100 ease-out"
+              : "transition-colors duration-150 ease-out",
         )}
+        type="button"
+        onClick={(event) => {
+          const target = event.currentTarget;
+          onSelect(bit.id, () => target.focus());
+        }}
       >
-        {bit.title}
-      </div>
-      <div
-        className={cn(
-          "scratch-pool__row-time mt-0.5 text-[10px] font-normal",
-          isSelected
-            ? "text-primary/70"
-            : "text-muted-foreground/70 group-hover:text-muted-foreground",
-        )}
-      >
-        {formatRelativeTime(bit.createdAt)}
-      </div>
-    </button>
+        {isSelected ? (
+          <span
+            aria-hidden="true"
+            className="scratch-pool__selected-marker absolute bottom-0 left-0 top-0 w-1 bg-primary"
+          />
+        ) : null}
+        <div
+          className={cn(
+            "scratch-pool__row-title truncate text-xs font-medium",
+            isSelected ? "text-primary" : "text-foreground",
+          )}
+        >
+          {bit.title}
+        </div>
+        <div
+          className={cn(
+            "scratch-pool__row-time mt-0.5 text-[10px] font-normal",
+            isSelected
+              ? "text-primary/70"
+              : "text-muted-foreground/70 group-hover:text-muted-foreground",
+          )}
+        >
+          {formatRelativeTime(bit.createdAt)}
+        </div>
+      </button>
+      {trashEntries === null ? null : (
+        <>
+          <button
+            aria-describedby={trashReasonCopy === null ? undefined : trashReasonId}
+            aria-label={INBOX_TRIAGE_COPY.accessibleNames.moveScratchToTrash.replace(
+              "{title}",
+              bit.title,
+            )}
+            className={cn(
+              "scratch-pool__trash absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+            )}
+            data-scratch-trash-entry="pool"
+            data-triage-role="pool-row-trash-action"
+            disabled={trashReason !== null}
+            title={trashReasonCopy ?? trashCopy.tooltip}
+            type="button"
+            onClick={(event) =>
+              trashEntries.request(bit.id, event.currentTarget)
+            }
+          >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+          {trashReasonCopy === null ? null : (
+            <span className="sr-only" id={trashReasonId}>
+              {trashReasonCopy}
+            </span>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -339,6 +384,38 @@ export function ScratchPool() {
     selectedScratchId,
     setScratchPoolExpanded,
     setScratchPoolManualExpandedForId,
+  ]);
+
+  const scratchRevealId = useTriageStore((state) => state.scratchRevealId);
+  const clearScratchReveal = useTriageStore((state) => state.clearScratchReveal);
+
+  // One-shot reveal of a capture-requested selection. A row click, a lifecycle
+  // handoff and re-entry never set the reveal ID, so they never scroll.
+  useEffect(() => {
+    if (scratchRevealId === null) return;
+    const isActive = activeScratchBits.some((bit) => bit.id === scratchRevealId);
+    if (!isActive) return;
+    // Collapsed switchers are never filtered by the query.
+    const isVisible = (scratchPoolExpanded ? sortedFilteredBits : orderedBits).some(
+      (bit) => bit.id === scratchRevealId,
+    );
+    if (isVisible) {
+      const element = scratchPoolExpanded
+        ? rowRefs.current.get(scratchRevealId)
+        : document.querySelector<HTMLElement>(
+            `[data-triage-role="pool-compact-switcher"][data-scratch-id="${scratchRevealId}"]`,
+          );
+      if (element === null || element === undefined) return;
+      element.scrollIntoView?.({ block: "nearest" });
+    }
+    clearScratchReveal();
+  }, [
+    activeScratchBits,
+    clearScratchReveal,
+    orderedBits,
+    scratchPoolExpanded,
+    scratchRevealId,
+    sortedFilteredBits,
   ]);
 
   const handleSelect = useCallback(
@@ -709,6 +786,7 @@ export function ScratchPool() {
                     aria-label={bit.title}
                     aria-pressed={isSelected}
                     data-triage-role="pool-compact-switcher"
+                    data-scratch-id={bit.id}
                     data-triage-state={isSelected ? "selected" : "default"}
                     title={bit.title}
                     onClick={(event) => {

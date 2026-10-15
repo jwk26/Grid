@@ -21,6 +21,7 @@ import {
 } from "@/components/triage/breakdown-panel";
 import { HierarchyExplorer } from "@/components/triage/hierarchy-explorer";
 import { ScratchPool } from "@/components/triage/scratch-pool";
+import { ScratchTrashDialog } from "@/components/triage/scratch-trash-dialog";
 import { TriageDragToken } from "@/components/triage/triage-drag-token";
 import {
   StagingAlertBand,
@@ -33,7 +34,17 @@ import {
   type TriageDragItem,
 } from "@/hooks/use-dnd";
 import { useExternalScratchRemovalData } from "@/hooks/use-external-scratch-removal-data";
+import { useScratchLifecycleHandoff } from "@/hooks/use-scratch-lifecycle-handoff";
 import { useArchiveScratch } from "@/hooks/use-archive-scratch";
+import {
+  TrashDraftRegistryContext,
+  TrashScratchEntriesContext,
+  useTrashScratch,
+  useTrashScratchSnapshot,
+  type TrashDraftOwner,
+  type TrashScratchApplied,
+  type TrashScratchEntries,
+} from "@/hooks/use-trash-scratch";
 import { useCanArchiveScratch } from "@/hooks/use-can-archive-scratch";
 import {
   useStagedCandidates,
@@ -75,7 +86,7 @@ import { cn } from "@/lib/utils";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { useTriageStore } from "@/stores/triage-store";
 import type { ExternalScratchRemovalState } from "@/stores/triage-store";
-import type { Bit, Node } from "@/types";
+import type { Node } from "@/types";
 
 function formatStagingHeading(label: string, count: number) {
   return count >= 2 ? `${count} ${label}` : label;
@@ -672,8 +683,14 @@ export function TriageWorkspace({ node }: { node: Node }) {
   const setExternalScratchRemovalLifecycle = useTriageStore(
     (state) => state.setExternalScratchRemovalLifecycle,
   );
+  const ownTrashMarkers = useTriageStore((state) => state.ownTrashMarkers);
+  const ownTrash = useMemo(
+    () => Object.values(ownTrashMarkers),
+    [ownTrashMarkers],
+  );
   const { observation, readTerminalSnapshot } =
     useExternalScratchRemovalData({
+      ownTrash,
       activeRemovalScratchId: externalScratchRemoval?.scratchId ?? null,
       selectedScratchId,
       unresolvedRemovalContext:
@@ -685,76 +702,23 @@ export function TriageWorkspace({ node }: { node: Node }) {
           ? externalScratchRemoval.scratchId
           : null,
     });
-  const scratchPoolQuery = useTriageStore((state) => state.scratchPoolQuery);
-  const finishScratchArchive = useTriageStore(
-    (state) => state.finishScratchArchive,
-  );
-  const poolCreatedAtSort = useTriagePreferencesStore(
-    (state) => state.poolCreatedAtSort,
-  );
   const pendingArchiveFocusRef = useRef<ArchiveHandoffFocusKind | null>(null);
-  const handleArchiveApplied = useCallback(
-    async (
-      recovery: { scratchBitId: string },
-      result: unknown,
-    ) => {
-      const poolSnapshot = useTriageStore.getState();
-      let terminalSnapshot: Awaited<ReturnType<typeof readTerminalSnapshot>>;
-      try {
-        terminalSnapshot = await readTerminalSnapshot(
-          node.id,
-          recovery.scratchBitId,
-        );
-      } catch {
-        const destination = finishScratchArchive(recovery.scratchBitId, {
-          activeIds: poolSnapshot.scratchPoolActiveIds,
-          visibleIds: poolSnapshot.scratchPoolResultIds,
-        });
-        pendingArchiveFocusRef.current = destination.kind;
-        return;
-      }
-      const { projectedActiveScratchBits, source } = terminalSnapshot;
-      const remaining = projectedActiveScratchBits.filter(
-        (scratch) => scratch.id !== recovery.scratchBitId,
-      );
-      const resultScratch =
-        typeof result === "object" &&
-        result !== null &&
-        "scratch" in result
-          ? (result.scratch as Bit | null)
-          : null;
-      const sourceForOrder = source ?? resultScratch;
-      const orderedWithSource = (
-        sourceForOrder === null ||
-        sourceForOrder === undefined ||
-        remaining.some((scratch) => scratch.id === sourceForOrder.id)
-          ? remaining
-          : [...remaining, sourceForOrder]
-      ).toSorted((left, right) =>
-        poolCreatedAtSort === "ASC"
-          ? left.createdAt - right.createdAt
-          : right.createdAt - left.createdAt,
-      );
-      const normalizedQuery = scratchPoolQuery.toLocaleLowerCase();
-      const visible =
-        normalizedQuery.length === 0
-          ? orderedWithSource
-          : orderedWithSource.filter((scratch) =>
-              scratch.title.toLocaleLowerCase().includes(normalizedQuery),
-            );
-      const destination = finishScratchArchive(recovery.scratchBitId, {
-        activeIds: orderedWithSource.map((scratch) => scratch.id),
-        visibleIds: visible.map((scratch) => scratch.id),
-      });
+  const recordArchiveHandoffFocus = useCallback(
+    (destination: { kind: ArchiveHandoffFocusKind }) => {
       pendingArchiveFocusRef.current = destination.kind;
     },
-    [
-      finishScratchArchive,
-      node.id,
-      poolCreatedAtSort,
-      readTerminalSnapshot,
-      scratchPoolQuery,
-    ],
+    [],
+  );
+  const handoffScratchLifecycle = useScratchLifecycleHandoff({
+    inboxNodeId: node.id,
+    onDestination: recordArchiveHandoffFocus,
+    readTerminalSnapshot,
+  });
+  const handleArchiveApplied = useCallback(
+    async (recovery: { scratchBitId: string }, result: unknown) => {
+      await handoffScratchLifecycle(recovery.scratchBitId, result);
+    },
+    [handoffScratchLifecycle],
   );
   const archiveCoordinator = useArchiveScratch({
     operationLock,
@@ -763,9 +727,183 @@ export function TriageWorkspace({ node }: { node: Node }) {
     onApplied: handleArchiveApplied,
   });
 
+  const trashSnapshot = useTrashScratchSnapshot(node.id);
+  const [placementOpen, setPlacementOpen] = useState(false);
+  const isPlacementOpen = useCallback(() => placementOpen, [placementOpen]);
+  const trashDraftOwnerRef = useRef<TrashDraftOwner | null>(null);
+  const registerTrashDraftOwner = useCallback((owner: TrashDraftOwner) => {
+    trashDraftOwnerRef.current = owner;
+    return () => {
+      if (trashDraftOwnerRef.current === owner) trashDraftOwnerRef.current = null;
+    };
+  }, []);
+  const hasDiscardableTrashWork = useCallback(
+    (scratchId: string) =>
+      scratchId === useTriageStore.getState().selectedScratchId &&
+      (trashDraftOwnerRef.current?.hasDiscardableWork() ?? false),
+    [],
+  );
+  const trashOpenerRef = useRef<HTMLElement | null>(null);
+  const trashCloseFocusRef = useRef<(() => void) | null>(null);
+  const trashVisibleOrderRef = useRef<readonly string[]>([]);
+  const [trashAnnouncement, setTrashAnnouncement] = useState("");
+  const handoffTrashLifecycle = useScratchLifecycleHandoff({
+    inboxNodeId: node.id,
+    // Close Advisory A2: the focus target is settled before the selection
+    // changes. Trash only; the Archive handoff keeps its own order.
+    onBeforeDestination: (destination) => {
+      trashCloseFocusRef.current = trashEntryFocus(
+        trashOpenerRef.current?.dataset.scratchTrashEntry === "context"
+          ? "context"
+          : "pool",
+        destination,
+      );
+    },
+    readTerminalSnapshot,
+  });
+  const handleTrashApplied = useCallback(
+    async ({ scratchId, title, wasSelected, result }: TrashScratchApplied) => {
+      if (wasSelected) {
+        // The trashed Scratch's Add draft and editors go with it.
+        trashDraftOwnerRef.current?.discard();
+        await handoffTrashLifecycle(scratchId, result);
+      } else {
+        trashCloseFocusRef.current = trashNeighborFocus(
+          pickTrashNeighbor(
+            trashVisibleOrderRef.current,
+            scratchId,
+            useTriageStore.getState().scratchPoolResultIds,
+          ),
+        );
+      }
+      setTrashAnnouncement(
+        INBOX_TRIAGE_COPY.scratchTrash.states.success.replace("{title}", title),
+      );
+    },
+    [handoffTrashLifecycle],
+  );
+  const trash = useTrashScratch({
+    operationLock,
+    snapshot: trashSnapshot,
+    selectedScratchId,
+    hasDiscardableWork: hasDiscardableTrashWork,
+    isPlacementOpen,
+    onApplied: handleTrashApplied,
+  });
+  const { open: openTrash } = trash;
+  const requestTrash = useCallback(
+    (scratchId: string, opener: HTMLElement | null) => {
+      trashOpenerRef.current = opener;
+      trashCloseFocusRef.current = null;
+      setTrashAnnouncement("");
+      if (!openTrash(scratchId).opened) trashOpenerRef.current = null;
+    },
+    [openTrash],
+  );
+  const trashEntries = useMemo<TrashScratchEntries>(
+    () => ({
+      disabledReason: trash.entryDisabledReason,
+      request: requestTrash,
+    }),
+    [requestTrash, trash.entryDisabledReason],
+  );
+  const { confirm: confirmTrash } = trash;
+  const handleTrashConfirm = useCallback(() => {
+    // Row removal must not decide the focus order, so it is read at confirm.
+    trashVisibleOrderRef.current = [
+      ...useTriageStore.getState().scratchPoolResultIds,
+    ];
+    void confirmTrash();
+  }, [confirmTrash]);
+  const handleTrashCloseAutoFocus = useCallback((event: Event) => {
+    // Radix would restore focus to the activated control, which a successful
+    // Trash may have removed; the target recorded at success wins.
+    event.preventDefault();
+    const recorded = trashCloseFocusRef.current;
+    trashCloseFocusRef.current = null;
+    if (recorded !== null) {
+      recorded();
+      return;
+    }
+    const opener = trashOpenerRef.current;
+    trashOpenerRef.current = null;
+    focusTrashOpener(opener);
+  }, []);
+
   useEffect(() => {
     return registerActiveTriageDeparture(departure);
   }, [departure]);
+
+  const setTriageWorkspaceMounted = useTriageStore(
+    (state) => state.setTriageWorkspaceMounted,
+  );
+  useEffect(() => {
+    setTriageWorkspaceMounted(true);
+    return () => setTriageWorkspaceMounted(false);
+  }, [setTriageWorkspaceMounted]);
+
+  // Consumes the one-shot capture selection through the ordinary Scratch switch.
+  const requestedScratchSelectionId = useTriageStore(
+    (state) => state.requestedScratchSelectionId,
+  );
+  const scratchPoolActiveIds = useTriageStore((state) => state.scratchPoolActiveIds);
+  const clearRequestedScratchSelection = useTriageStore(
+    (state) => state.clearRequestedScratchSelection,
+  );
+  const selectScratch = useTriageStore((state) => state.selectScratch);
+  const setScratchReveal = useTriageStore((state) => state.setScratchReveal);
+  const seenActiveScratchIdsRef = useRef(new Set<string>());
+  useEffect(() => {
+    for (const id of scratchPoolActiveIds) seenActiveScratchIdsRef.current.add(id);
+    if (requestedScratchSelectionId === null) return;
+    if (!scratchPoolActiveIds.includes(requestedScratchSelectionId)) {
+      // Seen and now absent: no longer active, so the request is skipped.
+      // Never seen: the projection has not emitted it yet, keep waiting.
+      if (seenActiveScratchIdsRef.current.has(requestedScratchSelectionId)) {
+        clearRequestedScratchSelection();
+      }
+      return;
+    }
+
+    clearRequestedScratchSelection();
+    const id = requestedScratchSelectionId;
+    if (id === selectedScratchId) return;
+    if (operationLock.isLocked() || departure.pendingDestination !== null) return;
+    // An external-removal transition owns the selection; it holds no lock.
+    if (externalScratchRemoval !== null) return;
+    if (
+      document.querySelector(".triage-inline-editor[data-triage-editor-state]") !==
+      null
+    ) {
+      return;
+    }
+
+    departure.requestDeparture({
+      id,
+      kind: "scratch",
+      perform: () => {
+        selectScratch(id);
+        setScratchReveal(id);
+      },
+      // Focus moves only after a VQ-03 Discard decision.
+      focus: departure.hasAddDraft()
+        ? () =>
+            document
+              .querySelector<HTMLElement>('[data-testid="selected-scratch-context"]')
+              ?.focus()
+        : undefined,
+    });
+  }, [
+    clearRequestedScratchSelection,
+    departure,
+    externalScratchRemoval,
+    operationLock,
+    requestedScratchSelectionId,
+    scratchPoolActiveIds,
+    selectScratch,
+    selectedScratchId,
+    setScratchReveal,
+  ]);
 
   useEffect(() => {
     if (
@@ -905,6 +1043,33 @@ export function TriageWorkspace({ node }: { node: Node }) {
       <TriageOperationLockContext.Provider value={operationLock}>
       <TriageDepartureContext.Provider value={departure}>
         <ScratchTitleBlockerContext.Provider value={titleBlockerHandle}>
+        <TrashScratchEntriesContext.Provider value={trashEntries}>
+        <TrashDraftRegistryContext.Provider value={registerTrashDraftOwner}>
+          <div
+            aria-atomic="true"
+            aria-live="polite"
+            className="sr-only"
+            data-testid="trash-live-region"
+            data-triage-role="trash-live-region"
+            role="status"
+          >
+            {trashAnnouncement}
+          </div>
+          <ScratchTrashDialog
+            state={trash.state}
+            view={trash.view}
+            onCancel={() => {
+              trash.cancel();
+            }}
+            onCheckAgain={() => {
+              void trash.reconcile();
+            }}
+            onCloseAutoFocus={handleTrashCloseAutoFocus}
+            onConfirm={handleTrashConfirm}
+            onRetry={() => {
+              void trash.retry();
+            }}
+          />
           <ReadyTriageWorkspace
             archiveOperation={archiveOperation}
             archiveScratch={archiveCoordinator.archiveScratch}
@@ -913,11 +1078,14 @@ export function TriageWorkspace({ node }: { node: Node }) {
             node={node}
             operationLock={operationLock}
             onAddDraftBlockerChange={setCurrentAddDraftBlocker}
+            onPlacementOpenChange={setPlacementOpen}
             pendingArchiveFocusRef={pendingArchiveFocusRef}
             readTerminalSnapshot={readTerminalSnapshot}
             selectedScratchId={selectedScratchId}
             titleBlocker={titleBlocker}
           />
+        </TrashDraftRegistryContext.Provider>
+        </TrashScratchEntriesContext.Provider>
         </ScratchTitleBlockerContext.Provider>
       </TriageDepartureContext.Provider>
       </TriageOperationLockContext.Provider>
@@ -943,6 +1111,84 @@ function archiveHandoffFocusSelector(kind: ArchiveHandoffFocusKind): string {
     : kind === "search-empty"
       ? '[data-archive-handoff-focus="search-empty"]'
       : 'button[aria-label="Add item"]';
+}
+
+/**
+ * Focus after a successful Trash. The Pool entry lands on the destination's
+ * Pool row; the Context `[X]` entry follows the Archive success focus rule.
+ */
+export function trashEntryFocus(
+  entry: "pool" | "context",
+  destination: { id: string | null; kind: ArchiveHandoffFocusKind },
+): () => void {
+  return () => {
+    const selector =
+      entry === "pool" && destination.kind === "scratch" && destination.id !== null
+        ? `[data-external-removal-destination="${destination.id}"]`
+        : archiveHandoffFocusSelector(destination.kind);
+    (
+      document.querySelector<HTMLElement>(selector) ??
+      document.querySelector<HTMLElement>("#triage-scratch-pool-heading")
+    )?.focus();
+  };
+}
+
+/**
+ * The row to focus after trashing an unselected Scratch: the next, then the
+ * previous, row of the order read at confirm that is still visible now, so a
+ * Retry or Check again after the Pool changed still lands on a real row.
+ */
+export function pickTrashNeighbor(
+  orderAtConfirm: readonly string[],
+  scratchId: string,
+  visibleNow: readonly string[],
+): string | undefined {
+  const index = orderAtConfirm.indexOf(scratchId);
+  if (index < 0) return undefined;
+  const alive = new Set(visibleNow);
+  const isAlive = (id: string) => id !== scratchId && alive.has(id);
+  return (
+    orderAtConfirm.slice(index + 1).find(isAlive) ??
+    orderAtConfirm.slice(0, index).reverse().find(isAlive)
+  );
+}
+
+/**
+ * Cancel returns focus to the activated entry. When that entry is disabled
+ * (a rejected Trash leaves the same unresolved source in place) focus would
+ * silently drop to the body, so it falls back to its row or the Context.
+ */
+export function focusTrashOpener(opener: HTMLElement | null): void {
+  const usable =
+    opener !== null &&
+    opener.isConnected &&
+    !(opener instanceof HTMLButtonElement && opener.disabled);
+  if (usable) {
+    opener.focus();
+    return;
+  }
+  const row = opener?.isConnected
+    ? opener.closest('[data-triage-role="pool-row-container"]')
+    : null;
+  (
+    row?.querySelector<HTMLElement>("button[aria-pressed]") ??
+    document.querySelector<HTMLElement>('[data-testid="selected-scratch-context"]') ??
+    document.querySelector<HTMLElement>("#triage-scratch-pool-heading")
+  )?.focus();
+}
+
+/** Focus after trashing an unselected Scratch: next, then previous visible row, else search. */
+export function trashNeighborFocus(neighborId: string | undefined): () => void {
+  return () => {
+    const selector =
+      neighborId === undefined
+        ? '[data-archive-handoff-focus="search-empty"]'
+        : `[data-external-removal-destination="${neighborId}"]`;
+    (
+      document.querySelector<HTMLElement>(selector) ??
+      document.querySelector<HTMLElement>("#triage-scratch-pool-heading")
+    )?.focus();
+  };
 }
 
 function archiveLiveSentence(
@@ -992,6 +1238,7 @@ function ReadyTriageWorkspace({
   node,
   operationLock,
   onAddDraftBlockerChange,
+  onPlacementOpenChange,
   pendingArchiveFocusRef,
   readTerminalSnapshot,
   selectedScratchId,
@@ -1004,6 +1251,7 @@ function ReadyTriageWorkspace({
   node: Node;
   operationLock: ReturnType<typeof useTriageOperationLock>;
   onAddDraftBlockerChange: (blocked: boolean) => void;
+  onPlacementOpenChange: (open: boolean) => void;
   pendingArchiveFocusRef: React.RefObject<ArchiveHandoffFocusKind | null>;
   readTerminalSnapshot: ReturnType<
     typeof useExternalScratchRemovalData
@@ -1041,6 +1289,7 @@ function ReadyTriageWorkspace({
       node={node}
       operationLock={operationLock}
       onAddDraftBlockerChange={onAddDraftBlockerChange}
+      onPlacementOpenChange={onPlacementOpenChange}
       pendingArchiveFocusRef={pendingArchiveFocusRef}
       readTerminalSnapshot={readTerminalSnapshot}
     />
@@ -1054,6 +1303,7 @@ function TriageWorkspaceContent({
   node,
   operationLock,
   onAddDraftBlockerChange,
+  onPlacementOpenChange,
   pendingArchiveFocusRef,
   readTerminalSnapshot,
 }: {
@@ -1063,6 +1313,7 @@ function TriageWorkspaceContent({
   node: Node;
   operationLock: ReturnType<typeof useTriageOperationLock>;
   onAddDraftBlockerChange: (blocked: boolean) => void;
+  onPlacementOpenChange: (open: boolean) => void;
   pendingArchiveFocusRef: React.RefObject<ArchiveHandoffFocusKind | null>;
   readTerminalSnapshot: ReturnType<
     typeof useExternalScratchRemovalData
@@ -1375,6 +1626,11 @@ function TriageWorkspaceContent({
       setLocalPlacementResult(identity);
     },
   });
+  const placementIsOpen = placement.snapshot !== null;
+  useEffect(() => {
+    onPlacementOpenChange(placementIsOpen);
+    return () => onPlacementOpenChange(false);
+  }, [onPlacementOpenChange, placementIsOpen]);
   useEffect(() => {
     const current = placement.snapshot;
     if (

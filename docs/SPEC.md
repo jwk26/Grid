@@ -488,8 +488,9 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   with a visible reason, while any Inbox operation is pending, while a
   placement flow is open, and while that Scratch has a staged candidate whose
   source cannot be resolved (confirmed-orphan cleanup resolves it first).
-  `[X]` is also unavailable while the completion overlay or the `VQ-03` sheet
-  makes the Breakdown inert; the Pool entry stays available then.
+  `[X]` is also unavailable while the completion overlay makes the Breakdown
+  inert; the Pool entry stays available then. While the `VQ-03` sheet is up,
+  the Pool and Breakdown are inert, so neither entry is available.
 - Either entry opens one confirmation dialog for that Scratch. It names the
   Scratch, says the Scratch moves to Trash and can be restored from Trash,
   states the staged-candidate count when it is above zero, and states that
@@ -514,13 +515,15 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   is disabled with that reason. A `rejected` result shows the same reason
   with Cancel only; Cancel and Escape close it and the operation lock is
   released.
-- This page's own-Trash marker is `{Scratch ID, expected version}`, set at
-  dispatch and cleared once the Pool lifecycle projection has observed that
-  deletion, or at a terminal result other than applied/already applied
-  (being version-keyed, keeping it until page unmount is also safe). Observing that Scratch trashed
-  at expected version + 1 is own Trash: it never creates the external-removal
-  transition or a Pool deleted status. Any other inactive observation is
-  external removal.
+- This page's own-Trash markers are kept per Scratch as `{Scratch ID,
+  expected version}`: set at dispatch, removed at a terminal result other
+  than applied/already applied, and otherwise kept until the Inbox workspace
+  unmounts. Being version-keyed, a kept marker never hides a later restore or
+  an external Trash. (Clearing on first observation was dropped because
+  several mounted Pool projections observe the deletion at different times.)
+  Observing that Scratch trashed at expected version + 1 is own Trash: it
+  never creates the external-removal transition or a Pool deleted status.
+  Any other inactive observation is external removal.
 - Success removes the row once, discards that Scratch's drafts and editors
   (so no unload guard or `VQ-03` remains for them), makes Undo unavailable for
   placements from that Scratch (markers stay), and announces the move
@@ -1010,7 +1013,7 @@ is authoritative when a state might be mistaken for domain storage.
 |----------|-----------------|----------------|
 | Durable domain/integrity | Existing Node/Bit/Scratch Breakdown records and approved versions; `StagedCandidate`; archive/consumed lifecycle; narrow `CandidateOrphanAuditEvent` | Repository lifecycle only. Candidate display joins its source; cache miss is never orphan proof. No general operation log, journal, outbox, or offline queue |
 | App session (survives same-session Inbox route leave/re-entry, not reload) | `src/stores/triage-store.ts`: last active selected Scratch, Pool expanded/collapsed and per-Scratch manual-reopen exception, Pool query/result/scroll context, Explorer hierarchy path/open columns and column scroll | Validate against current data on re-entry; full reload/new session applies the fallback below |
-| Mounted Inbox page session | Add/Edit base snapshots and drafts; one pending intent; deleting/pending/reconciling presentation and operation IDs; Explorer active/interrupted search, result scroll and reveal; placement/type/Result Title state; remote-arrival counts; external-removal transition; Scratch Trash dialog, pending/result state and this page's own-Trash marker; completion overlay/Cancel/reopen presentation; proposed `use-triage-newly-placed.ts` markers/pinning/Undo/dependencies | Scratch changes preserve only the states explicitly named in the behavior sections. Inbox route exit clears Explorer search/reveal and Newly Placed/Undo; reload clears all except the Archive recovery identity below |
+| Mounted Inbox page session | Add/Edit base snapshots and drafts; one pending intent; deleting/pending/reconciling presentation and operation IDs; Explorer active/interrupted search, result scroll and reveal; placement/type/Result Title state; remote-arrival counts; external-removal transition; Scratch Trash dialog, pending/result state and this page's own-Trash marker; the new-capture selection request and its one-shot Pool reveal; completion overlay/Cancel/reopen presentation; proposed `use-triage-newly-placed.ts` markers/pinning/Undo/dependencies | Scratch changes preserve only the states explicitly named in the behavior sections. Inbox route exit clears Explorer search/reveal and Newly Placed/Undo; reload clears all except the Archive recovery identity below |
 | Forced-reload recovery identity | SCHEMA `PendingOperationRecovery` in current-tab `sessionStorage`, owned by the Archive operation coordinator | Archive only; written before dispatch, validated on read, cleared after terminal reconcile; no payload, draft, UI cache, mutation queue, or other workflow kind |
 | Device-local Inbox preference | Proposed `src/stores/triage-preferences-store.ts`, persisted and validated: Pool created-at sort and Breakdown created-at sort only | Survives route/reload/session; defaults independently to DESC when missing/invalid; never enters content records or future remote data |
 

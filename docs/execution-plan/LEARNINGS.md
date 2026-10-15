@@ -17,6 +17,10 @@
 
 **Code existing ≠ acceptance criteria met.** Always verify each acceptance line against live running behaviour before closing a task. Committed code can satisfy none of the observable acceptance criteria. *(Phase 4)*
 
+**Keep a page-local marker until every mounted projection has seen it.** Several mounted `liveQuery` consumers of the same data emit at different times. A marker released at the first observation leaves a later consumer to misclassify the same event (own Trash read as an external deletion). Key the marker by version and keep it until the page unmounts. *(Phase 41, Task 209 MI-1)*
+
+**Report an overlay's result on unmount as well as on close.** When another overlay can replace one (a global shortcut opening the command palette), a result reported only from `onClose` is lost. Report it once from whichever comes first, close or unmount, through its own callback. *(Phase 41, Task 212 MI-4)*
+
 ---
 
 ## Radix UI
@@ -60,6 +64,10 @@
 **Hide overflow scrollbars cross-browser.** `[scrollbar-width:none] [&::-webkit-scrollbar]:hidden` on the `overflow-x-auto` container suppresses native scrollbars in both Firefox and WebKit. *(Phase 4)*
 
 **`pointer-events-none` for disabled buttons in a hoverable context.** `opacity-40` dims visually but `:hover` still fires. Add `pointer-events-none` to the disabled element to suppress hover; pointer events pass through to the parent, so a `cursor-not-allowed` wrapper still shows the correct cursor. *(Phase 11)*
+
+**Hover and focus rules change colors and outline only.** A reset selector list that included `button:hover` outranked the default-border rule, so on hover the border fell from 2px to 1px and the whole sheet shrank. Keep `:hover`/`:active` out of shared reset lists and assert in a CSS test that hover/focus rules set no border, padding, font or size property. *(Phase 41, Task 211 mi-2)*
+
+**Put a per-theme row gap on the row's container, not inside it.** A gap kept as `margin-block-end` inside a positioned container made a `top: 50%` control centre on row + gap. *(Phase 41, Task 210 mi-1)*
 
 ---
 
@@ -108,6 +116,8 @@
 **Use runner-native focused commands.** With Vitest, `pnpm test -- <files>` may still run the whole suite depending on the package script. Use `pnpm exec vitest run <files>` when evidence must prove a genuinely focused run, and record the actual file/test counts. *(Phase 23 pilot)*
 
 **Serialize gates that share generated output.** Logically independent checks are not operationally independent when they read or write the same generated tree. In this project, `next build` and `tsc` can contend through `.next/types`; run them serially unless isolated outputs are configured. *(Phase 23 pilot)*
+
+**Stop a dev server by its own port.** `pkill -f next-server` matched by name and also ended the user's server on another port. Use `lsof -ti tcp:<port> -sTCP:LISTEN | xargs kill`; without `-sTCP:LISTEN` it also returns the Playwright browser connected to that port. After a CSS-only change that does not show, clear `.next` before judging it. *(Phase 41, Task 210)*
 
 **Canonical file boundaries must include the real composition owner.** When an accepted behavior requires a parent component to project child counts or close parent-owned transient state, include that parent and its focused test in the canonical task contract. A child-only file list cannot truthfully own cross-boundary callback or heading behavior. *(Phase 26, Tasks 133–134)*
 

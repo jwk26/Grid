@@ -232,6 +232,8 @@ export interface InboxTriageCopy {
       readonly operationLocked: string;
       readonly editBlocked: string;
       readonly conflict: string;
+      readonly trashed: string;
+      readonly archived: string;
     };
     readonly operation: {
       readonly pending: string;
@@ -370,6 +372,38 @@ export interface InboxTriageCopy {
     readonly gridExplorer: string;
     readonly searchScratches: string;
     readonly clearPoolSearch: string;
+    readonly moveSelectedScratchToTrash: string;
+    /** `{title}` is replaced by the Scratch title. */
+    readonly moveScratchToTrash: string;
+  };
+  readonly scratchTrash: {
+    readonly title: string;
+    /** `{title}` marks the bold Scratch title. */
+    readonly body: string;
+    readonly stagedOne: string;
+    /** `{count}` is replaced by the staged count. */
+    readonly stagedMany: string;
+    readonly draft: string;
+    readonly tooltip: string;
+    readonly disabled: {
+      readonly placementOpen: string;
+      readonly unresolvedSource: string;
+    };
+    readonly actions: {
+      readonly cancel: string;
+      readonly confirm: string;
+      readonly retry: string;
+      readonly checkAgain: string;
+    };
+    readonly states: {
+      readonly pending: string;
+      readonly notApplied: string;
+      readonly unknown: string;
+      readonly conflict: string;
+      readonly rejected: string;
+      /** `{title}` is replaced by the Scratch title. */
+      readonly success: string;
+    };
   };
   readonly receiptDependent: Readonly<
     Partial<Record<ReceiptCopyTask, ReceiptCopyUnavailable>>
@@ -603,6 +637,8 @@ export const INBOX_TRIAGE_COPY = {
       operationLocked: "Wait for the current action to finish.",
       editBlocked: "Save or cancel the current edit before undoing.",
       conflict: "This item or its source changed. Undo is unavailable.",
+      trashed: "Its Scratch was moved to Trash.",
+      archived: "Its Scratch was archived.",
     },
     operation: {
       pending: "Undoing “{title}”…",
@@ -755,6 +791,36 @@ export const INBOX_TRIAGE_COPY = {
     gridExplorer: "Grid Explorer",
     searchScratches: "Search scratches",
     clearPoolSearch: "Clear search",
+    moveSelectedScratchToTrash: "Move selected Scratch to Trash",
+    moveScratchToTrash: 'Move "{title}" to Trash',
+  },
+  scratchTrash: {
+    title: "Move Scratch to Trash?",
+    body: '"{title}" moves to Trash. You can restore it from Trash for 30 days.',
+    stagedOne: "1 staged item will be removed from Staging.",
+    stagedMany: "{count} staged items will be removed from Staging.",
+    draft: "Your unsaved draft in this Scratch will be discarded.",
+    tooltip: "Move to Trash",
+    disabled: {
+      placementOpen: "Finish or cancel placement to move a Scratch to Trash.",
+      unresolvedSource:
+        "A staged item in this Scratch lost its source. Resolve it in Staging first.",
+    },
+    actions: {
+      cancel: "Cancel",
+      confirm: "Move to Trash",
+      retry: "Retry",
+      checkAgain: "Check again",
+    },
+    states: {
+      pending: "Moving to Trash…",
+      notApplied: "Couldn't move this Scratch to Trash.",
+      unknown: "Checking whether this Scratch moved to Trash…",
+      conflict: "This Scratch changed. Review and confirm again.",
+      rejected:
+        "A staged item in this Scratch lost its source. Resolve it in Staging first.",
+      success: 'Moved "{title}" to Trash.',
+    },
   },
   receiptDependent: {
     148: UNAVAILABLE,

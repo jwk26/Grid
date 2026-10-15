@@ -83,6 +83,7 @@ describe("useInbox", () => {
       scratchPoolResultIds: [],
       scratchPoolScroll: { anchorId: null, offset: 0 },
       externalScratchRemoval: null,
+      ownTrashMarkers: {},
     });
     useTriagePreferencesStore.setState({ poolCreatedAtSort: "DESC" });
     liveQueryMock.mockImplementation((query: () => Promise<unknown>) => ({
@@ -128,7 +129,9 @@ describe("useInbox", () => {
       expect(result.current.inboxNodeId).toBe(inbox.id);
     });
 
-    await result.current.createScratchBit(" Fast idea ");
+    await expect(result.current.createScratchBit(" Fast idea ")).resolves.toBe(
+      created.id,
+    );
 
     expect(createBitMock).toHaveBeenCalledWith({
       parentId: inbox.id,
@@ -384,6 +387,89 @@ describe("useInbox", () => {
         { kind: "delete", scratchId: "remote" },
       ],
     });
+  });
+
+  it.each([
+    ["trashed at the marker's expected version + 1", 5, 6, false],
+    ["trashed at a different version", 5, 9, true],
+  ])("own-Trash marker: Scratch %s", async (_label, expectedVersion, trashedVersion, external) => {
+    const inbox = createNode({ id: "inbox", systemRole: "inbox" });
+    const selected = createBit({ id: "selected", parentId: inbox.id, version: expectedVersion });
+    const other = createBit({ id: "other", parentId: inbox.id });
+    let activeBits = [selected, other];
+    let trashedBits: Bit[] = [];
+    getDataStoreMock.mockResolvedValue({
+      getAllActiveNodes: vi.fn().mockResolvedValue([inbox]),
+      getAllActiveBits: vi.fn().mockImplementation(() => Promise.resolve(activeBits)),
+      getArchivedItems: vi.fn().mockResolvedValue({ nodes: [], bits: [] }),
+      getTrashedItems: vi.fn().mockImplementation(() =>
+        Promise.resolve({ nodes: [], bits: trashedBits }),
+      ),
+      createBit: vi.fn(),
+    } as unknown as DataStore);
+    useTriageStore.setState({ selectedScratchId: "selected" });
+
+    const { result } = renderHook(() => useInbox());
+    await waitFor(() => expect(result.current.activeScratchBits).toHaveLength(2));
+
+    useTriageStore.getState().registerOwnTrash("selected", expectedVersion);
+    activeBits = [other];
+    trashedBits = [{ ...selected, deletedAt: 20, version: trashedVersion }];
+    await rerunLiveQueries();
+
+    await waitFor(() => expect(result.current.activeScratchBits).toEqual([other]));
+    if (external) {
+      expect(result.current.poolLifecycleProjection.changes).toEqual([
+        { kind: "delete", scratchId: "selected" },
+      ]);
+      expect(useTriageStore.getState().externalScratchRemoval).not.toBeNull();
+    } else {
+      expect(result.current.poolLifecycleProjection.changes).toEqual([]);
+      expect(useTriageStore.getState().externalScratchRemoval).toBeNull();
+      expect(useTriageStore.getState()).toMatchObject({
+        selectedScratchId: "selected",
+        ownTrashMarkers: { selected: { scratchId: "selected", expectedVersion: 5 } },
+      });
+    }
+  });
+
+  it("reclassifies as external removal when the own-Trash marker is released without a new emission", async () => {
+    const inbox = createNode({ id: "inbox", systemRole: "inbox" });
+    const selected = createBit({ id: "selected", parentId: inbox.id, version: 5 });
+    const other = createBit({ id: "other", parentId: inbox.id });
+    let activeBits = [selected, other];
+    let trashedBits: Bit[] = [];
+    getDataStoreMock.mockResolvedValue({
+      getAllActiveNodes: vi.fn().mockResolvedValue([inbox]),
+      getAllActiveBits: vi.fn().mockImplementation(() => Promise.resolve(activeBits)),
+      getArchivedItems: vi.fn().mockResolvedValue({ nodes: [], bits: [] }),
+      getTrashedItems: vi.fn().mockImplementation(() =>
+        Promise.resolve({ nodes: [], bits: trashedBits }),
+      ),
+      createBit: vi.fn(),
+    } as unknown as DataStore);
+    useTriageStore.setState({ selectedScratchId: "selected" });
+
+    const { result } = renderHook(() => useInbox());
+    await waitFor(() => expect(result.current.activeScratchBits).toHaveLength(2));
+
+    // Another tab trashes it at exactly marker version + 1 while ours is in flight.
+    useTriageStore.getState().registerOwnTrash("selected", 5);
+    activeBits = [other];
+    trashedBits = [{ ...selected, deletedAt: 20, version: 6 }];
+    await rerunLiveQueries();
+    await waitFor(() => expect(result.current.activeScratchBits).toEqual([other]));
+    expect(useTriageStore.getState().externalScratchRemoval).toBeNull();
+
+    // Our command comes back as a conflict: the marker is released.
+    act(() => {
+      useTriageStore.getState().releaseOwnTrash("selected");
+    });
+    await waitFor(() =>
+      expect(useTriageStore.getState().externalScratchRemoval).toMatchObject({
+        scratchId: "selected",
+      }),
+    );
   });
 
   it("excludes a current-session local create result from remote arrivals", async () => {

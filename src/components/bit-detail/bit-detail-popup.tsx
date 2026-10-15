@@ -237,6 +237,8 @@ export function BitDetailPopup() {
     parentNode !== null &&
     parentNode.systemRole !== "inbox" &&
     parentNode.level < 2;
+  // H21: a Scratch is trashed only through Pool Trash or the Retro Mac [X].
+  const canMoveToTrash = parentNode?.systemRole !== "inbox";
   const completedCount = chunks.filter(
     (chunk) => chunk.status === "complete",
   ).length;
@@ -369,13 +371,15 @@ export function BitDetailPopup() {
                             <DropdownMenuSeparator />
                           </>
                         ) : null}
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={handleMoveToTrash}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Move to trash
-                        </DropdownMenuItem>
+                        {canMoveToTrash ? (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={handleMoveToTrash}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Move to trash
+                          </DropdownMenuItem>
+                        ) : null}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

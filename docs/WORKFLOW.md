@@ -572,7 +572,7 @@ The ledger is a **live execution record** and the **handoff between sessions**, 
 
 ### Ledger Format
 
-The ledger uses the `/run-phase` header and the `/run-task` task-section format (Current state, Log, Checkpoint). The project adds one convention: issue IDs are numbered per phase, `MI-n` for Main Issues and `mi-n` for Minor Issues. Each Log entry gives the status, the problem, its cause and fix, and the commit.
+The ledger uses the `/run-phase` header and the `/run-task` task-section format (Current state, Log, Checkpoint). The project adds one convention: issue IDs are numbered per phase, `MI-n` for Main Issues and `mi-n` for Minor Issues, each kind continuing from the highest ID already in the phase ledger. Each Log entry gives the status, the problem, its cause and fix, and the commit. An entry committed together with its fix omits the commit, since a commit cannot name itself; `git log` on the ledger finds it.
 
 ### Main Issues vs. Minor Issues
 

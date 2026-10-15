@@ -200,4 +200,106 @@ describe("ScratchModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it("reports the last successfully captured ID once when auto-close fires", async () => {
+    vi.useFakeTimers();
+    const onSubmit = vi.fn().mockResolvedValueOnce("s-1").mockResolvedValueOnce("s-2");
+    const onClose = vi.fn();
+    const onCaptured = vi.fn();
+
+    const view = render(
+      <ScratchModal inboxNodeId="inbox-1" onCaptured={onCaptured} onClose={onClose} onSubmit={onSubmit} open={true} />,
+    );
+
+    for (const title of ["First", "Second"]) {
+      fireEvent.change(screen.getByRole("textbox", { name: "Scratch title" }), {
+        target: { value: title },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Capture scratch" }));
+      });
+      if (title === "First") {
+        await act(async () => {
+          fireEvent.click(screen.getByRole("button", { name: "Capture another" }));
+        });
+      }
+    }
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledWith();
+    expect(onCaptured).toHaveBeenCalledTimes(1);
+    expect(onCaptured).toHaveBeenCalledWith("s-2");
+
+    view.rerender(
+      <ScratchModal inboxNodeId="inbox-1" onCaptured={onCaptured} onClose={onClose} onSubmit={onSubmit} open={false} />,
+    );
+    expect(onCaptured).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports the captured ID once on Escape and on Open Inbox", async () => {
+    for (const close of ["escape", "open-inbox"]) {
+      const onSubmit = vi.fn().mockResolvedValue("s-9");
+      const onCaptured = vi.fn();
+      const onClose = vi.fn();
+      const view = render(
+        <ScratchModal inboxNodeId="inbox-1" onCaptured={onCaptured} onClose={onClose} onSubmit={onSubmit} open={true} />,
+      );
+      fireEvent.change(screen.getByRole("textbox", { name: "Scratch title" }), {
+        target: { value: "First" },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Capture scratch" }));
+      });
+      if (close === "escape") fireEvent.keyDown(document, { key: "Escape" });
+      else fireEvent.click(screen.getByRole("button", { name: "Open Inbox" }));
+      expect(onCaptured).toHaveBeenCalledTimes(1);
+      expect(onCaptured).toHaveBeenCalledWith("s-9");
+      expect(onClose).toHaveBeenCalledTimes(1);
+      view.unmount();
+      expect(onCaptured).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("reports the captured ID once when another overlay replaces the surface, without closing", async () => {
+    const onSubmit = vi.fn().mockResolvedValue("s-5");
+    const onCaptured = vi.fn();
+    const onClose = vi.fn();
+    const view = render(
+      <ScratchModal inboxNodeId="inbox-1" onCaptured={onCaptured} onClose={onClose} onSubmit={onSubmit} open={true} />,
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Scratch title" }), {
+      target: { value: "First" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Capture scratch" }));
+    });
+
+    view.rerender(
+      <ScratchModal inboxNodeId="inbox-1" onCaptured={onCaptured} onClose={onClose} onSubmit={onSubmit} open={false} />,
+    );
+
+    expect(onCaptured).toHaveBeenCalledTimes(1);
+    expect(onCaptured).toHaveBeenCalledWith("s-5");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("reports nothing when closed without a successful capture", () => {
+    const onCaptured = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <ScratchModal
+        inboxNodeId="inbox-1"
+        onCaptured={onCaptured}
+        onClose={onClose}
+        onSubmit={vi.fn().mockRejectedValue(new Error("x"))}
+        open={true}
+      />,
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onCaptured).not.toHaveBeenCalled();
+  });
 });

@@ -5128,14 +5128,87 @@
   content: "]";
 }
 
+/* Phase 41 (Task 211): the sheet takes the Retro Mac Archive-alert family and stays in flow (no scrim, portal or title bar). */
 :root[data-color-theme="retro-mac"] .breakdown-departure-sheet {
   background: hsl(var(--background));
+  border: 4px double hsl(var(--foreground));
   border-radius: 0;
-  box-shadow: 2px 2px 0 hsl(var(--foreground));
+  box-shadow: 6px 6px 0 hsl(var(--foreground));
+  column-gap: 16px;
+  display: grid;
+  font-family: var(--triage-context-font);
+  grid-template-columns: 40px minmax(0, 1fr);
+  margin-block-end: 6px;
+  padding: 24px;
 }
-
-:root[data-color-theme="retro-mac"]
-  [data-triage-role="breakdown-departure-continue"] {
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet::before {
+  align-self: start;
+  background: hsl(var(--background));
+  block-size: 40px;
+  border: 2px solid hsl(var(--foreground));
+  color: hsl(var(--foreground));
+  content: "!" / "";
+  display: grid;
+  font-size: 20px;
+  font-weight: 700;
+  grid-column: 1;
+  grid-row: 1 / span 4;
+  inline-size: 40px;
+  place-items: center;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet > * {
+  grid-column: 2;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 16px;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__heading {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 16px;
+  margin-block-start: 0;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__description {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  margin-block-start: 0;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions {
+  gap: 12px;
+  justify-content: flex-end;
+  margin-block-start: 8px;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions button {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: none;
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 12px;
+  font-weight: 700;
+  height: auto;
+  letter-spacing: 0.05em;
+  line-height: 16px;
+  padding: 6px 16px;
+  text-transform: uppercase;
+}
+/* Continue writing is the default action: the default-button border. */
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions [data-triage-role="breakdown-departure-continue"] {
+  border-width: 2px;
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions button:hover,
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions button:focus-visible {
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+}
+:root[data-color-theme="retro-mac"] .breakdown-departure-sheet__actions button:focus-visible {
   outline: 2px solid hsl(var(--foreground));
   outline-offset: 2px;
 }
@@ -5894,4 +5967,161 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+/* Phase 41 (Task 210): Scratch Trash control, Scratch Trash dialog, Context [X], Breakdown Delete dialog. */
+.scratch-pool__row-container {
+  position: relative;
+  /* The per-theme row gap sits outside the container so the Trash control centres on the row itself. */
+  margin-block-end: var(--triage-pool-row-gap, 0px);
+}
+.scratch-pool__row-container > .scratch-pool__row { margin-block-end: 0; }
+/* The title truncates before the Trash control; the pool padding variable is per theme. */
+.scratch-pool__row.scratch-pool__row--with-trash { padding-inline-end: 40px; }
+.scratch-trash-dialog__mark,
+.breakdown-delete-dialog__mark { display: none; }
+
+/* The [X] is a control only where a theme shows the strip (Retro Mac); elsewhere the strip stays display:none. */
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-title-strip"] [data-triage-role="context-decoration-close"] {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  padding: 0 4px;
+  pointer-events: auto;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-title-strip"] [data-triage-role="context-decoration-close"]:not(:disabled):hover,
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-title-strip"] [data-triage-role="context-decoration-close"]:focus-visible {
+  background: var(--triage-context-surface);
+  color: var(--triage-context-ink);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-title-strip"] [data-triage-role="context-decoration-close"]:focus-visible {
+  outline: 2px solid var(--triage-context-surface);
+  outline-offset: -2px;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-title-strip"] [data-triage-role="context-decoration-close"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Pool row Trash: the Breakdown row control, restyled by the same Retro Mac rules. */
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="pool-row-trash-action"] {
+  background: var(--triage-context-surface);
+  border: 1px solid var(--triage-context-ink);
+  border-radius: 0;
+  color: var(--triage-context-ink);
+  width: var(--triage-breakdown-control-size);
+  height: var(--triage-breakdown-control-size);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="pool-row-trash-action"] svg { width: 12px; height: 12px; }
+/* 20px visible control, 28px hit area (Pool recipe: h-7 w-7); the 1px border leaves a 5px reach on each side. */
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="pool-row-trash-action"]::before {
+  content: "";
+  inset: -5px;
+  position: absolute;
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="pool-row-trash-action"]:not(:disabled):hover,
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="pool-row-trash-action"]:focus-visible {
+  background: var(--triage-context-ink);
+  color: var(--triage-context-surface);
+}
+
+/* Retro Mac: both portal dialogs take the Archive-alert family. They render outside .triage-shell, hence the class hooks. */
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog-overlay, .breakdown-delete-dialog-overlay) {
+  animation: none;
+  background: hsl(var(--background) / 0.7);
+  backdrop-filter: blur(1px);
+}
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) {
+  animation: none;
+  background: hsl(var(--background));
+  border: 4px double hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: 6px 6px 0 hsl(var(--foreground));
+  color: hsl(var(--foreground));
+  column-gap: 16px;
+  font-family: var(--triage-context-font);
+  grid-template-columns: 40px minmax(0, 1fr);
+  max-inline-size: 24rem;
+  padding: 24px;
+  text-align: start;
+  transition: none;
+}
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog__mark, .breakdown-delete-dialog__mark) {
+  align-self: start;
+  background: hsl(var(--background));
+  block-size: 40px;
+  border: 2px solid hsl(var(--foreground));
+  color: hsl(var(--foreground));
+  display: grid;
+  font-size: 20px;
+  font-weight: 700;
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  inline-size: 40px;
+  place-items: center;
+}
+:root[data-color-theme="retro-mac"] .scratch-trash-dialog__content,
+:root[data-color-theme="retro-mac"] .breakdown-delete-dialog > :is([data-slot="alert-dialog-header"], [data-slot="alert-dialog-footer"]) {
+  grid-column: 2;
+}
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) [data-slot="alert-dialog-title"] {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) [data-slot="alert-dialog-description"] {
+  color: hsl(var(--foreground));
+  font-size: 12px;
+  line-height: 16px;
+}
+:root[data-color-theme="retro-mac"] .scratch-trash-dialog__state {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) [data-slot="alert-dialog-footer"] {
+  gap: 12px;
+  justify-content: flex-end;
+  padding-block-start: 8px;
+}
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--foreground));
+  border-radius: 0;
+  box-shadow: none;
+  color: hsl(var(--foreground));
+  font-family: var(--triage-context-font);
+  font-size: 12px;
+  font-weight: 700;
+  height: auto;
+  letter-spacing: 0.05em;
+  line-height: 16px;
+  padding: 6px 16px;
+  text-transform: uppercase;
+}
+/* Cancel is the default action: the default-button outline. */
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) [data-slot="alert-dialog-cancel"] {
+  border-width: 2px;
+}
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button:hover:not(:disabled),
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button:focus-visible {
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+}
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button:focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+:root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }

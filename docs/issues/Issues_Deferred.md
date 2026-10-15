@@ -44,6 +44,7 @@ It is **not** the source of truth for issue details. The source remains each `do
 | `Issues_Phase_34.md` | MI-6 | Inbox/Triage visual fidelity | Retro-mac Explorer locked-pane surface differs from the prototype, left at Task 169 acceptance with D-CARD and P29-01. | Same owner as P29-01: Phases 35–40 region realization. |
 | `Issues_Phase_34.md` | MI-9 | Inbox/Triage copy | Archive confirmation detail string is written in `breakdown-panel.tsx`; only retro-mac shows it. Canonical in the Archive recipe Retro Mac section. | Task 178: move it into `INBOX_TRIAGE_COPY` and decide neumorphism visibility (line in the Task 178 plan section). |
 | `Issues_Phase_34.md` | Close Advisory A2 | Inbox/Triage focus | Archive handoff focus relies on setting `pendingArchiveFocusRef` after `finishScratchArchive` and before React flushes the selection change. Works and is covered by real-coordinator tests. | Task 178: review setting the ref before the store update (line in the Task 178 plan section). |
+| `Issues_Phase_41.md` | MI-2 | Inbox/Triage visual fidelity | Terminal Pool row hover turns the row light grey under green text (low contrast); pre-existing Terminal hover background. | Task 180: fix in the Terminal Pool row states (line in the Task 180 plan section). |
 
 ## Resolved Historical Deferrals
 

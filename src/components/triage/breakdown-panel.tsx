@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useContext,
   useEffect,
   useId,
   useLayoutEffect,
@@ -52,6 +53,10 @@ import {
   type ScratchTitleBlockerSnapshot,
 } from "@/hooks/use-scratch-breakdowns";
 import { useStagedCandidates } from "@/hooks/use-staged-candidates";
+import {
+  TrashDraftRegistryContext,
+  useTrashScratchEntries,
+} from "@/hooks/use-trash-scratch";
 import { useTriageDepartureContext } from "@/hooks/use-triage-departure";
 import { useTriageOperationLockContext } from "@/hooks/use-triage-operation-lock";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
@@ -68,6 +73,7 @@ import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { useTriageStore } from "@/stores/triage-store";
+import { scratchTrashDisabledCopy } from "./scratch-trash-dialog";
 
 type OpenEditorSnapshot = NonNullable<ConditionalEditorSnapshot>;
 
@@ -421,7 +427,10 @@ function InlineEditor({
     }
     if (
       nextTarget instanceof HTMLElement &&
-      (nextTarget.getAttribute("aria-label") === "Toggle theme" ||
+      // H17: a Scratch Trash entry keeps a dirty editor open and unsaved while
+      // its dialog is up; confirm discards it, Cancel leaves it as it was.
+      (nextTarget.closest("[data-scratch-trash-entry]") !== null ||
+        nextTarget.getAttribute("aria-label") === "Toggle theme" ||
         nextTarget.getAttribute("aria-label") === "Change color theme" ||
         (nextTarget.matches('button[aria-pressed]') &&
           nextTarget.closest('[role="dialog"]') !== null))
@@ -1453,6 +1462,34 @@ export function BreakdownPanel({
     [onAddDraftBlockerChange],
   );
 
+  const trashEntries = useTrashScratchEntries();
+  const registerTrashDraftOwner = useContext(TrashDraftRegistryContext);
+  const trashEditorRef = useRef(editor);
+  useLayoutEffect(() => {
+    trashEditorRef.current = editor;
+  });
+  const { hasAddDraft: readHasAddDraft } = departure;
+  useEffect(
+    () =>
+      registerTrashDraftOwner?.({
+        hasDiscardableWork: () =>
+          trashEditorRef.current.snapshot !== null || readHasAddDraft(),
+        discard: () => {
+          trashEditorRef.current.cancel();
+          addCompletionHoldRef.current = false;
+          setAddDraft("");
+          setNewContent("");
+          onAddDraftBlockerChange?.(false);
+        },
+      }),
+    [
+      onAddDraftBlockerChange,
+      readHasAddDraft,
+      registerTrashDraftOwner,
+      setAddDraft,
+    ],
+  );
+
   const reliabilityScopeRef = useRef({
     scratchBitId: selectedScratchId,
     operationIds: operations.map((operation) => operation.operationId),
@@ -1693,6 +1730,21 @@ export function BreakdownPanel({
     (completion !== undefined &&
       isConsumedCompletion &&
       completionPresentation === "overlay");
+  const trashReasonId = useId();
+  const trashEntryReason =
+    selectedScratchId === null
+      ? null
+      : (trashEntries?.disabledReason(selectedScratchId) ?? null);
+  const trashEntryReasonCopy =
+    trashEntryReason === null ? null : scratchTrashDisabledCopy(trashEntryReason);
+  // The strip is inert with the rest of the Breakdown while the completion
+  // overlay or the VQ-03 sheet is up.
+  const isTrashEntryDisabled =
+    trashEntries === null ||
+    selectedScratchId === null ||
+    trashEntryReason !== null ||
+    isDepartureDecision ||
+    isCompletionOverlayOpen;
   const isCompletionComplete =
     completion !== undefined &&
     isConsumedCompletion &&
@@ -2184,13 +2236,36 @@ export function BreakdownPanel({
           data-triage-state={isCompletionComplete ? "complete" : "working"}
           tabIndex={-1}
         >
-          <span aria-hidden="true" data-triage-role="context-title-strip">
-            <span data-triage-role="context-dialog-info">
+          <span data-triage-role="context-title-strip">
+            <span aria-hidden="true" data-triage-role="context-dialog-info">
               {INBOX_TRIAGE_COPY.contextPresentation.folderDialogInfo}
             </span>
-            <span data-triage-role="context-decoration-close">
+            <button
+              aria-describedby={
+                trashEntryReasonCopy === null ? undefined : trashReasonId
+              }
+              aria-label={
+                INBOX_TRIAGE_COPY.accessibleNames.moveSelectedScratchToTrash
+              }
+              data-scratch-trash-entry="context"
+              data-triage-role="context-decoration-close"
+              disabled={isTrashEntryDisabled}
+              title={
+                trashEntryReasonCopy ?? INBOX_TRIAGE_COPY.scratchTrash.tooltip
+              }
+              type="button"
+              onClick={(event) => {
+                if (selectedScratchId === null) return;
+                trashEntries?.request(selectedScratchId, event.currentTarget);
+              }}
+            >
               {INBOX_TRIAGE_COPY.contextPresentation.decorativeClose}
-            </span>
+            </button>
+            {trashEntryReasonCopy === null ? null : (
+              <span className="sr-only" id={trashReasonId}>
+                {trashEntryReasonCopy}
+              </span>
+            )}
           </span>
           <span aria-hidden="true" data-triage-role="context-identity-object">
             <Inbox className="h-5 w-5 flex-shrink-0 text-primary/70" data-triage-role="context-base-icon" />
@@ -2680,7 +2755,17 @@ export function BreakdownPanel({
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          className="breakdown-delete-dialog"
+          overlayClassName="breakdown-delete-dialog-overlay"
+        >
+          <span
+            aria-hidden="true"
+            className="breakdown-delete-dialog__mark"
+            data-triage-role="breakdown-delete-mark"
+          >
+            !
+          </span>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete breakdown?</AlertDialogTitle>
             <AlertDialogDescription>

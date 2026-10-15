@@ -15,7 +15,11 @@ export type ExternalScratchRemovalTerminalSnapshot = Readonly<{
   source: Bit | undefined;
 }>;
 
+type OwnTrashKey = Readonly<{ scratchId: string; expectedVersion: number }>;
+
 type ExternalScratchRemovalDataOptions = Readonly<{
+  /** This page's own in-flight/just-applied Trash markers (never an external removal). */
+  ownTrash?: readonly OwnTrashKey[];
   activeRemovalScratchId: string | null;
   selectedScratchId: string | null;
   unresolvedRemovalContext: Readonly<{ scratchId: string }> | null;
@@ -24,7 +28,19 @@ type ExternalScratchRemovalDataOptions = Readonly<{
 
 function classifyRemoval(
   scratch: Bit | undefined,
+  ownTrash: readonly OwnTrashKey[],
 ): ExternalScratchRemovalLifecycle | null {
+  if (
+    scratch !== undefined &&
+    scratch.deletedAt !== null &&
+    ownTrash.some(
+      (marker) =>
+        marker.scratchId === scratch.id &&
+        marker.expectedVersion + 1 === scratch.version,
+    )
+  ) {
+    return null;
+  }
   if (scratch?.archivedAt !== null && scratch?.archivedAt !== undefined) {
     return "archive";
   }
@@ -32,7 +48,10 @@ function classifyRemoval(
   return null;
 }
 
+const NO_OWN_TRASH: readonly OwnTrashKey[] = [];
+
 export function useExternalScratchRemovalData({
+  ownTrash = NO_OWN_TRASH,
   activeRemovalScratchId,
   selectedScratchId,
   unresolvedRemovalContext,
@@ -45,6 +64,10 @@ export function useExternalScratchRemovalData({
   ) => Promise<ExternalScratchRemovalTerminalSnapshot>;
 }> {
   const observationRef = useRef<ExternalScratchRemovalObservation | null>(null);
+  const ownTrashRef = useRef(ownTrash);
+  useEffect(() => {
+    ownTrashRef.current = ownTrash;
+  }, [ownTrash]);
   const [observation, setObservation] =
     useState<ExternalScratchRemovalObservation | null>(null);
 
@@ -64,7 +87,7 @@ export function useExternalScratchRemovalData({
       return dataStore.getBit(scratchId);
     }).subscribe({
       next: (scratch) => {
-        const lifecycle = classifyRemoval(scratch);
+        const lifecycle = classifyRemoval(scratch, ownTrashRef.current);
         if (lifecycle === null) return;
         const next = { scratchId, lifecycle } as const;
         observationRef.current = next;
@@ -89,7 +112,7 @@ export function useExternalScratchRemovalData({
       const dataStore = await getDataStore();
       const scratch = await dataStore.getBit(scratchId);
       if (cancelled) return;
-      const lifecycle = classifyRemoval(scratch) ?? "delete";
+      const lifecycle = classifyRemoval(scratch, ownTrashRef.current) ?? "delete";
       const next = { scratchId, lifecycle } as const;
       observationRef.current = next;
       setObservation(next);
