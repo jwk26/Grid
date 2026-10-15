@@ -258,10 +258,40 @@ families only and do not copy prototype literals or adjacent UI:
 | Claymorphism | Shape-preserving inset sheet with one raised primary action and restrained destructive secondary, without scale or bounce. |
 | Origami | Inline folded-paper strip with seam hierarchy and asymmetric primary/secondary folds, never a detached dialog card. |
 | Terminal | Variable-driven inline command block with exact copy and bracketed action treatment; no fixed color or blinking cursor/status effect. |
-| Retro Mac | In-flow 1-bit decision pane with hard border and default-button distinction; no window title bar, draggable dialog, or inversion cycling. |
+| Retro Mac | In-flow 1-bit decision pane with hard border and default-button distinction; no window title bar, draggable dialog, or inversion cycling. Exact realization in the Phase 41 supplement below. |
 | Graphite | Inline editorial note bounded by a strengthened rule, with solid primary and text-led destructive secondary actions. |
 
 Theme IDs never branch trigger logic, copy, action order, or focus behavior.
+
+### Phase 41 Retro Mac realization (2026-10-15, DECISION H13–H14)
+
+The sheet takes the visual family of the Retro Mac Archive alert while keeping
+every rule above: in-flow position under the Add row, exact copy, action
+order, alert-dialog semantics, focus and no motion.
+
+- Surface: background fill, `4px` double foreground border, radius `0`,
+  `6px 6px 0` foreground hard shadow (kept inside the Breakdown region
+  without clipping), the Context font, and a two-column layout: a `40px`
+  square `2px`-bordered `!` mark, then eyebrow, heading, description and
+  actions.
+- Eyebrow small bold uppercase-tracked like the Archive alert status line;
+  heading bold; description regular.
+- Actions are square, hard-bordered buttons. `Continue writing` carries the
+  default-button outline; `Discard and move` is a plain hard-bordered button,
+  not a red fill. Hover and focus use the Retro Mac inversion already used by
+  Breakdown row actions.
+- No scrim, portal, window title bar, drag, or close icon.
+
+### Phase 41 Retro Mac Breakdown Delete dialog (2026-10-15)
+
+The existing Breakdown row Delete confirmation (`AlertDialog`, title
+`Delete breakdown?`) renders in a portal outside `.triage-shell`, so Retro Mac
+CSS never reached it. Give it the class `breakdown-delete-dialog` and the same
+Retro Mac realization as the Scratch Trash dialog in the Scratch Pool recipe's
+Phase 41 supplement: Archive-alert scrim, `4px` double border, radius `0`,
+`6px 6px 0` hard shadow, Context font, `!` mark column, square hard-bordered
+buttons with the default-button outline on Cancel. Copy, behavior, locking and
+focus stay unchanged; other themes keep the current look.
 
 ## `DP-VQ04` Approved Breakdown-Content Inline Editor
 
