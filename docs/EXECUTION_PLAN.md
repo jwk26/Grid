@@ -2728,7 +2728,7 @@ the checkpoint (repository logic).
 
 **Commit message:** `feat(triage): add Trash Scratch command and coordinator`.
 
-### Task 210: [ ] Add the Pool Trash control, the Scratch Trash dialog, the Retro Mac Context [X] and the Retro Mac Breakdown Delete dialog
+### Task 210: [x] Add the Pool Trash control, the Scratch Trash dialog, the Retro Mac Context [X] and the Retro Mac Breakdown Delete dialog
 
 **Files and actions:**
 - `src/components/triage/scratch-pool.tsx` and test: expanded rows become a
