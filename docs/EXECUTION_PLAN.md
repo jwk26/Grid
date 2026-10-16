@@ -2691,7 +2691,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Commit message:** `feat(triage): realize neumorphism context-breakdown`.
 
-### Task 175: [ ] Realize Staging and drag presentation
+### Task 175: [x] Realize Staging and drag presentation
 
 **Files and actions:** bind L3's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-16): realize the L1 "Section header icons" clause for `neumorphism` here — `src/components/triage/triage-workspace.tsx` and `triage-workspace.test.tsx` may add the two aria-hidden heading icons, and `src/app/globals.css` shows them for `neumorphism` only; the L3 "Drop targets" clause applies, including the Breakdown Return overlay through `globals.css`. User-approved addition (2026-10-16, amended 2026-10-17): in `src/app/globals.css`, the accepted neumorphism Breakdown staged-row rules may change only to the staged-row look and contrast exception defined in the Breakdown row recipe's Neumorphism section; no JSX, copy or other Breakdown change. User-approved addition (2026-10-17): in `src/app/globals.css`, the neumorphism Remove-from-staging target and the Staging columns may take the drag-time layout defined in the Staging recipe's Neumorphism section, as an exception to the fixed list geometry in L3 "Drop targets"; no JSX, copy, delivery or other-theme change.
 
