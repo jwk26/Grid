@@ -151,6 +151,7 @@ candidate truth, Pool behavior, Explorer behavior, `DP-VQ02`, or `D-CARD`.
 - Observed source-only: source declares exact `grid-cols-[35fr_65fr]`; both wells use `20px` radius and inset shadows; candidates use raised card shadows. A rounded bottom return target is declared.
 - Adopted fact: inset Node/Bit wells and raised candidate objects are supported.
 - Token implication: reuse named inset/card shadows for zone/candidate roles; source internal handles are excluded.
+- User-adopted (2026-10-17), a Neumorphism exception to the fixed list geometry above: while the lower Remove-from-staging target is mounted (a staged drag), the Staging columns' bottom padding grows from `16px` to `68px`, so both wells end above it instead of under it; the target sits `16px` inside the Staging section's left, right and bottom edges, `40px` tall with `18px` radius, spanning the combined width of the two wells. The change is immediate — the source's height/opacity entry animation stays excluded. CSS only, scoped to `neumorphism`; copy, Unstage meaning, delivery and other themes are unchanged. It holds only while actual pointer drags deliver the correct target at the wells' lower edges and at the target's edges, including the Node/Bit neutral and unavailable states; if delivery is wrong, stop and return to the user.
 
 ### Claymorphism
 
