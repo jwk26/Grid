@@ -248,7 +248,7 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
   it("keeps theme ids out of the Pool markup and scopes the L1 look to the neumorphism root", () => {
     const source = readFileSync(join(process.cwd(), "src/components/triage/scratch-pool.tsx"), "utf8");
     expect(source).not.toMatch(/neumorphism/);
-    const l1 = css.slice(css.indexOf("/* Neumorphism L1 (Task 173)")).replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media[^{]*\{/g, "");
+    const l1 = css.slice(css.indexOf("/* Neumorphism L1 (Task 173)")).replace(/\/\*[\s\S]*?\*\//g, "").replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*\s*\}/g, "").replace(/@media[^{]*\{/g, "");
     for (const [, selector] of l1.matchAll(/(?:^|\})\s*([^{}@/][^{}]*)\{/g)) {
       expect(selector.trim()).toMatch(/^:root\[data-color-theme="neumorphism"\]/);
     }
@@ -293,6 +293,22 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
       expect(block).toContain("--theme-shadow-inset-xs:");
     }
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \.triage-fixed-context\[data-triage-state="complete"\] \[data-triage-role="context-identity-object"\]::before\s*\{[^}]*background: transparent;[^}]*border: 2px solid var\(--triage-context-marker-complete\)/);
+  });
+
+  it("Task174 Breakdown rows keep the raised shadow family, drop the staged fade, and end the success wash on the raised row", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+    const light = css.slice(css.indexOf(':root[data-color-theme="neumorphism"] {'));
+    const dark = css.slice(css.indexOf('.dark[data-color-theme="neumorphism"] {'));
+    for (const block of [light.slice(0, light.indexOf("\n}")), dark.slice(0, dark.indexOf("\n}"))]) {
+      expect(block).toContain("--theme-shadow-card-hover:");
+    }
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \[data-triage-role="breakdown-staged-row"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);[^}]*opacity: 1;/);
+    expect(css).toMatch(/\[data-triage-role="breakdown-active-row"\]\[data-triage-state="active"\]:hover \{\s*box-shadow: var\(--theme-shadow-card-hover\);/);
+    expect(css).toMatch(/--breakdown-success-rest-shadow: var\(--theme-shadow-card\);/);
+    expect(css).toMatch(/@keyframes breakdown-success-wash-neumorphism \{[\s\S]*?to \{[^}]*box-shadow: var\(--breakdown-success-rest-shadow\);/);
+    expect(css).toMatch(/\[data-triage-role="breakdown-ordinary-empty"\] > \[data-triage-role="breakdown-empty-object"\] \{[^}]*block-size: 112px;[^}]*box-shadow: var\(--theme-shadow-inset\);/);
+    expect(css).toMatch(/\[data-triage-role="breakdown-consumed-completion"\] > \[data-triage-role="breakdown-empty-object"\] \{[^}]*block-size: 64px;[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \.triage-fixed-breakdown-row \{[^}]*column-gap: 12px;/);
   });
 });
 
