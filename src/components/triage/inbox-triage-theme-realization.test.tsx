@@ -318,6 +318,19 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     expect(css).toMatch(/pool-row-trash-action"\]:not\(:disabled\):hover \{[^}]*box-shadow: var\(--theme-shadow-card\);[^}]*var\(--triage-pool-destructive-ink\)/);
     expect(css).toMatch(/pool-row-trash-action"\]:not\(:disabled\):active \{\s*box-shadow: var\(--theme-shadow-inset-sm\);/);
   });
+
+  it("Task174 Stage 3 realizes the editors, reliability lines, departure sheet and Delete dialog from the shared shadow family", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+    expect(css).toMatch(/color-theme="neumorphism"\] :is\(\.scratch-trash-dialog, \.breakdown-delete-dialog\) \{/);
+    expect(css).toMatch(/color-theme="neumorphism"\] :is\(\.scratch-trash-dialog-overlay, \.breakdown-delete-dialog-overlay\) \{/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-inline-editor__field \{[^}]*border-radius: 999px;[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.breakdown-reliability \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.breakdown-reliability__action \{[^}]*box-shadow: var\(--theme-shadow-card-xs\);/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.breakdown-departure-sheet \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
+    expect(css).toMatch(/\[data-triage-role="breakdown-departure-continue"\]:active \{\s*background-color: var\(--page-bg\);\s*box-shadow: var\(--theme-shadow-card\);\s*color: var\(--triage-pool-sort-active\);/);
+    // The shared red bracket (inset 3px destructive stub) is cleared on the neumorphism Discard action.
+    expect(css).toMatch(/color-theme="neumorphism"\] \.breakdown-departure-sheet__discard:active \{\s*background-color: transparent;\s*box-shadow: none;\s*color: var\(--triage-pool-destructive-ink\);/);
+  });
 });
 
 describe("Task167 L2 shared theme conformance", () => {
