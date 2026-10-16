@@ -6323,3 +6323,146 @@
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
+
+/* Neumorphism L1, collapsed rail: inset icon well with a bare count, raised expand
+   control and inset switcher dots; the selected switcher is a raised bar. */
+:root[data-color-theme="neumorphism"] .scratch-pool[data-triage-state="collapsed"] .scratch-pool__compact-tools {
+  gap: 12px;
+  padding: 16px 8px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__compact-tools > div > svg {
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.75);
+  inline-size: 28px;
+  padding: 6px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool[data-triage-state="collapsed"] [data-triage-role="pool-total-count"] {
+  background: transparent;
+  box-shadow: none;
+  color: hsl(var(--foreground) / 0.6);
+  font-size: 9px;
+  letter-spacing: 0;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__compact-tools .scratch-pool__toggle {
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.6);
+  display: grid;
+  inline-size: 28px;
+  padding: 0;
+  place-items: center;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__compact-tools .scratch-pool__toggle svg { block-size: 14px; inline-size: 14px; }
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"] {
+  background: transparent;
+  block-size: 32px;
+  border-radius: 0;
+  box-shadow: none;
+  inline-size: 32px;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]::before {
+  background: hsl(var(--foreground) / 0.12);
+  block-size: 12px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  content: "";
+  inline-size: 12px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"][aria-pressed="true"]::before {
+  background: hsl(var(--foreground) / 0.75);
+  block-size: 32px;
+  box-shadow: var(--theme-shadow-card);
+  inline-size: 8px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:hover::before { transform: scale(1.1); }
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:focus-visible {
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__toggle:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__compact-list > [role="group"] { gap: 8px; }
+
+/* Neumorphism L1, Phase 41 surfaces (no prototype source; proposed look, set by the
+   user's disposition): the Pool row Trash control and the Scratch Trash dialog. */
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"] {
+  background: transparent;
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.6);
+  inline-size: 28px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:not(:disabled):hover {
+  background: transparent;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: color-mix(in srgb, hsl(var(--destructive)) 75%, hsl(var(--foreground)));
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:disabled {
+  box-shadow: none;
+  opacity: 0.5;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__row.scratch-pool__row--with-trash { padding-inline-end: 48px; }
+:root[data-color-theme="neumorphism"] .scratch-pool__trash { right: 10px; }
+
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog-overlay {
+  background: hsl(var(--background) / 0.7);
+  backdrop-filter: blur(2px);
+}
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: var(--theme-radius);
+  box-shadow: var(--theme-shadow);
+  font-family: var(--theme-font);
+  padding: 28px;
+}
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog [data-slot="alert-dialog-title"] {
+  color: hsl(var(--foreground) / 0.85);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog [data-slot="alert-dialog-description"] {
+  color: hsl(var(--foreground) / 0.7);
+}
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog__state:not(:empty) {
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  padding: 6px 16px;
+}
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog button {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.8);
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog button[data-variant="destructive"],
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog button.bg-destructive {
+  color: color-mix(in srgb, hsl(var(--destructive)) 75%, hsl(var(--foreground)));
+}
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog button:not(:disabled):active { box-shadow: var(--theme-shadow-inset-sm); }
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog button:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog button:disabled {
+  box-shadow: none;
+  opacity: 0.5;
+}
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog__content { min-inline-size: 0; }
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog [data-triage-role="scratch-trash-body"] { overflow-wrap: anywhere; }

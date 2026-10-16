@@ -218,6 +218,33 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     expect(screen.getByTestId("scratch-pool").querySelector('[data-triage-role="pool-total-count"]')).toHaveTextContent(/^2$/);
   });
 
+  it("keeps theme ids out of the Pool markup and scopes the L1 look to the neumorphism root", () => {
+    const source = readFileSync(join(process.cwd(), "src/components/triage/scratch-pool.tsx"), "utf8");
+    expect(source).not.toMatch(/neumorphism/);
+    const l1 = css.slice(css.indexOf("/* Neumorphism L1 (Task 173)")).replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const [, selector] of l1.matchAll(/(?:^|\})\s*([^{}@/][^{}]*)\{/g)) {
+      expect(selector.trim()).toMatch(/^:root\[data-color-theme="neumorphism"\]/);
+    }
+  });
+
+  it("keeps the Pool row Trash control a sibling of the selection button with its own role", () => {
+    render(<ScratchPool />);
+    const pool = screen.getByTestId("scratch-pool");
+    for (const row of pool.querySelectorAll('[data-triage-role="pool-row-container"]')) {
+      const selection = row.querySelector('[data-triage-role="pool-row"], [data-triage-role="pool-selected-row"]');
+      expect(selection?.querySelector("button")).toBeNull();
+    }
+  });
+
+  it("keeps collapsed switchers as one labelled group with the selected one pressed", () => {
+    useTriageStore.setState({ scratchPoolExpanded: false });
+    render(<ScratchPool />);
+    const group = screen.getByRole("group", { name: "Switch scratch" });
+    const switchers = within(group).getAllByRole("button");
+    expect(switchers.map((button) => button.getAttribute("aria-pressed"))).toContain("true");
+    expect(switchers.every((button) => button.getAttribute("data-triage-role") === "pool-compact-switcher")).toBe(true);
+  });
+
   it("defines the sort accent in both modes with distinct readable values and consumes it from a scoped rule", () => {
     const light = css.slice(css.indexOf(':root[data-color-theme="neumorphism"] {'));
     const dark = css.slice(css.indexOf('.dark[data-color-theme="neumorphism"] {'));
