@@ -301,6 +301,7 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     const dark = css.slice(css.indexOf('.dark[data-color-theme="neumorphism"] {'));
     for (const block of [light.slice(0, light.indexOf("\n}")), dark.slice(0, dark.indexOf("\n}"))]) {
       expect(block).toContain("--theme-shadow-card-hover:");
+      expect(block).toContain("--triage-breakdown-grip-hover-bg:");
     }
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \[data-triage-role="breakdown-staged-row"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);[^}]*opacity: 1;/);
     expect(css).toMatch(/\[data-triage-role="breakdown-active-row"\]\[data-triage-state="active"\]:hover \{\s*box-shadow: var\(--theme-shadow-card-hover\);/);
@@ -309,6 +310,8 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     expect(css).toMatch(/\[data-triage-role="breakdown-ordinary-empty"\] > \[data-triage-role="breakdown-empty-object"\] \{[^}]*block-size: 112px;[^}]*box-shadow: var\(--theme-shadow-inset\);/);
     expect(css).toMatch(/\[data-triage-role="breakdown-consumed-completion"\] > \[data-triage-role="breakdown-empty-object"\] \{[^}]*block-size: 64px;[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \.triage-fixed-breakdown-row \{[^}]*column-gap: 12px;/);
+    expect(css).toMatch(/\[data-triage-role="breakdown-grip-control"\] \{\s*box-shadow: var\(--theme-shadow-card-xs\);/);
+    expect(css).toMatch(/\[data-triage-role="breakdown-grip-control"\]:not\(:disabled\):hover \{\s*background: var\(--triage-breakdown-grip-hover-bg\);/);
   });
 });
 

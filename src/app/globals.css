@@ -522,6 +522,7 @@
   /* L2: Selected Scratch Context marker (non-text) and one more shadow step. */
   --theme-shadow-inset-xs: inset 2px 2px 4px #c5c9d1, inset -2px -2px 4px #ffffff;
   --theme-shadow-card-hover: 7px 7px 14px #c5c9d1, -7px -7px 14px #ffffff;
+  --triage-breakdown-grip-hover-bg: color-mix(in srgb, var(--page-bg) 55%, white);
   --triage-context-marker-working: #2fbf8f;
   --triage-context-marker-complete: hsl(var(--foreground) / 0.45);
 
@@ -558,6 +559,7 @@
   --triage-pool-destructive-ink: #ff8f86;
   --theme-shadow-inset-xs: inset 2px 2px 4px #0b0b0b, inset -2px -2px 4px #292929;
   --theme-shadow-card-hover: 7px 7px 14px #0b0b0b, -7px -7px 14px #292929;
+  --triage-breakdown-grip-hover-bg: color-mix(in srgb, var(--page-bg) 92%, white);
   --triage-context-marker-working: #4fd6a8;
   --triage-context-marker-complete: hsl(var(--foreground) / 0.5);
   --calendar-cell-shadow: 4px 4px 8px #080808, -4px -4px 8px #181818;
@@ -6655,7 +6657,17 @@
   color: hsl(var(--foreground) / 0.65);
 }
 :root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"] {
-  box-shadow: var(--theme-shadow-inset-xs);
+  box-shadow: var(--theme-shadow-card-xs);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"]:not(:disabled):hover {
+  background: var(--triage-breakdown-grip-hover-bg);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"]:not(:disabled):hover svg {
+  color: hsl(var(--foreground) / 0.85);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"]:not(:disabled):not(.transition-none) svg {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: color;
 }
 :root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-action-slot"] { gap: 8px; }
 :root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"] svg { color: hsl(var(--foreground) / 0.6); }
@@ -6684,7 +6696,7 @@
 }
 :root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="breakdown-grip-control"], [data-triage-role="breakdown-row-action"]):not(:disabled):not(.transition-none) {
   transition-duration: var(--triage-pool-motion-duration);
-  transition-property: box-shadow, transform, color;
+  transition-property: box-shadow, transform, color, background-color;
   transition-timing-function: ease-out;
 }
 :root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-row-action"]:not(:disabled):not(.transition-none):hover {
