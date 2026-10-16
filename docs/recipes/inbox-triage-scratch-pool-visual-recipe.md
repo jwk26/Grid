@@ -249,6 +249,8 @@ resume, dismiss, or otherwise mutate the transition.
 - Observed source-only: width transitions between `w-72` and `w-16`; search uses `h-9 rounded-full` with `--theme-shadow-inset`; sort is a two-position `112px` inset capsule with a `50px` raised thumb; rows use `18px` radius and card/inset shadows.
 - Adopted fact: inset tools and raised selected list/switcher surfaces are supported.
 - Token implication: Pool search well, segmented sort, selected row, and compact indicator should consume the existing neumorphic shadow variants.
+- User-adopted (Task 173, 2026-10-16): the sort capsule shows two fixed track labels, `OLD` then `NEW`, and the raised thumb sits under the current order (`OLD` = ASC/oldest first, `NEW` = DESC/newest first). The labels come from `INBOX_TRIAGE_COPY`, are visual only, and the control stays one toggle button whose accessible name and title keep the existing `sortOldestFirst`/`sortNewestFirst` copy. Other themes keep their current sort presentation, including Retro Mac's next-order badge.
+- User-adopted motion (Task 173, 2026-10-16): the thumb slides between the two positions, unselected rows lift on hover, and collapsed switcher dots scale on hover, each as a transform transition timed by `--triage-pool-motion-duration`. All three are off when the app or the OS asks for reduced motion. This adopts these three motions only; no source spring or other source motion is adopted.
 
 ### Claymorphism
 

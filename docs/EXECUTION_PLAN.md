@@ -2640,7 +2640,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 ### Task 173: [ ] Fix the common frame and realize Scratch Pool
 
-**Files and actions:** bind L1's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L1's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-16): `src/lib/copy/inbox-triage.ts` may gain only the two visual sort-capsule labels `OLD`/`NEW` defined in the Scratch Pool recipe's Neumorphism section; no other copy changes.
 
 **Dependencies:** Task 172 accepted and actual Phase 34 Final Close/main sync; Tasks 209–212 accepted and actual Phase 41 close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
