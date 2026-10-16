@@ -1,7 +1,7 @@
 "use client";
 
 import { DndContext, DragOverlay, useDroppable, type Modifier } from "@dnd-kit/core";
-import { Monitor, Trash2, X } from "lucide-react";
+import { CircleDot, FileText, Monitor, Trash2, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -2215,6 +2215,7 @@ function TriageWorkspaceContent({
                 id="triage-breakdown-heading"
                 tabIndex={-1}
               >
+                <FileText aria-hidden="true" className="triage-shell__heading-icon" data-triage-role="breakdown-heading-icon" />
                 <span className="triage-shell__heading-label">{INBOX_TRIAGE_COPY.sectionNames.breakdown}</span>
               </h2>
               <div
@@ -2256,6 +2257,7 @@ function TriageWorkspaceContent({
                 id="triage-staging-heading"
                 tabIndex={-1}
               >
+                <CircleDot aria-hidden="true" className="triage-shell__heading-icon" data-triage-role="staging-heading-icon" />
                 <span className="triage-shell__heading-label">{INBOX_TRIAGE_COPY.sectionNames.staging}</span>
               </h2>
               {stagingAlert !== null ? (

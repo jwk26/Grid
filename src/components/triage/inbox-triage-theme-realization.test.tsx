@@ -303,7 +303,8 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
       expect(block).toContain("--theme-shadow-card-hover:");
       expect(block).toContain("--triage-breakdown-grip-hover-bg:");
     }
-    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \[data-triage-role="breakdown-staged-row"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);[^}]*opacity: 1;/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \[data-triage-role="breakdown-staged-row"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);[^}]*opacity: 0\.35;/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \[data-triage-role="breakdown-staged-row"\] :is\(\[data-triage-role="breakdown-grip-control"\], \[data-triage-role="breakdown-row-action"\]\):disabled \{\s*opacity: 0\.1;/);
     expect(css).toMatch(/\[data-triage-role="breakdown-active-row"\]\[data-triage-state="active"\]:hover \{\s*box-shadow: var\(--theme-shadow-card-hover\);/);
     expect(css).toMatch(/--breakdown-success-rest-shadow: var\(--theme-shadow-card\);/);
     expect(css).toMatch(/@keyframes breakdown-success-wash-neumorphism \{[\s\S]*?to \{[^}]*box-shadow: var\(--breakdown-success-rest-shadow\);/);

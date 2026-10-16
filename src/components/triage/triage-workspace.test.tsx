@@ -1350,6 +1350,23 @@ describe("TriageWorkspace", () => {
     });
   });
 
+  it("mounts one aria-hidden heading icon per section without changing heading names", () => {
+    render(<TriageWorkspace node={createNode()} />);
+
+    const breakdown = screen.getByRole("heading", { name: "Breakdown" });
+    const staging = screen.getByRole("heading", { name: "Staging" });
+    expect(breakdown.querySelector('[data-triage-role="breakdown-heading-icon"]')).toHaveAttribute("aria-hidden", "true");
+    expect(staging.querySelector('[data-triage-role="staging-heading-icon"]')).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("hides the heading icons by default and shows them for neumorphism only", () => {
+    expect(globalsCss).toMatch(/\.triage-shell__heading-icon \{ display: none; \}/);
+    const shown = globalsCss.match(/[^\n]*\n?[^\n{]*\[data-triage-role="breakdown-heading-icon"\][^{]*\{[^}]*display: block;/g) ?? [];
+    expect(shown).toHaveLength(1);
+    expect(shown[0]).toContain(':root[data-color-theme="neumorphism"]');
+    expect(globalsCss).not.toMatch(/color-theme="(?!neumorphism)[a-z-]+"\][^{]*heading-icon/);
+  });
+
   it("binds the static Staging status family to reduced motion and all eight themes", () => {
     expect(globalsCss).toContain(".staging-operation-status");
     expect(globalsCss).toContain(".staging-arrival-count");
