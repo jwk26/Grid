@@ -212,6 +212,33 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     expect(flipped).toHaveAttribute("data-triage-state", "asc");
   });
 
+  it("renders fixed OLD/NEW track labels from the copy owner inside the single sort button", () => {
+    render(<ScratchPool />);
+    const sort = screen.getByRole("button", { name: INBOX_TRIAGE_COPY.baseActions.sortNewestFirst });
+    const track = sort.querySelector(".scratch-pool__sort-track");
+    expect(track).toHaveAttribute("aria-hidden", "true");
+    expect([...track!.children].map((node) => node.textContent)).toEqual([
+      INBOX_TRIAGE_COPY.baseActions.sortTrackOld,
+      INBOX_TRIAGE_COPY.baseActions.sortTrackNew,
+    ]);
+    expect(INBOX_TRIAGE_COPY.baseActions.sortTrackOld).toBe("OLD");
+    expect(INBOX_TRIAGE_COPY.baseActions.sortTrackNew).toBe("NEW");
+    expect(css).toMatch(/\.scratch-pool__sort-track \{ display: var\(--triage-pool-sort-track-display, none\); \}/);
+  });
+
+  it("gates the neumorphism Pool transitions behind the app reduced-motion class and the OS query", () => {
+    for (const target of ['.scratch-pool__sort:not(.transition-none)::before', '.scratch-pool__row:not(.transition-none)', '[data-triage-role="pool-compact-switcher"]:not(.transition-none)::before']) {
+      expect(css).toContain(target);
+    }
+    expect(css).toMatch(/prefers-reduced-motion: reduce\) \{\s*:root\[data-color-theme="neumorphism"\] \.scratch-pool__row\[data-triage-state="default"\]:hover/);
+    expect(css).toMatch(/scratch-pool__sort-direction \{\s*display: var\(--triage-pool-sort-badge-display, none\)/);
+  });
+
+  it("wraps a long Scratch Trash title inside the dialog card for every theme", () => {
+    expect(css).toMatch(/^\.scratch-trash-dialog__content \{ min-inline-size: 0; \}$/m);
+    expect(css).toMatch(/^\.scratch-trash-dialog \[data-triage-role="scratch-trash-body"\] \{ overflow-wrap: anywhere; \}$/m);
+  });
+
   it("adds no visible copy through CSS content on the Pool count", () => {
     expect(css).not.toMatch(/pool-total-count"\]::(?:after|before)/);
     render(<ScratchPool />);
@@ -221,7 +248,7 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
   it("keeps theme ids out of the Pool markup and scopes the L1 look to the neumorphism root", () => {
     const source = readFileSync(join(process.cwd(), "src/components/triage/scratch-pool.tsx"), "utf8");
     expect(source).not.toMatch(/neumorphism/);
-    const l1 = css.slice(css.indexOf("/* Neumorphism L1 (Task 173)")).replace(/\/\*[\s\S]*?\*\//g, "");
+    const l1 = css.slice(css.indexOf("/* Neumorphism L1 (Task 173)")).replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media[^{]*\{/g, "");
     for (const [, selector] of l1.matchAll(/(?:^|\})\s*([^{}@/][^{}]*)\{/g)) {
       expect(selector.trim()).toMatch(/^:root\[data-color-theme="neumorphism"\]/);
     }
@@ -250,7 +277,10 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     const dark = css.slice(css.indexOf('.dark[data-color-theme="neumorphism"] {'));
     expect(light.slice(0, light.indexOf("\n}"))).toContain("--triage-pool-sort-active: #3f4fd0;");
     expect(dark.slice(0, dark.indexOf("\n}"))).toContain("--triage-pool-sort-active: #9aa6ff;");
-    expect(css).toMatch(/color-theme="neumorphism"\] \.scratch-pool__sort-direction \{[^}]*var\(--triage-pool-sort-active/);
+    expect(light.slice(0, light.indexOf("\n}"))).toContain("--triage-pool-sort-inactive: #566070;");
+    expect(dark.slice(0, dark.indexOf("\n}"))).toContain("--triage-pool-sort-inactive: #9aa1ae;");
+    expect(css).toMatch(/\.scratch-pool__row:not\(\.transition-none\) \{\s*transition-duration: var\(--triage-pool-motion-duration\);/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.scratch-pool__sort\[data-triage-state="asc"\][^{]*\{[^}]*var\(--triage-pool-sort-active\)/);
   });
 });
 

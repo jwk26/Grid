@@ -454,6 +454,7 @@
   --theme-shadow-inset: inset 6px 6px 12px #c5c9d1, inset -6px -6px 12px #ffffff;
   --theme-shadow-inset-sm: inset 3px 3px 6px #c5c9d1, inset -3px -3px 6px #ffffff;
   --theme-shadow-card: 5px 5px 10px #c5c9d1, -5px -5px 10px #ffffff;
+  --theme-shadow-card-xs: 2px 2px 4px #c5c9d1, -2px -2px 4px #ffffff;
 
   /* L1: common frame and Scratch Pool roles. */
   --triage-frame-gap: 1.25rem;
@@ -511,8 +512,11 @@
   --triage-pool-selected-marker-display: none;
   --triage-pool-sort-icon-display: none;
   --triage-pool-sort-label-display: none;
-  --triage-pool-sort-badge-display: inline-flex;
+  --triage-pool-sort-badge-display: none;
+  --triage-pool-sort-track-display: grid;
   --triage-pool-sort-active: #3f4fd0;
+  --triage-pool-sort-inactive: #566070;
+  --triage-pool-destructive-ink: #b3261e;
   --triage-pool-motion-duration: 150ms;
 
   --calendar-cell-bg: var(--page-bg);
@@ -542,7 +546,10 @@
   --theme-shadow-inset: inset 5px 5px 10px #0b0b0b, inset -5px -5px 10px #292929;
   --theme-shadow-inset-sm: inset 3px 3px 6px #0b0b0b, inset -3px -3px 6px #292929;
   --theme-shadow-card: 5px 5px 10px #0b0b0b, -5px -5px 10px #292929;
+  --theme-shadow-card-xs: 2px 2px 4px #0b0b0b, -2px -2px 4px #292929;
   --triage-pool-sort-active: #9aa6ff;
+  --triage-pool-sort-inactive: #9aa1ae;
+  --triage-pool-destructive-ink: #ff8f86;
   --calendar-cell-shadow: 4px 4px 8px #080808, -4px -4px 8px #181818;
   --calendar-today-shadow: inset 4px 4px 8px #080808, inset -4px -4px 8px #181818;
 }
@@ -1359,6 +1366,7 @@
 .scratch-pool__sort:hover { background: var(--triage-pool-sort-hover-background, hsl(var(--muted))); }
 .scratch-pool__sort-icon { display: var(--triage-pool-sort-icon-display, block); }
 .scratch-pool__sort-label { display: var(--triage-pool-sort-label-display, none); }
+.scratch-pool__sort-track { display: var(--triage-pool-sort-track-display, none); }
 .scratch-pool__sort-direction {
   display: var(--triage-pool-sort-badge-display, none);
   background: var(--triage-pool-sort-badge-background, hsl(var(--background)));
@@ -4316,8 +4324,7 @@
 
 :root[data-color-theme="neumorphism"] .pool-status-band {
   border-radius: var(--theme-radius);
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
+  box-shadow: var(--theme-shadow-inset-sm);
 }
 
 :root[data-color-theme="neumorphism"] .pool-activity-marker {
@@ -6051,6 +6058,9 @@
 .scratch-pool__row.scratch-pool__row--with-trash { padding-inline-end: 40px; }
 .scratch-trash-dialog__mark,
 .breakdown-delete-dialog__mark { display: none; }
+/* A long unbreakable Scratch title wraps inside the card instead of pushing the footer off screen. */
+.scratch-trash-dialog__content { min-inline-size: 0; }
+.scratch-trash-dialog [data-triage-role="scratch-trash-body"] { overflow-wrap: anywhere; }
 
 /* The [X] is a control only where a theme shows the strip (Retro Mac); elsewhere the strip stays display:none. */
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-title-strip"] [data-triage-role="context-decoration-close"] {
@@ -6281,25 +6291,41 @@
   position: relative;
 }
 :root[data-color-theme="neumorphism"] .scratch-pool__sort:hover { background: transparent; }
-:root[data-color-theme="neumorphism"] .scratch-pool__sort-direction {
-  align-items: center;
+:root[data-color-theme="neumorphism"] .scratch-pool__sort::before {
   background: var(--page-bg);
   block-size: 28px;
-  border: 0;
   border-radius: 999px;
   box-shadow: var(--theme-shadow-card);
-  color: var(--triage-pool-sort-active, hsl(var(--foreground)));
-  font-size: 9px;
-  font-weight: 800;
-  inline-size: 62px;
-  justify-content: center;
-  letter-spacing: 0.04em;
-  padding: 0;
+  content: "";
+  inline-size: 50px;
+  inset-block-start: 4px;
+  inset-inline-start: 4px;
   position: absolute;
-  top: 4px;
 }
-:root[data-color-theme="neumorphism"] .scratch-pool__sort[data-triage-state="asc"] .scratch-pool__sort-direction { left: 4px; }
-:root[data-color-theme="neumorphism"] .scratch-pool__sort[data-triage-state="desc"] .scratch-pool__sort-direction { right: 4px; }
+:root[data-color-theme="neumorphism"] .scratch-pool__sort[data-triage-state="desc"]::before { transform: translateX(54px); }
+:root[data-color-theme="neumorphism"] .scratch-pool__sort:not(.transition-none)::before {
+  transition: transform var(--triage-pool-motion-duration) ease-out;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort-track {
+  gap: 4px;
+  grid-template-columns: 50px 50px;
+  position: relative;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort-track > span {
+  align-items: center;
+  block-size: 28px;
+  color: var(--triage-pool-sort-inactive);
+  display: flex;
+  font-size: 9px;
+  font-weight: 700;
+  justify-content: center;
+  letter-spacing: 0.08em;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort[data-triage-state="asc"] .scratch-pool__sort-track > span:first-child,
+:root[data-color-theme="neumorphism"] .scratch-pool__sort[data-triage-state="desc"] .scratch-pool__sort-track > span:last-child {
+  color: var(--triage-pool-sort-active);
+  font-weight: 800;
+}
 :root[data-color-theme="neumorphism"] .scratch-pool__sort:focus-visible {
   box-shadow: var(--theme-shadow-inset), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
 }
@@ -6311,7 +6337,12 @@
   box-shadow: var(--theme-shadow-card);
 }
 :root[data-color-theme="neumorphism"] .scratch-pool__row[data-triage-state="selected"] { box-shadow: var(--theme-shadow-inset); }
-:root[data-color-theme="neumorphism"] .scratch-pool__row[data-triage-state="default"]:hover { transform: translateY(-2px); }
+:root[data-color-theme="neumorphism"] .scratch-pool__row:not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__row:not(.transition-none)[data-triage-state="default"]:hover { transform: translateY(-2px); }
 :root[data-color-theme="neumorphism"] .scratch-pool__row:focus-visible {
   box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
 }
@@ -6381,7 +6412,10 @@
   box-shadow: var(--theme-shadow-card);
   inline-size: 8px;
 }
-:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:hover::before { transform: scale(1.1); }
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:not(.transition-none)::before {
+  transition: transform var(--triage-pool-motion-duration) ease-out;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:not(.transition-none):hover::before { transform: scale(1.1); }
 :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:focus-visible {
   border-radius: 999px;
   box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
@@ -6404,7 +6438,7 @@
 :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:not(:disabled):hover {
   background: transparent;
   box-shadow: var(--theme-shadow-inset-sm);
-  color: color-mix(in srgb, hsl(var(--destructive)) 75%, hsl(var(--foreground)));
+  color: var(--triage-pool-destructive-ink);
 }
 :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:focus-visible {
   box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
@@ -6453,7 +6487,7 @@
 }
 :root[data-color-theme="neumorphism"] .scratch-trash-dialog button[data-variant="destructive"],
 :root[data-color-theme="neumorphism"] .scratch-trash-dialog button.bg-destructive {
-  color: color-mix(in srgb, hsl(var(--destructive)) 75%, hsl(var(--foreground)));
+  color: var(--triage-pool-destructive-ink);
 }
 :root[data-color-theme="neumorphism"] .scratch-trash-dialog button:not(:disabled):active { box-shadow: var(--theme-shadow-inset-sm); }
 :root[data-color-theme="neumorphism"] .scratch-trash-dialog button:focus-visible {
@@ -6464,5 +6498,25 @@
   box-shadow: none;
   opacity: 0.5;
 }
-:root[data-color-theme="neumorphism"] .scratch-trash-dialog__content { min-inline-size: 0; }
-:root[data-color-theme="neumorphism"] .scratch-trash-dialog [data-triage-role="scratch-trash-body"] { overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] .scratch-pool__row[data-triage-state="default"]:hover,
+  :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:hover::before { transform: none; }
+  :root[data-color-theme="neumorphism"] .scratch-pool__sort::before { transition: none; }
+}
+:root[data-color-theme="neumorphism"] .scratch-pool .pool-status-band {
+  margin: 0 12px 8px;
+  padding: 8px 14px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool .pool-status-action {
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  padding: 2px 10px;
+  text-decoration: none;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool .pool-status-action:not(:disabled):active { box-shadow: var(--theme-shadow-inset-sm); }
+:root[data-color-theme="neumorphism"] .scratch-pool__no-match {
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  padding: 14px 16px;
+}

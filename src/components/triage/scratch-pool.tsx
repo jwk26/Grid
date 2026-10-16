@@ -594,6 +594,10 @@ export function ScratchPool() {
               <span className="scratch-pool__sort-direction" aria-hidden="true">
                 {poolCreatedAtSort === "ASC" ? "NEW FIRST" : "OLD FIRST"}
               </span>
+              <span className="scratch-pool__sort-track" aria-hidden="true">
+                <span>{INBOX_TRIAGE_COPY.baseActions.sortTrackOld}</span>
+                <span>{INBOX_TRIAGE_COPY.baseActions.sortTrackNew}</span>
+              </span>
             </button>
           </div>
 

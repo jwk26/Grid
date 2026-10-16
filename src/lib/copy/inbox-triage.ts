@@ -53,6 +53,8 @@ export interface InboxTriageCopy {
     readonly collapseScratchPool: string;
     readonly sortNewestFirst: string;
     readonly sortOldestFirst: string;
+    readonly sortTrackOld: string;
+    readonly sortTrackNew: string;
   };
   readonly validation: {
     readonly scratchTitleRequired: InboxTriageCopyValue;
@@ -447,6 +449,8 @@ export const INBOX_TRIAGE_COPY = {
     collapseScratchPool: "Collapse Scratch Pool",
     sortNewestFirst: "Sort: newest first",
     sortOldestFirst: "Sort: oldest first",
+    sortTrackOld: "OLD",
+    sortTrackNew: "NEW",
   },
   validation: {
     scratchTitleRequired: "Enter a Scratch title.",

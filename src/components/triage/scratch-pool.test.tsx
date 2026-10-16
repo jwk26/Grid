@@ -169,7 +169,7 @@ describe("ScratchPool", () => {
     }
     expect(globalsCss.match(family)).not.toBeNull();
     expect(globalsCss).toMatch(
-      /:root\[data-color-theme="neumorphism"\] \.pool-status-band \{[\s\S]*box-shadow: inset 3px 3px 6px hsl\(var\(--foreground\) \/ 0\.12\),[\s\S]*inset -3px -3px 6px hsl\(var\(--background\) \/ 0\.86\);/,
+      /:root\[data-color-theme="neumorphism"\] \.pool-status-band \{[\s\S]*box-shadow: var\(--theme-shadow-inset-sm\);/,
     );
     expect(globalsCss).toMatch(
       /:root\[data-color-theme="claymorphism"\] \.pool-status-band \{[\s\S]*box-shadow: inset 2px 2px 5px hsl\(var\(--foreground\) \/ 0\.12\),[\s\S]*inset -2px -2px 5px hsl\(var\(--background\) \/ 0\.8\);/,

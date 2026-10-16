@@ -30,6 +30,8 @@ describe("Inbox/Triage core-English copy", () => {
       collapseScratchPool: "Collapse Scratch Pool",
       sortNewestFirst: "Sort: newest first",
       sortOldestFirst: "Sort: oldest first",
+      sortTrackOld: "OLD",
+      sortTrackNew: "NEW",
     });
   });
 
