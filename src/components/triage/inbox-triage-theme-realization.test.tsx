@@ -428,6 +428,26 @@ describe("one shared date body across all theme consumers", () => {
 });
 
 
+describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+
+  it("skins Remove and Return statically with opaque inset surfaces", () => {
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__remove,\s*:root\[data-color-theme="neumorphism"\] \.triage-breakdown__return \{[^}]*background: var\(--page-bg\);[^}]*box-shadow: var\(--theme-shadow-inset-sm\);[^}]*transition: none;/);
+    expect(css).toMatch(/\.triage-staging__remove\[data-triage-state="active-hover"\],\s*:root\[data-color-theme="neumorphism"\] \.triage-breakdown__return\[data-drop-active="true"\] \{[^}]*background: color-mix\(in srgb, var\(--page-bg\) 91%[^}]*box-shadow: var\(--theme-shadow-inset\);/);
+    expect(css).not.toMatch(/color-theme="neumorphism"\] \.triage-breakdown__return[^{]*\{[^}]*(?:opacity|[^-]transform:|animation)/);
+  });
+
+  it("places the Remove target in flow-like geometry above the section bottom, not over the wells", () => {
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging:has\(\.triage-staging__remove\) \.triage-shell__staging \{ padding-block-end: 68px; \}/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__remove \{[^}]*block-size: 40px;[^}]*border-radius: 18px;[^}]*bottom: 16px;[^}]*inline-size: auto;[^}]*inset-inline: 16px;/);
+  });
+
+  it("raises the drag token and quiets well drag states without a ring", () => {
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-drag-token \{[^}]*box-shadow: var\(--theme-shadow-card-hover\);/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__well:is\(\[data-triage-state="neutral"\], \[data-triage-state="unavailable"\], \[data-triage-state="invalid"\]\) \{[^}]*box-shadow: none;/);
+  });
+});
+
 describe("L3 shared presentation tree", () => {
   it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("preserves shared neutral and unavailable meanings during real-target presentation in %s", theme => {
     document.documentElement.dataset.colorTheme = theme;

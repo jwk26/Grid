@@ -7122,3 +7122,49 @@
   margin-inline-end: 10px;
   padding: 5px;
 }
+
+/* Task 175 Stage 2 (L3, neumorphism): drop targets and drag token. Skin only, static. */
+:root[data-color-theme="neumorphism"] .triage-staging__remove,
+:root[data-color-theme="neumorphism"] .triage-breakdown__return {
+  background: var(--page-bg);
+  border: 0;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.72);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: none;
+}
+:root[data-color-theme="neumorphism"] .triage-staging:has(.triage-staging__remove) .triage-shell__staging { padding-block-end: 68px; }
+:root[data-color-theme="neumorphism"] .triage-staging__remove {
+  block-size: 40px;
+  border-radius: 18px;
+  border-top-width: 0;
+  bottom: 16px;
+  inline-size: auto;
+  inset-inline: 16px;
+}
+:root[data-color-theme="neumorphism"] .triage-breakdown__return {
+  border-radius: 18px;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__remove[data-triage-state="active-hover"],
+:root[data-color-theme="neumorphism"] .triage-breakdown__return[data-drop-active="true"] {
+  background: color-mix(in srgb, var(--page-bg) 91%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset);
+  color: hsl(var(--foreground));
+}
+:root[data-color-theme="neumorphism"] .triage-staging__well:is([data-triage-state="neutral"], [data-triage-state="unavailable"], [data-triage-state="invalid"]) {
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__well[data-triage-state="neutral"][data-triage-hover="true"] {
+  background: color-mix(in srgb, var(--page-bg) 95%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .triage-drag-token {
+  background: var(--page-bg);
+  border: 0;
+  box-shadow: var(--theme-shadow-card-hover);
+  color: hsl(var(--foreground) / 0.8);
+}
