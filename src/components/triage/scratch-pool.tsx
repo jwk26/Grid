@@ -569,6 +569,7 @@ export function ScratchPool() {
             <button
               type="button"
               data-triage-role="pool-created-at-sort"
+              data-triage-state={poolCreatedAtSort === "ASC" ? "asc" : "desc"}
               aria-label={
                 poolCreatedAtSort === "ASC"
                   ? INBOX_TRIAGE_COPY.baseActions.sortOldestFirst

@@ -139,7 +139,35 @@ describe("ScratchPool", () => {
   });
 
   it("uses the established Neumorphism and Claymorphism inset and raised shadow families", () => {
-    expect(globalsCss).not.toContain("--theme-shadow-inset");
+    const block = (selector: string) => {
+      const start = globalsCss.indexOf(`${selector}[data-color-theme="neumorphism"] {`);
+      return globalsCss.slice(start, globalsCss.indexOf("\n}", start));
+    };
+    const light = block(":root");
+    const dark = block(".dark");
+    const family = /--theme-shadow-(?:inset|card)[\w-]*/g;
+    const referenced = new Set(
+      [...globalsCss.matchAll(/var\((--theme-shadow-(?:inset|card)[\w-]*)/g)].map(
+        (match) => match[1],
+      ),
+    );
+    expect(referenced.size).toBeGreaterThan(0);
+    for (const name of referenced) {
+      expect(light).toContain(`${name}:`);
+      expect(dark).toContain(`${name}:`);
+    }
+    // Only neumorphism-scoped rules may consume the family.
+    const outside = globalsCss
+      .split("\n")
+      .map((line, index) => ({ line, index }))
+      .filter(({ line }) => line.includes("var(--theme-shadow-inset") || line.includes("var(--theme-shadow-card"));
+    for (const { index } of outside) {
+      const upto = globalsCss.split("\n").slice(0, index + 1).join("\n");
+      const open = upto.lastIndexOf("{", upto.lastIndexOf("\n", upto.length - 2));
+      const selector = upto.slice(upto.lastIndexOf("}", open) + 1, open);
+      expect(selector).toContain('[data-color-theme="neumorphism"]');
+    }
+    expect(globalsCss.match(family)).not.toBeNull();
     expect(globalsCss).toMatch(
       /:root\[data-color-theme="neumorphism"\] \.pool-status-band \{[\s\S]*box-shadow: inset 3px 3px 6px hsl\(var\(--foreground\) \/ 0\.12\),[\s\S]*inset -3px -3px 6px hsl\(var\(--background\) \/ 0\.86\);/,
     );

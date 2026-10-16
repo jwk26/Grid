@@ -450,6 +450,70 @@
   --theme-card-bg: var(--page-bg);
   --theme-shadow: 8px 8px 16px #c5c9d1, -8px -8px 16px #ffffff;
   --theme-shadow-hover: 12px 12px 20px #c5c9d1, -12px -12px 20px #ffffff;
+  /* Named inset/card family (Task 173): only the variants a realized region uses. */
+  --theme-shadow-inset: inset 6px 6px 12px #c5c9d1, inset -6px -6px 12px #ffffff;
+  --theme-shadow-inset-sm: inset 3px 3px 6px #c5c9d1, inset -3px -3px 6px #ffffff;
+  --theme-shadow-card: 5px 5px 10px #c5c9d1, -5px -5px 10px #ffffff;
+
+  /* L1: common frame and Scratch Pool roles. */
+  --triage-frame-gap: 1.25rem;
+  --triage-frame-padding: 1rem 1.25rem 1.25rem 0.75rem;
+  --triage-frame-surface: var(--page-bg);
+  --triage-frame-radius: var(--theme-radius);
+  --triage-frame-shadow: var(--theme-shadow);
+  --triage-frame-overflow: hidden;
+  --triage-frame-top-divider-size: 0px;
+  --triage-frame-border-size: 0px;
+  --triage-frame-heading-size: 3rem;
+  --triage-frame-heading-font-size: 11px;
+  --triage-frame-heading-weight: 600;
+  --triage-frame-heading-tracking: 0.18em;
+  --triage-frame-heading-transform: uppercase;
+  --triage-frame-heading-color: hsl(var(--foreground) / 0.75);
+  --triage-pool-inline-size: 18rem;
+  --triage-pool-compact-inline-size: 4rem;
+  --triage-pool-header-size: 3.25rem;
+  --triage-pool-header-border-size: 0px;
+  --triage-pool-heading-font-size: 11px;
+  --triage-pool-heading-weight: 600;
+  --triage-pool-heading-tracking: 0.18em;
+  --triage-pool-list-padding: 12px;
+  --triage-pool-tools-size: auto;
+  --triage-pool-tools-gap: 10px;
+  --triage-pool-tools-padding: 0 12px 12px;
+  --triage-pool-tools-rule-size: 0px;
+  --triage-pool-field-size: 36px;
+  --triage-pool-field-background: transparent;
+  --triage-pool-field-radius: 999px;
+  --triage-pool-field-padding: 0 36px;
+  --triage-pool-field-font-size: 12px;
+  --triage-pool-field-placeholder: hsl(var(--foreground) / 0.4);
+  --triage-pool-field-focus-background: transparent;
+  --triage-pool-field-focus-shadow: var(--theme-shadow-inset), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  --triage-pool-clear-inset: 12px;
+  --triage-pool-row-size: 62px;
+  --triage-pool-row-gap: 12px;
+  --triage-pool-row-border-size: 0px;
+  --triage-pool-row-padding: 12px 16px;
+  --triage-pool-row-title-size: 14px;
+  --triage-pool-row-title-weight: 600;
+  --triage-pool-row-title-line-height: 20px;
+  --triage-pool-row-time-size: 10px;
+  --triage-pool-row-time-line-height: 15px;
+  --triage-pool-row-time-color: hsl(var(--foreground) / 0.5);
+  --triage-pool-row-hover-background: transparent;
+  --triage-pool-row-selected-background: transparent;
+  --triage-pool-row-selected-foreground: hsl(var(--foreground));
+  --triage-pool-row-selected-meta: hsl(var(--foreground) / 0.5);
+  --triage-pool-row-focus-background: transparent;
+  --triage-pool-row-focus-foreground: hsl(var(--foreground));
+  --triage-pool-row-focus-meta: hsl(var(--foreground) / 0.5);
+  --triage-pool-selected-marker-display: none;
+  --triage-pool-sort-icon-display: none;
+  --triage-pool-sort-label-display: none;
+  --triage-pool-sort-badge-display: inline-flex;
+  --triage-pool-sort-active: #3f4fd0;
+  --triage-pool-motion-duration: 150ms;
 
   --calendar-cell-bg: var(--page-bg);
   --calendar-cell-radius: 24px;
@@ -475,6 +539,10 @@
   --theme-card-bg: var(--page-bg);
   --theme-shadow: 5px 5px 10px #0b0b0b, -5px -5px 10px #292929;
   --theme-shadow-hover: 8px 8px 15px #0b0b0b, -8px -8px 15px #292929;
+  --theme-shadow-inset: inset 5px 5px 10px #0b0b0b, inset -5px -5px 10px #292929;
+  --theme-shadow-inset-sm: inset 3px 3px 6px #0b0b0b, inset -3px -3px 6px #292929;
+  --theme-shadow-card: 5px 5px 10px #0b0b0b, -5px -5px 10px #292929;
+  --triage-pool-sort-active: #9aa6ff;
   --calendar-cell-shadow: 4px 4px 8px #080808, -4px -4px 8px #181818;
   --calendar-today-shadow: inset 4px 4px 8px #080808, inset -4px -4px 8px #181818;
 }
@@ -976,6 +1044,7 @@
   background: var(--triage-frame-surface, hsl(var(--card)));
   box-shadow: var(--triage-frame-shadow, none);
   padding: var(--triage-frame-inset, 0px);
+  overflow: var(--triage-frame-overflow, visible);
 }
 
 .triage-shell__section::before {
@@ -1010,6 +1079,7 @@
   border-radius: var(--triage-frame-radius, 0px);
   box-shadow: var(--triage-frame-shadow, none);
   padding: 0;
+  overflow: var(--triage-frame-overflow, visible);
   transition-duration: var(--triage-pool-motion-duration, 200ms);
 }
 
@@ -3697,7 +3767,8 @@
   justify-content: var(--triage-frame-heading-justify, flex-start);
   letter-spacing: var(--triage-frame-heading-tracking, normal);
   position: relative;
-  text-transform: var(--triage-pool-row-title-transform, none);
+  color: var(--triage-frame-heading-color, hsl(var(--foreground)));
+  text-transform: var(--triage-frame-heading-transform, var(--triage-pool-row-title-transform, none));
 }
 
 .triage-shell__section-heading::before {
@@ -6124,4 +6195,131 @@
 :root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* Neumorphism L1 (Task 173): common frame and Scratch Pool. Values come from the
+   alias block in the neumorphism root; these rules only shape elements the shared
+   aliases cannot reach. Light and dark share them through the shadow variables. */
+:root[data-color-theme="neumorphism"] .scratch-pool__header {
+  background: transparent;
+  gap: 8px;
+  padding-inline: 12px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__header::before { display: none; }
+:root[data-color-theme="neumorphism"] .scratch-pool__header > div { display: contents; }
+:root[data-color-theme="neumorphism"] .scratch-pool__header > div > svg {
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.75);
+  flex-shrink: 0;
+  inline-size: 28px;
+  order: 1;
+  padding: 6px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__heading {
+  background: transparent;
+  color: hsl(var(--foreground) / 0.75);
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  order: 2;
+  overflow: hidden;
+  padding-inline: 0;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-total-count"] {
+  background: transparent;
+  block-size: auto;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.5);
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  order: 3;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__header .scratch-pool__toggle {
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.6);
+  display: grid;
+  flex-shrink: 0;
+  inline-size: 28px;
+  order: 4;
+  padding: 0;
+  place-items: center;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__header .scratch-pool__toggle svg { block-size: 14px; inline-size: 14px; }
+
+:root[data-color-theme="neumorphism"] .scratch-pool__search-icon {
+  block-size: 14px;
+  color: hsl(var(--foreground) / 0.4);
+  inline-size: 14px;
+  left: 14px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__field {
+  box-shadow: var(--theme-shadow-inset);
+  min-block-size: 36px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__field:focus,
+:root[data-color-theme="neumorphism"] .scratch-pool__field:focus-visible {
+  box-shadow: var(--triage-pool-field-focus-shadow);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__field::placeholder { font-style: italic; }
+:root[data-color-theme="neumorphism"] .scratch-pool__sort {
+  block-size: 36px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset);
+  inline-size: 112px;
+  justify-content: center;
+  padding: 4px;
+  position: relative;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort:hover { background: transparent; }
+:root[data-color-theme="neumorphism"] .scratch-pool__sort-direction {
+  align-items: center;
+  background: var(--page-bg);
+  block-size: 28px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card);
+  color: var(--triage-pool-sort-active, hsl(var(--foreground)));
+  font-size: 9px;
+  font-weight: 800;
+  inline-size: 62px;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  padding: 0;
+  position: absolute;
+  top: 4px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort[data-triage-state="asc"] .scratch-pool__sort-direction { left: 4px; }
+:root[data-color-theme="neumorphism"] .scratch-pool__sort[data-triage-state="desc"] .scratch-pool__sort-direction { right: 4px; }
+:root[data-color-theme="neumorphism"] .scratch-pool__sort:focus-visible {
+  box-shadow: var(--theme-shadow-inset), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+
+:root[data-color-theme="neumorphism"] .scratch-pool__list { padding: 12px 16px 20px; }
+:root[data-color-theme="neumorphism"] .scratch-pool__row {
+  background: transparent;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-card);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__row[data-triage-state="selected"] { box-shadow: var(--theme-shadow-inset); }
+:root[data-color-theme="neumorphism"] .scratch-pool__row[data-triage-state="default"]:hover { transform: translateY(-2px); }
+:root[data-color-theme="neumorphism"] .scratch-pool__row:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__row[data-triage-state="selected"]:focus-visible {
+  box-shadow: var(--theme-shadow-inset), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__row-time {
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }

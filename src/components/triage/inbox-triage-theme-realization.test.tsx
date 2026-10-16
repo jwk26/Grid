@@ -199,6 +199,34 @@ describe("Inbox/Triage shared theme realization — L1", () => {
 });
 
 
+describe("Neumorphism L1 frame and Pool (Task 173)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+
+  it("keeps one sort toggle whose accessible name is stable and whose presentational state follows the order", () => {
+    render(<ScratchPool />);
+    const sort = screen.getByRole("button", { name: INBOX_TRIAGE_COPY.baseActions.sortNewestFirst });
+    expect(sort).toHaveAttribute("data-triage-state", "desc");
+    fireEvent.click(sort);
+    const flipped = screen.getByRole("button", { name: INBOX_TRIAGE_COPY.baseActions.sortOldestFirst });
+    expect(flipped).toBe(sort);
+    expect(flipped).toHaveAttribute("data-triage-state", "asc");
+  });
+
+  it("adds no visible copy through CSS content on the Pool count", () => {
+    expect(css).not.toMatch(/pool-total-count"\]::(?:after|before)/);
+    render(<ScratchPool />);
+    expect(screen.getByTestId("scratch-pool").querySelector('[data-triage-role="pool-total-count"]')).toHaveTextContent(/^2$/);
+  });
+
+  it("defines the sort accent in both modes with distinct readable values and consumes it from a scoped rule", () => {
+    const light = css.slice(css.indexOf(':root[data-color-theme="neumorphism"] {'));
+    const dark = css.slice(css.indexOf('.dark[data-color-theme="neumorphism"] {'));
+    expect(light.slice(0, light.indexOf("\n}"))).toContain("--triage-pool-sort-active: #3f4fd0;");
+    expect(dark.slice(0, dark.indexOf("\n}"))).toContain("--triage-pool-sort-active: #9aa6ff;");
+    expect(css).toMatch(/color-theme="neumorphism"\] \.scratch-pool__sort-direction \{[^}]*var\(--triage-pool-sort-active/);
+  });
+});
+
 describe("Task167 L2 shared theme conformance", () => {
   it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("preserves accessible Context Edit and sort while selecting their decoration in %s", theme => {
     document.documentElement.dataset.colorTheme = theme;
