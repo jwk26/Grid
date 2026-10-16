@@ -2661,7 +2661,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 ### Task 174: [ ] Realize Selected Scratch Context and Breakdown
 
-**Files and actions:** bind L2's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-16): `breakdown-panel.tsx` may mount the existing `sortTrackOld`/`sortTrackNew` copy as the one aria-hidden current-order sort label defined in the Selected Scratch Context recipe's Neumorphism section; no new or changed copy.
+**Files and actions:** bind L2's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-16): `breakdown-panel.tsx` may mount the existing `sortTrackOld`/`sortTrackNew` copy as the one aria-hidden current-order sort label defined in the Selected Scratch Context recipe's Neumorphism section; no new or changed copy. User-approved addition (2026-10-16): in `src/app/globals.css`, the accepted neumorphism Pool rules may gain only the collapse-toggle and row-Trash interaction defined in the Scratch Pool recipe's Neumorphism section; no other Pool change.
 
 **Dependencies:** Task 173 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 

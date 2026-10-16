@@ -251,6 +251,7 @@ resume, dismiss, or otherwise mutate the transition.
 - Token implication: Pool search well, segmented sort, selected row, and compact indicator should consume the existing neumorphic shadow variants.
 - User-adopted (Task 173, 2026-10-16): the sort capsule shows two fixed track labels, `OLD` then `NEW`, and the raised thumb sits under the current order (`OLD` = ASC/oldest first, `NEW` = DESC/newest first). The labels come from `INBOX_TRIAGE_COPY`, are visual only, and the control stays one toggle button whose accessible name and title keep the existing `sortOldestFirst`/`sortNewestFirst` copy. Other themes keep their current sort presentation, including Retro Mac's next-order badge.
 - User-adopted motion (Task 173, 2026-10-16): the thumb slides between the two positions, unselected rows lift on hover, and collapsed switcher dots scale on hover, each as a transform transition timed by `--triage-pool-motion-duration`. All three are off when the app or the OS asks for reduced motion. This adopts these three motions only; no source spring or other source motion is adopted.
+- User-adopted interaction (Task 174, 2026-10-16): the Pool collapse toggles (header and collapsed rail) and the row Trash control respond like the Breakdown controls — on hover a 1px lift with stronger ink (Trash keeps its destructive hover ink), on press an inset-sm shadow, and back to the raised resting state on release — timed by `--triage-pool-motion-duration`, with the lift off under app or OS reduced motion. No other Pool motion is added.
 
 ### Claymorphism
 
