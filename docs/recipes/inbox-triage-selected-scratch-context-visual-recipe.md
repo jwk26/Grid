@@ -206,6 +206,7 @@ Preserve the existing working/complete and editor-state meanings, fixed geometry
 - Observed source-only: a `min-h-[110px]` plate with `px-4 py-7`, `30px` radius, inset shadow, title/meta, circular raised controls, and source status marker is declared.
 - Adopted fact: a broad inset identity plate with raised action controls is supported.
 - Token implication: Context well and action button consume named inset/card shadows; the deferred lens is not inferred from the capsule sort.
+- User-adopted (Task 174, 2026-10-16): the Breakdown sort control shows one visual label for the current order, `OLD` for ASC/oldest first and `NEW` for DESC/newest first, taken from the existing `INBOX_TRIAGE_COPY.baseActions.sortTrackOld`/`sortTrackNew`; the sort icon and the `ASC`/`DESC` text are not shown. The label is aria-hidden; the control stays one toggle button whose accessible name keeps the existing `sortOldestFirst`/`sortNewestFirst` copy, which must stay mounted. There is no track, thumb or slide. The Edit control is icon-only; its accessible name stays `Edit`. Other themes keep their current Context sort and Edit presentation, including Retro Mac's next-order label.
 
 ### Claymorphism
 
