@@ -72,8 +72,8 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 ## Task 174 — Realize Selected Scratch Context and Breakdown
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: your final visual disposition, then acceptance
+- Status: Accepted
+- Next: Task 175
 - Open: MI-2 (bound to Task 176); MI-4 (bound to Task 179)
 
 ### Log
@@ -158,3 +158,4 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 - Task 175 note: (a) the neumorphism shadow family now defines `--theme-shadow-inset`, `-inset-sm`, `-inset-xs`, `-card`, `-card-xs`, `-card-hover` in both blocks; add only the variants L3 uses, from production's colour pairs; (b) realize every L3 DP surface's whole neumorphism row in its recipe mapping, controls included — "retain exactly" fixes copy, placement, states, focus and motion, not an earlier partial look (the `91d43f2` wording is in L2 only, and Task 174's mi-9 came from reading it the other way); (c) raised controls share one interaction — hover lifts 1px with stronger ink, press is `inset-sm`, release returns to rest, timed by `--triage-pool-motion-duration` behind `:not(.transition-none)` and the OS reduced-motion override; the user expects it in every region (mi-12); (d) the Breakdown drag overlay still renders the base white pill — the compact drag token is L3's.
 - Task 178 note: the `Scratch complete` Archive card has only a partial Phase 30 neumorphism rule (`globals.css:4740`); realize its whole neumorphism mapping, card and controls included, instead of render-checking the existing rule — L6's "Retain DP-VQ11/12" can be misread the same way as Task 174's mi-9.
 - Task 179 note (addition): (c) render-check the dark values of the Task 174 tokens — `--theme-shadow-inset-xs`, `--theme-shadow-card-hover`, `--triage-context-marker-working`/`-complete`, `--triage-breakdown-grip-hover-bg` — and set the dark value of the user-accepted Context eyebrow/date contrast exception (about 2.1:1 in light, mi-6); (d) render Task 174's remainders — reconciling progress (`Checking whether your changes were saved…`) and the Breakdown Delete dialog under an operation lock — or name them again; (e) fix MI-4 with a shared rule as MI-1 was fixed, check it in GridDO, Retro Mac and Neumorphism with the 200-character title, and take the user's judgment on the countdown track's weight in neumorphism.
+- Decision: final visual disposition — pass for Task 174 as implemented; reconciling progress and the Delete dialog under an operation lock stay named remainders (Task 179 re-renders or names them again); MI-4 stays Open, bound to Task 179 (user, 2026-10-16)

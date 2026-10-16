@@ -2659,7 +2659,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Commit message:** `feat(triage): realize neumorphism frame-pool`.
 
-### Task 174: [ ] Realize Selected Scratch Context and Breakdown
+### Task 174: [x] Realize Selected Scratch Context and Breakdown
 
 **Files and actions:** bind L2's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-16): `breakdown-panel.tsx` may mount the existing `sortTrackOld`/`sortTrackNew` copy as the one aria-hidden current-order sort label defined in the Selected Scratch Context recipe's Neumorphism section; no new or changed copy. User-approved addition (2026-10-16): in `src/app/globals.css`, the accepted neumorphism Pool rules may gain only the collapse-toggle and row-Trash interaction defined in the Scratch Pool recipe's Neumorphism section; no other Pool change.
 
