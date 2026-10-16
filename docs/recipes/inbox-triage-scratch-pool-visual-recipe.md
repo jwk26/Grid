@@ -336,7 +336,8 @@ is a user decision, not prototype evidence; no prototype source exists for it.
   the content's open/close animation through `.scratch-trash-dialog` and
   `.breakdown-delete-dialog` only.
 - Base themes: the existing `AlertDialog` look used by Breakdown row Delete,
-  with the destructive variant on `Move to Trash`.
+  with the destructive variant on `Move to Trash`, until each theme realizes
+  the dialog in its own L1 binding (EXECUTION_PLAN L1 "Phase 41 surfaces").
 - Retro Mac: the Retro Mac Archive alert family. Scrim `background / 0.7`
   with `1px` blur; card with a `4px` double foreground border, radius `0`,
   `6px 6px 0` foreground hard shadow, the Context font, `24px` padding, a

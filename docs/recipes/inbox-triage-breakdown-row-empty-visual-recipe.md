@@ -291,7 +291,9 @@ Retro Mac realization as the Scratch Trash dialog in the Scratch Pool recipe's
 Phase 41 supplement: Archive-alert scrim, `4px` double border, radius `0`,
 `6px 6px 0` hard shadow, Context font, `!` mark column, square hard-bordered
 buttons with the default-button outline on Cancel. Copy, behavior, locking and
-focus stay unchanged; other themes keep the current look.
+focus stay unchanged. Every other theme realizes this dialog in its own L2
+binding (EXECUTION_PLAN L2 "Phase 41 surfaces"); until then it keeps the
+current look.
 
 ## `DP-VQ04` Approved Breakdown-Content Inline Editor
 

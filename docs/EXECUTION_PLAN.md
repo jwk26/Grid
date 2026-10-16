@@ -2311,7 +2311,12 @@ execution grant does not limit the shared SPEC/L1/L2 product contract to Task167
 
 **Phase 41 surfaces (from Phase 35 on):** every later L2 binding realizes the
 `DP-VQ03` departure sheet and the Breakdown Delete dialog for its theme(s),
-and the Context `[X]` stays hidden outside Retro Mac.
+and the Context `[X]` stays hidden outside Retro Mac. Realizing a DP surface
+means its theme's whole row in the recipe's Eight-Theme Mapping, controls
+included (for `DP-VQ03`: the well, the primary and the destructive
+secondary). "Retain DP-VQ02/03/04/05/11 exactly" fixes their copy,
+placement, states, focus and motion; it does not leave an earlier partial
+theme look in place.
 
 **Retained common L2 scroll direction:** user disposition preserves Context
 and rows in their existing common scroll viewport. Future L2 theme bindings
