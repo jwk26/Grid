@@ -2638,7 +2638,7 @@ Visual reference: prototype route `/prototype/inbox-triage-neumorphism` in the r
 
 Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
 
-### Task 173: [ ] Fix the common frame and realize Scratch Pool
+### Task 173: [x] Fix the common frame and realize Scratch Pool
 
 **Files and actions:** bind L1's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-16): `src/lib/copy/inbox-triage.ts` may gain only the two visual sort-capsule labels `OLD`/`NEW` defined in the Scratch Pool recipe's Neumorphism section; no other copy changes.
 
