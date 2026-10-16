@@ -7168,3 +7168,79 @@
   box-shadow: var(--theme-shadow-card-hover);
   color: hsl(var(--foreground) / 0.8);
 }
+
+/* Task 175 Stage 3 (L3, neumorphism): DP-VQ06-STAGING — candidate status line, arrival count, alert well. */
+:root[data-color-theme="neumorphism"] .triage-staging .staging-local-alert {
+  background: transparent;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 11px;
+  font-weight: 600;
+  margin: 0 16px 12px;
+  padding: 8px 8px 8px 16px;
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count) {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.8);
+}
+:root[data-color-theme="neumorphism"] .triage-staging .staging-alert-action { block-size: 28px; inline-size: 28px; }
+:root[data-color-theme="neumorphism"] .triage-staging .staging-arrival-count {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  line-height: 14px;
+  padding: 3px 10px;
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):not(:disabled):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):not(:disabled):not(.transition-none):hover {
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):hover { transform: none; }
+}
+:root[data-color-theme="neumorphism"] .staging-operation-status,
+:root[data-color-theme="neumorphism"] [data-triage-role="staging-integrity-status"] {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.72);
+  padding: 1px 6px;
+}
+:root[data-color-theme="neumorphism"] .staging-node-status-card > .staging-operation-status,
+:root[data-color-theme="neumorphism"] .staging-node-status-card > [data-triage-role="staging-integrity-status"] {
+  max-inline-size: 100%;
+}
+:root[data-color-theme="neumorphism"] .staging-target-reason {
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.72);
+  margin: 8px 4px 4px;
+  padding: 4px 8px;
+}
+:root[data-color-theme="neumorphism"] .staging-bit-status-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+:root[data-color-theme="neumorphism"] .staging-bit-status-row > :is(.staging-operation-status, [data-triage-role="staging-integrity-status"]) {
+  flex: 1;
+  min-inline-size: 0;
+}

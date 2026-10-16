@@ -442,6 +442,14 @@ describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__remove \{[^}]*block-size: 40px;[^}]*border-radius: 18px;[^}]*bottom: 16px;[^}]*inline-size: auto;[^}]*inset-inline: 16px;/);
   });
 
+  it("realizes DP-VQ06-STAGING as an inset alert well, raised count and alert action, and an inset status line", () => {
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging \.staging-local-alert \{[^}]*border: 0;[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging :is\(\.staging-alert-action, \.staging-arrival-count\) \{[^}]*box-shadow: var\(--theme-shadow-card-xs\);/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging :is\(\.staging-alert-action, \.staging-arrival-count\):not\(:disabled\):active \{\s*box-shadow: var\(--theme-shadow-inset-sm\);/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.staging-operation-status,\s*:root\[data-color-theme="neumorphism"\] \[data-triage-role="staging-integrity-status"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);/);
+    expect(css).not.toMatch(/color-theme="neumorphism"\] \.staging-(?:operation-status|target-reason)[^{]*\{[^}]*content:/);
+  });
+
   it("raises the drag token and quiets well drag states without a ring", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-drag-token \{[^}]*box-shadow: var\(--theme-shadow-card-hover\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__well:is\(\[data-triage-state="neutral"\], \[data-triage-state="unavailable"\], \[data-triage-state="invalid"\]\) \{[^}]*box-shadow: none;/);
