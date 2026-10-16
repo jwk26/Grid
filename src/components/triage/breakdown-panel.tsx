@@ -2396,7 +2396,14 @@ export function BreakdownPanel({
                           ? INBOX_TRIAGE_COPY.baseActions.sortNewestFirst
                           : INBOX_TRIAGE_COPY.baseActions.sortOldestFirst}
                       </span>
-                      <span aria-hidden="true">{breakdownCreatedAtSort}</span>
+                      <span aria-hidden="true" data-triage-role="context-sort-order-label">
+                        {breakdownCreatedAtSort}
+                      </span>
+                      <span aria-hidden="true" data-triage-role="context-sort-short-label">
+                        {breakdownCreatedAtSort === "DESC"
+                          ? INBOX_TRIAGE_COPY.baseActions.sortTrackNew
+                          : INBOX_TRIAGE_COPY.baseActions.sortTrackOld}
+                      </span>
                     </span>
                     <span data-triage-role="context-sort-next-label">
                       {breakdownCreatedAtSort === "DESC"

@@ -282,6 +282,18 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     expect(css).toMatch(/\.scratch-pool__row:not\(\.transition-none\) \{\s*transition-duration: var\(--triage-pool-motion-duration\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.scratch-pool__sort\[data-triage-state="asc"\][^{]*\{[^}]*var\(--triage-pool-sort-active\)/);
   });
+
+  it("Task174 Context marker tokens exist in both modes and the complete state is a ring, not a dot", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+    const light = css.slice(css.indexOf(':root[data-color-theme="neumorphism"] {'));
+    const dark = css.slice(css.indexOf('.dark[data-color-theme="neumorphism"] {'));
+    for (const block of [light.slice(0, light.indexOf("\n}")), dark.slice(0, dark.indexOf("\n}"))]) {
+      expect(block).toContain("--triage-context-marker-working:");
+      expect(block).toContain("--triage-context-marker-complete:");
+      expect(block).toContain("--theme-shadow-inset-xs:");
+    }
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \.triage-fixed-context\[data-triage-state="complete"\] \[data-triage-role="context-identity-object"\]::before\s*\{[^}]*background: transparent;[^}]*border: 2px solid var\(--triage-context-marker-complete\)/);
+  });
 });
 
 describe("Task167 L2 shared theme conformance", () => {
@@ -290,7 +302,7 @@ describe("Task167 L2 shared theme conformance", () => {
     const style = document.createElement("style");
     style.dataset.task167SortLabels = "true";
     style.textContent = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8").match(
-      /(?:^|\n)[^{}]*\[data-triage-role="context-(?:edit-label|sort-icon|sort-(?:current|next)-label)"\][^{]*\{[^}]*\}/g,
+      /(?:^|\n)[^{}]*\[data-triage-role="context-(?:edit-label|sort-icon|sort-(?:current|next|order|short)-label)"\][^{]*\{[^}]*\}/g,
     )?.join("\n") ?? "";
     document.head.append(style);
     useTriagePreferencesStore.setState({ breakdownCreatedAtSort: "DESC" });
@@ -302,8 +314,14 @@ describe("Task167 L2 shared theme conformance", () => {
     expect(label).toHaveTextContent("Edit");
     expect(icon).toHaveAttribute("aria-hidden", "true");
     expect(edit).toBeEnabled();
-    expect(getComputedStyle(label!).display === "none").toBe(theme === "retro-mac");
-    expect(getComputedStyle(icon!).display === "none").toBe(theme === "retro-mac");
+    expect(getComputedStyle(label!).display === "none").toBe(theme === "retro-mac" || theme === "neumorphism");
+    expect(getComputedStyle(icon!).display === "none").toBe(theme === "retro-mac" || theme === "neumorphism");
+    const track = context.querySelector('[data-triage-role="context-sort-short-label"]');
+    expect(track).toHaveAttribute("aria-hidden", "true");
+    expect(track).toHaveTextContent(INBOX_TRIAGE_COPY.baseActions.sortTrackNew);
+    expect(getComputedStyle(track!).display === "none").toBe(theme !== "neumorphism");
+    const order = context.querySelector('[data-triage-role="context-sort-order-label"]');
+    expect(getComputedStyle(order!).display === "none").toBe(theme === "neumorphism");
     const sort = within(context).getByRole("button", {
       name: theme === "retro-mac" ? "OLD FIRST" : INBOX_TRIAGE_COPY.baseActions.sortNewestFirst,
     });
