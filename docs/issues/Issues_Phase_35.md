@@ -72,8 +72,8 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 ## Task 174 — Realize Selected Scratch Context and Breakdown
 
 ### Current state
-- Status: In Progress
-- Next: task finish — full gate, checkpoint, final disposition
+- Status: Implemented, awaiting acceptance
+- Next: your final visual disposition, then acceptance
 - Open: MI-2 (bound to Task 176)
 
 ### Log
@@ -146,3 +146,11 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 - Stage 3 follow-up (applied review): rendered on a re-seeded fixture in the Playwright MCP browser's own profile (the Chrome DevTools MCP was not used); every patch was cleared by a reload. Validation: clearing the Context title and pressing Enter shows `Enter a Scratch title.` in destructive ink `rgb(179,38,30)` (about 5:1) inside the field with the invalid ring (inset-sm plus a 2px destructive ring), Save disabled. Lifecycle-invalidated: title editor open in tab 1, the Scratch moved to Trash from a second tab — the overlay `Draft not saved` with `Copy draft` and `Close` renders in the inset trough at 104px (it sits under the page's external-removal panel scrim). All-deleted empty: added one row to `Empty scratch`, deleted it — the dial shows the existing reset icon inside it. Saving: a patch that makes IndexedDB writes never complete shows `Saving…` in the Context action slot (editor state `saving`, field read-only, 104px) and `Adding…` in the DP-VQ05 Add channel (state `pending`).
   - Observation for the advisor (not mine to change here): the external-removal panel (DP-VQ01, Task 173 surface) rendered for the 200-character fixture title with its destination line running past the card's right edge and a heavy dark divider; it was already accepted in Task 173, so I only report it.
   - Remainders for the final disposition: reconciling progress (`Checking whether your changes were saved…`) and the Delete dialog under an operation lock (no stable path to open the dialog while a lock is held), and the unscoped `Scratch complete` Archive card (Task 178). Re-seed before the next checks.
+
+### Checkpoint
+- Changed: `src/app/globals.css` (neumorphism Context, Breakdown rows/Add/empty dials, DP-VQ11/05/03 and editor looks, shared Delete dialog rules, Pool toggle/Trash interaction, new shadow/ink tokens in both neumorphism blocks), `breakdown-panel.tsx` (one aria-hidden `OLD`/`NEW` span and a role on the existing order span), `inbox-triage-theme-realization.test.tsx`; the copy owner needed no change. Commits `b2160dd`, `54a4bfc`, `a868675`, `5b86b52`, `1d482f8`.
+- Verified: full gate on the final tree — `git diff --check`, `pnpm test` (112 files, 1682 passed), `pnpm lint` (0 errors, 11 warnings that were not touched), `pnpm typecheck`, `pnpm build`. Mounted checks (light 1920×1080, Playwright MCP browser, fixture-seeded): all states listed per stage above, Context fixed at 104px in every state, 48px rows, 60/40 ratios unchanged, other themes not changed by scoped rules. Dev servers :3000/:3001 were used as running (:3000 was restarted by the user once).
+- First judgments (separate from the final disposition): Stage 1 — changes requested (weights, controls, sort label, then mi-5/mi-6); Stage 2 — changes requested (mi-7, mi-8, mi-10, then mi-11, mi-12); Stage 3 — pass (mi-9 included).
+- Please check: the final look of Context, Breakdown rows with grip/Edit/Trash, Add, the two empty dials, the editors and issue overlays, the departure sheet, the Delete dialog and the Pool toggle/Trash response, in light 1920×1080.
+- Unresolved (named remainders for your disposition): reconciling progress and the Delete dialog under an operation lock were not rendered; the `Scratch complete` Archive card is Task 178's (its full neumorphism mapping, controls included, is to be required there); the dark value of the Context eyebrow/date (2.1:1 exception), the grip hover background and the other new tokens, and 1024px widths belong to Task 179; the external-removal panel's long-title overflow is reported above.
+- Review: no `expert` review — styling and tests only, plus the Stage 1 label span that the advisory diff look cleared.
