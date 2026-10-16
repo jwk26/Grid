@@ -480,7 +480,7 @@ not prototype or adjacent-surface literals:
 - Observed source-only: rows declare `18px` radius with card/inset shadows and circular raised actions; Add is a round inset field with a raised circular add control. Ordinary empty uses a large inset well; completion uses a separate checked/status surface.
 - Adopted fact: raised rows/actions and inset input/empty wells are supported.
 - Token implication: reuse `--theme-shadow-card`, `--theme-shadow-inset*`, and semantic row/empty roles; rendered depth is unverified.
-- User-adopted (2026-10-16): a staged row sits in the deeper `--theme-shadow-inset` well, and its disabled grip, Edit and Trash controls fade to about 25% opacity; the row text keeps its ink of at least 4.5:1. The source's whole-row `opacity-35`/`scale-95` stays excluded (contrast, fixed 48px slot). Realized in Task 175.
+- User-adopted (2026-10-17, replaces the 2026-10-16 entry): a staged row follows the source look — the whole row at `opacity: 0.35` in the `--theme-shadow-inset-sm` well, its disabled grip, Edit and Trash at `opacity: 0.1` inside it. The source's `scale-95` stays excluded (fixed 48px slot, no width change). User-accepted contrast exception: the staged row's text falls to about 1.6:1; it is an inactive duplicate whose controls are all disabled and whose candidate stays readable in Staging, and the inset well is its non-colour cue. Realized in Task 175.
 
 ### Claymorphism
 
