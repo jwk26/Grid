@@ -37,6 +37,7 @@ The prototype is Design Source only. Its routes, local state, handlers, copy, an
 - Preserve the four semantic areas: Scratch Pool, Breakdown, Staging, and Grid Explorer.
 - Preserve main-work vertical `60/40`, Breakdown/Staging horizontal `60/40`, and Staging Node/Bit `35/65`. A route-local ratio that differs is observation, not adoption.
 - Restore visible section identity as theme chrome. The semantic names remain `Scratch Pool`, `Breakdown`, `Staging`, and `Grid Explorer`; only Tiny Desk `Library Index`, Retro Mac `Finder`, and Terminal `GRID EXPLORER` are approved alternate Grid labels.
+- User-adopted (2026-10-16): the Breakdown and Staging headings carry one aria-hidden icon each (`FileText`, `CircleDot`), as the GridDO, Tiny Desk, Neumorphism, Claymorphism, Origami and Graphite prototypes declare; the icon is hidden by default and shown per theme by its L1 binding (EXECUTION_PLAN L1 "Section header icons"); Retro Mac and Terminal keep it hidden. Pool and Explorer header icons are unchanged.
 - The user-selected Task 169 review amendment (2026-10-07) gives every theme
   one Explorer header row: native icon/identity left, dedicated search control
   right, no persistent breadcrumb/path row or second search toolbar. Consume

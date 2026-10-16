@@ -2208,6 +2208,14 @@ the Pool row Trash control and the Scratch Trash dialog for its theme(s), per
 the Scratch Pool recipe's Phase 41 supplement (UF-30). The L2 counterpart is in
 the L2 section. Behavior stays as Tasks 209–212 left it.
 
+**Section header icons (from Phase 35 on):** the Breakdown and Staging
+section headings carry one aria-hidden icon each in the shared tree
+(`FileText` for Breakdown, `CircleDot` for Staging), hidden by default.
+Every later L1 binding shows them for its theme(s) when that theme's
+prototype declares section icons, per the Shell recipe; Retro Mac and
+Terminal keep them hidden. Headings, accessible names and copy are
+unchanged.
+
 **Shared creation-date contract:** Every current and subsequent L1 theme/phase binding must follow [SPEC — Scratch Pool and Context creation-date metadata](SPEC.md#scratch-pool-and-context-creation-date-metadata), shared with L2. Scratch Pool's recipe references that single product contract; theme realization must preserve its common formatter and date body. This requirement is not limited to Task167/P34-09 and does not grant a later task/phase execution gate or reopen accepted Task166.
 
 **Observable acceptance:** fixed approved common geometry; sourced header,
@@ -2337,6 +2345,14 @@ Retain DP-VQ02 and DP-VQ06-STAGING; Q05 diagnosis/disposition precedes a
 conformance claim about mounted target-reason delivery.
 
 **Recipe:** [Staging](recipes/inbox-triage-staging-visual-recipe.md).
+
+**Drop targets (from Phase 35 on):** every later L3 binding realizes the
+lower Remove-from-staging target and the Breakdown Return overlay
+(`.triage-breakdown__return`, shown during a staged drag) for its theme(s),
+in idle, compatible-hover and incompatible states. Where the theme's
+prototype has no such surface, the task proposes a look within the theme's
+family and the user's visual disposition sets it. Unstage meaning, copy,
+geometry and delivery are unchanged.
 
 **Observable acceptance:** sourced Node/Bit headers, independent wells,
 cards/rows, tools/counts and quiet empties under approved 35/65 geometry.
@@ -2677,7 +2693,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 ### Task 175: [ ] Realize Staging and drag presentation
 
-**Files and actions:** bind L3's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L3's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-16): realize the L1 "Section header icons" clause for `neumorphism` here — `src/components/triage/triage-workspace.tsx` and `triage-workspace.test.tsx` may add the two aria-hidden heading icons, and `src/app/globals.css` shows them for `neumorphism` only; the L3 "Drop targets" clause applies, including the Breakdown Return overlay through `globals.css`.
 
 **Dependencies:** Task 174 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
