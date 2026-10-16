@@ -312,6 +312,11 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \.triage-fixed-breakdown-row \{[^}]*column-gap: 12px;/);
     expect(css).toMatch(/\[data-triage-role="breakdown-grip-control"\] \{\s*box-shadow: var\(--theme-shadow-card-xs\);/);
     expect(css).toMatch(/\[data-triage-role="breakdown-grip-control"\]:not\(:disabled\):hover \{\s*background: var\(--triage-breakdown-grip-hover-bg\);/);
+    expect(css).toMatch(/\.scratch-pool \.scratch-pool__toggle:not\(:disabled\):hover \{\s*color: hsl\(var\(--foreground\) \/ 0\.9\);/);
+    expect(css).toMatch(/\.scratch-pool \.scratch-pool__toggle:not\(:disabled\):active \{\s*box-shadow: var\(--theme-shadow-inset-sm\);/);
+    expect(css).toMatch(/pool-row-trash-action"\]\):not\(:disabled\):not\(\.transition-none\):hover \{\s*transform: translateY\(-1px\);/);
+    expect(css).toMatch(/pool-row-trash-action"\]:not\(:disabled\):hover \{[^}]*box-shadow: var\(--theme-shadow-card\);[^}]*var\(--triage-pool-destructive-ink\)/);
+    expect(css).toMatch(/pool-row-trash-action"\]:not\(:disabled\):active \{\s*box-shadow: var\(--theme-shadow-inset-sm\);/);
   });
 });
 

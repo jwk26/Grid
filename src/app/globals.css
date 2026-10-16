@@ -6433,6 +6433,25 @@
   border-radius: 999px;
   box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
 }
+/* mi-12: Pool collapse toggles and the row Trash control respond like the Breakdown
+   controls: 1px lift and stronger ink on hover, inset-sm on press. */
+:root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__toggle:not(:disabled):hover {
+  color: hsl(var(--foreground) / 0.9);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__toggle:not(:disabled):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool :is(.scratch-pool__toggle, [data-triage-role="pool-row-trash-action"]):not(:disabled):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform, color;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool :is(.scratch-pool__toggle, [data-triage-role="pool-row-trash-action"]):not(:disabled):not(.transition-none):hover {
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool :is(.scratch-pool__toggle, [data-triage-role="pool-row-trash-action"]):not(:disabled):not(.transition-none):active {
+  transform: none;
+}
 :root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__toggle:focus-visible {
   box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
 }
@@ -6450,8 +6469,11 @@
 }
 :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:not(:disabled):hover {
   background: transparent;
-  box-shadow: var(--theme-shadow-inset-sm);
+  box-shadow: var(--theme-shadow-card);
   color: var(--triage-pool-destructive-ink);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:not(:disabled):active {
+  box-shadow: var(--theme-shadow-inset-sm);
 }
 :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:focus-visible {
   box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
@@ -6859,6 +6881,7 @@
 @media (prefers-reduced-motion: reduce) {
   :root[data-color-theme="neumorphism"] .scratch-pool__row[data-triage-state="default"]:hover,
   :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:hover::before { transform: none; }
+  :root[data-color-theme="neumorphism"] .scratch-pool :is(.scratch-pool__toggle, [data-triage-role="pool-row-trash-action"]):hover { transform: none; }
   :root[data-color-theme="neumorphism"] .scratch-pool__sort::before { transition: none; }
 }
 :root[data-color-theme="neumorphism"] .scratch-pool .pool-status-band {
