@@ -14,6 +14,7 @@
 ## Shared Adopted Contract
 
 - Keep visible `Staging`, `Nodes`, and `Bits` identity. Nodes are a two-column grid of icon-centered cards; Bits are a vertical list of text rows. Shape/information, not color alone, carries type.
+- User-adopted 2026-10-17: the Node and Bit drop targets each cover their whole subsection, heading included, per SPEC "Staging subsection drop region"; well-state styling paints that whole subsection.
 - Preserve the selected Node/Bit `35/65` split, independent internal scroll containers, hidden scrollbar chrome, stable section height, and quiet empty state with no large placeholder cards.
 - The candidate root is the full drag activator. Production retains the shared compact pointer-centered `TriageDragToken`; no internal handle, native snapshot, primary click, detail, or menu is adopted.
 - During staged drag, the dedicated lower unstage overlay and Breakdown drop-back share one meaning. The overlay must not resize, blur, or move the lists.

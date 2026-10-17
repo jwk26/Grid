@@ -659,6 +659,15 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   scroll padding disappears with the drag. Same-type Staging drop is a neutral
   mutation-free cancel; opposite type is invalid and requires Unstage first;
   release/Escape/browser cancel elsewhere is silent and mutation-free.
+- **Staging subsection drop region (user-adopted, 2026-10-17):** the `Nodes`
+  and `Bits` subsections each accept their drop anywhere in the subsection —
+  its heading row, including the count and the `N new` control, plus its well
+  — so the heading is part of the target. Stage, neutral, invalid and
+  unavailable meanings are unchanged, and the lower Remove target keeps
+  priority where it overlaps a subsection. Hover feedback covers the same
+  whole subsection. Heading controls stay clickable and are not targets of
+  their own; well scrolling and observed-top clearing stay on the well. All
+  themes share this region through one tree.
 - At staged-candidate drag start, semantically invalid Grid columns expose an
   invalid signal under the existing Home/Level-3/hierarchy type rules; actual
   invalid hover adds a direct reason without replacing the column label. The

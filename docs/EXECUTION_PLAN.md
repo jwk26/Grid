@@ -2354,6 +2354,16 @@ prototype has no such surface, the task proposes a look within the theme's
 family and the user's visual disposition sets it. Unstage meaning, copy,
 geometry and delivery are unchanged.
 
+**Subsection drop region amendment (user-adopted, 2026-10-17):** per SPEC
+"Staging subsection drop region", the `Nodes` and `Bits` drop regions each
+cover their whole subsection, heading included. The change lands once in the
+shared tree (`staging-zone.tsx`, `triage-workspace.tsx` and their tests, with
+`src/hooks/use-triage-dnd.test.ts` only where it asserts the moved drop hooks)
+and applies to all eight themes; current and future L3 bindings style the
+well states on that whole subsection. It is a behavior change: it gets an
+`expert` review, and already accepted themes are rechecked on the widened
+region.
+
 **Observable acceptance:** sourced Node/Bit headers, independent wells,
 cards/rows, tools/counts and quiet empties under approved 35/65 geometry.
 Preserve full source drag and compact pointer-centered preview, durable
@@ -2727,7 +2737,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 ### Task 176: [ ] Realize Explorer base and replacement search
 
-**Files and actions:** bind L4's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-17): realize the L4 "Column drop region" amendment here, in Stage 2 with the neumorphism target states; Retro Mac's accepted target look moves with the hooks and is rechecked on the widened region. User-approved addition (2026-10-17): realize the L4 "Explorer urgency" amendment (MI-10) in Stage 2 as well, covered by the same `expert` review.
+**Files and actions:** bind L4's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-17): realize the L4 "Column drop region" amendment here, in Stage 2 with the neumorphism target states; Retro Mac's accepted target look moves with the hooks and is rechecked on the widened region. User-approved addition (2026-10-17): realize the L4 "Explorer urgency" amendment (MI-10) in Stage 2 as well, covered by the same `expert` review. User-approved addition (2026-10-17), Stage 4: (a) realize the L3 "Subsection drop region" amendment; (b) the neumorphism Staging well states drop the base line cues (dashed border, `ring-primary`) for the depth-and-tint language of the Explorer targets, in `globals.css` only; (c) MI-11 — a revealed row below its column's fold scrolls into view inside that column's own viewport only, never the page or the Explorer shell, in `hierarchy-explorer.tsx` with its test. One `expert` review covers (a) and (c).
 
 **Dependencies:** Task 175 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
