@@ -812,6 +812,17 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   Invalid/other columns, the Explorer shell, and page never auto-scroll. Stop
   on edge exit/end, never change path automatically, and continuously hit-test
   the pointer-under target. Pointer release determines the final target.
+- **Column drop region (user-adopted, 2026-10-17):** an open Explorer column
+  accepts its column-level drop anywhere in its pane — the full-label header,
+  including its `N new` count and path-status strip, plus the scrolling rows —
+  so a column filled with Node rows keeps an always-visible column target. A
+  Node row under the pointer still targets that Node; anywhere else in the pane
+  targets the column's own parent (`Home` or the selected Node). Eligible,
+  hovered and unavailable feedback covers the same whole pane. Header controls
+  stay clickable and are not targets of their own; the header adds no
+  auto-scroll zone, so edge auto-scroll stays on the row viewport's own
+  top/bottom edges. A column with no selected parent stays disabled. All
+  themes share this region through one tree.
 - Home accepts Node only; Level 3 accepts Bit only; intermediate hierarchy
   constraints remain. Invalid hover performs no write. A full destination still
   enters the selected target-column placement affordance with visible full-

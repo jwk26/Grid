@@ -2452,6 +2452,17 @@ Six cycles remain consumed; only an exact approved single Cycle7 may execute,
 without reset or Cycle8 authority. Task169 remains `[ ]`, the same Working
 stays active awaiting disposition at checkpoint, and Task170 remains held.
 
+**Column drop region amendment (user-adopted, 2026-10-17):** every open
+Explorer column accepts its column-level drop across the whole pane — the
+full-label header, including its count and path-status strip, plus the
+scrolling rows — per SPEC "Column drop region". The change lands once in the
+shared tree (`hierarchy-explorer.tsx` and `hierarchy-explorer.test.tsx`, with
+`triage-workspace.test.tsx` and `src/hooks/use-triage-dnd.test.ts` only where
+they assert the moved drop hooks) and applies to all eight themes; current and
+future L4 tasks style the eligible, hovered and unavailable target states on
+that whole pane. It is a behavior change: it gets an `expert` review, and
+already accepted themes are rechecked on the widened region.
+
 ### L5 — Placement, then Newly/Undo
 
 **Files and actions:** modify `src/app/globals.css` for assigned Placement/
@@ -2709,7 +2720,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 ### Task 176: [ ] Realize Explorer base and replacement search
 
-**Files and actions:** bind L4's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L4's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-17): realize the L4 "Column drop region" amendment here, in Stage 2 with the neumorphism target states; Retro Mac's accepted target look moves with the hooks and is rechecked on the widened region.
 
 **Dependencies:** Task 175 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 

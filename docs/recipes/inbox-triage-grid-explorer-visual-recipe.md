@@ -16,6 +16,7 @@
 - The sourced base body is four progressive columns with visible section chrome and full `Home`, `Level 1`, `Level 2`, `Level 3` labels. Do not expose `L1/L2/L3` or repeat selected titles below headers.
 - Nodes and Bits retain native, shape-distinct rows/cards. Columns hide scrollbar chrome while preserving ordinary input scrolling.
 - Supported target grammar includes idle, eligible, hovered eligible, unavailable/invalid, and base placement anchoring without changing path or column size.
+- User-adopted 2026-10-17: the column-level target covers the whole column pane, full-label header included, per SPEC "Column drop region"; target-state styling paints that whole pane, and Node rows remain their own targets.
 - Grid semantic/default name is `Grid Explorer`; Tiny Desk may show `Library Index`, Retro Mac `Finder`, and Terminal `GRID EXPLORER`.
 - Source active-column search inputs and filtered columns are observations only and are superseded; they do not source the selected replacement search mode.
 
