@@ -227,3 +227,21 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 - Task 176 note (from Task 175): (a) L4's "Retain DP-VQ06-EXPLORER/07/10" can be misread as Task 174's mi-9 was — it fixes copy, placement, states, focus and motion; realize each DP surface's whole neumorphism row, controls included; (b) raised controls share one interaction — hover lifts 1px, press is `inset-sm`, timed by `--triage-pool-motion-duration` behind `:not(.transition-none)` with the OS reduced-motion override; (c) use the user-started dev servers as they are — `:3000` the reference worktree, `:3001` this worktree; the Playwright profile's `:3001` origin database is at version 40; (d) when the user's visual feedback asks for a prototype element the canon excludes or a recorded Decision forbids, stop before implementing and have it settled in the advisory session (Task 175's Stage 1 second follow-up was implemented first).
 - Task 179 note (addition from Task 175): (d) render the real invalid (invalidated-source) and pending well states and check they stay distinct from neutral/unavailable beyond tint and copy; (e) in dark mode, recheck the staged-row contrast exception (1.60:1 in light), the Remove/Return hover cue (surface about 1.16:1 in light) and the heading icon chips.
 - Decision: final visual disposition — pass for Task 175 as implemented; Task 175 accepted, with the named remainders carried by the Task 179 notes (user, 2026-10-17)
+
+## Task 176 — Realize Explorer base and replacement search
+
+### Current state
+- Status: Awaiting User Decision
+- Next: go-ahead on the work plan
+- Open: MI-2 (bound to Task 176); MI-4 (bound to Task 179)
+
+### Log
+- Work plan:
+  - Files: `src/app/globals.css` (scoped `neumorphism` rules for the Explorer roles: root/header/search control, four column plates, level labels, Node/Bit rows, overdue/completed states, eligible/hover/unavailable targets, `DP-VQ06-EXPLORER` count control and column notice, `DP-VQ07` search field/state trough/result rows, NEW/Undo/reason in search results); `hierarchy-explorer.tsx`, `grid-explorer-search-results.tsx` and their tests only if CSS cannot reach a sourced element; the shared conformance test (roles, shadow vars in both blocks, copy not injected by CSS). Card files (`node-card`, `bit-card`) stay untouched — no Q01 approval, so no internal-card write. Only existing shadow variants (`inset`, `inset-sm`, `inset-xs`, `card`, `card-xs`, `card-hover`).
+  - Stage 1 — base chrome: header with right-hand search control, four 20px column plates, full Home/Level 1/2/3 labels, populated Node/Bit rows with stored icons, selected, overdue-incomplete and completed Bit states, hover (colour only), cursors. Checkpoint beside prototype `/prototype/inbox-triage-neumorphism`, then your first judgment.
+  - Stage 2 — targets and status: Placement eligible/hover/full/invalid targets, `DP-VQ06-EXPLORER` raised count control and inset column notice, reveal status, focus rings, shared raised-control interaction (hover lift 1px, press `inset-sm`, `--triage-pool-motion-duration`, behind `:not(.transition-none)` and the OS reduced-motion override). Checkpoint + first judgment.
+  - Stage 3 — replacement search: inset field, state trough (loading/empty/stale/error), raised result rows, duplicates, reveal, close, search-result NEW/Undo/reason. Checkpoint + first judgment.
+  - Commits only after your judgment on each stage; final message `feat(triage): realize neumorphism explorer-search`. Dark mode and 1024px stay with Task 179. MI-2: rerun `hierarchy-explorer.test.tsx` repeatedly and in full runs, report whether the flake reproduces; no fix without evidence.
+  - Verify: Playwright MCP browser, seeded by `scripts/dev-fixtures/inbox-triage.js`, drags through `drag.js`; navigation, scroll anchoring, search, reveal, focus, drag interruption, status, eligible/full/invalid targets; other themes unchanged; then the full gate. Unreachable states are named as remainders. Native versus derived fixture limits recorded. Expert review only if JSX beyond presentation changes.
+  - Dev servers: `:3001` (this worktree) and `:3000` (reference) are used as they are, not started or stopped.
+  - Needs your call: none.
