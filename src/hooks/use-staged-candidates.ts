@@ -28,6 +28,16 @@ export type CandidateOperationKind = "stage" | "unstage" | "orphan_cleanup";
 
 export type CandidateOperationProjection = Readonly<{
   operationId: string;
+  scratchBitId: string;
+  /** Issue order across this hook's lifetime; newer operations have larger values. */
+  sequence?: number;
+  /**
+   * Post-terminal presentation hold: the operation reached `applied` or
+   * `already_applied` but the snapshot has not caught up. It keeps its phase
+   * and copy, is never part of the pending/unknown/reconciling lists, and so
+   * holds no lock, guard or announcement.
+   */
+  held?: true;
   candidateId: string;
   sourceBreakdownId: string;
   kind: CandidateOperationKind;
@@ -78,8 +88,16 @@ export type StagedCandidateEligibility = Readonly<{
 
 type CandidateSnapshot = Readonly<{
   scratchBitId: string;
+  /** Monotonic id of the read that produced this snapshot, taken at its start. */
+  generation: number;
   candidates: StagedCandidate[];
   sources: ScratchBreakdown[];
+}>;
+
+type HeldOperation = Readonly<{
+  operation: CandidateOperationProjection;
+  /** Newest read generation that had started when the result arrived. */
+  afterGeneration: number;
 }>;
 
 type OperationInput = Readonly<{
@@ -97,6 +115,9 @@ type UseStagedCandidatesResult = Readonly<{
   pendingOperations: CandidateOperationProjection[];
   unknownOperations: CandidateOperationProjection[];
   reconcilingOperations: CandidateOperationProjection[];
+  heldOperations: CandidateOperationProjection[];
+  /** Sources that are staged, or whose Stage is pending, unknown, reconciling or held. */
+  stagedSourceIds: ReadonlySet<string>;
   counts: StagedCandidateCounts;
   eligibility: StagedCandidateEligibility;
   stageCandidate: (
@@ -122,11 +143,37 @@ type UseStagedCandidatesResult = Readonly<{
 const EMPTY_CANDIDATES: StagedCandidate[] = [];
 const EMPTY_SOURCES: ScratchBreakdown[] = [];
 
+function isSuccessfulResult(result: unknown): boolean {
+  if (typeof result !== "object" || result === null || !("status" in result)) {
+    return false;
+  }
+  return result.status === "applied" || result.status === "already_applied";
+}
+
+// Whether a held operation survives the given snapshot. Stage holds until the
+// candidate is listed; Unstage holds until it is gone. A read that started
+// after the result settles either direction.
+function holdPersists(held: HeldOperation, snapshot: CandidateSnapshot) {
+  const { operation } = held;
+  if (snapshot.scratchBitId !== operation.scratchBitId) return true;
+  if (snapshot.generation > held.afterGeneration) return false;
+  const listed = snapshot.candidates.some(
+    ({ id }) => id === operation.candidateId,
+  );
+  return operation.kind === "stage" ? !listed : listed;
+}
+
 export function useStagedCandidates(
   scratchBitId: string | null,
 ): UseStagedCandidatesResult {
   const [snapshot, setSnapshot] = useState<CandidateSnapshot | null>(null);
   const [operations, setOperations] = useState<CandidateOperationProjection[]>([]);
+  const [heldState, setHeldState] = useState<HeldOperation[]>([]);
+  const generationRef = useRef(0);
+  const snapshotRef = useRef<CandidateSnapshot | null>(null);
+  // Bumped on every (re)subscription so a result from an earlier selection is never held.
+  const epochRef = useRef(0);
+  const sequenceRef = useRef(0);
   const confirmedOrphanCommandsRef = useRef(
     new Map<string, ConfirmedCandidateOrphanCleanupCommand>(),
   );
@@ -135,21 +182,35 @@ export function useStagedCandidates(
   useEffect(() => {
     // Operation projections belong only to the currently selected Scratch.
     setOperations([]);
+    setHeldState([]);
+    snapshotRef.current = null;
+    epochRef.current += 1;
     confirmedOrphanCommandsRef.current.clear();
     terminalConfirmedOrphanOperationsRef.current.clear();
 
     if (scratchBitId === null) return;
 
     const subscription = liveQuery(async (): Promise<CandidateSnapshot> => {
+      const generation = ++generationRef.current;
       const { db } = await import("@/lib/db/indexeddb");
       const [candidates, sources] = await Promise.all([
         db.stagedCandidates.where("scratchBitId").equals(scratchBitId).toArray(),
         db.scratchBreakdowns.where("scratchBitId").equals(scratchBitId).toArray(),
       ]);
-      return { scratchBitId, candidates, sources };
+      return { scratchBitId, generation, candidates, sources };
     }).subscribe({
-      next: (value) => setSnapshot(value),
-      error: (error) => console.error("staged candidates liveQuery error:", error),
+      next: (value) => {
+        snapshotRef.current = value;
+        setSnapshot(value);
+        setHeldState((current) => {
+          const next = current.filter((held) => holdPersists(held, value));
+          return next.length === current.length ? current : next;
+        });
+      },
+      error: (error) => {
+        console.error("staged candidates liveQuery error:", error);
+        setHeldState((current) => (current.length === 0 ? current : []));
+      },
     });
 
     return () => subscription.unsubscribe();
@@ -203,30 +264,57 @@ export function useStagedCandidates(
     };
   }, [authoritativeCandidates, sources]);
 
+  // Operations belong to the Scratch they were issued for; a mismatch renders
+  // empty in the very commit the selection changes.
+  const scratchOperations = useMemo(
+    () =>
+      operations.filter((operation) => operation.scratchBitId === scratchBitId),
+    [operations, scratchBitId],
+  );
+  const authoritativeIds = useMemo(
+    () => new Set(authoritativeCandidates.map(({ id }) => id)),
+    [authoritativeCandidates],
+  );
+  const heldOperations = useMemo(
+    () =>
+      heldState
+        .map(({ operation }) => operation)
+        .filter(
+          (operation) =>
+            operation.scratchBitId === scratchBitId &&
+            (operation.kind === "stage"
+              ? !authoritativeIds.has(operation.candidateId)
+              : authoritativeIds.has(operation.candidateId)),
+        ),
+    [authoritativeIds, heldState, scratchBitId],
+  );
   const pendingOperations = useMemo(
-    () => operations.filter((operation) => operation.phase === "pending"),
-    [operations],
+    () => scratchOperations.filter((operation) => operation.phase === "pending"),
+    [scratchOperations],
   );
   const unknownOperations = useMemo(
-    () => operations.filter((operation) => operation.phase === "unknown"),
-    [operations],
+    () => scratchOperations.filter((operation) => operation.phase === "unknown"),
+    [scratchOperations],
   );
   const reconcilingOperations = useMemo(
-    () => operations.filter((operation) => operation.phase === "reconciling"),
-    [operations],
+    () =>
+      scratchOperations.filter((operation) => operation.phase === "reconciling"),
+    [scratchOperations],
   );
+  // Stage projections not yet in the snapshot, once per candidate ID.
+  const projectedStageOperations = useMemo(() => {
+    const byCandidate = new Map<string, CandidateOperationProjection>();
+    for (const operation of [...scratchOperations, ...heldOperations]) {
+      if (operation.kind !== "stage") continue;
+      if (authoritativeIds.has(operation.candidateId)) continue;
+      byCandidate.set(operation.candidateId, operation);
+    }
+    return [...byCandidate.values()];
+  }, [authoritativeIds, heldOperations, scratchOperations]);
 
   const counts = useMemo<StagedCandidateCounts>(() => {
     const nodes = candidates.filter(({ resultType }) => resultType === "node").length;
     const bits = candidates.length - nodes;
-    const projectedStageOperations = operations.filter(
-      (operation) =>
-        operation.kind === "stage" &&
-        !authoritativeCandidates.some(
-          (candidate) => candidate.id === operation.candidateId,
-        ),
-    );
-
     return {
       authoritative: authoritativeCandidates.length,
       renderable: candidates.length,
@@ -241,26 +329,36 @@ export function useStagedCandidates(
         projectedStageOperations.filter(({ resultType }) => resultType === "bit")
           .length,
     };
-  }, [authoritativeCandidates, candidates, operations]);
+  }, [authoritativeCandidates, candidates, projectedStageOperations]);
 
-  const stagedSourceIds = useMemo(
+  const authoritativeSourceIds = useMemo(
     () =>
       new Set(
         authoritativeCandidates.map((candidate) => candidate.sourceBreakdownId),
       ),
     [authoritativeCandidates],
   );
+  const projectedSourceIds = useMemo(() => {
+    const ids = new Set(authoritativeSourceIds);
+    for (const operation of scratchOperations) {
+      if (operation.kind === "stage") ids.add(operation.sourceBreakdownId);
+    }
+    for (const operation of heldOperations) {
+      if (operation.kind === "stage") ids.add(operation.sourceBreakdownId);
+    }
+    return ids;
+  }, [authoritativeSourceIds, heldOperations, scratchOperations]);
   const isSourceStaged = useCallback(
-    (sourceBreakdownId: string) => stagedSourceIds.has(sourceBreakdownId),
-    [stagedSourceIds],
+    (sourceBreakdownId: string) => authoritativeSourceIds.has(sourceBreakdownId),
+    [authoritativeSourceIds],
   );
   const eligibility = useMemo<StagedCandidateEligibility>(
     () => ({
       archiveCandidateClear: authoritativeCandidates.length === 0,
-      stagedSourceIds,
+      stagedSourceIds: authoritativeSourceIds,
       isSourceStaged,
     }),
-    [authoritativeCandidates.length, isSourceStaged, stagedSourceIds],
+    [authoritativeCandidates.length, authoritativeSourceIds, isSourceStaged],
   );
 
   const dispatch = useCallback(
@@ -270,10 +368,14 @@ export function useStagedCandidates(
       invoke: () => Promise<TResult>,
       phase: CandidateOperationProjection["phase"] = "pending",
     ): Promise<CandidateCommandOutcome<TResult>> => {
+      const operationScratchId = scratchBitId ?? "";
+      const operationEpoch = epochRef.current;
       const pending: CandidateOperationProjection = {
         operationId: command.operationId,
         candidateId: command.candidateId,
         sourceBreakdownId: command.sourceBreakdownId,
+        scratchBitId: operationScratchId,
+        sequence: ++sequenceRef.current,
         kind,
         phase,
         ...(command.resultType === undefined
@@ -289,11 +391,34 @@ export function useStagedCandidates(
 
       try {
         const result = await invoke();
+        // The hold is decided here, against the newest snapshot, and again on
+        // every later snapshot in the live-query callback. No timer is involved.
+        const latest = snapshotRef.current;
+        const held =
+          kind !== "orphan_cleanup" &&
+          operationScratchId !== "" &&
+          epochRef.current === operationEpoch &&
+          isSuccessfulResult(result)
+            ? { ...pending, held: true as const }
+            : null;
+        const listed =
+          latest?.scratchBitId === operationScratchId &&
+          latest.candidates.some(({ id }) => id === command.candidateId);
+        // Stage settles once listed, Unstage once no longer listed.
+        const alreadySettled = held !== null && listed === (kind === "stage");
         setOperations((current) =>
           current.filter(
             (operation) => operation.operationId !== command.operationId,
           ),
         );
+        if (held !== null && !alreadySettled) {
+          setHeldState((current) => [
+            ...current.filter(
+              (entry) => entry.operation.operationId !== command.operationId,
+            ),
+            { operation: held, afterGeneration: generationRef.current },
+          ]);
+        }
         return result;
       } catch {
         setOperations((current) =>
@@ -306,7 +431,7 @@ export function useStagedCandidates(
         return { operationId: command.operationId, outcome: "unknown" };
       }
     },
-    [],
+    [scratchBitId],
   );
 
   const stageCandidate = useCallback(
@@ -440,6 +565,8 @@ export function useStagedCandidates(
     pendingOperations,
     unknownOperations,
     reconcilingOperations,
+    heldOperations,
+    stagedSourceIds: projectedSourceIds,
     counts,
     eligibility,
     stageCandidate,

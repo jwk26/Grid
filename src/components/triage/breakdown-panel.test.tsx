@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import {
   act,
   cleanup,
@@ -31,7 +31,7 @@ import {
   type TrashScratchDisabledReason,
   type TrashScratchEntries,
 } from "@/hooks/use-trash-scratch";
-import { BreakdownPanel } from "./breakdown-panel";
+import { BreakdownPanel as RealBreakdownPanel } from "./breakdown-panel";
 
 const hookState = vi.hoisted(() => ({
   breakdownsByScratch: {} as Record<string, unknown[]>,
@@ -168,10 +168,6 @@ vi.mock("@/hooks/use-scratch-breakdowns", () => ({
 
 vi.mock("@/hooks/use-inbox", () => ({
   useInbox: useInboxMock,
-}));
-
-vi.mock("@/hooks/use-staged-candidates", () => ({
-  useStagedCandidates: useStagedCandidatesMock,
 }));
 
 vi.mock("@/hooks/use-triage-operation-lock", () => ({
@@ -444,6 +440,25 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// The panel receives staged-source state from the workspace; this stands in for it
+// from the same fixture the hook mock used to serve.
+function BreakdownPanel(
+  props: Partial<ComponentProps<typeof RealBreakdownPanel>> = {},
+) {
+  const selectedScratchId = useTriageStoreMock(
+    (state: typeof triageStoreState) => state.selectedScratchId,
+  ) as string | null;
+  const staged = useStagedCandidatesMock(selectedScratchId);
+  return (
+    <RealBreakdownPanel
+      archiveCandidateClear={staged.counts.authoritative === 0}
+      authoritativeStagedSourceIds={staged.eligibility.stagedSourceIds}
+      stagedSourceIds={staged.eligibility.stagedSourceIds}
+      {...props}
+    />
+  );
+}
+
 describe("BreakdownPanel", () => {
   it("shows an authoritative Unstage signal once, preserves focus, and clears it at 1600ms", async () => {
     vi.useFakeTimers();
@@ -548,6 +563,116 @@ describe("BreakdownPanel", () => {
     expect(screen.getByRole("status")).toBeInTheDocument();
     act(() => vi.advanceTimersByTime(1));
     expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("treats a source in stagedSourceIds as staged before any candidate is listed, with grip, Edit and Delete disabled", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Held stage source" }),
+    ];
+
+    const view = render(
+      <RealBreakdownPanel
+        archiveCandidateClear
+        authoritativeStagedSourceIds={new Set()}
+        stagedSourceIds={new Set(["row-1"])}
+      />,
+    );
+
+    const row = screen.getByTestId("breakdown-row");
+    expect(row).toHaveAttribute("data-triage-role", "breakdown-staged-row");
+    expect(row).toHaveClass("opacity-50");
+    expect(within(row).getByRole("button", { name: "Drag breakdown" })).toBeDisabled();
+    expect(within(row).getByRole("button", { name: /edit/i })).toBeDisabled();
+    expect(within(row).getByRole("button", { name: /delete/i })).toBeDisabled();
+
+    view.rerender(
+      <RealBreakdownPanel
+        archiveCandidateClear
+        authoritativeStagedSourceIds={new Set()}
+        stagedSourceIds={new Set()}
+      />,
+    );
+    expect(screen.getByTestId("breakdown-row")).toHaveAttribute(
+      "data-triage-role",
+      "breakdown-active-row",
+    );
+    expect(screen.getByTestId("breakdown-row")).not.toHaveClass("opacity-50");
+  });
+
+  it("does not invalidate an open editor for a Stage that is only pending or held", async () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Editing row" }),
+    ];
+    const view = render(
+      <RealBreakdownPanel
+        archiveCandidateClear
+        authoritativeStagedSourceIds={new Set()}
+        stagedSourceIds={new Set()}
+      />,
+    );
+    editorState.snapshot = {
+      target: { kind: "breakdown", id: "row-1" },
+      phase: "dirty",
+      base: { value: "Editing row", version: 1, order: 0 },
+      draft: "Draft",
+      latest: null,
+      copyableDraft: null,
+      pendingIntent: false,
+      focusIntent: "field",
+      command: null,
+    };
+
+    view.rerender(
+      <RealBreakdownPanel
+        archiveCandidateClear
+        authoritativeStagedSourceIds={new Set()}
+        stagedSourceIds={new Set(["row-1"])}
+      />,
+    );
+    expect(editorState.invalidate).not.toHaveBeenCalled();
+
+    view.rerender(
+      <RealBreakdownPanel
+        archiveCandidateClear={false}
+        authoritativeStagedSourceIds={new Set(["row-1"])}
+        stagedSourceIds={new Set(["row-1"])}
+      />,
+    );
+    expect(editorState.invalidate).toHaveBeenCalled();
+  });
+
+  it("holds the Unstage success signal while the source is still in stagedSourceIds", () => {
+    vi.useFakeTimers();
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Held unstage" }),
+    ];
+    const signal = {
+      kind: "unstage" as const,
+      operationId: "unstage-held",
+      rowId: "row-1",
+    };
+    const view = render(
+      <RealBreakdownPanel
+        archiveCandidateClear={false}
+        authoritativeStagedSourceIds={new Set(["row-1"])}
+        stagedSourceIds={new Set(["row-1"])}
+        successSignal={signal}
+      />,
+    );
+    expect(screen.queryByRole("status")).toBeNull();
+
+    view.rerender(
+      <RealBreakdownPanel
+        archiveCandidateClear
+        authoritativeStagedSourceIds={new Set()}
+        stagedSourceIds={new Set()}
+        successSignal={signal}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Returned to Breakdown.");
   });
 
   it("keeps the row-local status mounted if inline edit begins during its lifetime", () => {

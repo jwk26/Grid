@@ -52,7 +52,6 @@ import {
   type ConditionalEditorSnapshot,
   type ScratchTitleBlockerSnapshot,
 } from "@/hooks/use-scratch-breakdowns";
-import { useStagedCandidates } from "@/hooks/use-staged-candidates";
 import {
   TrashDraftRegistryContext,
   useTrashScratchEntries,
@@ -1207,17 +1206,26 @@ function ScratchTimestamp({ createdAt }: { createdAt: number }) {
 
 export function BreakdownPanel({
   activeDragItem = null,
+  archiveCandidateClear,
   completion,
   onAddDraftBlockerChange,
   overTargetId = null,
+  authoritativeStagedSourceIds,
+  stagedSourceIds,
   successSignal = null,
 }: {
   activeDragItem?: TriageDragItem;
+  /** True when the Scratch has no authoritative staged candidate. */
+  archiveCandidateClear: boolean;
   completion?: BreakdownCompletionProjection;
   onAddDraftBlockerChange?: (blocked: boolean) => void;
   overTargetId?: string | null;
+  /** Staged sources plus pending, unknown, reconciling and held Stage sources. */
+  stagedSourceIds: ReadonlySet<string>;
+  /** Only sources with a listed candidate; an open editor is invalidated by these alone. */
+  authoritativeStagedSourceIds: ReadonlySet<string>;
   successSignal?: BreakdownSuccessSignal | null;
-} = {}) {
+}) {
   const operationLock = useTriageOperationLockContext();
   const isStagedDrag =
     activeDragItem?.kind === "triage-staged-node" ||
@@ -1277,8 +1285,6 @@ export function BreakdownPanel({
     breakdownCreatedAtSort,
     { operationLock, titleBlockerHandle },
   );
-  const { counts: stagedCandidateCounts, eligibility: stagedEligibility } =
-    useStagedCandidates(selectedScratchId);
   const [isAdding, setIsAdding] = useState(false);
   const [newContent, setNewContent] = useState("");
   const [activeSuccessSignal, setActiveSuccessSignal] =
@@ -1401,8 +1407,8 @@ export function BreakdownPanel({
   const isSuccessTargetActive = useCallback(
     (signal: BreakdownSuccessSignal) =>
       breakdowns.some((row) => row.id === signal.rowId) &&
-      !stagedEligibility.stagedSourceIds.has(signal.rowId),
-    [breakdowns, stagedEligibility.stagedSourceIds],
+      !stagedSourceIds.has(signal.rowId),
+    [breakdowns, stagedSourceIds],
   );
 
   const observeSuccess = useCallback(
@@ -1433,7 +1439,7 @@ export function BreakdownPanel({
     ) {
       startSuccess(pendingSignal);
     }
-  }, [breakdowns, isSuccessTargetActive, stagedEligibility.stagedSourceIds, startSuccess]);
+  }, [breakdowns, isSuccessTargetActive, stagedSourceIds, startSuccess]);
 
   useEffect(
     () => () => {
@@ -1703,11 +1709,11 @@ export function BreakdownPanel({
     if (
       editorSnapshot.target.kind === "breakdown" &&
       (!breakdowns.some((row) => row.id === editorSnapshot.target.id) ||
-        stagedEligibility.stagedSourceIds.has(editorSnapshot.target.id))
+        authoritativeStagedSourceIds.has(editorSnapshot.target.id))
     ) {
       editor.invalidate();
     }
-  }, [breakdowns, editor, selectedScratch?.id, stagedEligibility.stagedSourceIds]);
+  }, [authoritativeStagedSourceIds, breakdowns, editor, selectedScratch?.id]);
   const persistedConsumedCompletion =
     selectedScratch !== null &&
     isArchiveEligible &&
@@ -1771,7 +1777,7 @@ export function BreakdownPanel({
           : null;
   const emptyState = isConsumedCompletion
     ? "consumed-completion"
-    : consumedBreakdownCount > 0 || stagedCandidateCounts.authoritative > 0
+    : consumedBreakdownCount > 0 || !archiveCandidateClear
       ? "ordinary"
       : hasObservedBreakdownHistory
         ? "all-deleted"
@@ -2434,7 +2440,7 @@ export function BreakdownPanel({
                   deleteOperation={
                     deleteOperationsByBreakdownId.get(item.row.id) ?? null
                   }
-                  isStaged={stagedEligibility.stagedSourceIds.has(item.row.id)}
+                  isStaged={stagedSourceIds.has(item.row.id)}
                   isOperationLocked={operationLock.activeOperation !== null}
                   editor={editor}
                   onEdit={handleOpenBreakdown}

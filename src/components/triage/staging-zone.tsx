@@ -309,26 +309,23 @@ function NodeStagingZone({
     >
       {candidates.length > 0 || operations.length > 0 || integrityCandidates.length > 0 ? (
         <div className="grid w-full grid-cols-2 gap-2 pb-1">
-          {candidates.map((candidate) => (
-            <NodeCandidateCard
-              key={candidate.id}
-              candidate={candidate}
-              disabled={isInteractionLocked}
-              isNew={newCandidateIds.has(candidate.id)}
-              operation={operations.find(
-                ({ candidateId }) => candidateId === candidate.id,
-              )}
-            />
+          {stageProjections(operations, candidates).map((operation) => (
+            <NodeStatusCard key={operation.operationId} operation={operation} />
           ))}
-          {operations
-            .filter(
-              ({ kind, candidateId }) =>
-                kind === "stage" &&
-                !candidates.some((candidate) => candidate.id === candidateId),
-            )
-            .map((operation) => (
-              <NodeStatusCard key={operation.operationId} operation={operation} />
-            ))}
+          {candidates.map((candidate) => {
+            const operation = operations.find(
+              ({ candidateId }) => candidateId === candidate.id,
+            );
+            return (
+              <NodeCandidateCard
+                key={candidate.id}
+                candidate={candidate}
+                disabled={isInteractionLocked || operation?.held === true}
+                isNew={newCandidateIds.has(candidate.id)}
+                operation={operation}
+              />
+            );
+          })}
           {integrityCandidates.map(({ candidate }) => (
             <NodeIntegrityCard key={candidate.id} />
           ))}
@@ -382,26 +379,23 @@ function BitStagingZone({
     >
       {candidates.length > 0 || operations.length > 0 || integrityCandidates.length > 0 ? (
         <div className="flex w-full flex-col gap-1.5 pb-1">
-          {candidates.map((candidate) => (
-            <BitCandidateRow
-              key={candidate.id}
-              candidate={candidate}
-              disabled={isInteractionLocked}
-              isNew={newCandidateIds.has(candidate.id)}
-              operation={operations.find(
-                ({ candidateId }) => candidateId === candidate.id,
-              )}
-            />
+          {stageProjections(operations, candidates).map((operation) => (
+            <BitStatusRow key={operation.operationId} operation={operation} />
           ))}
-          {operations
-            .filter(
-              ({ kind, candidateId }) =>
-                kind === "stage" &&
-                !candidates.some((candidate) => candidate.id === candidateId),
-            )
-            .map((operation) => (
-              <BitStatusRow key={operation.operationId} operation={operation} />
-            ))}
+          {candidates.map((candidate) => {
+            const operation = operations.find(
+              ({ candidateId }) => candidateId === candidate.id,
+            );
+            return (
+              <BitCandidateRow
+                key={candidate.id}
+                candidate={candidate}
+                disabled={isInteractionLocked || operation?.held === true}
+                isNew={newCandidateIds.has(candidate.id)}
+                operation={operation}
+              />
+            );
+          })}
           {integrityCandidates.map(({ candidate }) => (
             <BitIntegrityRow key={candidate.id} />
           ))}
@@ -409,6 +403,40 @@ function BitStagingZone({
       ) : null}
       <TargetReason activeDragItem={activeDragItem} overTargetId={overTargetId} type="bit" />
     </div>
+  );
+}
+
+// Stage projections not yet listed render at the top, newest first, where the
+// candidate lands under the createdAt DESC sort. Order follows when each command
+// was issued, not its phase group.
+function stageProjections(
+  operations: StagingOperationView[],
+  candidates: StagedCandidateProjection[],
+): StagingOperationView[] {
+  return operations
+    .filter(
+      ({ kind, candidateId }) =>
+        kind === "stage" &&
+        !candidates.some((candidate) => candidate.id === candidateId),
+    )
+    .map((operation, index) => ({ operation, index }))
+    .sort(
+      (left, right) =>
+        (right.operation.sequence ?? 0) - (left.operation.sequence ?? 0) ||
+        right.index - left.index,
+    )
+    .map(({ operation }) => operation);
+}
+
+// The card stays dimmed from drag start through its pending (or held-from-pending)
+// Unstage, so nothing changes at drop; unknown and reconciling show it undimmed.
+function isCandidateDimmed(
+  isDragging: boolean,
+  operation: StagingOperationView | undefined,
+): boolean {
+  return (
+    isDragging ||
+    (operation?.kind === "unstage" && operation.phase === "pending")
   );
 }
 
@@ -465,6 +493,8 @@ function NodeCandidateCard({
     ],
   );
 
+  const isDimmed = isCandidateDimmed(isDragging, operation);
+
   return (
     <div
       ref={setNodeRef}
@@ -472,12 +502,14 @@ function NodeCandidateCard({
       data-operation-locked={disabled}
       className={cn(
         "triage-staging__node mx-auto aspect-square h-auto w-full max-w-[80px] touch-none cursor-grab select-none overflow-hidden rounded-lg border border-border/80 bg-background transition-[background-color,border-color,color,opacity] active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
-        isDragging && "opacity-30 border-dashed border-muted bg-transparent",
+        isDimmed && "border-dashed border-muted/30 bg-transparent",
       )}
       data-candidate-version={candidate.version}
       data-candidate-id={candidate.id}
       data-new-candidate={isNew || undefined}
       data-source-version={candidate.source.version}
+      data-triage-dimmed={isDimmed || undefined}
+      data-triage-hold={operation?.held || undefined}
       data-testid="node-candidate-card"
       data-triage-drag-source="staged-root"
       data-triage-role="staging-node-card"
@@ -489,14 +521,14 @@ function NodeCandidateCard({
         <Folder
           aria-hidden="true"
           className={cn(
-            "h-6 w-6 flex-shrink-0 text-muted-foreground transition-colors",
-            isDragging && "text-muted-foreground",
+            "h-6 w-6 flex-shrink-0 text-muted-foreground transition-[color,opacity]",
+            isDimmed && "opacity-30",
           )}
         />
         <div
           className={cn(
-            "triage-staging__node-label mt-auto w-full truncate px-1 pb-1 text-center text-[10px] font-semibold transition-colors",
-            isDragging ? "text-muted-foreground" : "text-foreground",
+            "triage-staging__node-label mt-auto w-full truncate px-1 pb-1 text-center text-[10px] font-semibold transition-[color,opacity]",
+            isDimmed ? "text-muted-foreground opacity-30" : "text-foreground",
           )}
         >
           {candidate.content}
@@ -560,6 +592,8 @@ function BitCandidateRow({
     ],
   );
 
+  const isDimmed = isCandidateDimmed(isDragging, operation);
+
   return (
     <div
       ref={setNodeRef}
@@ -567,12 +601,14 @@ function BitCandidateRow({
       data-operation-locked={disabled}
       className={cn(
         "triage-staging__bit flex min-h-[2rem] w-full touch-none cursor-grab select-none items-center rounded-lg border border-border/60 bg-background px-3 py-1.5 transition-[background-color,border-color,color,opacity] active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
-        isDragging && "opacity-30 border-dashed border-muted bg-transparent",
+        isDimmed && "border-dashed border-muted/30 bg-transparent",
       )}
       data-candidate-version={candidate.version}
       data-candidate-id={candidate.id}
       data-new-candidate={isNew || undefined}
       data-source-version={candidate.source.version}
+      data-triage-dimmed={isDimmed || undefined}
+      data-triage-hold={operation?.held || undefined}
       data-testid="bit-candidate-row"
       data-triage-drag-source="staged-root"
       data-triage-role="staging-bit-row"
@@ -580,11 +616,17 @@ function BitCandidateRow({
       {...attributes}
       {...listeners}
     >
-      <FileText aria-hidden="true" className="triage-staging__bit-icon" />
+      <FileText
+        aria-hidden="true"
+        className={cn(
+          "triage-staging__bit-icon transition-opacity",
+          isDimmed && "opacity-30",
+        )}
+      />
       <div
         className={cn(
-          "min-w-0 flex-1 truncate text-left text-xs font-medium transition-colors",
-          isDragging ? "text-muted-foreground" : "text-foreground",
+          "min-w-0 flex-1 truncate text-left text-xs font-medium transition-[color,opacity]",
+          isDimmed ? "text-muted-foreground opacity-30" : "text-foreground",
         )}
       >
         {candidate.content}
@@ -624,6 +666,7 @@ function NodeStatusCard({ operation }: { operation: StagingOperationView }) {
   return (
     <div
       className="staging-node-status-card"
+      data-triage-hold={operation.held || undefined}
       data-testid="node-operation-card"
       data-triage-role="staging-node-card"
       data-triage-state={operation.phase}
@@ -636,7 +679,7 @@ function NodeStatusCard({ operation }: { operation: StagingOperationView }) {
 
 function BitStatusRow({ operation }: { operation: StagingOperationView }) {
   return (
-    <div className="staging-bit-status-row" data-testid="bit-operation-row" data-triage-role="staging-bit-row" data-triage-state={operation.phase}>
+    <div className="staging-bit-status-row" data-testid="bit-operation-row" data-triage-hold={operation.held || undefined} data-triage-role="staging-bit-row" data-triage-state={operation.phase}>
       <FileText aria-hidden="true" className="triage-staging__bit-icon" />
       <OperationStatus operation={operation} />
     </div>

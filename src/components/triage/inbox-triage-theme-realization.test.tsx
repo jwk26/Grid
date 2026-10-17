@@ -8,7 +8,7 @@ import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import type { Bit } from "@/types";
 import { ScratchPool } from "./scratch-pool";
-import { BreakdownPanel } from "./breakdown-panel";
+import { BreakdownPanel as RealBreakdownPanel } from "./breakdown-panel";
 import { StagingZone } from "./staging-zone";
 import { GridExplorerSearchResults } from "./grid-explorer-search-results";
 import { TriageDragToken } from "./triage-drag-token";
@@ -38,9 +38,17 @@ vi.mock("@/hooks/use-scratch-breakdowns", () => ({
     editor: { snapshot: null, focusIntent: null, openScratchTitle: vi.fn(), openBreakdown: vi.fn() },
     addBreakdown: vi.fn(), deleteBreakdown: vi.fn() }),
 }));
-vi.mock("@/hooks/use-staged-candidates", () => ({
-  useStagedCandidates: () => ({ counts: { authoritative: l2.stagedIds.size }, eligibility: { stagedSourceIds: l2.stagedIds } }),
-}));
+
+// The panel takes staged-source state as props from the workspace.
+function BreakdownPanel() {
+  return (
+    <RealBreakdownPanel
+      archiveCandidateClear={l2.stagedIds.size === 0}
+      authoritativeStagedSourceIds={l2.stagedIds}
+      stagedSourceIds={l2.stagedIds}
+    />
+  );
+}
 
 function scratch(id: string, title: string, createdAt: number): Bit {
   return { id, title, createdAt, description: "", icon: "sparkles", deadline: null,

@@ -771,4 +771,316 @@ describe("useStagedCandidates", () => {
     unmount();
     expect(subscriptions[1]?.unsubscribe).toHaveBeenCalledTimes(1);
   });
+
+  describe("post-terminal presentation hold", () => {
+    function installManualSubscription() {
+      liveQueryMock.mockImplementation((query: () => Promise<unknown>) => {
+        const subscription: LiveQuerySubscription = {
+          query,
+          unsubscribe: vi.fn(),
+        };
+        subscriptions.push(subscription);
+        return {
+          subscribe: (observer: LiveQueryObserver) => {
+            subscription.observer = observer;
+            return { unsubscribe: subscription.unsubscribe };
+          },
+        };
+      });
+    }
+
+    async function deliver(index = subscriptions.length - 1) {
+      await refreshSubscription(index);
+    }
+
+    function appliedStage(command: StageCandidateCommand) {
+      return {
+        operationId: command.operationId,
+        status: "applied",
+        candidate: null,
+        source: null,
+        scratch: null,
+      };
+    }
+
+    async function mountWithSource() {
+      installManualSubscription();
+      sourceRows.push(breakdown(IDS.sourceNode, "Row"));
+      const hook = renderHook(() => useStagedCandidates(IDS.scratch));
+      await waitFor(() => expect(subscriptions).toHaveLength(1));
+      await deliver();
+      return hook;
+    }
+
+    it("holds an applied Stage until the snapshot lists the candidate, counting it once", async () => {
+      const command = stageCommand();
+      dataStore.stageCandidate.mockResolvedValue(appliedStage(command));
+      const { result } = await mountWithSource();
+
+      await act(async () => {
+        await result.current.stageCandidate(command);
+      });
+      expect(result.current.pendingOperations).toEqual([]);
+      expect(result.current.heldOperations).toEqual([
+        expect.objectContaining({
+          candidateId: command.candidateId,
+          kind: "stage",
+          phase: "pending",
+          held: true,
+        }),
+      ]);
+      expect(result.current.counts.visibleNodes).toBe(1);
+      expect(result.current.stagedSourceIds.has(IDS.sourceNode)).toBe(true);
+      expect(result.current.eligibility.stagedSourceIds.has(IDS.sourceNode)).toBe(
+        false,
+      );
+
+      candidateRows.push(
+        candidate(command.candidateId, IDS.sourceNode, "node"),
+      );
+      await deliver();
+      expect(result.current.heldOperations).toEqual([]);
+      expect(result.current.candidates).toHaveLength(1);
+      expect(result.current.counts.visibleNodes).toBe(1);
+    });
+
+    it("removes an applied Stage in the same commit when the snapshot already lists it", async () => {
+      const command = stageCommand();
+      const gate = deferred<unknown>();
+      dataStore.stageCandidate.mockReturnValue(gate.promise);
+      const { result } = await mountWithSource();
+
+      let dispatch!: Promise<unknown>;
+      act(() => {
+        dispatch = result.current.stageCandidate(command);
+      });
+      await waitFor(() => expect(result.current.pendingOperations).toHaveLength(1));
+      candidateRows.push(
+        candidate(command.candidateId, IDS.sourceNode, "node"),
+      );
+      await deliver();
+      gate.resolve({ ...appliedStage(command), status: "already_applied" });
+      await act(async () => {
+        await dispatch;
+      });
+      expect(result.current.heldOperations).toEqual([]);
+      expect(result.current.pendingOperations).toEqual([]);
+      expect(result.current.counts.visibleNodes).toBe(1);
+    });
+
+    it("keeps the hold when a read that started before the result finishes after it", async () => {
+      const command = stageCommand();
+      dataStore.stageCandidate.mockResolvedValue(appliedStage(command));
+      const { result } = await mountWithSource();
+      const early = subscriptions[0]!.query();
+
+      await act(async () => {
+        await result.current.stageCandidate(command);
+      });
+      const stale = await early;
+      act(() => subscriptions[0]!.observer?.next(stale));
+      expect(result.current.heldOperations).toHaveLength(1);
+    });
+
+    it("ends the hold when a read that started after the result lacks the candidate", async () => {
+      const command = stageCommand();
+      dataStore.stageCandidate.mockResolvedValue(appliedStage(command));
+      const { result } = await mountWithSource();
+
+      await act(async () => {
+        await result.current.stageCandidate(command);
+      });
+      expect(result.current.heldOperations).toHaveLength(1);
+      await deliver();
+      expect(result.current.heldOperations).toEqual([]);
+      expect(result.current.counts.visibleNodes).toBe(0);
+    });
+
+    it("ends the hold on a subscription error", async () => {
+      const command = stageCommand();
+      dataStore.stageCandidate.mockResolvedValue(appliedStage(command));
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const { result } = await mountWithSource();
+
+      await act(async () => {
+        await result.current.stageCandidate(command);
+      });
+      act(() => subscriptions[0]!.observer?.error(new Error("boom")));
+      expect(result.current.heldOperations).toEqual([]);
+      consoleError.mockRestore();
+    });
+
+    it("never holds non-success results or orphan cleanup", async () => {
+      const command = stageCommand();
+      const { result } = await mountWithSource();
+
+      for (const status of ["rejected", "conflict", "not_applied"]) {
+        dataStore.stageCandidate.mockResolvedValueOnce({
+          ...appliedStage(command),
+          status,
+        });
+        await act(async () => {
+          await result.current.stageCandidate(command);
+        });
+        expect(result.current.heldOperations).toEqual([]);
+        expect(result.current.counts.visibleNodes).toBe(0);
+      }
+
+      candidateRows.push(
+        candidate(IDS.candidateMissing, IDS.sourceMissing, "node"),
+      );
+      await deliver();
+      const cleanup = orphanCommand();
+      dataStore.cleanupConfirmedCandidateOrphan.mockResolvedValue({
+        operationId: cleanup.operationId,
+        status: "applied",
+        candidate: null,
+        source: null,
+        auditEvent: { id: cleanup.auditEventId },
+      });
+      await act(async () => {
+        await result.current.cleanupConfirmedCandidateOrphan(cleanup);
+      });
+      expect(result.current.heldOperations).toEqual([]);
+    });
+
+    it("holds an applied Unstage until the candidate leaves the snapshot", async () => {
+      const unstage = unstageCommand();
+      candidateRows.push(
+        candidate(IDS.candidateNode, IDS.sourceNode, "node"),
+      );
+      dataStore.unstageCandidate.mockResolvedValue({
+        operationId: unstage.operationId,
+        status: "applied",
+        candidate: null,
+        source: null,
+      });
+      const { result } = await mountWithSource();
+      expect(result.current.candidates).toHaveLength(1);
+
+      await act(async () => {
+        await result.current.unstageCandidate(unstage);
+      });
+      expect(result.current.pendingOperations).toEqual([]);
+      expect(result.current.heldOperations).toEqual([
+        expect.objectContaining({
+          kind: "unstage",
+          candidateId: IDS.candidateNode,
+          held: true,
+        }),
+      ]);
+      expect(result.current.counts.visibleNodes).toBe(1);
+
+      candidateRows.length = 0;
+      await deliver();
+      expect(result.current.heldOperations).toEqual([]);
+      expect(result.current.candidates).toEqual([]);
+    });
+
+    it("removes an applied Unstage at once when the candidate is already gone, and ends the hold on a later read that still lists it", async () => {
+      const unstage = unstageCommand();
+      candidateRows.push(
+        candidate(IDS.candidateNode, IDS.sourceNode, "node"),
+      );
+      dataStore.unstageCandidate.mockResolvedValue({
+        operationId: unstage.operationId,
+        status: "applied",
+        candidate: null,
+        source: null,
+      });
+      const { result } = await mountWithSource();
+
+      candidateRows.length = 0;
+      await deliver();
+      await act(async () => {
+        await result.current.unstageCandidate(unstage);
+      });
+      expect(result.current.heldOperations).toEqual([]);
+
+      candidateRows.push(
+        candidate(IDS.candidateNode, IDS.sourceNode, "node"),
+      );
+      await deliver();
+      await act(async () => {
+        await result.current.unstageCandidate({
+          ...unstage,
+          operationId: IDS.audit,
+        });
+      });
+      expect(result.current.heldOperations).toHaveLength(1);
+      await deliver();
+      expect(result.current.heldOperations).toEqual([]);
+    });
+
+    it("renders no previous-Scratch operation or hold in any commit after a Scratch switch", async () => {
+      const command = stageCommand();
+      dataStore.stageCandidate.mockResolvedValue(appliedStage(command));
+      installManualSubscription();
+      sourceRows.push(breakdown(IDS.sourceNode, "Row"));
+      const renders: Array<{
+        scratch: string;
+        held: number;
+        pending: number;
+        visible: number;
+        sources: number;
+      }> = [];
+      const { result, rerender } = renderHook(
+        ({ scratchId }) => {
+          const value = useStagedCandidates(scratchId);
+          renders.push({
+            scratch: scratchId,
+            held: value.heldOperations.length,
+            pending: value.pendingOperations.length,
+            visible: value.counts.visibleNodes,
+            sources: value.stagedSourceIds.size,
+          });
+          return value;
+        },
+        { initialProps: { scratchId: IDS.scratch as string } },
+      );
+      await waitFor(() => expect(subscriptions).toHaveLength(1));
+      await deliver();
+      await act(async () => {
+        await result.current.stageCandidate(command);
+      });
+      expect(result.current.heldOperations).toHaveLength(1);
+
+      renders.length = 0;
+      rerender({ scratchId: IDS.otherScratch });
+      expect(renders.length).toBeGreaterThan(0);
+      for (const render of renders) {
+        expect(render).toMatchObject({
+          scratch: IDS.otherScratch,
+          held: 0,
+          pending: 0,
+          visible: 0,
+          sources: 0,
+        });
+      }
+    });
+
+    it("does not hold a result that arrives after the Scratch changed", async () => {
+      const command = stageCommand();
+      const gate = deferred<unknown>();
+      dataStore.stageCandidate.mockReturnValue(gate.promise);
+      installManualSubscription();
+      const { result, rerender } = renderHook(
+        ({ scratchId }) => useStagedCandidates(scratchId),
+        { initialProps: { scratchId: IDS.scratch as string } },
+      );
+      await waitFor(() => expect(subscriptions).toHaveLength(1));
+      await deliver();
+      let dispatch!: Promise<unknown>;
+      act(() => {
+        dispatch = result.current.stageCandidate(command);
+      });
+      rerender({ scratchId: IDS.otherScratch });
+      rerender({ scratchId: IDS.scratch });
+      gate.resolve(appliedStage(command));
+      await act(async () => {
+        await dispatch;
+      });
+      expect(result.current.heldOperations).toEqual([]);
+    });
+  });
 });

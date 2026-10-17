@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { StrictMode } from "react";
+import { Profiler, StrictMode } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTriageStore } from "@/stores/triage-store";
@@ -1147,6 +1147,72 @@ describe("TriageWorkspace", () => {
     expect(nodeWell.scrollTop).toBe(0);
     expect(screen.getByText("Remote node")).toHaveFocus();
     expect(screen.queryByRole("button", { name: "Show new Nodes" })).not.toBeInTheDocument();
+  });
+
+  it("never shows the previous Scratch's new-item indicator or alert in any commit after a Scratch switch", async () => {
+    const base = {
+      isReady: true,
+      candidates: [] as unknown[],
+      integrityCandidates: [],
+      pendingOperations: [],
+      unknownOperations: [],
+      reconcilingOperations: [],
+      counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
+      eligibility: { stagedSourceIds: new Set<string>() },
+      stageCandidate: stageCandidateMock,
+      reconcileStageCandidate: reconcileStageCandidateMock,
+      unstageCandidate: unstageCandidateMock,
+      reconcileUnstageCandidate: reconcileUnstageCandidateMock,
+    };
+    useStagedCandidatesMock.mockReturnValue(base);
+    const commits: boolean[] = [];
+    const probe = () => (
+      <Profiler
+        id="workspace"
+        onRender={() =>
+          commits.push(
+            screen.queryByRole("button", { name: "Show new Nodes" }) !== null,
+          )
+        }
+      >
+        <TriageWorkspace node={createNode()} />
+      </Profiler>
+    );
+    const view = render(probe());
+    useStagedCandidatesMock.mockReturnValue({
+      ...base,
+      candidates: [
+        {
+          id: "remote-node",
+          scratchBitId: "scratch-1",
+          sourceBreakdownId: "breakdown-remote",
+          resultType: "node",
+          lifecycle: "staged",
+          createdAt: 2,
+          updatedAt: 2,
+          version: 1,
+          content: "Remote node",
+          source: {
+            id: "breakdown-remote",
+            scratchBitId: "scratch-1",
+            content: "Remote node",
+            order: 0,
+            createdAt: 2,
+            consumedAt: null,
+            version: 1,
+          },
+        },
+      ],
+      counts: { nodes: 1, bits: 0, visibleNodes: 1, visibleBits: 0 },
+    });
+    view.rerender(probe());
+    await screen.findByRole("button", { name: "Show new Nodes" });
+
+    commits.length = 0;
+    useStagedCandidatesMock.mockReturnValue({ ...base, isReady: false });
+    act(() => useTriageStore.setState({ selectedScratchId: "scratch-2" }));
+    expect(commits.length).toBeGreaterThan(0);
+    expect(commits.every((shown) => !shown)).toBe(true);
   });
 
   it("excludes a local Stage identity from the remote-arrival indicator", async () => {

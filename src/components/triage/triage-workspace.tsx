@@ -50,6 +50,7 @@ import { useCanArchiveScratch } from "@/hooks/use-can-archive-scratch";
 import {
   useStagedCandidates,
   type CandidateCommandOutcome,
+  type CandidateOperationProjection,
 } from "@/hooks/use-staged-candidates";
 import { useInbox } from "@/hooks/use-inbox";
 import {
@@ -130,7 +131,12 @@ type StagingAlertState = Readonly<{
   clearOnCandidateDisappearance: boolean;
 }>;
 
+const EMPTY_SOURCE_IDS: ReadonlySet<string> = new Set();
+
+type NewCandidateIds = { node: Set<string>; bit: Set<string> };
+
 type StagingOperationMeta = Readonly<{
+  scratchId: string | null;
   title: string;
   resultType: "node" | "bit";
   candidateId: string;
@@ -1355,7 +1361,33 @@ function TriageWorkspaceContent({
     stageCandidate: runStageCandidate,
     unstageCandidate: runUnstageCandidate,
   } = stagedCandidates;
-  const [stagingAlert, setStagingAlert] = useState<StagingAlertState | null>(null);
+  // Alert and new-candidate state carry the Scratch they were raised for; a
+  // mismatch with the selection reads as empty in the same commit.
+  const [stagingAlertState, setStagingAlertState] = useState<{
+    scratchId: string | null;
+    alert: StagingAlertState;
+  } | null>(null);
+  const stagingAlert =
+    stagingAlertState?.scratchId === selectedScratchId
+      ? stagingAlertState.alert
+      : null;
+  const setStagingAlert = useCallback(
+    (
+      next:
+        | StagingAlertState
+        | null
+        | ((current: StagingAlertState | null) => StagingAlertState | null),
+    ) =>
+      setStagingAlertState((current) => {
+        const currentAlert =
+          current?.scratchId === selectedScratchId ? current.alert : null;
+        const value = typeof next === "function" ? next(currentAlert) : next;
+        return value === null
+          ? null
+          : { scratchId: selectedScratchId, alert: value };
+      }),
+    [selectedScratchId],
+  );
   const breakdownSuccessScopeToken = useMemo(
     () => ({ scratchId: selectedScratchId }),
     [selectedScratchId],
@@ -1365,10 +1397,28 @@ function TriageWorkspaceContent({
     token: { scratchId: string | null };
     signal: UnstageSuccessProjection;
   } | null>(null);
-  const [newCandidateIds, setNewCandidateIds] = useState<{
-    node: Set<string>;
-    bit: Set<string>;
-  }>({ node: new Set(), bit: new Set() });
+  const [newCandidateState, setNewCandidateState] = useState<
+    ({ scratchId: string | null } & NewCandidateIds) | null
+  >(null);
+  const newCandidateIds = useMemo<NewCandidateIds>(
+    () =>
+      newCandidateState?.scratchId === selectedScratchId
+        ? newCandidateState
+        : { node: new Set(), bit: new Set() },
+    [newCandidateState, selectedScratchId],
+  );
+  const setNewCandidateIds = useCallback(
+    (next: NewCandidateIds | ((previous: NewCandidateIds) => NewCandidateIds)) =>
+      setNewCandidateState((current) => {
+        const previous =
+          current?.scratchId === selectedScratchId
+            ? current
+            : { node: new Set<string>(), bit: new Set<string>() };
+        const value = typeof next === "function" ? next(previous) : next;
+        return { scratchId: selectedScratchId, node: value.node, bit: value.bit };
+      }),
+    [selectedScratchId],
+  );
   const breakdownHeadingRef = useRef<HTMLHeadingElement>(null);
   const stagingHeadingRef = useRef<HTMLHeadingElement>(null);
   const nodeStagingHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -1468,6 +1518,7 @@ function TriageWorkspaceContent({
             previous?.resultType ??
             (dragItem?.kind === "triage-staged-node" ? "node" : "bit");
       const meta = {
+        scratchId: selectedScratchId,
         title: candidate?.content ?? dragItem?.label ?? previous?.title ?? "Item",
         resultType,
         candidateId: command.candidateId,
@@ -1486,7 +1537,7 @@ function TriageWorkspaceContent({
       );
       return meta;
     },
-    [authoritativeStagedCandidates],
+    [authoritativeStagedCandidates, selectedScratchId, setStagingAlert],
   );
   const projectTerminalOutcome = useCallback(
     (
@@ -1525,7 +1576,7 @@ function TriageWorkspaceContent({
         alert ?? (current?.candidateId === meta.candidateId ? null : current),
       );
     },
-    [breakdownSuccessScopeToken, selectedScratchId],
+    [breakdownSuccessScopeToken, selectedScratchId, setStagingAlert],
   );
   const stageCandidate = useCallback(
     async (command: StageCandidateCommand) => {
@@ -1687,6 +1738,7 @@ function TriageWorkspaceContent({
       clearOnCandidateDisappearance: false,
     });
   }, [
+    setStagingAlert,
     authoritativeBreakdowns,
     authoritativeBreakdownsReady,
     authoritativeStagedCandidates,
@@ -1725,39 +1777,54 @@ function TriageWorkspaceContent({
     activeDragItemRef.current = activeDragItem;
   }, [activeDragItem]);
 
-  const stagingOperations = useMemo<StagingOperationView[]>(() => {
-    const projected = [
-      ...(stagedCandidates.pendingOperations ?? []),
-      ...(stagedCandidates.unknownOperations ?? []),
-      ...(stagedCandidates.reconcilingOperations ?? []),
-    ];
-    return projected.flatMap((operation) => {
-      if (operation.kind === "orphan_cleanup") return [];
-      const kind = operation.kind;
-      const candidate = authoritativeStagedCandidates.find(
-        ({ id }) => id === operation.candidateId,
-      );
-      const meta = operationMeta.get(operation.operationId);
-      const title = candidate?.content ?? meta?.title;
-      const resultType = operation.resultType ?? candidate?.resultType ?? meta?.resultType;
-      if (title === undefined || resultType === undefined) return [];
-      return [{ ...operation, kind, title, resultType }];
-    });
-  }, [
-    authoritativeStagedCandidates,
-    operationMeta,
-    stagedCandidates.pendingOperations,
-    stagedCandidates.reconcilingOperations,
-    stagedCandidates.unknownOperations,
-  ]);
+  const toStagingOperationViews = useCallback(
+    (projected: readonly CandidateOperationProjection[]) =>
+      projected.flatMap((operation): StagingOperationView[] => {
+        if (operation.kind === "orphan_cleanup") return [];
+        const kind = operation.kind;
+        const candidate = authoritativeStagedCandidates.find(
+          ({ id }) => id === operation.candidateId,
+        );
+        const storedMeta = operationMeta.get(operation.operationId);
+        const meta =
+          storedMeta?.scratchId === selectedScratchId ? storedMeta : undefined;
+        const title = candidate?.content ?? meta?.title;
+        const resultType =
+          operation.resultType ?? candidate?.resultType ?? meta?.resultType;
+        if (title === undefined || resultType === undefined) return [];
+        return [{ ...operation, kind, title, resultType }];
+      }),
+    [authoritativeStagedCandidates, operationMeta, selectedScratchId],
+  );
+  // Unresolved operations only: locks, the live sentence and every guard read this.
+  const stagingOperations = useMemo<StagingOperationView[]>(
+    () =>
+      toStagingOperationViews([
+        ...(stagedCandidates.pendingOperations ?? []),
+        ...(stagedCandidates.unknownOperations ?? []),
+        ...(stagedCandidates.reconcilingOperations ?? []),
+      ]),
+    [
+      stagedCandidates.pendingOperations,
+      stagedCandidates.reconcilingOperations,
+      stagedCandidates.unknownOperations,
+      toStagingOperationViews,
+    ],
+  );
+  // Held operations are presentation only and join the Staging render alone.
+  const heldStagingOperations = useMemo(
+    () => toStagingOperationViews(stagedCandidates.heldOperations ?? []),
+    [stagedCandidates.heldOperations, toStagingOperationViews],
+  );
   const stagingProjection = useMemo<StagingZoneProjection>(
     () => ({
       candidates: authoritativeStagedCandidates ?? [],
       integrityCandidates: stagedCandidates.integrityCandidates ?? [],
-      operations: stagingOperations,
+      operations: [...stagingOperations, ...heldStagingOperations],
     }),
     [
       authoritativeStagedCandidates,
+      heldStagingOperations,
       stagedCandidates.integrityCandidates,
       stagingOperations,
     ],
@@ -1873,6 +1940,8 @@ function TriageWorkspaceContent({
       ids: currentIds,
     };
   }, [
+    setNewCandidateIds,
+    setStagingAlert,
     authoritativeArrivalCandidates,
     localStageCandidateIds,
     selectedScratchId,
@@ -1890,7 +1959,7 @@ function TriageWorkspaceContent({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setStagingAlert(null);
     }
-  }, [authoritativeArrivalCandidates, stagingAlert]);
+  }, [authoritativeArrivalCandidates, setStagingAlert, stagingAlert]);
 
   useEffect(() => {
     if (activeDragItem?.integrity === "invalidated") {
@@ -1913,7 +1982,7 @@ function TriageWorkspaceContent({
       setStagingAlert(invalidatedDragRef.current);
       invalidatedDragRef.current = null;
     }
-  }, [activeDragItem]);
+  }, [activeDragItem, setStagingAlert]);
 
   const handlePendingPlacementInvalidated = useCallback(
     (dropId: string) => {
@@ -1934,7 +2003,7 @@ function TriageWorkspaceContent({
       }
       return false;
     },
-    [focusPlacementSource, placement],
+    [focusPlacementSource, placement, setStagingAlert],
   );
 
   const showNewCandidates = useCallback((type: "node" | "bit") => {
@@ -1948,7 +2017,7 @@ function TriageWorkspaceContent({
     ).find((element) => ids.includes(element.dataset.candidateId ?? ""));
     (target ?? (type === "node" ? nodeStagingHeadingRef.current : bitStagingHeadingRef.current))?.focus();
     setNewCandidateIds((previous) => ({ ...previous, [type]: new Set() }));
-  }, [newCandidateIds]);
+  }, [newCandidateIds, setNewCandidateIds]);
 
   const dismissStagingAlert = useCallback(() => {
     const dismissed = stagingAlert;
@@ -1974,7 +2043,7 @@ function TriageWorkspaceContent({
               ?.querySelector<HTMLElement>('button[aria-label="Drag breakdown"]');
       (candidate ?? source ?? stagingHeadingRef.current)?.focus();
     });
-  }, [stagingAlert]);
+  }, [setStagingAlert, stagingAlert]);
 
   useLayoutEffect(() => {
     const root = workspaceRef.current;
@@ -2225,6 +2294,13 @@ function TriageWorkspaceContent({
               >
                 <BreakdownPanel
                   key={selectedScratchId ?? "none"}
+                  archiveCandidateClear={
+                    stagedCandidates.eligibility?.archiveCandidateClear ?? true
+                  }
+                  authoritativeStagedSourceIds={
+                    stagedCandidates.eligibility?.stagedSourceIds ?? EMPTY_SOURCE_IDS
+                  }
+                  stagedSourceIds={stagedCandidates.stagedSourceIds ?? EMPTY_SOURCE_IDS}
                   activeDragItem={activeDragItem}
                   completion={completion}
                   onAddDraftBlockerChange={onAddDraftBlockerChange}
