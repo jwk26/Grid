@@ -2786,7 +2786,7 @@ Carried from Phase 34 (`Issues_Deferred.md`): move the Archive confirmation deta
 
 ### Task 179: [ ] Complete supported modes, accessibility and regression
 
-**Files and actions:** bind L7's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-17): repair the neumorphism Scratch Pool collapse/expand motion (Task 173's L1 surface), which stutters because it animates the Pool's `inline-size` and so re-lays out the whole workspace each frame; keep the adopted toggle look and timing token, `globals.css` (and `triage-workspace.tsx` only if a CSS-only fix cannot reach it).
+**Files and actions:** bind L7's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-17): repair the neumorphism Scratch Pool collapse/expand motion (Task 173's L1 surface), which stutters because it animates the Pool's `inline-size` and so re-lays out the whole workspace each frame; keep the adopted toggle look and timing token, `globals.css` (and `triage-workspace.tsx` only if a CSS-only fix cannot reach it). User-approved addition (2026-10-17): realize the collapsed-Pool Scratch-switch motion adopted in the Pool recipe, in the same files.
 
 **Dependencies:** Task 178 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
