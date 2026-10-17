@@ -117,6 +117,12 @@ fade, slide, scale, spinner, pulse, ping, bounce, blink, flicker, or
 layout-transition animation. Reduced motion uses identical geometry, copy,
 controls, timing, focus, and lifetime.
 
+User-adopted 2026-10-17 (Neumorphism only): when a drag enters or leaves a
+Staging subsection target, its tint and inset depth change over the theme's
+`--triage-pool-motion-duration` (background and box-shadow only, no fade-in,
+transform or layout change); reduced motion makes it immediate. Every other
+theme keeps the immediate change above.
+
 | Theme | Exact realization mapping |
 |---|---|
 | GridDO | Candidate-attached technical rule, compact subsection count chip, restrained semantic alert band, and canonical action/focus roles. |

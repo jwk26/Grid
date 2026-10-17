@@ -17,6 +17,7 @@
 - Nodes and Bits retain native, shape-distinct rows/cards. Columns hide scrollbar chrome while preserving ordinary input scrolling.
 - Supported target grammar includes idle, eligible, hovered eligible, unavailable/invalid, and base placement anchoring without changing path or column size.
 - User-adopted 2026-10-17: the column-level target covers the whole column pane, full-label header included, per SPEC "Column drop region"; target-state styling paints that whole pane, and Node rows remain their own targets.
+- User-adopted 2026-10-17 (Neumorphism only): entering or leaving a column or Node-row target changes its tint and inset depth over `--triage-pool-motion-duration` (background and box-shadow only, no transform or layout change); reduced motion makes it immediate. Other themes keep immediate target changes.
 - Grid semantic/default name is `Grid Explorer`; Tiny Desk may show `Library Index`, Retro Mac `Finder`, and Terminal `GRID EXPLORER`.
 - Source active-column search inputs and filtered columns are observations only and are superseded; they do not source the selected replacement search mode.
 
