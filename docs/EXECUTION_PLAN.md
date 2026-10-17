@@ -15,7 +15,8 @@
 > Tasks 164–165 are historical, unaccepted `[ ]` transfer records.
 > Tasks 166–172 and 171A are accepted `[x]` and Phase 34 is closed; Tasks
 > 209–212 are accepted `[x]` and Phase 41 is closed (2026-10-16); Tasks
-> 173–208 are `[ ]`, planned and unstarted. Phases 32–33 remain reserved.
+> 173–176 are accepted `[x]`; repair Task 176A and Tasks 177–208 are `[ ]`.
+> Phases 32–33 remain reserved.
 > **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
 > corrections, Tasks 209–212, from
 > [DECISION](brainstorming/2026-10-15-scratch-trash-hotfix/DECISION.md). It
@@ -182,6 +183,7 @@ boundaries. No canonical Task 164 receipt or experiment fingerprint is reused.
                                                   └171A┘ (repair; gates 172 acceptance)
                           →209→210→211→212  Phase 41 Scratch Trash hotfix
                                           └→173→174→175→176→177→178→179  Neumorphism
+                                                        └176A┘ (repair; gates 177)
                           →180→181→182→183→184→185→186  Terminal
                           →187→188→189→190→191→192→193  Claymorphism + Origami
                           →194→195→196→197→198→199→200  GridDO + Tiny Desk
@@ -211,7 +213,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 34 | Completed | [Retro Mac regional realization](execution-plan/archive/phase-34.md) | 166–172 + 171A | Accepted and archived; MI-5/6/9 and close Advisory A2 carried in `Issues_Deferred.md`, MI-9 and A2 bound to Task 178. |
 | Phase 41 | Completed | [Scratch Trash and post-Phase-34 Inbox corrections](execution-plan/archive/phase-41.md) (ran before Phase 35) | 209–212 | Accepted and archived; MI-2 carried in `Issues_Deferred.md` and bound to Task 180. |
-| Phase 35 | In progress | Neumorphism, region-by-region then supported-mode conformance | 173–179 | 172 accepted + Phase 41 close/main sync. |
+| Phase 35 | In progress | Neumorphism, region-by-region then supported-mode conformance | 173–179 + 176A | 172 accepted + Phase 41 close/main sync. |
 | Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 accepted + Phase 35 close/main sync. |
 | Phase 37 | Planned / unstarted | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
 | Phase 38 | Planned / unstarted | GridDO + Tiny Desk, one shared writer | 194–200 | 193 accepted + Phase 37 close/main sync; both themes require regional dispositions. |
@@ -253,9 +255,9 @@ to the owners named in the inventories.
 | `UF-11` | Delete non-optimistically with confirmation, recovery, and focus handoff. | 120, 136, 143, 210; BREAKDOWN |
 | `UF-12` | Active, staged, consumed-removal, never-used, all-deleted, and completion row lifecycle. | 132, 136, 142, 145; BREAKDOWN, ARCHIVE |
 | `UF-13` | Durable Node/Bit candidates, counts, sort, quiet empty state, and full-card drag. | 121, 131, 133; STAGING |
-| `UF-14` | Stage with source validation, pending projection, result, and navigation guard. | 121, 145, 147; STAGING, BREAKDOWN |
-| `UF-15` | Unstage through transient targets, restoring order/focus without success toast. | 121, 145, 148; STAGING, BREAKDOWN |
-| `UF-16` | Remote candidate arrival, orphan proof/cleanup, invalidation, alert, and drag release. | 122, 146, 147; STAGING |
+| `UF-14` | Stage with source validation, pending projection, result, and navigation guard. | 121, 145, 147, 176A; STAGING, BREAKDOWN |
+| `UF-15` | Unstage through transient targets, restoring order/focus without success toast. | 121, 145, 148, 176A; STAGING, BREAKDOWN |
+| `UF-16` | Remote candidate arrival, orphan proof/cleanup, invalidation, alert, and drag release. | 122, 146, 147, 176A; STAGING |
 | `UF-17` | Explorer navigation/re-entry, full labels, anchoring, and valid fallback. | 127, 134, 150; EXPLORER |
 | `UF-18` | Dedicated whole-hierarchy search with pre-search/results/loading/stale/error/duplicates. | 114, 135, 151, 171A; EXPLORER |
 | `UF-19` | Search result reveal/navigation/close semantics, DnD interruption, and result Undo. | 151, 158; EXPLORER, PLACE |
@@ -2751,11 +2753,112 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Commit message:** `feat(triage): realize neumorphism explorer-search`.
 
+### Task 176A: [ ] Repair the Staging Stage/Unstage commit-to-snapshot gap
+
+A bounded repair of shared hook and component behavior found in Task 176
+(MI-15 in `docs/issues/Issues_Phase_35.md`). It predates Phase 35 (reproduced
+at `2f094de`) and applies to every theme. Scope review:
+[Task 176A repair scope](reviews/phase-35-task-176A-scope-review.md).
+
+**Files and actions:** `src/hooks/use-staged-candidates.ts` and
+`use-staged-candidates.test.tsx`; `src/components/triage/staging-zone.tsx`
+and `staging-zone.test.tsx`; `src/components/triage/triage-workspace.tsx`
+and `triage-workspace.test.tsx`; `src/components/triage/breakdown-panel.tsx`
+and `breakdown-panel.test.tsx`; `src/components/triage/inbox-triage-theme-realization.test.tsx`
+(its `BreakdownPanel` renders move from the hook mock to the new props);
+`src/app/globals.css` only for the dimmed card keeping its attached status
+line at full ink, in every theme. No new
+store, timer, copy or repository change; `src/hooks/use-dnd.ts` stays
+unchanged.
+
+- (a) Post-terminal presentation hold, per SPEC Durable Staging (amended
+  2026-10-18): Stage projections and retained Unstage candidates after
+  `applied`/`already_applied`, checked at the result and on every later
+  snapshot; "a read that started after the result" is decided by a
+  generation counter captured when the live-query querier starts, not by
+  arrival order; a subscription error ends the hold; orphan cleanup and every
+  non-success result are never held. The hold keeps the current phase and
+  copy, holds no lock or guard and makes no new announcement. Held state is
+  derived during render, not cleared in an effect, and excludes IDs that the
+  snapshot holds as integrity slots. The hook marks held operations; locks,
+  guards and the live sentence skip them, and they keep their pending
+  interactivity (a held candidate is not draggable; a held source row's grip,
+  Edit and Delete stay disabled). The DOM exposes the hold for tests
+  (`data-triage-hold`), and no CSS keys on the displayed phase of a held item.
+- (b) Position: Stage projections render at the top of their list, newest
+  first.
+- (c) Source dimming from operation state, not the drag state: the staged
+  card stays dimmed while its Unstage is pending, and a held Unstage keeps
+  the dimming of the phase it was held from; it is not dimmed in unknown or
+  reconciling. The dim is not ancestor `opacity` (which would fade the status
+  line too): the card's other children are dimmed and its surface fades by
+  alpha, or the line leaves the dimmed element while Retro Mac's
+  `:has(.staging-operation-status)` layout is kept; the same treatment serves
+  the drag-time and the post-drop dim, so nothing changes at drop, and the
+  neumorphism `.opacity-30` inset rule is re-keyed to it. The Breakdown
+  source row keeps the existing staged look (`opacity-50`) from drop until
+  its Stage settles and the hold ends. `BreakdownPanel` drops its own
+  `useStagedCandidates` instance and takes the workspace instance's state as
+  props — `stagedSourceIds` (staged, plus pending, unknown, reconciling and
+  held Stage sources) and `archiveCandidateClear` (replacing
+  `stagedCandidateCounts.authoritative`, `breakdown-panel.tsx:1774`) — so
+  both regions change in one commit.
+- (d) Scratch isolation: hook operations and the workspace's
+  `newCandidateIds`, `stagingAlert` and `operationMeta` carry their Scratch
+  ID, and a mismatch with the selected Scratch renders empty values, so no
+  commit after a Scratch switch shows the previous Scratch's operation rows,
+  counts, `N new` indicator or alert.
+
+**Dependencies:** Task 176 accepted. Task 177 cannot start before this task
+is accepted.
+
+**Authority / flows:** SPEC Durable Staging (presentation total, post-terminal
+presentation hold, Unstage hold and source dimming, as amended 2026-10-18),
+the Staging recipe operation-status lifetime and DESIGN_TOKENS Staging
+operation rows as amended with it, PLANNING_STANDARD authoritative operation
+state (the hold is not `pending`), and the local-first command feedback rule
+(CLAUDE.md Architecture 6); UF-14–16. DP-VQ02 is unchanged; DP-VQ06-STAGING
+copy and placement are unchanged and its status-line lifetime gains the hold.
+
+**Observable acceptance:**
+- Stage into either subsection: after the projection appears at the top, no
+  existing card moves, the card replaces the projection in place at equal
+  size, no commit shows a gap, and the heading total never dips.
+- `applied` or `already_applied` whose ID is already in the current snapshot
+  removes the projection in the same commit; otherwise both hold like
+  `applied`. Non-success results behave as before.
+- Unstage: the dragged card stays dimmed with its status line at full ink
+  until it leaves; unknown or reconciling shows it undimmed. The Breakdown
+  source row never brightens and dims again on Stage or Unstage.
+- A Scratch switch during a hold, or with an `N new` indicator or alert
+  showing, never renders the previous Scratch's rows, counts, indicator or
+  alert in any commit.
+- No removal is decided by a timer or elapsed time; the hold never keeps a
+  lock.
+
+**Verification:** new hook tests — hold until the snapshot contains the ID;
+an early snapshot already containing it; a read that started before the
+result and finished after it does not end the hold; a read that started after
+it without the ID ends it; subscription error ends it; non-success and orphan
+cleanup never held; the Unstage hold; a held projection across a Scratch
+`rerender`. Staging tests for projection order and the dimmed card with a
+full-ink status line; a `breakdown-panel.test.tsx` case for the source-row
+dimming; workspace tests for the indicator and alert. Single-commit claims
+(Scratch switch, gap, dimming) are checked per commit with a layout-effect
+probe or `MutationObserver` records, not by assertions after `act`. A mounted
+animation-frame sample of Stage and Unstage, like the MI-15 diagnosis, in
+neumorphism, Retro Mac and GridDO, with the projection and card rects equal
+and the dimmed card's status line at an effective opacity of 1 (jsdom cannot
+show this);
+the full gate; an `expert` review.
+
+**Commit message:** `fix(triage): close the staging commit-to-snapshot gap`.
+
 ### Task 177: [ ] Realize Placement followed by Newly/Undo
 
 **Files and actions:** bind L5's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 
-**Dependencies:** Task 176 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
+**Dependencies:** Task 176 and repair Task 176A accepted, including their required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
 **Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L5; UF-19–25/29, its AF/NEG constraints and no-storage boundary.
 
@@ -3364,16 +3467,16 @@ This register covers every implementation/test path declared by two or more task
 | `db-breakdown-regression` | `src/lib/db/scratch-breakdowns.test.ts` | 101, 103, 105, 120 |
 | `db-command-harness` | `src/lib/db/inbox-operations.test.ts` | 120 creates; 121, 123, 124, 209 extend |
 | `copy` | `src/lib/copy/inbox-triage.ts`; `src/lib/copy/inbox-triage.test.ts` | 128, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 210 |
-| `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 210, 211; THEMES |
+| `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 176A, 210, 211; THEMES |
 | `triage-state` | `src/stores/triage-store.ts`; `src/stores/triage-store.test.ts` | 127, 130, 134, 141, 150, 161, 163, 209, 212 |
 | `triage-preferences` | `src/stores/triage-preferences-store.ts`; `src/stores/triage-preferences-store.test.ts` | 127, 130, 132 |
-| `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162, 210, 211 (conditional); BREAKDOWN, ARCHIVE |
+| `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162, 176A, 210, 211 (conditional); BREAKDOWN, ARCHIVE |
 | `breakdown-component-test` | `src/components/triage/breakdown-panel.test.tsx` | 101 plus every `breakdown-component` writer |
-| `workspace-component` | `src/components/triage/triage-workspace.tsx` | 129, 136, 137, 139, 140, 141, 145, 149, 152, 155, 159, 160, 161, 163, 171A, 209 (handoff extraction), 210, 212; POOL, BREAKDOWN, STAGING, PLACE, ARCHIVE |
+| `workspace-component` | `src/components/triage/triage-workspace.tsx` | 129, 136, 137, 139, 140, 141, 145, 149, 152, 155, 159, 160, 161, 163, 171A, 176A, 209 (handoff extraction), 210, 212; POOL, BREAKDOWN, STAGING, PLACE, ARCHIVE |
 | `workspace-component-test` | `src/components/triage/triage-workspace.test.tsx` | 101 plus every `workspace-component` writer |
 | `pool-component` | `src/components/triage/scratch-pool.tsx` | 130, 136, 141, 144, 161, 210, 212 (conditional); POOL |
 | `pool-component-test` | `src/components/triage/scratch-pool.test.tsx` | 101 plus every `pool-component` writer |
-| `staging-component` | `src/components/triage/staging-zone.tsx`; `src/components/triage/staging-zone.test.tsx` | 133, 142, 145, 146, 147, 148; STAGING |
+| `staging-component` | `src/components/triage/staging-zone.tsx`; `src/components/triage/staging-zone.test.tsx` | 133, 142, 145, 146, 147, 148, 176A; STAGING |
 | `drag-token` | `src/components/triage/triage-drag-token.tsx`; `src/components/triage/triage-drag-token.test.tsx` | 133, 142; STAGING |
 | `explorer-component` | `src/components/triage/hierarchy-explorer.tsx` | 134, 149–158, 210; EXPLORER, PLACE |
 | `explorer-component-test` | `src/components/triage/hierarchy-explorer.test.tsx` | 101, 134, 149–158, 210; EXPLORER, PLACE |
@@ -3382,7 +3485,7 @@ This register covers every implementation/test path declared by two or more task
 | `actual-node-card-test` | `src/components/grid/node-card.test.tsx` | 101, 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
 | `actual-bit-card` | `src/components/grid/bit-card.tsx` | 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
 | `actual-bit-card-test` | `src/components/grid/bit-card.test.tsx` | 101, 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
-| `theme-realization-test` | `src/components/triage/inbox-triage-theme-realization.test.tsx` | THEMES, 210, 211; 166 creates, later writers extend while preserving earlier assertions |
+| `theme-realization-test` | `src/components/triage/inbox-triage-theme-realization.test.tsx` | THEMES, 176A, 210, 211; 166 creates, later writers extend while preserving earlier assertions |
 | `theme-transition-test` | `src/app/theme-transition.test.ts` | CONFORM |
 | `breakdown-hook` | `src/hooks/use-scratch-breakdowns.ts` | 132, 136, 137 |
 | `breakdown-hook-test` | `src/hooks/use-scratch-breakdowns.test.tsx` | 101, 132, 136, 137 |
@@ -3390,7 +3493,7 @@ This register covers every implementation/test path declared by two or more task
 | `operation-lock-test` | `src/hooks/use-triage-operation-lock.test.tsx` | 136, 137, 139, 145, 152, 156, 161, 209 |
 | `inbox-hook` | `src/hooks/use-inbox.ts` | 209, 212 |
 | `inbox-hook-test` | `src/hooks/use-inbox.test.tsx` | 101, 130, 209, 212 |
-| `candidate-hook` | `src/hooks/use-staged-candidates.ts`; `src/hooks/use-staged-candidates.test.tsx` | 131, 145, 146 |
+| `candidate-hook` | `src/hooks/use-staged-candidates.ts`; `src/hooks/use-staged-candidates.test.tsx` | 131, 145, 146, 176A |
 | `triage-dnd` | `src/hooks/use-dnd.ts`; `src/hooks/use-triage-dnd.test.ts` | 142, 145, 146, 149, 152, 163 |
 | `explorer-search-hook` | `src/hooks/use-grid-explorer-search.ts`; `src/hooks/use-grid-explorer-search.test.tsx` | 135, 151, 158, 171A |
 | `placement-hook` | `src/hooks/use-triage-placement.ts`; `src/hooks/use-triage-placement.test.tsx` | 152, 153, 154, 161 |
@@ -3402,13 +3505,13 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 35 / Task 173. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** Phase 35 / repair Task 176A. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers after the Phase 41 amendment:** Phase 42 / Task 213.
   Planned Phases 34–41 and Tasks 166–212 are already allocated; none may be
   reused for another meaning.
-- Graph reconciliation: 76 accepted tasks (101–163 plus 105A, 166–172, 171A and
-  209–212), eleven completed archives (Phases 23–31, 34 and 41), two historical
-  unaccepted transfer records (164/165), 36 unaccepted tasks (173–208) in Phases
-  35–40, and two reserved phases (32–33).
+- Graph reconciliation: 80 accepted tasks (101–163 plus 105A, 166–172, 171A,
+  173–176 and 209–212), eleven completed archives (Phases 23–31, 34 and 41), two historical
+  unaccepted transfer records (164/165), 33 unaccepted tasks (177–208 and repair
+  176A) in Phases 35–40, and two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

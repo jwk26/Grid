@@ -43,7 +43,7 @@ history, permanent Unstage/Retry button, or Pool/Explorer presentation.
   and uses the same attached line. Pending, unknown, and reconciling never
   replace the subsection, resize the Staging panel, or become draggable,
   unstageable, or placeable.
-- `Nodes` and `Bits` use the presentation total defined in [SPEC — Durable Staging](../SPEC.md#durable-staging): zero or one renders the bare label and two or more renders the total prefix (`2 Nodes`, `3 Bits`). Include source-resolved durable candidates and visible pending, unknown, or reconciling Stage projections without counting the same candidate ID twice; Unstage adds no count and unresolved-source integrity slots are excluded. A separate actionable `1 new` / `{count} new` indicator sits beside only the affected subsection heading and is never added to the heading total. This presentation count changes no durable membership, success, lock, reconciliation or eligibility meaning and introduces no synthetic count lifetime across terminal-to-live-query delivery.
+- `Nodes` and `Bits` use the presentation total defined in [SPEC — Durable Staging](../SPEC.md#durable-staging): zero or one renders the bare label and two or more renders the total prefix (`2 Nodes`, `3 Bits`). Include source-resolved durable candidates and visible pending, unknown, or reconciling Stage projections without counting the same candidate ID twice; Unstage adds no count and unresolved-source integrity slots are excluded. A separate actionable `1 new` / `{count} new` indicator sits beside only the affected subsection heading and is never added to the heading total. This presentation count changes no durable membership, success, lock, reconciliation or eligibility meaning and introduces no count lifetime across terminal-to-live-query delivery other than the SPEC post-terminal presentation hold (2026-10-18, MI-15), which counts a held projection once with its candidate ID.
 - The terminal/integrity alert is one static band immediately below the
   `Staging` title and above both subsection wells. A later failure replaces the
   earlier alert; no stack, queue, history, or rotating carousel is created.
@@ -105,6 +105,10 @@ separately approved `DP-VQ02` Unstage success signal and creates no alert/toast.
 - Unknown/reconciling attached status lasts until authoritative resolution.
   Terminal authority removes the line and projects the exact latest
   candidate/source state; it never uses the drag snapshot as authority.
+  After `applied` or `already_applied`, the line stays through the SPEC
+  post-terminal presentation hold (2026-10-18, MI-15) with no new
+  announcement, and leaves with the hold. A card dimmed for its pending Unstage,
+  or held from pending, keeps this line at full ink.
 - Confirmed orphan cleanup is announced once only after authoritative proof
   and atomic cleanup. Cache miss, offline, or delayed subscription remains the
   unresolved-source status and never uses orphan wording.
