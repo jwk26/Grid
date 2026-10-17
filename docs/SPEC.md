@@ -731,6 +731,10 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   not blurred or clipped. These are projections of existing deadline/status,
   not new completion/dismiss commands or writes to `pastDeadlineDismissed`.
   Priority remains the actual stored metadata.
+- **Explorer urgency (user-adopted, 2026-10-17, MI-10):** the ordinary Grid
+  card's near-deadline urgency blink does not run in the Inbox Explorer. Every
+  Explorer Bit row is static; its deadline text carries the urgency. The
+  ordinary Grid keeps the blink.
 - **User-selected Node/Bit distinction amendment, 2026-10-08:** within the
   ordinary Inbox/Triage Explorer body, retain the existing Node-before-Bit
   groups and within-type ordering without an inter-type divider or visible

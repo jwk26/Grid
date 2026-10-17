@@ -47,6 +47,7 @@ fresh verification and task acceptance; historical DP receipts/evidence remain.
   or unreadable blur. Completed Bits use muted title/strike-through plus static
   check. NEW/Undo/reason/focus remain unobscured. Use actual deadline/status/
   priority, without new completion/dismiss writes.
+- User-adopted 2026-10-17 (MI-10): Explorer Bit rows never run the ordinary Grid urgency blink; near-deadline Bits stay static and the deadline text carries the urgency.
 - Realize through shared roles and centralized theme values. The selected
   retro-mac compact-row values are not dimensions for every later theme.
 

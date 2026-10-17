@@ -2463,6 +2463,13 @@ future L4 tasks style the eligible, hovered and unavailable target states on
 that whole pane. It is a behavior change: it gets an `expert` review, and
 already accepted themes are rechecked on the widened region.
 
+**Explorer urgency amendment (user-adopted, 2026-10-17, MI-10):** per SPEC
+"Explorer urgency", Q01 approves exactly one internal-card change for all
+themes: `src/components/grid/bit-card.tsx` drops the `animate-urgency-blink-*`
+classes for the `inbox-explorer` presentation (every Explorer Bit, not only
+overdue or completed ones), with its direct test in `bit-card.test.tsx`; the
+ordinary Grid keeps the blink. No other card change is granted.
+
 ### L5 — Placement, then Newly/Undo
 
 **Files and actions:** modify `src/app/globals.css` for assigned Placement/
@@ -2720,7 +2727,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 ### Task 176: [ ] Realize Explorer base and replacement search
 
-**Files and actions:** bind L4's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-17): realize the L4 "Column drop region" amendment here, in Stage 2 with the neumorphism target states; Retro Mac's accepted target look moves with the hooks and is rechecked on the widened region.
+**Files and actions:** bind L4's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-17): realize the L4 "Column drop region" amendment here, in Stage 2 with the neumorphism target states; Retro Mac's accepted target look moves with the hooks and is rechecked on the widened region. User-approved addition (2026-10-17): realize the L4 "Explorer urgency" amendment (MI-10) in Stage 2 as well, covered by the same `expert` review.
 
 **Dependencies:** Task 175 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
