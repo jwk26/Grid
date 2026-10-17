@@ -1789,11 +1789,6 @@
   box-shadow: var(--theme-shadow);
 }
 
-:root[data-color-theme="neumorphism"] .explorer-search-entry {
-  font-family: var(--theme-font);
-  text-shadow: 1px 1px 0 hsl(var(--background));
-}
-
 :root[data-color-theme="neumorphism"] .explorer-search-status,
 :root[data-color-theme="neumorphism"] .explorer-reveal-status {
   border: 0;
@@ -2189,24 +2184,24 @@
   border-width: 0;
 }
 
-:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"]) {
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"]) {
   animation: none;
   transition: none;
   box-shadow: none;
 }
 
-:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-target-state="idle-valid"] {
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-target-state="idle-valid"] {
   outline: 1px dashed var(--explorer-ink);
   outline-offset: -1px;
 }
 
-:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-target-state="valid"] {
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-target-state="valid"] {
   background-image: repeating-linear-gradient(45deg, var(--explorer-ink) 0 4px, var(--explorer-paper) 4px 8px);
   outline: 2px solid var(--explorer-ink);
   outline-offset: -2px;
 }
 
-:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"]):is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"]):is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
   background-image: repeating-conic-gradient(hsl(var(--foreground) / 0.18) 0% 25%, transparent 0% 50%);
   background-size: 2px 2px;
   outline: 3px double var(--explorer-ink);
@@ -2214,7 +2209,7 @@
   cursor: not-allowed;
 }
 
-:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-target-state="pending-confirmation"] {
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-target-state="pending-confirmation"] {
   outline: 3px double var(--explorer-ink);
   outline-offset: -3px;
 }
@@ -2384,17 +2379,6 @@
 :root[data-color-theme="tiny-desk"] .explorer-path-status {
   border-block-end-style: double;
   box-shadow: inset 0 -2px 0 hsl(var(--border) / 0.16);
-}
-
-:root[data-color-theme="neumorphism"] .explorer-path-status {
-  border: 0;
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
-}
-
-:root[data-color-theme="neumorphism"] .explorer-remote-count {
-  border: 0;
-  box-shadow: var(--theme-shadow);
 }
 
 :root[data-color-theme="claymorphism"] .explorer-path-status {
@@ -5639,12 +5623,13 @@
   --triage-explorer-card-bit-surface: var(--triage-staging-surface);
   position: relative;
 }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-pane"] { position: relative; }
 
 :root[data-color-theme="retro-mac"] .triage-shell .placement-affordance {
   margin-inline: 0;
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-viewport"]:has([data-triage-role="placement-affordance"]),
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-pane"]:has([data-triage-role="placement-affordance"]),
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-node-target"][data-triage-target-state="pending-confirmation"] {
   border-width: 0;
   outline: none;
@@ -5655,11 +5640,11 @@
   position: relative;
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
   background-image: none;
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -5670,17 +5655,17 @@
   outline-offset: -2px;
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
   background-image: repeating-conic-gradient(hsl(var(--foreground) / 0.18) 0% 25%, transparent 0% 50%);
   background-size: 2px 2px;
   outline: 3px double var(--explorer-ink);
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"] {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"] {
   outline-color: hsl(var(--destructive));
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"]::after {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"]::after {
   background-image: repeating-conic-gradient(hsl(var(--destructive) / 0.18) 0% 25%, transparent 0% 50%);
   outline-color: hsl(var(--destructive));
 }
@@ -5803,23 +5788,23 @@
 :root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] [data-triage-role="explorer-card-undo"] {
   inset-block-start: calc(50% + var(--triage-explorer-folder-rise) / 2);
 }
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
   --triage-finder-feedback-pattern: repeating-conic-gradient(hsl(var(--foreground) / 0.18) 0% 25%, transparent 0% 50%);
   --triage-finder-feedback-pattern-size: 2px 2px;
   --triage-finder-feedback-outline: 3px double var(--explorer-ink);
 }
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"] {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"] {
   --triage-finder-feedback-pattern: repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.18) 0 4px, transparent 4px 8px);
   --triage-finder-feedback-surface: var(--triage-finder-unavailable-surface);
   --triage-finder-feedback-pattern-size: auto;
   --triage-finder-feedback-outline: 2px solid var(--explorer-ink);
   outline: var(--triage-finder-feedback-outline);
 }
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
   background-image: var(--triage-finder-feedback-pattern);
   background-color: var(--triage-finder-feedback-surface);
 }
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"]::after {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"]::after {
   background-image: var(--triage-finder-feedback-pattern);
   background-size: auto;
   background-color: var(--triage-finder-feedback-surface);
@@ -5836,7 +5821,7 @@
   content: none;
 }
 /* Local foreground coverage survives actual Bit z-10 paint and column scrolling. */
-:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-viewport"][data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"]) [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"]::after {
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-pane"][data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"]) [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"]::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -7243,4 +7228,326 @@
 :root[data-color-theme="neumorphism"] .staging-bit-status-row > :is(.staging-operation-status, [data-triage-role="staging-integrity-status"]) {
   flex: 1;
   min-inline-size: 0;
+}
+
+/* Task 176 Stage 1 (L4, neumorphism): Explorer base chrome. Raised frame comes from the shared
+   section frame; panes are inset plates, rows are raised cards through the Task 169 card hooks. */
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-root"] {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-header"] {
+  block-size: 3rem;
+  gap: 12px;
+  padding-inline: 20px;
+}
+:root[data-color-theme="neumorphism"] .explorer-header__identity,
+:root[data-color-theme="neumorphism"] .explorer-header__control,
+:root[data-color-theme="neumorphism"] .triage-shell__heading-label--explorer {
+  background: transparent;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-panes"] {
+  gap: 16px;
+  padding: 0 16px 16px;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"] {
+  background: transparent;
+  border: 0;
+  border-radius: 20px;
+  box-shadow: var(--theme-shadow-inset);
+  overflow: hidden;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"][data-explorer-dimmed="true"] {
+  background: transparent;
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-column-header"] {
+  background: transparent;
+  border: 0;
+  padding: 12px 16px 4px;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-column-label"] {
+  color: hsl(var(--foreground) / 0.72);
+  font-family: var(--theme-font);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-viewport"] {
+  background: transparent;
+  padding: 8px 12px 16px;
+  scrollbar-width: none;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-viewport"]::-webkit-scrollbar { display: none; }
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-empty"] {
+  color: hsl(var(--foreground) / 0.72);
+  font-family: var(--theme-font);
+  font-size: 12px;
+}
+:root[data-color-theme="neumorphism"] :is([data-triage-role="explorer-card-list"], [data-triage-role="explorer-bit-list"]) { gap: 12px; }
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-node-target"] {
+  background: transparent;
+  border-radius: 18px;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-card-shell"] { inline-size: 100%; min-inline-size: 0; }
+
+/* Rows: one raised card per Node/Bit; hover is colour only. */
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"]:is([data-triage-role="explorer-card-node"], [data-triage-role="explorer-card-bit"]) {
+  background: var(--page-bg);
+  block-size: auto;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.8);
+  inline-size: 100%;
+  max-block-size: none;
+  min-inline-size: 0;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] {
+  block-size: auto;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"]:is([data-triage-role="explorer-card-node"], [data-triage-role="explorer-card-bit"]):hover {
+  background: color-mix(in srgb, var(--page-bg) 95%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground));
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"]:is([data-triage-role="explorer-card-node"], [data-triage-role="explorer-card-bit"]):focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  padding: 10px 14px 10px 12px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][aria-current="true"] {
+  background: color-mix(in srgb, var(--page-bg) 80%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][aria-current="true"]:focus-visible {
+  box-shadow: var(--theme-shadow-inset-sm), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-icon-slot"] {
+  align-items: center;
+  block-size: 32px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  flex: none;
+  inline-size: 32px;
+  justify-content: center;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] [data-triage-role="explorer-card-icon"] {
+  block-size: 16px;
+  inline-size: 16px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] [data-triage-role="explorer-card-title-slot"] {
+  align-self: center;
+  block-size: auto;
+  flex: 1;
+  min-inline-size: 0;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-title"] {
+  color: inherit;
+  font-family: var(--theme-font);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: start;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-chevron"] {
+  block-size: 14px;
+  color: hsl(var(--foreground) / 0.6);
+  display: block;
+  flex: none;
+  inline-size: 14px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] {
+  align-items: stretch;
+  display: flex;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-accent"] { display: none; }
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-content"] {
+  gap: 4px;
+  min-inline-size: 0;
+  padding: 9px 14px 9px 12px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-primary"] {
+  align-items: center;
+  gap: 10px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-icon"] {
+  block-size: 24px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.65);
+  flex: none;
+  inline-size: 24px;
+  padding: 5px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-title"] {
+  font-weight: 500;
+}
+
+/* Bit states: overdue keeps a readable title on a subdued surface with the static mark;
+   completed mutes the title (still at least 4.5:1) with strike-through and the static check. */
+:root[data-color-theme="neumorphism"] {
+  --triage-explorer-overdue-surface: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--foreground)));
+  --triage-explorer-state-ink: hsl(var(--foreground) / 0.8);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"][data-card-state="overdue"] {
+  background: var(--triage-explorer-overdue-surface);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-card-muted="true"] [data-triage-role="explorer-card-title"] {
+  color: hsl(var(--foreground) / 0.72);
+  text-decoration: line-through;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-deadline"] {
+  color: hsl(var(--foreground) / 0.8);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"].explorer-revealed-row {
+  outline: 1px solid hsl(var(--foreground) / 0.45);
+  outline-offset: -1px;
+}
+
+/* Header search control (one of the six raised controls): raised pill, lifts 1px on hover,
+   inset on press, timed by the Pool token behind the reduced-motion override. */
+:root[data-color-theme="neumorphism"] .explorer-search-entry {
+  background: var(--page-bg);
+  block-size: 32px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-family: var(--theme-font);
+  padding-inline: 14px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-entry:hover {
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] .explorer-search-entry:active {
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-entry:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-entry:not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform, color;
+  transition-timing-function: ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] .explorer-search-entry { transition: none; }
+  :root[data-color-theme="neumorphism"] .explorer-search-entry:hover { transform: none; }
+}
+:root[data-color-theme="neumorphism"] .explorer-home-entry {
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+/* Task 176 Stage 2 (L4, neumorphism): column drop region (whole pane), Node-row targets.
+   Depth and tint only, as in Task 175: eligible is the resting plate with a light tint, hovered
+   (and pending) is a deeper inset with a stronger tint, full and invalid are flat and dimmed
+   with the not-allowed cursor. Static: no outline, animation, transform or pulse. */
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"] {
+  animation: none;
+  transition: none;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"][data-triage-target-state="idle-valid"] {
+  background: color-mix(in srgb, var(--page-bg) 97%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset);
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"]:is([data-triage-target-state="valid"], [data-triage-target-state="pending-confirmation"]) {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset), var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+  background: transparent;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-node-target"] {
+  animation: none;
+  border-color: transparent;
+  box-shadow: none;
+  transition: none;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-node-target"]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) { cursor: not-allowed; }
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][data-triage-target-state="idle-valid"] {
+  background: color-mix(in srgb, var(--page-bg) 97%, hsl(var(--foreground)));
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]:is([data-triage-target-state="valid"], [data-triage-target-state="pending-confirmation"]) {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* DP-VQ06-EXPLORER: raised `N new` count and inset column notice with a raised Dismiss. */
+:root[data-color-theme="neumorphism"] .explorer-remote-count,
+:root[data-color-theme="neumorphism"] .explorer-status-action {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-family: var(--theme-font);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  padding: 2px 10px;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action):hover {
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action):focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform, color;
+  transition-timing-function: ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action) { transition: none; }
+  :root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action):hover { transform: none; }
+}
+:root[data-color-theme="neumorphism"] .explorer-path-status {
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-family: var(--theme-font);
+  margin: 4px 12px 0;
+  padding: 6px 8px 6px 12px;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-column-label"]:focus-visible,
+:root[data-color-theme="neumorphism"] .explorer-home-entry:focus-visible {
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
 }

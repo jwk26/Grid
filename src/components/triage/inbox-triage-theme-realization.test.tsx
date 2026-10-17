@@ -106,7 +106,8 @@ it("keeps actual Finder and ordinary card identities across shared theme rerende
   for (const [rule, selector] of rules) {
     if (selector.includes('data-card-presentation="inbox-explorer"')) {
       if (!selector.includes('[data-triage-role="explorer-card-state"]') && !selector.includes('[data-card-state="overdue"]') && !selector.includes('.theme-node-card')) {
-        expect(selector).toContain(':root[data-color-theme="retro-mac"]');
+        // Q01: retro-mac (Task 169) and, by the user's 2026-10-17 decision, neumorphism (Task 176).
+        expect(selector).toMatch(/:root\[data-color-theme="(?:retro-mac|neumorphism)"\]/);
       }
       expect(rule).not.toContain("--grid-node-size:");
     }
@@ -453,6 +454,63 @@ describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
   it("raises the drag token and quiets well drag states without a ring", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-drag-token \{[^}]*box-shadow: var\(--theme-shadow-card-hover\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__well:is\(\[data-triage-state="neutral"\], \[data-triage-state="unavailable"\], \[data-triage-state="invalid"\]\) \{[^}]*box-shadow: none;/);
+  });
+});
+
+describe("Neumorphism L4 Explorer base chrome (Task 176)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const stage = css.slice(css.indexOf("/* Task 176 Stage 1"));
+
+  it("draws four inset plates with full uppercase labels and no scrollbar chrome", () => {
+    expect(stage).toMatch(/\[data-triage-role="explorer-pane"\] \{[^}]*border-radius: 20px;[^}]*box-shadow: var\(--theme-shadow-inset\);/);
+    expect(stage).toMatch(/\[data-triage-role="explorer-column-label"\] \{[^}]*text-transform: uppercase;/);
+    expect(stage).toMatch(/\[data-triage-role="explorer-viewport"\] \{[^}]*scrollbar-width: none;/);
+    expect(stage).not.toMatch(/(?:^|[\s{;])content:/);
+  });
+
+  it("raises Node and Bit rows through the Task 169 card hooks and keeps hover colour-only", () => {
+    expect(stage).toMatch(/data-card-presentation="inbox-explorer"\]:is\(\[data-triage-role="explorer-card-node"\], \[data-triage-role="explorer-card-bit"\]\) \{[^}]*border-radius: 18px;[^}]*box-shadow: var\(--theme-shadow-card\);/);
+    const hover = stage.match(/explorer-card-bit"\]\):hover \{([^}]*)\}/)?.[1] ?? "";
+    expect(hover).toContain("box-shadow: var(--theme-shadow-card)");
+    expect(hover).not.toMatch(/transform|translate|scale/);
+  });
+
+  it("marks the selected Node with inset depth plus a darker surface, and completed Bits with strike-through", () => {
+    expect(stage).toMatch(/\[aria-current="true"\] \{[^}]*background: color-mix\(in srgb, var\(--page-bg\) 80%[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
+    expect(stage).toMatch(/data-card-muted="true"\] \[data-triage-role="explorer-card-title"\] \{[^}]*text-decoration: line-through;/);
+  });
+
+  it("styles the header search control as the shared raised control", () => {
+    expect(stage).toMatch(/\.explorer-search-entry \{[^}]*box-shadow: var\(--theme-shadow-card-xs\);/);
+    expect(stage).toMatch(/\.explorer-search-entry:hover \{[^}]*translateY\(-1px\)/);
+    expect(stage).toMatch(/\.explorer-search-entry:active \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\)/);
+    expect(stage).toMatch(/\.explorer-search-entry:not\(\.transition-none\) \{[^}]*var\(--triage-pool-motion-duration\)/);
+    expect(stage).toMatch(/prefers-reduced-motion: reduce\) \{[^}]*explorer-search-entry \{ transition: none; \}/);
+    expect(css).not.toMatch(/color-theme="neumorphism"\] \.explorer-search-entry \{[^}]*text-shadow/);
+  });
+});
+
+describe("Neumorphism L4 targets and DP-VQ06-EXPLORER (Task 176 Stage 2)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const stage = css.slice(css.indexOf("/* Task 176 Stage 2"));
+
+  it("paints column targets on the whole pane with depth and tint only, static", () => {
+    const target = stage.slice(0, stage.indexOf("DP-VQ06-EXPLORER")).replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(target).toMatch(/explorer-pane"\] \{[^}]*animation: none;[^}]*transition: none;/);
+    expect(target).toMatch(/explorer-pane"\]\[data-triage-target-state="idle-valid"\] \{[^}]*color-mix[^}]*box-shadow: var\(--theme-shadow-inset\);/);
+    expect(target).toMatch(/\[data-triage-target-state="pending-confirmation"\]\) \{[^}]*box-shadow: var\(--theme-shadow-inset\), var\(--theme-shadow-inset-sm\);/);
+    expect(target).toMatch(/\[data-triage-target-state="invalid"\]\) \{[^}]*box-shadow: none;[^}]*cursor: not-allowed;[^}]*opacity: 0\.7;/);
+    expect(target).toMatch(/explorer-node-target"\] \{[^}]*box-shadow: none;/);
+    expect(target).not.toMatch(/outline|[^-]transform:/);
+  });
+
+  it("realizes the count control and Dismiss as raised controls and the notice as an inset line", () => {
+    expect(stage).toMatch(/\.explorer-remote-count,\s*:root\[data-color-theme="neumorphism"\] \.explorer-status-action \{[^}]*box-shadow: var\(--theme-shadow-card-xs\);/);
+    expect(stage).toMatch(/:is\(\.explorer-remote-count, \.explorer-status-action\):hover \{[^}]*translateY\(-1px\)/);
+    expect(stage).toMatch(/:is\(\.explorer-remote-count, \.explorer-status-action\):active \{[^}]*var\(--theme-shadow-inset-sm\)/);
+    expect(stage).toMatch(/\.explorer-path-status \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);/);
+    // The earlier partial rules with hard-coded shadows are gone (rewritten, not layered).
+    expect(css).not.toMatch(/color-theme="neumorphism"\] \.explorer-(?:path-status|remote-count) \{[^}]*inset 3px 3px 6px hsl/);
   });
 });
 

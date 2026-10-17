@@ -56,6 +56,16 @@ afterEach(() => {
   useEditModeStore.setState({ isEditMode: false });
 });
 
+describe("BitCard urgency blink", () => {
+  it.each([1, 2, 3])("is static in the Inbox Explorer at urgency level %i and keeps blinking in the ordinary Grid", (days) => {
+    const bit = createBit({title: "Soon", status: "active", deadline: Date.now() + days * 86400000 - 3600000});
+    const view = render(<BitCard presentation="inbox-explorer" aria-label={bit.title} bit={bit} parentColor="red" chunkStats={{completed: 0, total: 0}} onClick={vi.fn()} />);
+    expect(screen.getByRole("button", {name: bit.title}).className).not.toContain("animate-urgency-blink");
+    view.rerender(<BitCard aria-label={bit.title} bit={bit} parentColor="red" chunkStats={{completed: 0, total: 0}} onClick={vi.fn()} />);
+    expect(screen.getByRole("button", {name: bit.title}).className).toContain("animate-urgency-blink");
+  });
+});
+
 describe("BitCard", () => {
   it.each([
     {status: "active" as const, overdue: true, label: "Overdue", struck: false},

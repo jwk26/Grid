@@ -67,6 +67,8 @@ export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard
   const isComplete = bit.status === "complete";
   const isExplorer = presentation === "inbox-explorer";
   const isStaticExplorerState = isExplorer && (pastDeadline || isComplete);
+  // Explorer rows are static; the deadline text carries urgency (SPEC "Explorer urgency").
+  const blinks = !isExplorer;
   const isEditMode = useEditModeStore((state) => state.isEditMode);
   const Icon = NODE_ICON_MAP[bit.icon] ?? NODE_ICON_MAP.Box;
   const { archive } = useArchiveActions();
@@ -113,9 +115,9 @@ export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard
         "group/bit relative z-10 inline-flex shrink-0 select-none items-stretch rounded-[10px] border border-border bg-card shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
         isExplorer ? "cursor-default" : "cursor-grab active:cursor-grabbing",
         !isExplorer && isDragging && "z-20 cursor-grabbing",
-        !isStaticExplorerState && urgencyLevel === 1 && "animate-urgency-blink-1",
-        !isStaticExplorerState && urgencyLevel === 2 && "animate-urgency-blink-2",
-        !isStaticExplorerState && urgencyLevel === 3 && "animate-urgency-blink-3",
+        blinks && urgencyLevel === 1 && "animate-urgency-blink-1",
+        blinks && urgencyLevel === 2 && "animate-urgency-blink-2",
+        blinks && urgencyLevel === 3 && "animate-urgency-blink-3",
         !isStaticExplorerState && isEditMode && "motion-safe:animate-jiggle",
         !isExplorer && isComplete && "opacity-50",
         className,

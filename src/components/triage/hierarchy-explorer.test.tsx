@@ -450,6 +450,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// The column drop region is the whole pane (SPEC "Column drop region"), not the row viewport.
+function columnPane(testId: string): HTMLElement {
+  return screen.getByTestId(testId).closest<HTMLElement>('[data-triage-role="explorer-pane"]')!;
+}
+
 describe("HierarchyExplorer Task 134 base", () => {
   it("renders distinct valid, invalid, and full target feedback", () => {
     const { home } = seedDeepGrid();
@@ -490,7 +495,7 @@ describe("HierarchyExplorer Task 134 base", () => {
         }}
       />,
     );
-    expect(screen.getByTestId("hierarchy-section-body-home")).toHaveAttribute(
+    expect(columnPane("hierarchy-section-body-home")).toHaveAttribute(
       "data-triage-target-state",
       "invalid",
     );
@@ -737,7 +742,7 @@ describe("HierarchyExplorer Task 134 base", () => {
     expect(button).toHaveAttribute("aria-disabled", "true");
     expect(row).toHaveAttribute("data-triage-target-state", "invalid");
     expect(row).toHaveAttribute("data-triage-paint-suppressed", "unavailable");
-    expect(screen.getByTestId("hierarchy-section-body-l3")).toHaveAttribute("data-triage-unavailable", "true");
+    expect(columnPane("hierarchy-section-body-l3")).toHaveAttribute("data-triage-unavailable", "true");
     rerender(<HierarchyExplorer {...defaultProps} />);
     expect(row).not.toHaveAttribute("data-triage-paint-suppressed");
     expect(button).toHaveAttribute("aria-disabled", "false");
@@ -3681,7 +3686,7 @@ describe("Task170 Cycle7 visual correction seams", () => {
     expect(globalsCss).toContain("--triage-explorer-card-node-surface: var(--triage-staging-surface)");
     expect(globalsCss).toContain("--triage-explorer-card-bit-surface: var(--triage-staging-surface)");
     expect(globalsCss).toMatch(/\.placement-affordance\s*\{[^}]*margin-inline:\s*0;/);
-    expect(globalsCss).toContain('[data-triage-role="explorer-viewport"]:has([data-triage-role="placement-affordance"])');
+    expect(globalsCss).toContain('[data-triage-role="explorer-pane"]:has([data-triage-role="placement-affordance"])');
     expect(globalsCss).toMatch(/\[data-triage-feedback-source\][\s\S]*?::after\s*\{[^}]*pointer-events:\s*none;[^}]*z-index:\s*1;/);
     expect(globalsCss).toContain('[data-triage-unavailable="true"]');
   });
@@ -3702,7 +3707,7 @@ it("Task170 Cycle7 paint metadata preserves staged Bit Home rejection and clears
   const target = createNode({ id: "target-1", title: "Target" }); setGrid(null, [target]);
   const base = { ...defaultProps, activeDragItem: { kind: "triage-staged-bit" as const, id: "candidate", label: "Candidate" } };
   const view = render(<HierarchyExplorer {...base} />);
-  const home = screen.getByTestId("hierarchy-section-body-home");
+  const home = columnPane("hierarchy-section-body-home");
   expect(home).toHaveAttribute("data-triage-target-state", "invalid");
   expect(home).toHaveAttribute("data-triage-unavailable", "true");
   expect(home).toHaveAttribute("data-triage-feedback-source", "bit");
@@ -3716,4 +3721,51 @@ it("Task170 Cycle7 paint metadata preserves staged Bit Home rejection and clears
 
 it("Task170 Cycle7 Staged Cancel hover overrides the general enabled-button inversion without touching recovery", () => {
   expect(globalsCss).toContain('.placement-staged-summary-row .placement-cancel:hover:not(:disabled):not([aria-disabled="true"])');
+});
+
+it("registers the whole column pane, header included, as the column drop target", () => {
+  const target = createNode({ id: "target-1", title: "Target" }); setGrid(null, [target]);
+  render(<HierarchyExplorer {...defaultProps} activeDragItem={{ kind: "triage-staged-node" as const, id: "candidate", label: "Candidate" }} />);
+  const pane = columnPane("hierarchy-section-body-home");
+  const dropId = getTriageHierarchyDropId("body-home");
+  expect(pane).toHaveAttribute("data-triage-drop-id", dropId);
+  expect(JSON.parse(pane.getAttribute("data-triage-hierarchy-drop") ?? "{}")).toMatchObject({ dropId, parentNodeId: null });
+  // The header and the viewport sit inside the target; the viewport is no second target.
+  expect(pane).toContainElement(screen.getByTestId("hierarchy-column-heading-home"));
+  const viewport = screen.getByTestId("hierarchy-section-body-home");
+  expect(viewport).not.toHaveAttribute("data-triage-drop-id");
+  expect(viewport).toHaveAttribute("data-triage-explorer-column", "true");
+});
+
+it("edge-scrolls only from the row viewport, never from a pointer over the column header", () => {
+  let frame: FrameRequestCallback | null = null;
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => { frame = callback; return 1; });
+  vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+  const target = createNode({ id: "target-1", title: "Target" }); setGrid(null, [target]);
+  const dropId = getTriageHierarchyDropId("body-home");
+  render(<HierarchyExplorer {...defaultProps} activeDragItem={{ kind: "triage-staged-node" as const, id: "candidate", label: "Candidate" }} targetFeedback={{ dropId, state: "valid" }} />);
+  const body = screen.getByTestId("hierarchy-section-body-home");
+  const pane = columnPane("hierarchy-section-body-home");
+  Object.defineProperties(body, { clientHeight: { configurable: true, value: 200 }, scrollHeight: { configurable: true, value: 600 } });
+  vi.spyOn(body, "getBoundingClientRect").mockReturnValue({ top: 100, bottom: 300, left: 0, right: 200, width: 200, height: 200, x: 0, y: 100, toJSON() {} });
+  const heading = screen.getByTestId("hierarchy-column-heading-home");
+  Object.defineProperty(document, "elementsFromPoint", { configurable: true, value: vi.fn(() => [heading, pane]) });
+  fireEvent.mouseMove(document, { clientX: 100, clientY: 80 });
+  act(() => frame?.(0));
+  expect(body.scrollTop).toBe(0);
+  // The same pane under the pointer, but inside the viewport's top edge, scrolls.
+  Object.defineProperty(document, "elementsFromPoint", { configurable: true, value: vi.fn(() => [body, pane]) });
+  body.scrollTop = 50;
+  fireEvent.mouseMove(document, { clientX: 100, clientY: 104 });
+  act(() => frame?.(16));
+  expect(body.scrollTop).toBeLessThan(50);
+});
+
+it("keeps a column with no selected parent out of the drop hooks", () => {
+  const target = createNode({ id: "target-1", title: "Target" }); setGrid(null, [target]);
+  render(<HierarchyExplorer {...defaultProps} activeDragItem={{ kind: "triage-staged-node" as const, id: "candidate", label: "Candidate" }} />);
+  const closed = columnPane("hierarchy-section-body-l1");
+  expect(closed).not.toHaveAttribute("data-triage-drop-id");
+  expect(closed).not.toHaveAttribute("data-triage-hierarchy-drop");
+  expect(columnPane("hierarchy-section-body-home")).toHaveAttribute("data-triage-drop-id");
 });

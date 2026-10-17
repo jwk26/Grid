@@ -2257,10 +2257,10 @@ describe("TriageWorkspace", () => {
 
     render(<TriageWorkspace node={createNode()} />);
 
-    expect(screen.getByTestId("hierarchy-section-body-home")).toHaveClass(
+    expect(screen.getByTestId("hierarchy-section-body-home").closest('[data-triage-role="explorer-pane"]')).toHaveClass(
       "ring-1",
     );
-    expect(screen.getByTestId("hierarchy-section-body-home")).not.toHaveClass(
+    expect(screen.getByTestId("hierarchy-section-body-home").closest('[data-triage-role="explorer-pane"]')).not.toHaveClass(
       "cursor-not-allowed",
     );
   });
@@ -2279,7 +2279,7 @@ describe("TriageWorkspace", () => {
 
     render(<TriageWorkspace node={createNode()} />);
 
-    expect(screen.getByTestId("hierarchy-section-body-home")).toHaveClass(
+    expect(screen.getByTestId("hierarchy-section-body-home").closest('[data-triage-role="explorer-pane"]')).toHaveClass(
       "cursor-not-allowed",
     );
   });

@@ -109,6 +109,7 @@ window.griddoFixture = (() => {
     bit(307, "Completed Bit", 12, { x: 5, status: "complete", mtime: now - 10 * DAY });
     bit(308, "Completed overdue Bit", 12, { x: 6, status: "complete", deadline: now - DAY });
     bit(309, sized("Long Bit title at the 200-character limit ", 200), 12, { x: 7, priority: "mid" });
+    bit(312, "Mid priority note", 12, { x: 8, priority: "mid" });
     bit(310, "Bit only note", 13);
     bit(311, "Volume settings", 23);
     for (let i = 0; i < 18 * 9; i += 1) {
