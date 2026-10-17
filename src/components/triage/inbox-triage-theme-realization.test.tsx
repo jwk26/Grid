@@ -432,10 +432,20 @@ describe("one shared date body across all theme consumers", () => {
 describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
 
-  it("skins Remove and Return statically with opaque inset surfaces", () => {
-    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__remove,\s*:root\[data-color-theme="neumorphism"\] \.triage-breakdown__return \{[^}]*background: var\(--page-bg\);[^}]*box-shadow: var\(--theme-shadow-inset-sm\);[^}]*transition: none;/);
+  it("skins Remove and Return with opaque inset surfaces; their motion is the Task 176 (g) fade and hover transition only", () => {
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__remove,\s*:root\[data-color-theme="neumorphism"\] \.triage-breakdown__return \{[^}]*background: var\(--page-bg\);[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
     expect(css).toMatch(/\.triage-staging__remove\[data-triage-state="active-hover"\],\s*:root\[data-color-theme="neumorphism"\] \.triage-breakdown__return\[data-drop-active="true"\] \{[^}]*background: color-mix\(in srgb, var\(--page-bg\) 91%[^}]*box-shadow: var\(--theme-shadow-inset\);/);
-    expect(css).not.toMatch(/color-theme="neumorphism"\] \.triage-breakdown__return[^{]*\{[^}]*(?:opacity|[^-]transform:|animation)/);
+    // No transform or scale on either target; the only animation is the opacity fade-in.
+    expect(css).not.toMatch(/color-theme="neumorphism"\] \.triage-breakdown__return[^{]*\{[^}]*(?:[^-]transform:|opacity)/);
+  });
+
+  it("fades Remove and Return in at drag start and takes the subsection hover transition (Task 176 g, h)", () => {
+    const from = css.indexOf("/* Task 176 Stage 4 (g");
+    const block = css.slice(from).replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(block).toMatch(/:is\(\.triage-staging__remove, \.triage-breakdown__return\):not\(\.transition-none\) \{[^}]*animation: triage-target-fade-in var\(--triage-pool-motion-duration\) ease-out;[^}]*transition-property: background-color, box-shadow;/);
+    expect(block).toMatch(/@keyframes triage-target-fade-in \{\s*from \{ opacity: 0; \}\s*to \{ opacity: 1; \}\s*\}/);
+    expect(block).toMatch(/prefers-reduced-motion: reduce\) \{[^}]*animation: none; transition: none;/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-breakdown__return \{\s*border-radius: 18px;\s*inset: 0;/);
   });
 
   it("places the Remove target in flow-like geometry above the section bottom, not over the wells", () => {
@@ -453,7 +463,17 @@ describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
 
   it("raises the drag token and quiets well drag states without a ring", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-drag-token \{[^}]*box-shadow: var\(--theme-shadow-card-hover\);/);
-    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__well:is\(\[data-triage-state="neutral"\], \[data-triage-state="unavailable"\], \[data-triage-state="invalid"\]\) \{[^}]*box-shadow: none;/);
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__well:is\([^)]*\[data-triage-state="invalid"\]\) \{[^}]*box-shadow: none;/);
+  });
+
+  it("states the Staging drop region on the whole subsection in depth and tint, not lines (Task 176 Stage 4)", () => {
+    const from = css.indexOf("/* Task 176 Stage 4");
+    const stage = css.slice(from, css.indexOf("/* Task 175 Stage 3", from)).replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(stage).toMatch(/\.triage-staging__well \{[^}]*border-color: transparent;[^}]*box-shadow: none;/);
+    expect(stage).toMatch(/\.triage-staging__subsection\[data-triage-state="valid"\] \{[^}]*color-mix[^}]*box-shadow: var\(--theme-shadow-inset\), var\(--theme-shadow-inset-sm\);/);
+    expect(stage).toMatch(/\[data-triage-state="invalid"\]\) \{[^}]*box-shadow: none;/);
+    expect(stage).toMatch(/\.triage-shell__subsection-heading, \.triage-staging__well > :is\(\.grid, \.flex-col\)\) \{[^}]*opacity: 0\.7;/);
+    expect(stage).not.toMatch(/outline|border-style|dashed|(?:^|[^a-z])ring/);
   });
 });
 
@@ -494,9 +514,9 @@ describe("Neumorphism L4 targets and DP-VQ06-EXPLORER (Task 176 Stage 2)", () =>
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
   const stage = css.slice(css.indexOf("/* Task 176 Stage 2"));
 
-  it("paints column targets on the whole pane with depth and tint only, static", () => {
+  it("paints column targets on the whole pane with depth and tint only, no pulse", () => {
     const target = stage.slice(0, stage.indexOf("DP-VQ06-EXPLORER")).replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(target).toMatch(/explorer-pane"\] \{[^}]*animation: none;[^}]*transition: none;/);
+    expect(target).toMatch(/explorer-pane"\] \{[^}]*animation: none;/);
     expect(target).toMatch(/explorer-pane"\]\[data-triage-target-state="idle-valid"\] \{[^}]*color-mix[^}]*box-shadow: var\(--theme-shadow-inset\);/);
     expect(target).toMatch(/\[data-triage-target-state="pending-confirmation"\]\) \{[^}]*box-shadow: var\(--theme-shadow-inset\), var\(--theme-shadow-inset-sm\);/);
     expect(target).toMatch(/\[data-triage-target-state="invalid"\]\) \{[^}]*box-shadow: none;[^}]*cursor: not-allowed;[^}]*opacity: 0\.7;/);
@@ -511,6 +531,30 @@ describe("Neumorphism L4 targets and DP-VQ06-EXPLORER (Task 176 Stage 2)", () =>
     expect(stage).toMatch(/\.explorer-path-status \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);/);
     // The earlier partial rules with hard-coded shadows are gone (rewritten, not layered).
     expect(css).not.toMatch(/color-theme="neumorphism"\] \.explorer-(?:path-status|remote-count) \{[^}]*inset 3px 3px 6px hsl/);
+  });
+});
+
+describe("Neumorphism target transition and Retro Mac well line (Task 176 Stage 4 e/f)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+
+  it("changes target tint and depth over the Pool token, background and box-shadow only, immediate under reduced motion", () => {
+    const eFrom = css.indexOf("/* Task 176 Stage 4 (e");
+    const block = css.slice(eFrom, css.indexOf("/* Task 176 Stage 4 (g", eFrom)).replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(block).toMatch(/\.triage-staging__subsection, \[data-triage-role="explorer-pane"\][^{]*:not\(\.transition-none\) \{[^}]*transition-duration: var\(--triage-pool-motion-duration\);[^}]*transition-property: background-color, box-shadow;/);
+    expect(block).toMatch(/prefers-reduced-motion: reduce\) \{[^}]*transition: none;/);
+    expect(block).not.toMatch(/transform|opacity|height|width/);
+    // The earlier immediate-change rules no longer fight the transition.
+    expect(css).not.toMatch(/color-theme="neumorphism"\] \.triage-staging__subsection \{\s*transition: none;/);
+  });
+
+  it("leaves other themes' target changes immediate and drops the Retro Mac well's dashed drop-state line", () => {
+    expect(css).not.toMatch(/color-theme="(?!neumorphism)[a-z-]+"\][^{]*(?:triage-staging__subsection|explorer-pane)[^{]*\{[^}]*transition-duration: var\(--triage-pool-motion-duration\)/);
+    expect(css).toMatch(/color-theme="retro-mac"\] \.triage-staging__well:is\(\[data-triage-state="invalid"\], \[data-triage-state="unavailable"\]\) \{\s*background: transparent; border-color: transparent;/);
+    expect(css).not.toMatch(/color-theme="retro-mac"\] \.triage-staging__well:is\([^)]*\) \{[^}]*1px dashed/);
+    // The dashed frames mark the whole subsection; a hovered valid one shows only the hatch.
+    expect(css).toMatch(/color-theme="retro-mac"\] \.triage-staging__subsection\[data-triage-state="idle-valid"\] \{\s*outline: 1px dashed/);
+    expect(css).toMatch(/color-theme="retro-mac"\] \.triage-staging__subsection:is\(\[data-triage-state="invalid"\], \[data-triage-state="unavailable"\]\) \{\s*outline: 1px dashed/);
+    expect(css).not.toMatch(/color-theme="retro-mac"\] \.triage-staging__subsection\[data-triage-state="valid"\]/);
   });
 });
 

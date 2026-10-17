@@ -3924,8 +3924,19 @@
   background: transparent; border-color: transparent; box-shadow: none;
 }
 :root[data-color-theme="retro-mac"] .triage-staging__well:is([data-triage-state="invalid"], [data-triage-state="unavailable"]) {
-  background: transparent; border: 1px dashed hsl(var(--muted-foreground));
+  background: transparent; border-color: transparent;
   color: hsl(var(--muted-foreground)); box-shadow: none;
+}
+/* Drop-state lines mark the whole subsection (the drop region), never the well; a hovered valid
+   subsection shows only the hatch, with no border or ring. */
+:root[data-color-theme="retro-mac"] .triage-staging__well:is([data-triage-state="idle-valid"], [data-triage-state="valid"]) {
+  background: transparent; border-color: transparent; box-shadow: none;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__subsection[data-triage-state="idle-valid"] {
+  outline: 1px dashed hsl(var(--muted-foreground)); outline-offset: -4px;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__subsection:is([data-triage-state="invalid"], [data-triage-state="unavailable"]) {
+  outline: 1px dashed hsl(var(--muted-foreground)); outline-offset: -4px;
 }
 :root[data-color-theme="retro-mac"] .triage-staging__subsection:has(.triage-staging__well[data-triage-hover="true"]) {
   background-image: var(--triage-staging-hover-pattern);
@@ -7097,7 +7108,6 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  transition: none;
 }
 :root[data-color-theme="neumorphism"] .triage-staging:has(.triage-staging__remove) .triage-shell__staging { padding-block-end: 68px; }
 :root[data-color-theme="neumorphism"] .triage-staging__remove {
@@ -7108,8 +7118,10 @@
   inline-size: auto;
   inset-inline: 16px;
 }
+/* Return overlay covers the whole Breakdown body below the heading (no gap at its top). */
 :root[data-color-theme="neumorphism"] .triage-breakdown__return {
   border-radius: 18px;
+  inset: 0;
 }
 :root[data-color-theme="neumorphism"] .triage-staging__remove[data-triage-state="active-hover"],
 :root[data-color-theme="neumorphism"] .triage-breakdown__return[data-drop-active="true"] {
@@ -7117,14 +7129,36 @@
   box-shadow: var(--theme-shadow-inset);
   color: hsl(var(--foreground));
 }
-:root[data-color-theme="neumorphism"] .triage-staging__well:is([data-triage-state="neutral"], [data-triage-state="unavailable"], [data-triage-state="invalid"]) {
+/* Task 176 Stage 4: the whole subsection is the drop region and carries the state. The well
+   drops the base line cues (dashed border, ring) for depth and tint on the subsection, in the
+   Explorer language: eligible a light tint, hovered a deeper inset with a stronger tint,
+   unavailable and invalid flat and dimmed. Static; reason copy unchanged. */
+:root[data-color-theme="neumorphism"] .triage-staging__well {
+  border-color: transparent;
+  box-shadow: none;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__well:is([data-triage-state="valid"], [data-triage-state="idle-valid"], [data-triage-state="neutral"], [data-triage-state="unavailable"], [data-triage-state="invalid"]) {
   background: transparent;
   box-shadow: none;
 }
-:root[data-color-theme="neumorphism"] .triage-staging__well[data-triage-state="neutral"][data-triage-hover="true"] {
-  background: color-mix(in srgb, var(--page-bg) 95%, hsl(var(--foreground)));
-  box-shadow: var(--theme-shadow-inset-sm);
+:root[data-color-theme="neumorphism"] .triage-staging__subsection[data-triage-state="idle-valid"] {
+  background: color-mix(in srgb, var(--page-bg) 97%, hsl(var(--foreground)));
 }
+:root[data-color-theme="neumorphism"] .triage-staging__subsection[data-triage-state="neutral"][data-triage-hover="true"] {
+  background: color-mix(in srgb, var(--page-bg) 95%, hsl(var(--foreground)));
+}
+:root[data-color-theme="neumorphism"] .triage-staging__subsection[data-triage-state="valid"] {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset), var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .triage-staging__subsection:is([data-triage-state="unavailable"], [data-triage-state="invalid"]) {
+  box-shadow: none;
+}
+/* Dim the heading and the candidates, never the reason note that explains the state. */
+:root[data-color-theme="neumorphism"] .triage-staging__subsection:is([data-triage-state="unavailable"], [data-triage-state="invalid"]) :is(.triage-shell__subsection-heading, .triage-staging__well > :is(.grid, .flex-col)) {
+  opacity: 0.7;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__subsection[data-triage-state="invalid"] { cursor: not-allowed; }
 :root[data-color-theme="neumorphism"] .triage-drag-token {
   background: var(--page-bg);
   border: 0;
@@ -7441,7 +7475,6 @@
    with the not-allowed cursor. Static: no outline, animation, transform or pulse. */
 :root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"] {
   animation: none;
-  transition: none;
 }
 :root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"][data-triage-target-state="idle-valid"] {
   background: color-mix(in srgb, var(--page-bg) 97%, hsl(var(--foreground)));
@@ -7461,7 +7494,6 @@
   animation: none;
   border-color: transparent;
   box-shadow: none;
-  transition: none;
 }
 :root[data-color-theme="neumorphism"] [data-triage-role="explorer-node-target"]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) { cursor: not-allowed; }
 :root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][data-triage-target-state="idle-valid"] {
@@ -7676,4 +7708,33 @@
 }
 :root[data-color-theme="neumorphism"] :is(.explorer-search-type, .explorer-search-duplicate, .explorer-search-breadcrumb) {
   color: hsl(var(--foreground) / 0.72);
+}
+
+/* Task 176 Stage 4 (e, neumorphism only): entering or leaving a Staging subsection, Explorer column
+   or Node-row target changes tint and inset depth over the Pool motion token — background and
+   box-shadow only, no transform or layout change; reduced motion makes it immediate. */
+:root[data-color-theme="neumorphism"] :is(.triage-staging__subsection, [data-triage-role="explorer-pane"], [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: background-color, box-shadow;
+  transition-timing-function: ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] :is(.triage-staging__subsection, [data-triage-role="explorer-pane"], [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]) { transition: none; }
+}
+
+/* Task 176 Stage 4 (g, neumorphism only): the Remove target and the Return overlay take the same
+   tint and inset-depth hover transition as the subsection targets, and fade in at drag start
+   (opacity only; they leave immediately when the drag ends). Reduced motion makes both immediate. */
+:root[data-color-theme="neumorphism"] :is(.triage-staging__remove, .triage-breakdown__return):not(.transition-none) {
+  animation: triage-target-fade-in var(--triage-pool-motion-duration) ease-out;
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: background-color, box-shadow;
+  transition-timing-function: ease-out;
+}
+@keyframes triage-target-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] :is(.triage-staging__remove, .triage-breakdown__return) { animation: none; transition: none; }
 }

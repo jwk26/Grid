@@ -1137,7 +1137,8 @@ export function HierarchyExplorer({
     );
     if (row !== undefined) {
       focusedRevealKeyRef.current = reveal.key;
-      row.focus({ preventScroll: true });
+      // Focus without a page scroll, then scroll only the owning column viewport minimally.
+      focusInOwningExplorerViewport(row);
     }
   }, [
     level1Bits,

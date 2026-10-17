@@ -330,6 +330,19 @@ vi.mock("@/components/triage/breakdown-panel", async () => {
 });
 
 vi.mock("@/components/triage/staging-zone", () => ({
+  StagingSubsection: ({
+    children,
+    className,
+    type,
+  }: {
+    children: React.ReactNode;
+    className: string;
+    type: "node" | "bit";
+  }) => (
+    <div className={className} data-triage-role={`staging-${type}-subsection`}>
+      {children}
+    </div>
+  ),
   StagingAlertBand: ({
     copy,
     onDismiss,

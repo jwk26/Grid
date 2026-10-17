@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TriageDragItem } from "@/hooks/use-dnd";
 import type { StagedCandidateProjection } from "@/hooks/use-staged-candidates";
-import { StagingAlertBand, StagingZone } from "./staging-zone";
+import { StagingAlertBand, StagingSubsection, StagingZone } from "./staging-zone";
 
 const useDroppableMock = vi.hoisted(() => vi.fn());
 const useDraggableMock = vi.hoisted(() => vi.fn());
@@ -590,5 +590,40 @@ describe("L3 semantic state distinctions", () => {
     expect(screen.getByTestId(`${type}-staging-zone`)).toHaveAttribute("data-triage-state", "unavailable");
     view.rerender(<StagingZone type={type} activeDragItem={{ ...makeDragItem("triage-breakdown")!, integrity: "invalidated" }} overTargetId={dropId} />);
     expect(screen.getByTestId(`${type}-staging-zone`)).toHaveAttribute("data-triage-state", "invalid");
+  });
+});
+
+describe("StagingSubsection drop region", () => {
+  it("registers the node and bit drop ids on the subsection, with heading and well inside it", () => {
+    useDroppableMock.mockReturnValue({ setNodeRef: vi.fn(), isOver: false });
+    useDroppableMock.mockClear();
+    render(
+      <>
+        <StagingSubsection className="s-node" type="node"><h3>Nodes</h3><div data-testid="inside-node" /></StagingSubsection>
+        <StagingSubsection className="s-bit" type="bit"><h3>Bits</h3></StagingSubsection>
+      </>,
+    );
+    const ids = useDroppableMock.mock.calls.map(([arg]) => [arg.id, arg.data.kind]);
+    expect(ids).toEqual([
+      ["triage-node-zone-drop", "triage-node-zone-drop"],
+      ["triage-bit-zone-drop", "triage-bit-zone-drop"],
+    ]);
+    expect(screen.getByText("Nodes").closest('[data-triage-role="staging-node-subsection"]')).toContainElement(screen.getByTestId("inside-node"));
+  });
+
+  it.each([
+    ["node", { kind: "triage-breakdown", id: "b", label: "x" }, "node-zone-drop", "valid"],
+    ["bit", { kind: "triage-staged-node", id: "c", label: "x" }, "bit-zone-drop", "unavailable"],
+    ["bit", { kind: "triage-staged-bit", id: "c", label: "x" }, "bit-zone-drop", "neutral"],
+  ] as const)("projects %s subsection state from the drag and the pointer target", (type, item, zone, expected) => {
+    useDroppableMock.mockReturnValue({ setNodeRef: vi.fn(), isOver: false });
+    useDroppableMock.mockClear();
+    render(<StagingSubsection activeDragItem={item as unknown as TriageDragItem} className="s" overTargetId={`triage-${zone}`} type={type}><span /></StagingSubsection>);
+    const dropId = useDroppableMock.mock.calls[0][0].id as string;
+    cleanup();
+    render(<StagingSubsection activeDragItem={item as unknown as TriageDragItem} className="s" overTargetId={dropId} type={type}><span /></StagingSubsection>);
+    const region = document.querySelector(`[data-triage-role="staging-${type}-subsection"]`);
+    expect(region).toHaveAttribute("data-triage-hover", "true");
+    expect(region).toHaveAttribute("data-triage-state", expected);
   });
 });

@@ -116,16 +116,27 @@ export type TriageDropIntent =
 
 const TRIAGE_BREAKDOWN_UNSTAGE_DROP_ID = "triage-remove-drop:breakdown";
 
-const triageInteractionCollisionDetection: CollisionDetection = (args) =>
-  pointerWithin(args).filter(
+const isTriageRemoveCandidate = (id: unknown) =>
+  id === getTriageRemoveDropId() || id === TRIAGE_BREAKDOWN_UNSTAGE_DROP_ID;
+
+// `pointerWithin` orders overlapping candidates by mean distance to the rect corners, not by
+// stacking, so a wide Remove bar can lose to the taller subsection it overlaps. The Remove and
+// Return-to-Breakdown targets keep priority wherever they overlap (stable partition: every
+// other candidate keeps its order).
+export const triageInteractionCollisionDetection: CollisionDetection = (args) => {
+  const candidates = pointerWithin(args).filter(
     (candidate) =>
       candidate.id === getTriageNodeZoneDropId() ||
       candidate.id === getTriageBitZoneDropId() ||
-      candidate.id === getTriageRemoveDropId() ||
-      candidate.id === TRIAGE_BREAKDOWN_UNSTAGE_DROP_ID ||
+      isTriageRemoveCandidate(candidate.id) ||
       (typeof candidate.id === "string" &&
         candidate.id.startsWith("triage-hierarchy:")),
   );
+  return [
+    ...candidates.filter((candidate) => isTriageRemoveCandidate(candidate.id)),
+    ...candidates.filter((candidate) => !isTriageRemoveCandidate(candidate.id)),
+  ];
+};
 
 type PendingNodeMove = {
   itemId: string;

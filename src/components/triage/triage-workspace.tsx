@@ -26,6 +26,7 @@ import { TriageDragToken } from "@/components/triage/triage-drag-token";
 import {
   StagingAlertBand,
   StagingZone,
+  StagingSubsection,
   type StagingOperationView,
   type StagingZoneProjection,
 } from "@/components/triage/staging-zone";
@@ -2282,7 +2283,12 @@ function TriageWorkspaceContent({
                 data-testid="triage-staging-columns"
                 data-triage-role="staging-display-columns"
               >
-                <div className="triage-staging__subsection flex min-h-0 min-w-0 basis-[35%] flex-col">
+                <StagingSubsection
+                  activeDragItem={activeDragItem}
+                  className="triage-staging__subsection flex min-h-0 min-w-0 basis-[35%] flex-col"
+                  overTargetId={overTargetId}
+                  type="node"
+                >
                   <h3 ref={nodeStagingHeadingRef} tabIndex={-1} data-triage-role="staging-node-heading" className="triage-shell__subsection-heading flex items-center justify-between gap-2">
                     <span>
                       {formatStagingHeading(
@@ -2324,9 +2330,14 @@ function TriageWorkspaceContent({
                       }
                     />
                   </div>
-                </div>
+                </StagingSubsection>
 
-                <div className="triage-staging__subsection triage-staging__subsection--bits flex min-h-0 min-w-0 basis-[65%] flex-col border-l border-dashed border-border/80">
+                <StagingSubsection
+                  activeDragItem={activeDragItem}
+                  className="triage-staging__subsection triage-staging__subsection--bits flex min-h-0 min-w-0 basis-[65%] flex-col border-l border-dashed border-border/80"
+                  overTargetId={overTargetId}
+                  type="bit"
+                >
                   <h3 ref={bitStagingHeadingRef} tabIndex={-1} data-triage-role="staging-bit-heading" className="triage-shell__subsection-heading flex items-center justify-between gap-2">
                     <span>
                       {formatStagingHeading(
@@ -2368,7 +2379,7 @@ function TriageWorkspaceContent({
                       }
                     />
                   </div>
-                </div>
+                </StagingSubsection>
               </div>
               <TriageRemoveDropTarget
                 activeDragItem={activeDragItem}

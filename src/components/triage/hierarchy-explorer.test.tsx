@@ -2753,6 +2753,42 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
     );
   });
 
+  it("scrolls a revealed row below its column fold into view inside that column viewport only (MI-11)", async () => {
+    const projects = createNode({ id: "projects", title: "Projects" });
+    setGrid(null, [projects]);
+    const selected = searchResult("node:projects");
+    explorerSearchState.mode = "active";
+    explorerSearchState.activeQuery = "projects";
+    explorerSearchState.results = [selected];
+    explorerSearchState.status = "ready";
+    explorerSearchState.selectResult.mockImplementation(async () => {
+      explorerSearchState.mode = "closed";
+      explorerSearchState.activeQuery = null;
+      explorerSearchState.results = [];
+      explorerSearchState.revealPresentation = { kind: "revealed", result: selected };
+      return { kind: "selected", result: selected };
+    });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.dataset.testid === "hierarchy-section-body-home") {
+        return { top: 100, bottom: 300, left: 0, right: 200, width: 200, height: 200, x: 0, y: 100, toJSON() {} };
+      }
+      if (this.dataset.explorerItemId === "projects") {
+        return { top: 340, bottom: 380, left: 0, right: 200, width: 200, height: 40, x: 0, y: 340, toJSON() {} };
+      }
+      return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON() {} };
+    });
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    render(<HierarchyExplorer {...defaultProps} />);
+
+    fireEvent.click(explorerSearchResultRow());
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Select Node: Projects" })).toHaveFocus());
+    // The row's bottom (380) is 80px below the viewport bottom (300): only that viewport scrolls.
+    expect(screen.getByTestId("hierarchy-section-body-home").scrollTop).toBe(80);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
   it("keeps search and navigation untouched when selection-time validation is stale", async () => {
     const selected = searchResult("node:projects");
     explorerSearchState.mode = "active";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { FileText, Folder, X } from "lucide-react";
 import {
@@ -116,6 +116,49 @@ function getPresentationState(item: TriageDragItem, type: "node" | "bit", state:
   if (item?.kind === `triage-staged-${type}`) return "neutral";
   if (item?.kind === "triage-staged-node" || item?.kind === "triage-staged-bit") return "unavailable";
   return state;
+}
+
+// The Nodes/Bits drop region is the whole subsection (SPEC "Staging subsection drop region"):
+// heading row plus well. The subsection registers the droppable; the well only scrolls.
+// It must render inside the DndContext, so it is a component rather than a hook in the owner.
+export function StagingSubsection({
+  activeDragItem = null,
+  children,
+  className,
+  overTargetId = null,
+  type,
+}: {
+  activeDragItem?: TriageDragItem;
+  children: ReactNode;
+  className: string;
+  overTargetId?: string | null;
+  type: StagedCandidateProjection["resultType"];
+}) {
+  const dropId = type === "node" ? getTriageNodeZoneDropId() : getTriageBitZoneDropId();
+  const { setNodeRef } = useDroppable({
+    id: dropId,
+    data: {
+      kind: type === "node" ? "triage-node-zone-drop" : "triage-bit-zone-drop",
+    } as TriageDropData,
+  });
+  const state = getDropZoneState({
+    activeDragItem,
+    isOver: overTargetId === dropId,
+    isValidTarget:
+      activeDragItem?.kind === "triage-breakdown" ||
+      activeDragItem?.kind === `triage-staged-${type}`,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      className={className}
+      data-triage-hover={activeDragItem !== null && overTargetId === dropId}
+      data-triage-role={`staging-${type}-subsection`}
+      data-triage-state={getPresentationState(activeDragItem, type, state)}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function StagingZone({
@@ -243,10 +286,6 @@ function NodeStagingZone({
   overTargetId: string | null;
 }) {
   const dropId = getTriageNodeZoneDropId();
-  const { setNodeRef } = useDroppable({
-    id: dropId,
-    data: { kind: "triage-node-zone-drop" } satisfies TriageDropData,
-  });
   const state = getDropZoneState({
     activeDragItem,
     isOver: overTargetId === dropId,
@@ -257,7 +296,6 @@ function NodeStagingZone({
 
   return (
     <div
-      ref={setNodeRef}
       aria-label="Node staging zone"
       className={cn("triage-staging__well", DROP_ZONE_BASE_CLASS, DROP_ZONE_STATE_CLASSES[state])}
       data-empty={candidates.length === 0}
@@ -321,10 +359,6 @@ function BitStagingZone({
   overTargetId: string | null;
 }) {
   const dropId = getTriageBitZoneDropId();
-  const { setNodeRef } = useDroppable({
-    id: dropId,
-    data: { kind: "triage-bit-zone-drop" } satisfies TriageDropData,
-  });
   const state = getDropZoneState({
     activeDragItem,
     isOver: overTargetId === dropId,
@@ -335,7 +369,6 @@ function BitStagingZone({
 
   return (
     <div
-      ref={setNodeRef}
       aria-label="Bit staging zone"
       className={cn("triage-staging__well", DROP_ZONE_BASE_CLASS, DROP_ZONE_STATE_CLASSES[state])}
       data-empty={candidates.length === 0}
