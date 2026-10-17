@@ -1774,28 +1774,6 @@
   font-family: var(--theme-font);
 }
 
-:root[data-color-theme="neumorphism"] .explorer-search-body {
-  background: hsl(var(--background));
-}
-
-:root[data-color-theme="neumorphism"] .explorer-search-field {
-  border: 0;
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
-}
-
-:root[data-color-theme="neumorphism"] .explorer-search-result {
-  border: 0;
-  box-shadow: var(--theme-shadow);
-}
-
-:root[data-color-theme="neumorphism"] .explorer-search-status,
-:root[data-color-theme="neumorphism"] .explorer-reveal-status {
-  border: 0;
-  box-shadow: inset 2px 2px 4px hsl(var(--foreground) / 0.1),
-    inset -2px -2px 4px hsl(var(--background) / 0.82);
-}
-
 :root[data-color-theme="claymorphism"] .explorer-search-body {
   background: hsl(var(--background));
 }
@@ -7550,4 +7528,152 @@
   border-radius: 6px;
   box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
   outline: none;
+}
+
+/* Task 176 Stage 3 (L4, neumorphism): DP-VQ07 replacement search body and the search-result
+   Undo slice (DP-VQ10). Inset field and state trough, raised result rows, raised controls with
+   the shared interaction. Static; copy, focus order and lifetime unchanged. */
+:root[data-color-theme="neumorphism"] .explorer-search-body {
+  background: transparent;
+  padding: 0 6px 16px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-status:not(:empty) { margin-inline: 10px; }
+:root[data-color-theme="neumorphism"] .explorer-search-field {
+  background: transparent;
+  block-size: 32px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset);
+  padding: 0 14px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-field:focus-within {
+  border: 0;
+  box-shadow: var(--theme-shadow-inset), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .explorer-search-field input {
+  color: hsl(var(--foreground));
+  font-family: var(--theme-font);
+  font-size: 12px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-field input::placeholder { color: hsl(var(--foreground) / 0.6); }
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-search-field"]:focus-visible {
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo) {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-family: var(--theme-font);
+}
+:root[data-color-theme="neumorphism"] .explorer-search-close {
+  align-items: center;
+  block-size: 28px;
+  display: inline-flex;
+  inline-size: 28px;
+  justify-content: center;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-retry, .explorer-search-undo) {
+  align-self: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  min-block-size: 0;
+  min-inline-size: 0;
+  padding: 2px 10px;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo):not([aria-disabled="true"]):hover {
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo):not([aria-disabled="true"]):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo):focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform, color;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-undo[aria-disabled="true"] {
+  box-shadow: var(--theme-shadow-inset-xs);
+  cursor: not-allowed;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo) { transition: none; }
+  :root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo):hover { transform: none; }
+}
+:root[data-color-theme="neumorphism"] .explorer-search-status,
+:root[data-color-theme="neumorphism"] .explorer-reveal-status,
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-search-undo-status"] {
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-family: var(--theme-font);
+  padding: 6px 14px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-status:empty {
+  box-shadow: none;
+  min-block-size: 0;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] .explorer-reveal-status { margin: 12px 16px 0; }
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-search-undo-status"] {
+  border-radius: 10px;
+  margin-block-start: 0;
+  min-block-size: 0;
+  padding: 4px 10px;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-search-undo-status"] .newly-status-mark {
+  border-radius: 999px;
+  box-shadow: none;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-results {
+  gap: 12px;
+  padding: 12px 10px 4px;
+  scrollbar-width: none;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-results::-webkit-scrollbar { display: none; }
+:root[data-color-theme="neumorphism"] .explorer-search-result {
+  align-items: center;
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.8);
+  gap: 12px;
+  padding: 10px 14px 10px 12px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-result:hover {
+  background: color-mix(in srgb, var(--page-bg) 95%, hsl(var(--foreground)));
+  color: hsl(var(--foreground));
+}
+:root[data-color-theme="neumorphism"] .explorer-search-result:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-result-icon {
+  block-size: 24px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  flex: none;
+  inline-size: 24px;
+  margin-block-start: 0;
+  padding: 5px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-result-title {
+  font-family: var(--theme-font);
+  font-size: 13px;
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-type, .explorer-search-duplicate, .explorer-search-breadcrumb) {
+  color: hsl(var(--foreground) / 0.72);
 }

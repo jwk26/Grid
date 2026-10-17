@@ -514,6 +514,31 @@ describe("Neumorphism L4 targets and DP-VQ06-EXPLORER (Task 176 Stage 2)", () =>
   });
 });
 
+describe("Neumorphism L4 replacement search (Task 176 Stage 3)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const stage = css.slice(css.indexOf("/* Task 176 Stage 3"));
+
+  it("draws an inset field, an inset state trough and raised result rows, without CSS-injected copy", () => {
+    expect(stage).toMatch(/\.explorer-search-field \{[^}]*border-radius: 999px;[^}]*box-shadow: var\(--theme-shadow-inset\);/);
+    expect(stage).toMatch(/\.explorer-search-status,[\s\S]*?explorer-search-undo-status"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);/);
+    expect(stage).toMatch(/\.explorer-search-result \{[^}]*border-radius: 18px;[^}]*box-shadow: var\(--theme-shadow-card\);/);
+    expect(stage).toMatch(/\.explorer-search-status:empty \{[^}]*box-shadow: none;/);
+    expect(stage).not.toMatch(/(?:^|[\s{;])content:/);
+  });
+
+  it("gives the six raised controls the shared interaction and keeps result rows colour-only", () => {
+    expect(stage).toMatch(/:is\(\.explorer-search-close, \.explorer-search-retry, \.explorer-search-undo\)[^{]*:hover \{[^}]*translateY\(-1px\)/);
+    expect(stage).toMatch(/:is\(\.explorer-search-close, \.explorer-search-retry, \.explorer-search-undo\)[^{]*:active \{[^}]*var\(--theme-shadow-inset-sm\)/);
+    expect(stage).toMatch(/:not\(\.transition-none\) \{[^}]*var\(--triage-pool-motion-duration\)/);
+    const hover = stage.match(/\.explorer-search-result:hover \{([^}]*)\}/)?.[1] ?? "";
+    expect(hover).not.toMatch(/transform|box-shadow/);
+  });
+
+  it("rewrote the earlier partial search rules instead of layering over them", () => {
+    expect(css).not.toMatch(/color-theme="neumorphism"\] \.explorer-search-(?:body|field|result|status)[^{]*\{[^}]*inset 2px 2px 4px hsl|color-theme="neumorphism"\] \.explorer-search-result \{[^}]*box-shadow: var\(--theme-shadow\);/);
+  });
+});
+
 describe("L3 shared presentation tree", () => {
   it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("preserves shared neutral and unavailable meanings during real-target presentation in %s", theme => {
     document.documentElement.dataset.colorTheme = theme;
