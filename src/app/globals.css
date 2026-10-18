@@ -4111,6 +4111,12 @@
   white-space: nowrap;
 }
 
+/* A Node card's status line is fitted to the card width, so it ellipsizes in every theme. */
+.triage-staging__node-content > .staging-operation-status {
+  align-self: stretch;
+  max-inline-size: 100%;
+}
+
 .staging-node-status-card,
 .staging-bit-status-row {
   background: hsl(var(--background));

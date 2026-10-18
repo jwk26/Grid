@@ -406,6 +406,23 @@ function BitStagingZone({
   );
 }
 
+// The durable candidate's layout, shared with its Stage projection so the swap
+// from projection to card changes no size, shape or content.
+const NODE_CARD_CLASS =
+  "triage-staging__node mx-auto aspect-square h-auto w-full max-w-[80px] select-none overflow-hidden rounded-lg border border-border/80 bg-background transition-[background-color,border-color,color,opacity] focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none";
+const NODE_CARD_DRAGGABLE_CLASS = "touch-none cursor-grab active:cursor-grabbing";
+const BIT_ROW_CLASS =
+  "triage-staging__bit flex min-h-[2rem] w-full select-none items-center rounded-lg border border-border/60 bg-background px-3 py-1.5 transition-[background-color,border-color,color,opacity] focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none";
+const BIT_ROW_DRAGGABLE_CLASS = "touch-none cursor-grab active:cursor-grabbing";
+
+// Pending, and a hold from pending, show no in-card line: the sentence stays in
+// the Staging live region. Unknown and reconciling keep the line.
+function showsOperationLine(
+  operation: StagingOperationView | undefined,
+): operation is StagingOperationView {
+  return operation !== undefined && operation.phase !== "pending";
+}
+
 // Stage projections not yet listed render at the top, newest first, where the
 // candidate lands under the createdAt DESC sort. Order follows when each command
 // was issued, not its phase group.
@@ -501,7 +518,8 @@ function NodeCandidateCard({
       aria-label={`Drag ${candidate.content} staged node`}
       data-operation-locked={disabled}
       className={cn(
-        "triage-staging__node mx-auto aspect-square h-auto w-full max-w-[80px] touch-none cursor-grab select-none overflow-hidden rounded-lg border border-border/80 bg-background transition-[background-color,border-color,color,opacity] active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
+        NODE_CARD_CLASS,
+        NODE_CARD_DRAGGABLE_CLASS,
         isDimmed && "border-dashed border-muted/30 bg-transparent",
       )}
       data-candidate-version={candidate.version}
@@ -533,7 +551,7 @@ function NodeCandidateCard({
         >
           {candidate.content}
         </div>
-        {operation ? <OperationStatus operation={operation} /> : null}
+        {showsOperationLine(operation) ? <OperationStatus operation={operation} /> : null}
       </div>
     </div>
   );
@@ -600,7 +618,8 @@ function BitCandidateRow({
       aria-label={`Drag ${candidate.content} staged bit`}
       data-operation-locked={disabled}
       className={cn(
-        "triage-staging__bit flex min-h-[2rem] w-full touch-none cursor-grab select-none items-center rounded-lg border border-border/60 bg-background px-3 py-1.5 transition-[background-color,border-color,color,opacity] active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
+        BIT_ROW_CLASS,
+        BIT_ROW_DRAGGABLE_CLASS,
         isDimmed && "border-dashed border-muted/30 bg-transparent",
       )}
       data-candidate-version={candidate.version}
@@ -631,7 +650,7 @@ function BitCandidateRow({
       >
         {candidate.content}
       </div>
-      {operation ? <OperationStatus operation={operation} /> : null}
+      {showsOperationLine(operation) ? <OperationStatus operation={operation} /> : null}
     </div>
   );
 }
@@ -665,23 +684,40 @@ function OperationStatus({ operation }: { operation: StagingOperationView }) {
 function NodeStatusCard({ operation }: { operation: StagingOperationView }) {
   return (
     <div
-      className="staging-node-status-card"
+      className={cn(NODE_CARD_CLASS, "cursor-default")}
       data-triage-hold={operation.held || undefined}
       data-testid="node-operation-card"
       data-triage-role="staging-node-card"
       data-triage-state={operation.phase}
     >
-      <Folder aria-hidden="true" className="h-6 w-6" />
-      <OperationStatus operation={operation} />
+      <div className="triage-staging__node-content flex h-full w-full flex-col items-center justify-center p-2">
+        <Folder
+          aria-hidden="true"
+          className="h-6 w-6 flex-shrink-0 text-muted-foreground"
+        />
+        <div className="triage-staging__node-label mt-auto w-full truncate px-1 pb-1 text-center text-[10px] font-semibold text-foreground">
+          {operation.title}
+        </div>
+        {showsOperationLine(operation) ? <OperationStatus operation={operation} /> : null}
+      </div>
     </div>
   );
 }
 
 function BitStatusRow({ operation }: { operation: StagingOperationView }) {
   return (
-    <div className="staging-bit-status-row" data-testid="bit-operation-row" data-triage-hold={operation.held || undefined} data-triage-role="staging-bit-row" data-triage-state={operation.phase}>
+    <div
+      className={cn(BIT_ROW_CLASS, "cursor-default")}
+      data-testid="bit-operation-row"
+      data-triage-hold={operation.held || undefined}
+      data-triage-role="staging-bit-row"
+      data-triage-state={operation.phase}
+    >
       <FileText aria-hidden="true" className="triage-staging__bit-icon" />
-      <OperationStatus operation={operation} />
+      <div className="min-w-0 flex-1 truncate text-left text-xs font-medium text-foreground">
+        {operation.title}
+      </div>
+      {showsOperationLine(operation) ? <OperationStatus operation={operation} /> : null}
     </div>
   );
 }

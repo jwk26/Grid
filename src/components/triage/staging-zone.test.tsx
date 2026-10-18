@@ -475,10 +475,14 @@ describe("StagingZone — DP-VQ06-STAGING state projection", () => {
       />,
     );
 
-    const status = screen.getByText("Staging “Project plan”…");
-    expect(status).toHaveAttribute("data-triage-role", "staging-operation-status");
-    expect(status).toHaveAttribute("data-triage-state", "pending");
-    expect(status.closest('[data-testid="node-operation-card"]')).toBeInTheDocument();
+    // Task 176A (e): no in-card line while pending; the projection shows the
+    // candidate's icon and title in the durable card's layout.
+    const card = screen.getByTestId("node-operation-card");
+    expect(card).toHaveAttribute("data-triage-state", "pending");
+    expect(within(card).getByText("Project plan")).toHaveClass("triage-staging__node-label");
+    expect(card.querySelector("svg")).not.toBeNull();
+    expect(screen.queryByText("Staging “Project plan”…")).not.toBeInTheDocument();
+    expect(card.querySelector('[data-triage-role="staging-operation-status"]')).toBeNull();
     expect(useDraggableMock).not.toHaveBeenCalled();
   });
 
@@ -721,9 +725,60 @@ describe("StagingZone — commit-to-snapshot repair (Task 176A)", () => {
 
     expect(card).toHaveAttribute("data-triage-dimmed", "true");
     expect(card).not.toHaveClass("opacity-30");
-    const status = screen.getByText("Returning “Keep me” to Breakdown…");
-    expect(status.closest(".opacity-30")).toBeNull();
-    expect(status).not.toHaveClass("opacity-30");
+    // Task 176A (e): pending shows no in-card line.
+    expect(screen.queryByText("Returning “Keep me” to Breakdown…")).not.toBeInTheDocument();
+  });
+
+  it("keeps the in-card line for unknown and reconciling, outside any dimmed element", () => {
+    renderCard(operation({ phase: "unknown" }));
+    const unknown = screen.getByText("We couldn’t confirm whether “Keep me” was returned.");
+    expect(unknown).toHaveAttribute("data-triage-state", "unknown");
+    expect(unknown.closest(".opacity-30")).toBeNull();
+    cleanup();
+    renderCard(operation({ phase: "reconciling" }));
+    expect(screen.getByText("Checking whether “Keep me” was returned…")).toBeInTheDocument();
+    cleanup();
+    renderCard(operation({ phase: "reconciling", held: true }));
+    expect(screen.getByText("Checking whether “Keep me” was returned…")).toBeInTheDocument();
+    cleanup();
+    renderCard(operation({ phase: "pending", held: true }));
+    expect(screen.queryByText(/Returning/)).not.toBeInTheDocument();
+  });
+
+  it("renders a Stage projection with the candidate's title in the durable layout and keeps the unknown line", () => {
+    render(
+      <StagingZone
+        type="bit"
+        projection={{
+          candidates: [],
+          integrityCandidates: [],
+          operations: [
+            operation({ kind: "stage", resultType: "bit", candidateId: "p1", title: "Plan it", phase: "pending" }),
+          ],
+        }}
+      />,
+    );
+    const row = screen.getByTestId("bit-operation-row");
+    expect(row).toHaveClass("triage-staging__bit");
+    expect(row).not.toHaveClass("cursor-grab");
+    expect(within(row).getByText("Plan it")).toBeInTheDocument();
+    expect(within(row).queryByText(/Staging/)).not.toBeInTheDocument();
+    cleanup();
+    render(
+      <StagingZone
+        type="bit"
+        projection={{
+          candidates: [],
+          integrityCandidates: [],
+          operations: [
+            operation({ kind: "stage", resultType: "bit", candidateId: "p1", title: "Plan it", phase: "unknown" }),
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen.getByText("We couldn’t confirm whether “Plan it” was staged."),
+    ).toBeInTheDocument();
   });
 
   it("dims the dragged card with no operation, and does not dim unknown or reconciling Unstage", () => {

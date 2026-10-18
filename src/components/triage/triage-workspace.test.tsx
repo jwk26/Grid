@@ -920,6 +920,58 @@ describe("TriageWorkspace", () => {
     );
   });
 
+  it("keeps the pending sentence in the live region now that the card shows no pending line", () => {
+    const candidate = {
+      id: "candidate-1",
+      scratchBitId: "scratch-1",
+      sourceBreakdownId: "breakdown-1",
+      resultType: "node",
+      lifecycle: "staged",
+      createdAt: 1,
+      updatedAt: 1,
+      version: 1,
+      content: "Project",
+      source: {
+        id: "breakdown-1",
+        scratchBitId: "scratch-1",
+        content: "Project",
+        order: 0,
+        createdAt: 1,
+        consumedAt: null,
+        version: 1,
+      },
+    };
+    useStagedCandidatesMock.mockReturnValue({
+      isReady: true,
+      candidates: [candidate],
+      integrityCandidates: [],
+      pendingOperations: [
+        {
+          operationId: "unstage-1",
+          scratchBitId: "scratch-1",
+          candidateId: candidate.id,
+          sourceBreakdownId: candidate.sourceBreakdownId,
+          kind: "unstage",
+          phase: "pending",
+        },
+      ],
+      unknownOperations: [],
+      reconcilingOperations: [],
+      counts: { nodes: 1, bits: 0, visibleNodes: 1, visibleBits: 0 },
+      eligibility: { stagedSourceIds: new Set(["breakdown-1"]) },
+      stageCandidate: stageCandidateMock,
+      reconcileStageCandidate: reconcileStageCandidateMock,
+      unstageCandidate: unstageCandidateMock,
+      reconcileUnstageCandidate: reconcileUnstageCandidateMock,
+    });
+
+    render(<TriageWorkspace node={createNode()} />);
+
+    expect(screen.getByTestId("staging-live-region")).toHaveTextContent(
+      "Returning “Project” to Breakdown…",
+    );
+  });
+
   it("projects the mounted authoritative candidate state into both Staging zones", () => {
     const candidate = {
       id: "candidate-1",
