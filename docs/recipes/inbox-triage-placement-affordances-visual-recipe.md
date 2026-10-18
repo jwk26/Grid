@@ -679,6 +679,7 @@ roles; product components never branch on theme ID:
 - Observed source-only: direct choice is an `18px` raised soft card with source/path and rounded actions. Confirmation is a `20px` raised plate with rounded Place/Cancel; invalid state is an inset soft status card.
 - Adopted fact: raised step plates and inset warning treatment are supported.
 - Token implication: use existing card/inset shadow variables; do not claim rendered depth or substitute the deferred lens.
+- User-adopted (Task 177, 2026-10-18): Direct selection and Staged confirmation follow the Selected Scratch Context hierarchy, by depth and tint, not lines or extra fonts. The heading (`DIRECT PLACEMENT`, `CONFIRM PLACEMENT`) stays a small muted uppercase label without brackets. The item title (`.placement-confirm-source`; in Direct, `.placement-direct-limit-shell .placement-result-title-source`) sits in a shallow inset well at stronger size and weight. The staged Node/Bit type (`.placement-result-type`) is a small raised pill with primary-tinted text, like the Context `NEW` pill. Node, Bit, Cancel and OK stay raised controls, so information is inset and actions are raised. The header close button is not shown (`display: none`, out of the focus order); body Cancel and Escape close with the unchanged guard. The Result Title step, the reliability rail and the full-target warning are unchanged. CSS only; no element, copy or behavior change, and other themes keep their presentation.
 
 ### Claymorphism
 

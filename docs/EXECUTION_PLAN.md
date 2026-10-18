@@ -2870,7 +2870,7 @@ the full gate; an `expert` review.
 
 ### Task 177: [ ] Realize Placement followed by Newly/Undo
 
-**Files and actions:** bind L5's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
+**Files and actions:** bind L5's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-18), Stage 1: realize the Placement recipe's Neumorphism user-adopted hierarchy (inset title well, raised Node/Bit pill, muted heading label) and hide the header close button, as the DESIGN_TOKENS Neumorphism exception row states, in `globals.css` only.
 
 **Dependencies:** Task 176 and repair Task 176A accepted, including their required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
