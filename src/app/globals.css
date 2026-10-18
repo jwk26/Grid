@@ -2618,9 +2618,8 @@
 :root[data-color-theme="neumorphism"] .placement-result-title-shell,
 :root[data-color-theme="neumorphism"] .placement-direct-type-option {
   border: 0;
-  border-radius: var(--theme-radius);
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
 }
 
 :root[data-color-theme="claymorphism"] .placement-result-title-shell,
@@ -2766,9 +2765,8 @@
 
 :root[data-color-theme="neumorphism"] .placement-reliability-rail {
   border: 0;
-  border-radius: var(--theme-radius);
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
 }
 
 :root[data-color-theme="claymorphism"] .placement-reliability-rail {
@@ -7766,4 +7764,319 @@
 }
 @media (prefers-reduced-motion: reduce) {
   :root[data-color-theme="neumorphism"] :is(.triage-staging__remove, .triage-breakdown__return) { animation: none; transition: none; }
+}
+
+/* Neumorphism L5 (Task 177, Stage 1): Placement. The affordance is one raised plate inside the
+   target column; state is carried by depth and tint, never line styles. Every swap, validation
+   change, rail change and shadow or colour change stays immediate: the shared
+   `.placement-affordance *` rule keeps `transition: none !important`. The only motion is the
+   `transform`-only hover lift of the raised actions, eased by the rule at the end of this block
+   outside reduced motion. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground));
+  font-family: var(--theme-font);
+  margin: 8px 6px 14px;
+  padding: 14px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-header {
+  gap: 8px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-confirm-heading, .placement-direct-heading, .placement-result-title-heading) {
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-confirm-heading, .placement-direct-heading) > span[aria-hidden="true"] {
+  display: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-confirm-heading, .placement-direct-heading):focus-visible {
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-direct-eyebrow, .placement-result-title-eyebrow) {
+  color: hsl(var(--foreground) / 0.8);
+  letter-spacing: 0.08em;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-direct-eyebrow.placement-direct-heading {
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 11px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-confirm-source, .placement-result-title-source) {
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-target-path, .placement-source-truth, .placement-result-title-explanation, .placement-direct-type-reason) {
+  color: hsl(var(--foreground) / 0.76);
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-type {
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-full-target-warning {
+  background: color-mix(in srgb, var(--page-bg) 90%, hsl(var(--destructive)));
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+  padding: 8px 12px;
+}
+
+/* Raised controls: Confirm, Cancel, Continue, Direct Node/Bit and the header close. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button {
+  background: var(--page-bg);
+  block-size: 32px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.85);
+  font-family: var(--theme-font);
+  font-size: 12px;
+  font-weight: 600;
+  padding-inline: 16px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button:not(:disabled):not([aria-disabled="true"]):hover {
+  background: var(--page-bg);
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button:not(:disabled):not([aria-disabled="true"]):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button:is(:disabled, [aria-disabled="true"]) {
+  box-shadow: none;
+  opacity: 0.5;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-confirm, .placement-result-title-continue, .placement-direct-type) {
+  color: var(--triage-pool-sort-active);
+  font-weight: 700;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-cancel, .placement-direct-cancel) {
+  color: hsl(var(--foreground) / 0.72);
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-direct-cancel {
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-direct-cancel:not(:disabled):hover {
+  background: transparent;
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-direct-cancel:focus-visible {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+/* The header close is not shown: out of layout and focus order. Body Cancel and Escape close. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button.placement-header-close {
+  display: none;
+}
+
+/* Information is inset, actions are raised: the item title sits in a shallow well (Direct title
+   scoped to the direct shell so the Result Title step is unchanged) and the staged type is a
+   small raised pill, like the Context NEW pill. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-confirm-source,
+:root[data-color-theme="neumorphism"] .triage-shell .placement-direct-limit-shell .placement-result-title-source {
+  background: var(--page-bg);
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  padding: 8px 12px;
+}
+/* Confirmation (Staged, and Direct after a type is chosen: same markup, either shell class) stacks like Direct: heading; title well with the Node/Bit type as an inset
+   tag in a fixed area at its right; the primary action, then Cancel, both full width; the
+   reliability reservation below. The wrappers are unboxed and the frame body is a grid, so the
+   DOM and Tab order stay Cancel then OK (accepted exception) and OK sits above Cancel by grid row
+   only. Any `.placement-reliability-action` other than Cancel (OK, Retry, Check again) takes the
+   primary row. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-frame-body:has(> .placement-staged-summary-row) {
+  column-gap: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  min-inline-size: 0;
+  row-gap: 8px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-staged-summary-row, .placement-staged-information, .placement-staged-type-row, .placement-reliability-actions) {
+  display: contents;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-confirm-source {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-result-type {
+  align-self: center;
+  background: var(--page-bg);
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: var(--triage-pool-sort-active);
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  grid-column: 2;
+  grid-row: 1;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  margin: 0;
+  padding: 4px 12px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-source-truth, .placement-full-target-warning) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-reliability-action:not(.placement-cancel) {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  inline-size: 100%;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-cancel {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  inline-size: 100%;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-reliability-slot {
+  grid-column: 1 / -1;
+  grid-row: 5;
+  margin-block-start: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-header {
+  margin-block-end: 14px;
+}
+
+/* Cancel stays neutral in Direct and Staged: stronger text and a shallow inset tint on hover, inset
+   on press; never on a disabled or aria-disabled Cancel, never a destructive colour. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-cancel, .placement-direct-cancel):not(:disabled):not([aria-disabled="true"]):hover {
+  background: color-mix(in srgb, var(--page-bg) 94%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-cancel, .placement-direct-cancel):not(:disabled):not([aria-disabled="true"]):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+
+/* Result title step: the field is an inset well; the counter and errors keep text cues. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-result-title-shell,
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-direct-limit-shell {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-input {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 12px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+  padding: 8px 12px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-input:focus-visible {
+  box-shadow: var(--theme-shadow-inset-sm), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-input[aria-invalid="true"] {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--destructive)));
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-error {
+  color: color-mix(in srgb, hsl(var(--destructive)) 62%, hsl(var(--foreground)));
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-count {
+  color: hsl(var(--foreground) / 0.76);
+}
+
+/* Direct choice: unavailable reasons and the too-long summary are inset troughs, no rules. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-direct-type-option {
+  padding: 8px 12px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-direct-limit-summary {
+  background: color-mix(in srgb, var(--page-bg) 90%, hsl(var(--destructive)));
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+  padding: 8px 12px;
+}
+
+/* Reliability rail: shallow inset trough; state marks keep their glyph, no ring line. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-reliability-rail {
+  background: transparent;
+  color: hsl(var(--foreground) / 0.85);
+  padding: 8px 12px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-reliability-mark {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.85);
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-reliability-rail[data-placement-reliability-state="not-applied"],
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance[data-placement-reliability="not-applied"] .placement-reliability-rail {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--destructive)));
+}
+
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-explorer-column] {
+  scroll-padding-block: 8px;
+}
+
+/* At 1024px the target column is about 140px wide: the plate tightens, the staged summary and
+   its actions stack, and the actions wrap instead of clipping. The column keeps all scroll. */
+@media (max-width: 1100px) {
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance {
+    margin: 6px 4px 10px;
+    padding: 10px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-header {
+    margin-block-end: 10px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-result-type {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button {
+    padding-inline: 12px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-confirm-source,
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-direct-limit-shell .placement-result-title-source {
+    font-size: 12px;
+    line-height: 16px;
+    padding: 6px 8px;
+  }
+}
+
+/* Raised Placement actions ease their hover lift and its return on press: `transform` only, on the
+   Pool motion token, outside reduced motion. This overrides the shared `.placement-affordance *`
+   `transition: none !important` for the transform property alone; shadow, colour, disabled and
+   every state, validation or step change stay immediate (a disabled control leaves the selector). */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button:not(:disabled):not([aria-disabled="true"]) {
+    transition-duration: var(--triage-pool-motion-duration) !important;
+    transition-property: transform !important;
+    transition-timing-function: ease-out !important;
+  }
 }

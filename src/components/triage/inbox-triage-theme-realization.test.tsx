@@ -487,7 +487,7 @@ describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
 
 describe("Neumorphism L4 Explorer base chrome (Task 176)", () => {
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
-  const stage = css.slice(css.indexOf("/* Task 176 Stage 1"));
+  const stage = css.slice(css.indexOf("/* Task 176 Stage 1"), css.indexOf("/* Neumorphism L5 (Task 177"));
 
   it("draws four inset plates with full uppercase labels and no scrollbar chrome", () => {
     expect(stage).toMatch(/\[data-triage-role="explorer-pane"\] \{[^}]*border-radius: 20px;[^}]*box-shadow: var\(--theme-shadow-inset\);/);
@@ -568,7 +568,7 @@ describe("Neumorphism target transition and Retro Mac well line (Task 176 Stage 
 
 describe("Neumorphism L4 replacement search (Task 176 Stage 3)", () => {
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
-  const stage = css.slice(css.indexOf("/* Task 176 Stage 3"));
+  const stage = css.slice(css.indexOf("/* Task 176 Stage 3"), css.indexOf("/* Neumorphism L5 (Task 177"));
 
   it("draws an inset field, an inset state trough and raised result rows, without CSS-injected copy", () => {
     expect(stage).toMatch(/\.explorer-search-field \{[^}]*border-radius: 999px;[^}]*box-shadow: var\(--theme-shadow-inset\);/);
@@ -792,5 +792,51 @@ describe("Phase 41 Retro Mac departure sheet realization (Task 211)", () => {
     expect(block).not.toContain("__actions button:active");
     expect(rule(':root[data-color-theme="retro-mac"] .breakdown-departure-sheet')).not.toContain("margin-inline");
     expect(block).toMatch(/button:focus-visible \{[^}]*outline: 2px solid/);
+  });
+});
+
+describe("Neumorphism L5 Placement (Task 177 Stage 1)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const stage = css
+    .slice(css.indexOf("/* Neumorphism L5 (Task 177"))
+    .replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("scopes every rule to neumorphism and draws state by depth and tint, never line styles", () => {
+    const selectors = stage.match(/^[^{}@]+(?=\{)/gm) ?? [];
+    expect(selectors.length).toBeGreaterThan(10);
+    for (const selector of selectors) {
+      expect(selector).toContain('[data-color-theme="neumorphism"]');
+    }
+    expect(stage).not.toMatch(/\b(dashed|dotted|double|outline-style)\b/);
+    expect(stage).not.toMatch(/\bsolid\b/);
+    expect(stage).toContain("var(--theme-shadow-card)");
+    expect(stage).toContain("var(--theme-shadow-inset-sm)");
+  });
+
+  it("removes the header close from layout and focus, and keeps the Result Title step unchanged", () => {
+    expect(stage).toMatch(/button\.placement-header-close \{\s*display: none;\s*\}/);
+    expect(stage).not.toMatch(/\.placement-result-title-shell[^{]*\.placement-result-title-source/);
+    expect(stage).toMatch(/\.placement-direct-limit-shell \.placement-result-title-source/);
+  });
+
+  it("stacks Staged confirmation by grid placement only, with a neutral guarded Cancel hover", () => {
+    expect(stage).toMatch(/placement-staged-summary-row[^{]*\{\s*display: contents;/);
+    expect(stage).not.toMatch(/(?:^|[\s{;])order:/);
+    expect(stage).toMatch(/\.placement-affordance \.placement-cancel \{[^}]*grid-row: 4;/);
+    expect(stage).toMatch(/\.placement-reliability-action:not\(\.placement-cancel\) \{[^}]*grid-row: 3;/);
+    const hover = stage.match(/\.placement-cancel, \.placement-direct-cancel\):not\(:disabled\):not\(\[aria-disabled="true"\]\):hover \{[^}]*\}/);
+    expect(hover?.[0]).toContain("var(--theme-shadow-inset-sm)");
+    expect(hover?.[0]).not.toContain("destructive");
+  });
+
+  it("keeps Placement static except one transform-only hover-lift transition outside reduced motion", () => {
+    const motion = stage.slice(stage.indexOf("@media (prefers-reduced-motion: no-preference)"));
+    expect(motion).toMatch(/transition-property: transform !important;/);
+    expect(motion).toContain("var(--triage-pool-motion-duration) !important");
+    expect(motion).toMatch(/button:not\(:disabled\):not\(\[aria-disabled="true"\]\)/);
+    const rest = stage.replace(motion, "");
+    expect(rest).not.toMatch(/\btransition(-\w+)?:/);
+    expect(rest).not.toMatch(/\banimation(-\w+)?:/);
+    expect(rest).not.toContain("!important");
   });
 });
