@@ -9,7 +9,9 @@
 - Source topic: migrated from out_of_phase ideation
 - Source prototype: n/a
 - Tags: toast, feedback, spatial-ui, notification, sonner
+- Updated: 2026-10-18
 - Dependencies: none
+- Related: `2026-10-18-staging-item-status-feedback` (Staging failures whose item disappears go to toast)
 
 ## Summary
 
@@ -32,6 +34,11 @@ Use toast only for events that materially affect user understanding:
 - capture success where the destination is not visually obvious, e.g.
   "Captured to Inbox"
 - invalid drops or blocked actions
+- a Staging Stage/Unstage failure that leaves no item to mark (a rejected,
+  conflicting or not-applied Stage removes its projection); item-attached
+  states use the status icon and modal of
+  `2026-10-18-staging-item-status-feedback` instead (proposed 2026-10-18,
+  replaces the `DP-VQ06-STAGING` alert band only after a new user decision)
 - target grid full / no placement available
 - layout or placement changed in a way that may need acknowledgement
 - destructive or irreversible operation result when a dialog has already closed

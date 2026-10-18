@@ -2767,7 +2767,7 @@ and `triage-workspace.test.tsx`; `src/components/triage/breakdown-panel.tsx`
 and `breakdown-panel.test.tsx`; `src/components/triage/inbox-triage-theme-realization.test.tsx`
 (its `BreakdownPanel` renders move from the hook mock to the new props);
 `src/app/globals.css` only for the dimmed card keeping its attached status
-line at full ink, in every theme. No new
+line at full ink, in every theme, and for (e). No new
 store, timer, copy or repository change; `src/hooks/use-dnd.ts` stays
 unchanged.
 
@@ -2808,6 +2808,18 @@ unchanged.
   ID, and a mismatch with the selected Scratch renders empty values, so no
   commit after a Scratch switch shows the previous Scratch's operation rows,
   counts, `N new` indicator or alert.
+- (e) User-approved addition (2026-10-18, mi-14): the Stage and Unstage
+  pending phases, and a hold from pending, show no in-card status line; the
+  pending sentence stays in the Staging live region only, with unchanged copy.
+  Unknown and reconciling, and a hold from reconciling, keep the line, and
+  integrity slots keep their status. A Stage projection renders the
+  candidate's icon and title in the durable Node card's or Bit row's layout,
+  so the replacement shows no content change; it stays non-draggable. In
+  `globals.css`, one unscoped rule fits a Node card's status line to the card
+  width (`align-self: stretch`, `max-inline-size: 100%`) so it ellipsizes in
+  every theme, replacing the neumorphism-only mi-14 rule. The alpha-surface
+  dim stays as implemented. No further `expert` review; the JSX change gets
+  an advisory diff look at the checkpoint.
 
 **Dependencies:** Task 176 accepted. Task 177 cannot start before this task
 is accepted.
@@ -2823,12 +2835,14 @@ copy and placement are unchanged and its status-line lifetime gains the hold.
 **Observable acceptance:**
 - Stage into either subsection: after the projection appears at the top, no
   existing card moves, the card replaces the projection in place at equal
-  size, no commit shows a gap, and the heading total never dips.
+  size, no commit shows a gap, and the heading total never dips. The
+  projection shows the candidate's icon and title and no status line.
 - `applied` or `already_applied` whose ID is already in the current snapshot
   removes the projection in the same commit; otherwise both hold like
   `applied`. Non-success results behave as before.
-- Unstage: the dragged card stays dimmed with its status line at full ink
-  until it leaves; unknown or reconciling shows it undimmed. The Breakdown
+- Unstage: the dragged card stays dimmed, with no status line while
+  pending, until it leaves; unknown or reconciling shows it undimmed with its
+  status line inside the card. The Breakdown
   source row never brightens and dims again on Stage or Unstage.
 - A Scratch switch during a hold, or with an `N new` indicator or alert
   showing, never renders the previous Scratch's rows, counts, indicator or
@@ -2841,15 +2855,15 @@ an early snapshot already containing it; a read that started before the
 result and finished after it does not end the hold; a read that started after
 it without the ID ends it; subscription error ends it; non-success and orphan
 cleanup never held; the Unstage hold; a held projection across a Scratch
-`rerender`. Staging tests for projection order and the dimmed card with a
-full-ink status line; a `breakdown-panel.test.tsx` case for the source-row
+`rerender`. Staging tests for projection order, the projection's icon and
+title, no pending status line, and the dimmed card; a `breakdown-panel.test.tsx` case for the source-row
 dimming; workspace tests for the indicator and alert. Single-commit claims
 (Scratch switch, gap, dimming) are checked per commit with a layout-effect
 probe or `MutationObserver` records, not by assertions after `act`. A mounted
 animation-frame sample of Stage and Unstage, like the MI-15 diagnosis, in
 neumorphism, Retro Mac and GridDO, with the projection and card rects equal
-and the dimmed card's status line at an effective opacity of 1 (jsdom cannot
-show this);
+and no pending status line, plus an unknown or reconciling Node card whose
+line lies inside the card rect (jsdom cannot show this);
 the full gate; an `expert` review.
 
 **Commit message:** `fix(triage): close the staging commit-to-snapshot gap`.
