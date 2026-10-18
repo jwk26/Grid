@@ -15,7 +15,7 @@
 > Tasks 164–165 are historical, unaccepted `[ ]` transfer records.
 > Tasks 166–172 and 171A are accepted `[x]` and Phase 34 is closed; Tasks
 > 209–212 are accepted `[x]` and Phase 41 is closed (2026-10-16); Tasks
-> 173–176 are accepted `[x]`; repair Task 176A and Tasks 177–208 are `[ ]`.
+> 173–176 and repair Task 176A are accepted `[x]`; Tasks 177–208 are `[ ]`.
 > Phases 32–33 remain reserved.
 > **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
 > corrections, Tasks 209–212, from
@@ -2753,7 +2753,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 **Commit message:** `feat(triage): realize neumorphism explorer-search`.
 
-### Task 176A: [ ] Repair the Staging Stage/Unstage commit-to-snapshot gap
+### Task 176A: [x] Repair the Staging Stage/Unstage commit-to-snapshot gap
 
 A bounded repair of shared hook and component behavior found in Task 176
 (MI-15 in `docs/issues/Issues_Phase_35.md`). It predates Phase 35 (reproduced

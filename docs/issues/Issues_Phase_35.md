@@ -318,9 +318,9 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 ## Task 176A — Repair the Staging Stage/Unstage commit-to-snapshot gap
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: your acceptance of Task 176A
-- Open: MI-15 and mi-14 (fixed; you close both)
+- Status: Accepted
+- Next: Task 177
+- Open: none for this task (MI-15 and mi-14 closed by you)
 
 ### Log
 - Decision: Task 176A scope review Round 1 — G3: a dimmed card keeps its attached status line at full ink, stays dimmed while its Unstage is pending or held, and is not dimmed in unknown or reconciling (the CSS change this needs is accepted); G5: the held projection is a post-terminal presentation state that keeps its current phase and copy, holds no lock and makes no new announcement; a Round 2 `expert` review precedes the commit (user, 2026-10-18)
@@ -372,3 +372,4 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 - Please check: nothing further visual; accept the task when the ledger and plan look right.
 - Unresolved: none for this task. Noted by the advisory review, not changed: the projection Node body repeats the durable card's icon/label markup instead of sharing a component (drift risk only).
 - Review: `expert` reviewed the logic before the first checkpoint (3 findings fixed in `2a4c50d`); the (e) JSX change had the advisory diff look, approved.
+- Decision: Task 176A accepted; MI-15 and mi-14 closed (user, 2026-10-18)
