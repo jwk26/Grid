@@ -3519,7 +3519,7 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 35 / repair Task 176A. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** Phase 35 / Task 177. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers after the Phase 41 amendment:** Phase 42 / Task 213.
   Planned Phases 34–41 and Tasks 166–212 are already allocated; none may be
   reused for another meaning.
