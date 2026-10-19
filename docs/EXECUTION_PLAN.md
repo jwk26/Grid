@@ -2979,6 +2979,13 @@ runs after Task 179 is accepted and before Phase 35 closes. Scope review:
   and, while `useScratchBreakdowns` is not `isReady`, renders neither rows nor
   an empty or completion state in the rows area; their tests. The
   `key={selectedScratchId}` remount stays.
+- User-approved addition (2026-10-19), Stage 4, Neumorphism only: in
+  `src/app/globals.css`, next to the Neumorphism `context-title` rule (Task 174
+  L2 block), the Context title of a `Scratch complete` plate
+  (`.triage-fixed-context[data-triage-state="complete"]`) is struck through and
+  drawn in `hsl(var(--foreground) / 0.75)` in light and dark (5.03:1 and
+  8.30:1 on the page surface); the title editor, the working state and other
+  themes are unchanged; `inbox-triage-theme-realization.test.tsx`. No JSX.
 - No store, copy, hook or repository change.
 
 **Dependencies:** Task 179 accepted. Phase 35 Final Close cannot start before
@@ -3012,6 +3019,9 @@ the Task 177 Undo tooltip keeps its behavior except for the mutual exclusion.
   processed` or `Scratch complete` before the new Scratch's rows are read; a
   Scratch with no rows still shows its empty state. Add, edit, delete,
   completion, Archive and the external-removal handoff behave as before.
+- Stage 4: Neumorphism `Scratch complete` Context title is struck through and
+  dimmed, readable at 4.5:1 or more in light and dark; the working title, the
+  title editor and the other themes look as before.
 - The user's first judgment of each stage is recorded apart from the final
   disposition.
 
@@ -3031,6 +3041,10 @@ Breakdown read resolves and is rendered after an empty read, and that the
 Context shows the passed Scratch title on the first render; a frame probe of
 Scratch switches (rows, empty, complete) in Neumorphism and Retro Mac showing no
 `Unknown Scratch` frame and no empty-state frame before rows.
+Stage 4: a region test of the Neumorphism complete-title rule (selector scoped
+to the complete plate and `context-title`, placement in the Neumorphism block);
+mounted Neumorphism light/dark complete and working Context at 1920×1080 and
+1024px (narrow Context).
 Existing region tests keep passing. Full logical gates.
 
 **Commit message:** `fix(triage): show truncated Explorer titles and the Retro Mac complete icon`.
