@@ -5444,6 +5444,27 @@
   background: var(--triage-context-ink); color: var(--triage-context-surface);
 }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"] [data-triage-role="context-title"] { text-decoration: line-through; opacity: 0.4; }
+/* Scratch complete (Task 179A): the identity box swaps the folder for a filled System 7
+   checkbox, an ink square (::before) with a check in the Context surface colour (::after). */
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"] [data-triage-role="context-folder-icon"] { display: none; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"] [data-triage-role="context-identity-object"]::before {
+  background: var(--triage-context-ink);
+  block-size: 14px;
+  inline-size: 14px;
+  inset: 50% auto auto 50%;
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"] [data-triage-role="context-identity-object"]::after {
+  block-size: 8px;
+  border: solid var(--triage-context-surface);
+  border-width: 0 2px 2px 0;
+  content: "";
+  inline-size: 4px;
+  inset: 50% auto auto 50%;
+  position: absolute;
+  transform: translate(-50%, -62%) rotate(45deg);
+}
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-content-viewport"] { padding: 8px 16px; background: var(--triage-context-surface); }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-row-list"] { margin-block-start: 32px; }
 :root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-breakdown-row {

@@ -1196,3 +1196,27 @@ describe("Explorer truncated-title plate (Task 179A)", () => {
     expect(plate).toBeLessThan(css.indexOf("/* Neumorphism L6 (Task 178"));
   });
 });
+
+describe("Retro Mac complete Context checkbox (Task 179A)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const complete = ':root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"]';
+
+  it("hides the folder and draws an ink checkbox with a surface-coloured check, only in the complete state", () => {
+    const start = css.indexOf(`${complete} [data-triage-role="context-folder-icon"]`);
+    expect(start).toBeGreaterThan(-1);
+    expect(start).toBeLessThan(css.indexOf("/* Neumorphism L1 (Task 173)"));
+    const block = css.slice(start, css.indexOf("\n}\n", css.indexOf("::after", start)) + 3);
+    expect(block).toMatch(/context-folder-icon"\] \{ display: none; \}/);
+    expect(block).toMatch(/::before \{[^}]*background: var\(--triage-context-ink\);[^}]*opacity: 1;/);
+    expect(block).toMatch(/::after \{[^}]*border: solid var\(--triage-context-surface\);/);
+    // Every selector in the block is Retro Mac and complete-scoped; no asset, no theme-id branch elsewhere.
+    for (const selector of block.match(/^:root[^{]+(?=\{)/gm) ?? []) {
+      expect(selector.trim().startsWith(complete)).toBe(true);
+    }
+    expect(block).not.toMatch(/url\(/);
+  });
+
+  it("keeps the folder visible for every other Retro Mac Context state", () => {
+    expect(css).toMatch(/color-theme="retro-mac"\] \.triage-shell \[data-triage-role="context-folder-icon"\] \{\s*display: block;/);
+  });
+});
