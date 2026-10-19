@@ -663,8 +663,8 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 ## Task 179A — Repair Explorer truncated titles and the Retro Mac complete Context icon
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: your acceptance of Task 179A (final disposition and Checkpoint below)
+- Status: Accepted
+- Next: Phase 35 Final Close (`/end-phase`)
 - Open: MI-23 (proposed Deferred at phase close) (MI-21 proposed Deferred; MI-2, MI-19, MI-13, MI-14 are phase-close items)
 
 ### Log
@@ -719,3 +719,4 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 - Please check: the tooltip on a truncated Explorer title in a theme you use (hover, and Tab on a Node card), the Retro Mac complete Context, a Scratch switch in any theme, and the Neumorphism complete title.
 - Unresolved: the named remainders above; MI-23 (Open, proposed Deferred).
 - Review: `expert` (Stage 1) — Undo-state leak → fixed (`2ade73d`); false truncation on fitting titles → fixed (`2ade73d`); focus-opened plate ignoring close requests → accepted by you as mi-15. `expert` (Stage 3) — two Low test findings → fixed (`21d2dfe`); blank rows area on a failed read → recorded as MI-23.
+- Decision: Task 179A accepted (user, 2026-10-19)

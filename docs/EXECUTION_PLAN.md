@@ -15,8 +15,8 @@
 > Tasks 164–165 are historical, unaccepted `[ ]` transfer records.
 > Tasks 166–172 and 171A are accepted `[x]` and Phase 34 is closed; Tasks
 > 209–212 are accepted `[x]` and Phase 41 is closed (2026-10-16); Tasks
-> 173–179 and repair Task 176A are accepted `[x]`; repair Task 179A and
-> Tasks 180–208 are `[ ]`.
+> 173–179 and repair Tasks 176A and 179A are accepted `[x]`; Tasks 180–208
+> are `[ ]`.
 > Phases 32–33 remain reserved.
 > **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
 > corrections, Tasks 209–212, from
@@ -2934,7 +2934,7 @@ User-approved addition (2026-10-19), Stage 3, every theme: per the `DP-VQ11` ame
 
 **Commit message:** `feat(triage): realize neumorphism theme-conformance`.
 
-### Task 179A: [ ] Repair Explorer truncated titles and the Retro Mac complete Context icon
+### Task 179A: [x] Repair Explorer truncated titles and the Retro Mac complete Context icon
 
 A bounded repair of two user requests from the Task 179 Stage 2 visual check
 (2026-10-19, `docs/issues/Issues_Phase_35.md` Task 179). (a) applies to every
@@ -3651,13 +3651,13 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 35 / Task 179A. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** Phase 35 Final Close, then Phase 36 / Task 180. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers after the Phase 41 amendment:** Phase 42 / Task 213.
   Planned Phases 34–41 and Tasks 166–212 are already allocated; none may be
   reused for another meaning.
-- Graph reconciliation: 84 accepted tasks (101–163 plus 105A, 166–172, 171A,
-  173–179 plus 176A and 209–212), eleven completed archives (Phases 23–31, 34 and 41), two historical
-  unaccepted transfer records (164/165), 30 unaccepted tasks (180–208 plus 179A) in
+- Graph reconciliation: 85 accepted tasks (101–163 plus 105A, 166–172, 171A,
+  173–179 plus 176A and 179A, and 209–212), eleven completed archives (Phases 23–31, 34 and 41), two historical
+  unaccepted transfer records (164/165), 29 unaccepted tasks (180–208) in
   Phases 35–40, and two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.
