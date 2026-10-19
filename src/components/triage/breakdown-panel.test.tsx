@@ -2953,7 +2953,7 @@ describe("BreakdownPanel", () => {
     );
   });
 
-  it("renders the Add completion blocker below reliability copy and preserves Add focus", () => {
+  it("renders no Add completion blocker, keeps Add focus and shows neither the complete state nor Reopen", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.operations = [
       {
@@ -2973,92 +2973,31 @@ describe("BreakdownPanel", () => {
       cancel: vi.fn(),
       reopen: vi.fn(),
     };
-    render(<BreakdownPanel completion={completion} />);
+    const view = render(<BreakdownPanel completion={completion} />);
     const input = screen.getByPlaceholderText("Add a note...");
     input.focus();
 
-    const region = screen.getByTestId("breakdown-add-row");
-    const reliability = within(region).getByText(
-      "Not added. Your draft is still here.",
-    );
-    const blocker = within(region).getByText(
-      "Add this idea or clear the draft to complete this Scratch.",
-    );
-    expect(reliability.compareDocumentPosition(blocker)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-    expect(blocker.closest('[role="status"]')).toHaveAttribute(
-      "data-triage-role",
-      "breakdown-add-completion-blocker",
-    );
-    expect(input).toHaveAttribute(
-      "aria-describedby",
-      blocker.closest('[role="status"]')?.id,
-    );
+    expect(
+      screen.queryByText("Add this idea or clear the draft to complete this Scratch."),
+    ).toBeNull();
+    expect(
+      view.container.querySelector('[data-triage-role="breakdown-add-completion-blocker"]'),
+    ).toBeNull();
+    expect(input).not.toHaveAttribute("aria-describedby");
     expect(input).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Scratch complete" })).toBeNull();
   });
 
   it.each([
-    ["pristine", "open", "Save or cancel the Scratch title edit to complete this Scratch."],
-    ["dirty", "dirty", "Save or cancel the Scratch title edit to complete this Scratch."],
-    ["saving", "saving", "Saving the Scratch title before completion…"],
-    ["reconciling", "reconciling", "Checking the Scratch title before completion…"],
+    ["pristine", "open"],
+    ["dirty", "dirty"],
+    ["saving", "saving"],
+    ["reconciling", "reconciling"],
+    ["conflict", "conflicted"],
   ] as const)(
-    "uses the Context eyebrow for %s title completion blocking without moving focus",
-    (phase, title, copy) => {
-      triageStoreState.selectedScratchId = "scratch-1";
-      editorState.snapshot = {
-        target: { kind: "scratch-title", id: "scratch-1" },
-        phase,
-        base: { value: "Scratch", version: 1 },
-        draft: "Scratch draft",
-        latest: null,
-        copyableDraft: null,
-        pendingIntent: false,
-        focusIntent: "field",
-        command: null,
-      };
-      const completion = {
-        presentation: "working" as const,
-        persistedEligible: true,
-        completionBlockers: { addDraft: false, title },
-        withdrawalReason: null,
-        cancel: vi.fn(),
-        reopen: vi.fn(),
-      };
-      const view = render(<BreakdownPanel completion={completion} />);
-      const field = screen.getByRole("textbox", { name: "Scratch title" });
-      expect(field).toHaveFocus();
-      const eyebrow = screen.getByText(copy);
-      expect(eyebrow).toHaveAttribute(
-        "data-triage-role",
-        "context-completion-blocker-mark",
-      );
-      expect(field.getAttribute("aria-describedby")?.split(" ")).toContain(
-        eyebrow.id,
-      );
-      expect(screen.queryByText("Selected Scratch")).toBeNull();
-
-      view.rerender(
-        <BreakdownPanel
-          completion={{
-            ...completion,
-            completionBlockers: { addDraft: false, title: null },
-          }}
-        />,
-      );
-      expect(screen.getByText("Selected Scratch")).toBeInTheDocument();
-      expect(field).toHaveFocus();
-    },
-  );
-
-  it.each([
-    ["offline", "dirty", "Offline. Your draft is still here."],
-    ["not_applied", "dirty", "Not saved. Your draft is still here."],
-    ["conflict", "conflicted", "This changed elsewhere."],
-  ] as const)(
-    "appends the %s title blocker inside the existing issue overlay",
-    (phase, title, editorCopy) => {
+    "keeps the Context eyebrow and shows no completion sentence for %s title editing, without moving focus",
+    (phase, title) => {
       triageStoreState.selectedScratchId = "scratch-1";
       editorState.snapshot = {
         target: { kind: "scratch-title", id: "scratch-1" },
@@ -3074,7 +3013,7 @@ describe("BreakdownPanel", () => {
         focusIntent: phase === "conflict" ? "pending-action" : "field",
         command: null,
       };
-      render(
+      const view = render(
         <BreakdownPanel
           completion={{
             presentation: "working",
@@ -3086,19 +3025,22 @@ describe("BreakdownPanel", () => {
           }}
         />,
       );
-
-      const overlay = screen.getByTestId("inline-editor-issue-overlay");
-      const status = overlay.querySelector(
-        '[data-triage-role="inline-editor-issue-status"]',
+      expect(screen.getByText("Selected Scratch")).toHaveAttribute(
+        "data-triage-role",
+        "context-eyebrow-meta",
       );
-      expect(status).not.toBeNull();
-      expect(status).toHaveTextContent(editorCopy);
-      expect(status).toHaveTextContent(
-        title === "conflicted"
-          ? "Resolve the Scratch title conflict to complete this Scratch."
-          : "Save or cancel the Scratch title edit to complete this Scratch.",
-      );
-      expect(screen.getAllByTestId("inline-editor-issue-overlay")).toHaveLength(1);
+      expect(view.container.textContent).not.toMatch(/to complete this Scratch|before completion/);
+      expect(
+        view.container.querySelector(
+          '[data-triage-role="context-completion-blocker-mark"], [data-triage-role="context-completion-blocker"]',
+        ),
+      ).toBeNull();
+      const field = screen.queryByRole("textbox", { name: "Scratch title" });
+      if (field !== null) {
+        expect(field.getAttribute("aria-describedby") ?? "").not.toMatch(/:r/);
+        if (phase !== "conflict") expect(field).toHaveFocus();
+      }
+      expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
     },
   );
 
@@ -3127,15 +3069,11 @@ describe("BreakdownPanel", () => {
     expect(screen.queryByRole("region", { name: "Scratch complete" })).toBeNull();
   });
 
-  it("maps Task 160 roles through every theme with immediate reduced-motion-identical treatment", () => {
-    expect(globalsCss).toContain(".breakdown-add-completion-blocker");
-    expect(globalsCss).toContain(".context-completion-blocker-mark");
+  it("maps the withdrawal status through every theme and retires the Add and title blocker rules", () => {
+    expect(globalsCss).not.toContain("completion-blocker");
     expect(globalsCss).toContain(".archive-withdrawal-status");
     expect(globalsCss).toContain("animation: none !important;");
     expect(globalsCss).toContain("transition: none !important;");
-    expect(getCssBlock(".context-completion-blocker-mark")).toContain(
-      "white-space: normal",
-    );
     expect(globalsCss).toMatch(
       /\.triage-fixed-context \.triage-inline-editor__issue-overlay[\s\S]*\[data-triage-role="inline-editor-issue-status"\][\s\S]*white-space: normal/,
     );
@@ -3148,9 +3086,6 @@ describe("BreakdownPanel", () => {
       "retro-mac",
       "graphite",
     ]) {
-      expect(globalsCss).toContain(
-        `:root[data-color-theme="${theme}"] .breakdown-add-completion-blocker`,
-      );
       expect(globalsCss).toContain(
         `:root[data-color-theme="${theme}"] .archive-withdrawal-status`,
       );

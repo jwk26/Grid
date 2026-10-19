@@ -899,7 +899,9 @@ describe("Neumorphism L6 completion and Archive (Task 178)", () => {
     const selectors = (stage.match(/^[^{}@]+(?=\{)/gm) ?? []).map((selector) => selector.trim());
     expect(selectors.length).toBeGreaterThan(10);
     for (const selector of selectors) {
-      expect(selector).toContain('[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-');
+      expect(selector).toMatch(
+        /\[data-color-theme="neumorphism"\] (:is\(\.triage-shell, \.archive-recovery-boundary\) \.archive-|\.triage-shell \[data-triage-role="archive-completion-reopen"\])/,
+      );
     }
   });
 
@@ -926,10 +928,16 @@ describe("Neumorphism L6 completion and Archive (Task 178)", () => {
     const motion = stage.slice(stage.indexOf("@media (prefers-reduced-motion: no-preference)"));
     expect(motion).toMatch(/transition-property: transform !important;/);
     expect(motion).toMatch(/button:not\(:disabled\):not\(\[aria-disabled="true"\]\)/);
+    expect(motion).toMatch(/archive-completion-reopen"\]:not\(:disabled\)/);
     const rest = stage.replace(motion, "");
     expect(rest).not.toMatch(/\btransition(-\w+)?:/);
     expect(rest).not.toMatch(/\banimation(-\w+)?:/);
     expect(rest).not.toContain("!important");
+  });
+
+  it("lifts the complete-state Reopen on hover and presses it flat, never when disabled", () => {
+    expect(stage).toMatch(/archive-completion-reopen"\]:not\(:disabled\):hover \{[^}]*transform: translateY\(-1px\);/);
+    expect(stage).toMatch(/archive-completion-reopen"\]:not\(:disabled\):active \{[^}]*transform: none;/);
   });
 
   it("leaves the Archive confirmation detail hidden for neumorphism until the MI-9 decision", () => {

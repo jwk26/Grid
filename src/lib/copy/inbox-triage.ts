@@ -103,13 +103,6 @@ export interface InboxTriageCopy {
     readonly discardAction: string;
   };
   readonly completion: {
-    readonly addBlocker: string;
-    readonly titleBlocker: {
-      readonly openOrDirty: string;
-      readonly saving: string;
-      readonly conflicted: string;
-      readonly reconciling: string;
-    };
     readonly withdrawal: {
       readonly activeBreakdown: string;
       readonly staging: string;
@@ -500,15 +493,6 @@ export const INBOX_TRIAGE_COPY = {
     discardAction: "Discard and move",
   },
   completion: {
-    addBlocker: "Add this idea or clear the draft to complete this Scratch.",
-    titleBlocker: {
-      openOrDirty:
-        "Save or cancel the Scratch title edit to complete this Scratch.",
-      saving: "Saving the Scratch title before completion…",
-      conflicted:
-        "Resolve the Scratch title conflict to complete this Scratch.",
-      reconciling: "Checking the Scratch title before completion…",
-    },
     withdrawal: {
       activeBreakdown:
         "Completion is no longer available because a Breakdown item is active.",

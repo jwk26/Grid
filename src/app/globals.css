@@ -4572,26 +4572,6 @@
   grid-column: 1 / -1;
 }
 
-.breakdown-add-completion-blocker {
-  align-items: center;
-  background: hsl(var(--muted) / 0.28);
-  border-block-start: var(--theme-border-width) solid hsl(var(--border));
-  color: hsl(var(--foreground));
-  display: flex;
-  font-family: var(--theme-font);
-  font-size: 0.75rem;
-  gap: 0.375rem;
-  grid-column: 1 / -1;
-  line-height: 1rem;
-  min-block-size: 1.75rem;
-  padding: 0.25rem 0.375rem;
-}
-
-.context-completion-blocker-mark {
-  line-height: 0.875rem;
-  white-space: normal;
-}
-
 .archive-withdrawal-status {
   align-items: center;
   background: hsl(var(--muted) / 0.28);
@@ -4772,11 +4752,7 @@
   box-shadow: none;
 }
 
-.breakdown-add-completion-blocker,
-.context-completion-blocker-mark,
 .archive-withdrawal-status,
-.breakdown-add-completion-blocker *,
-.context-completion-blocker-mark *,
 .archive-withdrawal-status * {
   animation: none !important;
   transition: none !important;
@@ -4790,19 +4766,12 @@
   white-space: normal;
 }
 
-:root[data-color-theme="tiny-desk"] .breakdown-add-completion-blocker,
 :root[data-color-theme="tiny-desk"] .archive-withdrawal-status,
-:root[data-color-theme="neumorphism"] .breakdown-add-completion-blocker,
 :root[data-color-theme="neumorphism"] .archive-withdrawal-status,
-:root[data-color-theme="claymorphism"] .breakdown-add-completion-blocker,
 :root[data-color-theme="claymorphism"] .archive-withdrawal-status,
-:root[data-color-theme="origami"] .breakdown-add-completion-blocker,
 :root[data-color-theme="origami"] .archive-withdrawal-status,
-:root[data-color-theme="terminal"] .breakdown-add-completion-blocker,
 :root[data-color-theme="terminal"] .archive-withdrawal-status,
-:root[data-color-theme="retro-mac"] .breakdown-add-completion-blocker,
 :root[data-color-theme="retro-mac"] .archive-withdrawal-status,
-:root[data-color-theme="graphite"] .breakdown-add-completion-blocker,
 :root[data-color-theme="graphite"] .archive-withdrawal-status {
   background: hsl(var(--card));
   border-color: hsl(var(--border));
@@ -5392,8 +5361,7 @@
   block-size: var(--triage-context-title-slot-height);
   display: flex; align-items: center;
 }
-:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-eyebrow-meta"],
-:root[data-color-theme="retro-mac"] .triage-shell .context-completion-blocker-mark {
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-eyebrow-meta"] {
   color: hsl(var(--muted-foreground));
   font-family: var(--triage-context-font);
   font-size: var(--triage-context-meta-size);
@@ -5572,8 +5540,7 @@
     column-gap: 0; padding: var(--triage-context-small-padding);
   }
   :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-identity-object"] { display: none; }
-  :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-eyebrow-meta"],
-  :root[data-color-theme="retro-mac"] .triage-shell .context-completion-blocker-mark {
+  :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-eyebrow-meta"] {
     block-size: var(--triage-context-small-meta-height); flex-shrink: 0;
   }
 }
@@ -6014,7 +5981,6 @@
   box-shadow: none;
   transform: translate(2px, 2px);
 }
-:root[data-color-theme="retro-mac"] .triage-shell .breakdown-add-completion-blocker,
 :root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-withdrawal-status {
   background: hsl(var(--background));
   border: 2px solid hsl(var(--foreground));
@@ -6037,12 +6003,6 @@
   block-size: 20px;
   inline-size: 20px;
   justify-content: center;
-}
-:root[data-color-theme="retro-mac"] .triage-shell .context-completion-blocker-mark {
-  font-family: var(--triage-context-font);
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 /* Phase 41 (Task 210): Scratch Trash control, Scratch Trash dialog, Context [X], Breakdown Delete dialog. */
@@ -6848,8 +6808,8 @@
   outline: none;
 }
 
-/* DP-VQ11 Add blocker and withdrawal status: inset trough, no floating card. */
-:root[data-color-theme="neumorphism"] :is(.breakdown-add-completion-blocker, .archive-withdrawal-status) {
+/* DP-VQ11 withdrawal status: inset trough, no floating card. */
+:root[data-color-theme="neumorphism"] .archive-withdrawal-status {
   background: transparent;
   border: 0;
   border-radius: 14px;
@@ -6857,7 +6817,6 @@
   color: hsl(var(--foreground) / 0.85);
   padding: 0.5rem 0.875rem;
 }
-:root[data-color-theme="neumorphism"] .breakdown-add-completion-blocker { margin-block-start: 8px; }
 
 /* Neumorphism L2 (Task 174, Stage 3): inline editors, source-bound issue overlay,
    DP-VQ05 reliability lines, DP-VQ03 departure sheet. All changes here are static
@@ -8341,8 +8300,17 @@
 :root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button[aria-disabled="true"] {
   opacity: 1;
 }
+/* The complete-state Reopen takes the same raised-control hover lift as the Archive capsules. */
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="archive-completion-reopen"]:not(:disabled):hover {
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="archive-completion-reopen"]:not(:disabled):active {
+  transform: none;
+}
 @media (prefers-reduced-motion: no-preference) {
-  :root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:not(:disabled):not([aria-disabled="true"]) {
+  :root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:not(:disabled):not([aria-disabled="true"]),
+  :root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="archive-completion-reopen"]:not(:disabled) {
     transition-duration: var(--triage-pool-motion-duration) !important;
     transition-property: transform !important;
     transition-timing-function: ease-out !important;
