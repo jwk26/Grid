@@ -2918,7 +2918,7 @@ User-approved addition (2026-10-19), Stage 3, every theme: per the `DP-VQ11` ame
 
 **Commit message:** `feat(triage): realize neumorphism archive`.
 
-### Task 179: [ ] Complete supported modes, accessibility and regression
+### Task 179: [x] Complete supported modes, accessibility and regression
 
 **Files and actions:** bind L7's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-17): repair the neumorphism Scratch Pool collapse/expand motion (Task 173's L1 surface), which stutters because it animates the Pool's `inline-size` and so re-lays out the whole workspace each frame; keep the adopted toggle look and timing token, `globals.css` (and `triage-workspace.tsx` only if a CSS-only fix cannot reach it). User-approved addition (2026-10-17): realize the collapsed-Pool Scratch-switch motion adopted in the Pool recipe, in the same files.
 
@@ -3615,13 +3615,13 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 35 / Task 179. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** Phase 35 / Task 179A. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers after the Phase 41 amendment:** Phase 42 / Task 213.
   Planned Phases 34–41 and Tasks 166–212 are already allocated; none may be
   reused for another meaning.
-- Graph reconciliation: 83 accepted tasks (101–163 plus 105A, 166–172, 171A,
-  173–178 plus 176A and 209–212), eleven completed archives (Phases 23–31, 34 and 41), two historical
-  unaccepted transfer records (164/165), 31 unaccepted tasks (179–208 plus 179A) in
+- Graph reconciliation: 84 accepted tasks (101–163 plus 105A, 166–172, 171A,
+  173–179 plus 176A and 209–212), eleven completed archives (Phases 23–31, 34 and 41), two historical
+  unaccepted transfer records (164/165), 30 unaccepted tasks (180–208 plus 179A) in
   Phases 35–40, and two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

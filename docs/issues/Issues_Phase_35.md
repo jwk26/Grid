@@ -528,8 +528,8 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 ## Task 179 — Complete supported modes, accessibility and regression
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: your final disposition and acceptance of Task 179
+- Status: Accepted
+- Next: Task 179A
 - Open: MI-21 (proposed Deferred at phase close); MI-2 carried; MI-19, MI-13, MI-14 are phase-close items
 
 ### Log
@@ -658,3 +658,4 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 - Please check: Neumorphism, the contrast changes in light (the sidebar Inbox badge, the Explorer priority chips, the collapsed rail count) and the Pool collapse/expand, then drag a staged item after toggling the Pool to see the token follows the pointer.
 - Unresolved: MI-21 and the remainders above; MI-2 stays unreproduced (your call at phase close); MI-19, MI-13, MI-14 are phase-close items.
 - Review: `expert` HIGH — drag token offset after a Pool toggle (`both` fill) → fixed (`backwards`, verified live); MEDIUM — ease-in only on the first toggle → fixed (per-state names); LOW — MI-4 test strength → fixed.
+- Decision: Task 179 accepted (user, 2026-10-19)
