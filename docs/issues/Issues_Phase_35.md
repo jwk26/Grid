@@ -474,9 +474,9 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 ## Task 178 — Realize completion and Archive
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: your acceptance, and decisions on MI-19 and the unused `completionBlockers` field
-- Open: MI-19 (decision needed); MI-2 and MI-4 are carried as before; MI-13 and MI-14 are phase-close items; MI-17 and MI-18 are bound to Task 179
+- Status: Accepted
+- Next: Task 179
+- Open: MI-19 (decided at phase close); MI-2 and MI-4 are carried as before; MI-13 and MI-14 are phase-close items; MI-17 and MI-18 are bound to Task 179
 
 ### Log
 - Work plan:
@@ -518,3 +518,9 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 - Verified: `git diff --check`, `pnpm test` (113 files, 1759 passed), `pnpm lint` (0 errors, 11 warnings in files this task did not change), `pnpm typecheck`, `pnpm build`; the dev server was restarted afterwards. Mounted (Playwright MCP, fixture-seeded, light 1920×1080): Archive card in every reachable state with live shims (confirmation, pending, unknown, reconciling, storage failure; not-applied and conflict by forced reload), card height 232px in all, focus as specified, next-visible handoff with focus on the Context, Archive View, complete Context, Reopen lift, Add and title editing without blocker copy in neumorphism and Retro Mac, withdrawal via a second tab. MI-2 count: one full `pnpm test` run in this task, passed.
 - Please check: nothing further; accept the task when the ledger and plan look right.
 - Unresolved: `rejected` was not reachable live; dark mode and 1024px are Task 179; MI-17 and MI-18 are bound to Task 179; MI-19 needs your decision; the unused `completionBlockers` field needs your decision. The Archive-lock `Wait for the current action to finish.` rail on NEW cards did not need a decision here (no Archive state shows NEW cards behind the card scrim in the checks).
+- Review (advisory, 2026-10-19, task finish): approve. Re-run here: `git diff --check 48d9288..HEAD`, `pnpm typecheck` and full `pnpm test` (113 files, 1759 passed); `pnpm build` not re-run, to keep `:3001` serving. Checked and cleared: code changes stay in the L6 files and the user-approved additions (the hook file is the 4-line comment only); the Stage 3 removal drops copy, marks, `aria-describedby` and live regions, the eyebrow stays `Selected Scratch` and suppression still runs on `eligible`; the `expert` answered the stale-ref question (practically unreachable, same as before); first judgments are recorded apart from the final passes. Apply: (1) state whether the Playwright test database was cleared (Stage 3 revised review (3)); if not, Task 179 note (e) carries it; (2) in the acceptance commit, update the plan's Graph reconciliation to 83 accepted (`173–178 plus 176A`) and 30 unaccepted (`179–208`); (3) the Task 179 note below. Not applied: none. Noted, no action: the two feature commits use descriptive messages instead of the plan's `feat(triage): realize neumorphism archive`.
+- Decision: MI-19 stays Open and is decided at phase close (Deferred recommended: the race needs a Pool search edit inside a few-millisecond read, the fix is shared with Trash and outside this task's files) (user, 2026-10-19)
+- Decision: the `completionBlockers` projection field stays — it is part of the accepted Task 159 headless contract that the `DP-VQ11` amendment keeps, and removing it changes the hook and three tests for no visible gain (user, 2026-10-19)
+- Task 179 note (from Task 178): (a) dark mode and contrast of the Task 178 neumorphism L6 rules — scrim, Archive card, inset status mark and trough, Archive/Cancel capsules, Reopen and the withdrawal trough; (b) at 1024px the Archive card keeps one height across states (232px at 1920), the capsules do not wrap and no focus ring is clipped; (c) render `rejected` or name it again as a remainder; (d) MI-18 per its entry; (e) reseed the Playwright test database from a clean state if the check-made records are still there.
+- Review applied (advisory, task finish): the Playwright test database was cleared and reseeded before the finish checks (Stage 3 entry, side effect resolved), so Task 179 note (e) applies only if records reappear; the plan's Graph reconciliation is updated to 83 accepted (`173–178 plus 176A`) and 30 unaccepted (`179–208`) in the acceptance commit.
+- Decision: Task 178 accepted (user, 2026-10-19)

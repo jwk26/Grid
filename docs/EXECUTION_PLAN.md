@@ -2884,7 +2884,7 @@ the full gate; an `expert` review.
 
 **Commit message:** `feat(triage): realize neumorphism placement-newly-undo`.
 
-### Task 178: [ ] Realize completion and Archive
+### Task 178: [x] Realize completion and Archive
 
 **Files and actions:** bind L6's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 Carried from Phase 34 (`Issues_Deferred.md`): move the Archive confirmation detail string from `breakdown-panel.tsx` into `INBOX_TRIAGE_COPY` with its direct test, and get the user's decision whether neumorphism shows `archive-confirmation-detail` (MI-9). While touching the Archive handoff, review whether `pendingArchiveFocusRef` can be set before `finishScratchArchive` instead of relying on React flushing after it (Phase 34 close Advisory).
@@ -3520,13 +3520,13 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 35 / Task 178. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** Phase 35 / Task 179. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers after the Phase 41 amendment:** Phase 42 / Task 213.
   Planned Phases 34–41 and Tasks 166–212 are already allocated; none may be
   reused for another meaning.
-- Graph reconciliation: 80 accepted tasks (101–163 plus 105A, 166–172, 171A,
-  173–176 and 209–212), eleven completed archives (Phases 23–31, 34 and 41), two historical
-  unaccepted transfer records (164/165), 33 unaccepted tasks (177–208 and repair
-  176A) in Phases 35–40, and two reserved phases (32–33).
+- Graph reconciliation: 83 accepted tasks (101–163 plus 105A, 166–172, 171A,
+  173–178 plus 176A and 209–212), eleven completed archives (Phases 23–31, 34 and 41), two historical
+  unaccepted transfer records (164/165), 30 unaccepted tasks (179–208) in
+  Phases 35–40, and two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.
