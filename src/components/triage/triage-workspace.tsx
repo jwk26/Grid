@@ -710,15 +710,29 @@ export function TriageWorkspace({ node }: { node: Node }) {
           : null,
     });
   const pendingArchiveFocusRef = useRef<ArchiveHandoffFocusKind | null>(null);
+  // The focus kind is recorded before the store update, so the commit that the
+  // selection change triggers never depends on a later write. The hook resolves
+  // that early kind with the query it closed over; the store may have a newer
+  // one, so the actual kind overwrites it, but only while the layout effect has
+  // not consumed it.
   const recordArchiveHandoffFocus = useCallback(
     (destination: { kind: ArchiveHandoffFocusKind }) => {
       pendingArchiveFocusRef.current = destination.kind;
     },
     [],
   );
+  const correctArchiveHandoffFocus = useCallback(
+    (destination: { kind: ArchiveHandoffFocusKind }) => {
+      if (pendingArchiveFocusRef.current !== null) {
+        pendingArchiveFocusRef.current = destination.kind;
+      }
+    },
+    [],
+  );
   const handoffScratchLifecycle = useScratchLifecycleHandoff({
     inboxNodeId: node.id,
-    onDestination: recordArchiveHandoffFocus,
+    onBeforeDestination: recordArchiveHandoffFocus,
+    onDestination: correctArchiveHandoffFocus,
     readTerminalSnapshot,
   });
   const handleArchiveApplied = useCallback(
@@ -757,7 +771,7 @@ export function TriageWorkspace({ node }: { node: Node }) {
   const handoffTrashLifecycle = useScratchLifecycleHandoff({
     inboxNodeId: node.id,
     // Close Advisory A2: the focus target is settled before the selection
-    // changes. Trash only; the Archive handoff keeps its own order.
+    // changes, as the Archive handoff does.
     onBeforeDestination: (destination) => {
       trashCloseFocusRef.current = trashEntryFocus(
         trashOpenerRef.current?.dataset.scratchTrashEntry === "context"

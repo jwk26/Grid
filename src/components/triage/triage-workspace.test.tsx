@@ -3392,6 +3392,89 @@ describe("TriageWorkspace Archive handoff with the real coordinator", () => {
     );
   });
 
+  it("focuses the search input when the Pool query changes during the terminal read and leaves no Scratch to show", async () => {
+    getBitMock.mockResolvedValue(undefined);
+    const reads: Array<(value: unknown[]) => void> = [];
+    getBitsMock.mockImplementation(
+      () => new Promise((resolve) => reads.push(resolve)),
+    );
+    const search = document.createElement("input");
+    search.setAttribute("data-archive-handoff-focus", "search-empty");
+    document.body.append(search);
+    try {
+      render(<TriageWorkspace node={createNode()} />);
+      fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+      await act(async () => {});
+      await act(async () => {
+        dispatchResolvers[0]({
+          operationId: "00000000-0000-4000-8000-000000000001",
+          status: "applied",
+        });
+      });
+      // The handoff is waiting on the read; the query changes meanwhile.
+      await waitFor(() => expect(getBitsMock).toHaveBeenCalled());
+      act(() => useTriageStore.setState({ scratchPoolQuery: "zzz" }));
+      await act(async () => reads.forEach((finish) => finish([])));
+
+      await waitFor(() =>
+        expect(useTriageStore.getState().selectedScratchId).toBeNull(),
+      );
+      expect(document.activeElement).toBe(search);
+    } finally {
+      search.remove();
+      useTriageStore.setState({ scratchPoolQuery: "" });
+    }
+  });
+
+  async function archiveAndResolve(reads: Array<unknown[]>) {
+    const pending: Array<(value: unknown[]) => void> = [];
+    getBitsMock.mockImplementation(
+      () => new Promise((resolve) => pending.push(resolve)),
+    );
+    render(<TriageWorkspace node={createNode()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));
+    await act(async () => {});
+    await act(async () => {
+      dispatchResolvers[0]({
+        operationId: "00000000-0000-4000-8000-000000000001",
+        status: "applied",
+      });
+    });
+    await waitFor(() => expect(getBitsMock).toHaveBeenCalled());
+    await act(async () => pending.forEach((finish) => finish(reads[0])));
+  }
+
+  it("hands off to the previous visible Scratch and focuses its Context when the archived one was last", async () => {
+    getBitMock.mockResolvedValue({
+      id: ARCHIVE_SCRATCH_ID,
+      title: "Archived",
+      createdAt: 1,
+    });
+    await archiveAndResolve([[{ id: "scratch-9", title: "Earlier", createdAt: 5 }]]);
+    await waitFor(() =>
+      expect(useTriageStore.getState().selectedScratchId).toBe("scratch-9"),
+    );
+    expect(document.activeElement).toBe(
+      screen.getByTestId("selected-scratch-context"),
+    );
+  });
+
+  it("focuses the primary Add action when no Scratch remains and the Pool is not filtered", async () => {
+    getBitMock.mockResolvedValue(undefined);
+    const add = document.createElement("button");
+    add.setAttribute("aria-label", "Add item");
+    document.body.append(add);
+    try {
+      await archiveAndResolve([[]]);
+      await waitFor(() =>
+        expect(useTriageStore.getState().selectedScratchId).toBeNull(),
+      );
+      expect(document.activeElement).toBe(add);
+    } finally {
+      add.remove();
+    }
+  });
+
   it("accepts a second Archive on the same mounted page after success", async () => {
     render(<TriageWorkspace node={createNode()} />);
     fireEvent.click(screen.getByRole("button", { name: "Archive completion" }));

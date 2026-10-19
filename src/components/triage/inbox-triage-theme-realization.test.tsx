@@ -846,7 +846,7 @@ describe("Neumorphism L5 Placement (Task 177 Stage 1)", () => {
 describe("Neumorphism L5 Newly/Undo (Task 177 Stage 2)", () => {
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
   const stage = css
-    .slice(css.indexOf("/* Neumorphism L5 (Task 177, Stage 2"))
+    .slice(css.indexOf("/* Neumorphism L5 (Task 177, Stage 2"), css.indexOf("/* Neumorphism L6 (Task 178"))
     .replace(/\/\*[\s\S]*?\*\//g, "");
 
   it("binds only to the inbox-explorer card hooks, the explorer rail shell and the tooltip", () => {
@@ -886,5 +886,53 @@ describe("Neumorphism L5 Newly/Undo (Task 177 Stage 2)", () => {
   it("keeps the unavailable Undo in its slot, subdued by inset depth, and the marker leading", () => {
     expect(stage).toMatch(/explorer-card-undo"\]\[aria-disabled="true"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);[^}]*opacity: 1;/);
     expect(stage).toMatch(/explorer-card-marker"\] \{[^}]*order: -1;[^}]*position: static;/);
+  });
+});
+
+describe("Neumorphism L6 completion and Archive (Task 178)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const stage = css
+    .slice(css.indexOf("/* Neumorphism L6 (Task 178"))
+    .replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("scopes every rule to neumorphism and to the card in the triage shell or the recovery boundary", () => {
+    const selectors = (stage.match(/^[^{}@]+(?=\{)/gm) ?? []).map((selector) => selector.trim());
+    expect(selectors.length).toBeGreaterThan(10);
+    for (const selector of selectors) {
+      expect(selector).toContain('[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-');
+    }
+  });
+
+  it("draws information inset and actions raised, with no line styles", () => {
+    expect(stage).not.toMatch(/\b(dashed|dotted|double|solid|outline-style)\b/);
+    expect(stage).toMatch(/\.archive-status-mark \{[^}]*var\(--theme-shadow-inset-sm\)/);
+    expect(stage).toMatch(/\.archive-status \{[^}]*var\(--theme-shadow-inset-sm\)/);
+    expect(stage).toMatch(/\.archive-card button \{[^}]*var\(--theme-shadow-card-xs\)/);
+    expect(css).toMatch(/\[data-color-theme="neumorphism"\] \.archive-card \{[^}]*var\(--theme-shadow-card-hover\)/);
+  });
+
+  it("keeps the status line two lines tall so the card keeps one height in every state", () => {
+    expect(stage).toMatch(/\.archive-status \{[^}]*min-block-size: 60px;/);
+  });
+
+  it("keeps Cancel neutral on hover and never a destructive colour", () => {
+    const hover = stage.match(/\.archive-cancel:not\(:disabled\):not\(\[aria-disabled="true"\]\):hover \{[^}]*\}/);
+    expect(hover?.[0]).toContain("var(--theme-shadow-inset-sm)");
+    expect(stage).not.toContain("destructive");
+  });
+
+  it("keeps the pending label readable and eases only the transform hover lift outside reduced motion", () => {
+    expect(stage).toMatch(/button\[aria-disabled="true"\] \{\s*opacity: 1;/);
+    const motion = stage.slice(stage.indexOf("@media (prefers-reduced-motion: no-preference)"));
+    expect(motion).toMatch(/transition-property: transform !important;/);
+    expect(motion).toMatch(/button:not\(:disabled\):not\(\[aria-disabled="true"\]\)/);
+    const rest = stage.replace(motion, "");
+    expect(rest).not.toMatch(/\btransition(-\w+)?:/);
+    expect(rest).not.toMatch(/\banimation(-\w+)?:/);
+    expect(rest).not.toContain("!important");
+  });
+
+  it("leaves the Archive confirmation detail hidden for neumorphism until the MI-9 decision", () => {
+    expect(stage).not.toContain("archive-confirmation-detail");
   });
 });

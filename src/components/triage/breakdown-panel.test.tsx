@@ -21,6 +21,7 @@ import {
   useTriageDeparture,
   type TriageDepartureController,
 } from "@/hooks/use-triage-departure";
+import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import type { ScratchBreakdown } from "@/lib/db/schema";
 import type { Bit } from "@/types";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
@@ -2707,6 +2708,58 @@ describe("BreakdownPanel", () => {
       expect(globalsCss).toContain(
         `:root[data-color-theme="${theme}"] .archive-card`,
       );
+    }
+  });
+
+  it("renders the Archive confirmation detail from the shared copy with a bold title, reserved during an operation, shown only by Retro Mac", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", consumedAt: currentTime }),
+    ];
+    const view = render(<CompletionHarness />);
+    const detail = view.container.querySelector(
+      '[data-triage-role="archive-confirmation-detail"]',
+    ) as HTMLElement;
+    const [before, after] =
+      INBOX_TRIAGE_COPY.archive.confirmationDetail.split("{title}");
+    expect(detail.textContent?.startsWith(before)).toBe(true);
+    expect(detail.textContent?.endsWith(after)).toBe(true);
+    expect(detail.querySelector("strong")?.textContent).toBe("Scratch");
+    expect(detail).toHaveAttribute("data-archive-detail", "visible");
+    expect(detail).not.toHaveAttribute("aria-hidden");
+
+    view.unmount();
+    const recovery = {
+      scratchBitId: "scratch-1",
+      operationId: "00000000-0000-4000-8000-000000000001",
+      expectedVersion: 7,
+      startedAt: currentTime,
+    };
+    const pending = render(
+      <CompletionHarness
+        archiveOperation={{
+          state: { phase: "pending", recovery },
+          isRecoveryProjection: false,
+          reconcile: vi.fn(),
+          retry: vi.fn(),
+          dismissTerminal: vi.fn(() => true),
+        }}
+      />,
+    );
+    const reserved = pending.container.querySelector(
+      '[data-triage-role="archive-confirmation-detail"]',
+    );
+    expect(reserved).toHaveAttribute("data-archive-detail", "reserved");
+    expect(reserved).toHaveAttribute("aria-hidden", "true");
+
+    const shown = [
+      ...globalsCss.matchAll(
+        /([^{}]*)\.archive-confirmation-detail\s*\{[^}]*display:\s*block/g,
+      ),
+    ].map((match) => match[0]);
+    expect(shown.length).toBeGreaterThan(0);
+    for (const rule of shown) {
+      expect(rule).toContain('data-color-theme="retro-mac"');
     }
   });
 

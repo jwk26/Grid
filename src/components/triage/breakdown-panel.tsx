@@ -214,6 +214,9 @@ export function ArchiveOperationCard({
 
   if (sentence === null) return null;
 
+  const [detailBefore, detailAfter] =
+    INBOX_TRIAGE_COPY.archive.confirmationDetail.split("{title}");
+
   const runCurrentAction = () => {
     if (operation === undefined) {
       void onArchive?.();
@@ -258,8 +261,9 @@ export function ArchiveOperationCard({
             data-archive-detail={operation === undefined ? "visible" : "reserved"}
             data-triage-role="archive-confirmation-detail"
           >
-            Every idea segment in &ldquo;<strong>{scratchTitle}</strong>&rdquo; has
-            been successfully placed. File it to disk?
+            {detailBefore}
+            <strong>{scratchTitle}</strong>
+            {detailAfter}
           </p>
         ) : null}
         <div className="archive-actions" data-triage-role="archive-actions">

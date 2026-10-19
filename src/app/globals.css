@@ -4732,8 +4732,10 @@
 }
 
 :root[data-color-theme="neumorphism"] .archive-card {
+  background: var(--page-bg);
   border: 0;
-  box-shadow: var(--theme-shadow), inset 3px 3px 7px hsl(var(--foreground) / 0.08);
+  border-radius: 28px;
+  box-shadow: var(--theme-shadow-card-hover);
 }
 
 :root[data-color-theme="claymorphism"] .archive-card {
@@ -8244,4 +8246,105 @@
 }
 :root[data-color-theme="neumorphism"] .newly-undo-tooltip svg {
   visibility: hidden;
+}
+
+/* Neumorphism L6 (Task 178): Breakdown-scoped completion and Archive card. Information is inset
+   (status mark, status line), actions are raised; state is carried by depth, tint and text, never
+   line styles. Card content, copy, action and state changes stay immediate (the shared
+   `.archive-card *` rule keeps `transition: none !important`); the only motion is the
+   `transform`-only hover lift of the raised actions, eased at the end of this block outside
+   reduced motion. The Archive confirmation detail stays hidden here (MI-9 decision pending). */
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-operation-overlay {
+  background: hsl(var(--background) / 0.6);
+  backdrop-filter: blur(2px);
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card {
+  color: hsl(var(--foreground));
+  font-family: var(--theme-font);
+  max-inline-size: 24rem;
+  padding: 28px;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-status-mark {
+  background: transparent;
+  block-size: 40px;
+  border: 0;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 16px;
+  inline-size: 40px;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-status {
+  align-items: center;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.88);
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  justify-content: center;
+  line-height: 1.45;
+  margin-block-start: 16px;
+  max-inline-size: none;
+  /* Two lines of the longest state sentence, so the card keeps one height in every state. */
+  min-block-size: 60px;
+  padding: 10px 18px;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-status:focus-visible {
+  box-shadow: var(--theme-shadow-inset-sm), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-actions {
+  gap: 12px;
+  padding-block-start: 24px;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button {
+  background: var(--page-bg);
+  block-size: 36px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.72);
+  font-family: var(--theme-font);
+  font-size: 12px;
+  font-weight: 600;
+  padding-inline: 20px;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button.archive-current-action {
+  color: var(--triage-pool-sort-active);
+  font-weight: 700;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:not(:disabled):not([aria-disabled="true"]):hover {
+  background: var(--page-bg);
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button.archive-cancel:not(:disabled):not([aria-disabled="true"]):hover {
+  background: color-mix(in srgb, var(--page-bg) 94%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:not(:disabled):not([aria-disabled="true"]):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:is(:disabled, [aria-disabled="true"]) {
+  box-shadow: var(--theme-shadow-inset-xs);
+}
+/* Pending and reconciling keep their label readable (4.5:1); only depth marks them inactive. */
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:disabled {
+  opacity: 0.6;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button[aria-disabled="true"] {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:not(:disabled):not([aria-disabled="true"]) {
+    transition-duration: var(--triage-pool-motion-duration) !important;
+    transition-property: transform !important;
+    transition-timing-function: ease-out !important;
+  }
 }

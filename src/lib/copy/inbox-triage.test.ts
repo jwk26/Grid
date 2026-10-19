@@ -202,6 +202,8 @@ describe("Inbox/Triage core-English copy", () => {
           "Archive couldn’t finish because this Scratch changed while the result was being checked.",
         success: "Scratch archived.",
       },
+      confirmationDetail:
+        "Every idea segment in “{title}” has been successfully placed. File it to disk?",
       actions: {
         checkAgain: "Check again",
         retry: "Retry",

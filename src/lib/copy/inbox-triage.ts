@@ -128,6 +128,7 @@ export interface InboxTriageCopy {
       readonly conflict: string;
       readonly success: string;
     };
+    readonly confirmationDetail: string;
     readonly actions: {
       readonly checkAgain: string;
       readonly retry: string;
@@ -531,6 +532,8 @@ export const INBOX_TRIAGE_COPY = {
         "Archive couldn’t finish because this Scratch changed while the result was being checked.",
       success: "Scratch archived.",
     },
+    confirmationDetail:
+      "Every idea segment in “{title}” has been successfully placed. File it to disk?",
     actions: {
       checkAgain: "Check again",
       retry: "Retry",
