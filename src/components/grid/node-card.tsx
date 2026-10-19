@@ -19,6 +19,7 @@ import {
 import { useArchiveActions } from "@/hooks/use-archive";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ExplorerTitle, useExplorerCardTooltips } from "./explorer-title-tooltip";
 import type { Node } from "@/types";
 
 type NodeCardProps = {
@@ -50,6 +51,9 @@ type NodeCardProps = {
   | "whileHover"
 >;
 
+const nodeTitleClass =
+  "truncate whitespace-nowrap text-center text-[11px] font-semibold leading-[var(--grid-node-title-height)] text-foreground";
+
 export function NodeCard({
   presentation = "default",
   node,
@@ -63,8 +67,11 @@ export function NodeCard({
   className,
   ref,
   style,
+  onBlur,
+  onFocus,
   ...buttonProps
 }: NodeCardProps) {
+  const tooltips = useExplorerCardTooltips();
   const Icon = NODE_ICON_MAP[node.icon] ?? NODE_ICON_MAP.Box;
   const agingFilter = getAgingFilter(getAgingState(node.mtime));
   const { archive } = useArchiveActions();
@@ -125,6 +132,14 @@ export function NodeCard({
         )}
         data-newly-placed={isNewlyPlaced ? "true" : undefined}
         initial={false}
+        onBlur={(event) => {
+          onBlur?.(event);
+          if (isExplorer) tooltips.onCardBlur(event);
+        }}
+        onFocus={(event) => {
+          onFocus?.(event);
+          if (isExplorer) tooltips.onCardFocus(event);
+        }}
         onClick={onClick}
         style={{ ...style, filter: agingFilter }}
         transition={nodeCardTransition}
@@ -150,15 +165,22 @@ export function NodeCard({
         </div>
         {/* Fixed title slot so short titles remain visible and long ones ellipsize */}
         <div data-triage-role="explorer-card-title-slot" className="h-[var(--grid-node-title-height)] w-full overflow-hidden self-start">
-          <p data-triage-role="explorer-card-title" className="truncate whitespace-nowrap text-center text-[11px] font-semibold leading-[var(--grid-node-title-height)] text-foreground">
-            {node.title}
-          </p>
+          {isExplorer ? (
+            <ExplorerTitle tooltips={tooltips} title={node.title} className={nodeTitleClass} />
+          ) : (
+            <p data-triage-role="explorer-card-title" className={nodeTitleClass}>
+              {node.title}
+            </p>
+          )}
         </div>
         <ChevronRight aria-hidden="true" data-triage-role="explorer-card-chevron" className="hidden pointer-events-none shrink-0" />
       </motion.button>
 
       {undo !== undefined && isExplorer ? (
-        <TooltipProvider><Tooltip open={undo.tooltip === undefined ? false : undefined}>
+        <TooltipProvider><Tooltip
+          open={undo.tooltip === undefined ? false : tooltips.undoOpen}
+          onOpenChange={undo.tooltip === undefined ? undefined : tooltips.onUndoOpenChange}
+        >
           <TooltipTrigger asChild>{undoButton}</TooltipTrigger>
           {undo.tooltip !== undefined ? <TooltipContent side="top" sideOffset={4} avoidCollisions={false}
             className="newly-undo-tooltip" data-triage-role="explorer-undo-tooltip">

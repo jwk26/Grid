@@ -854,7 +854,7 @@ describe("Neumorphism L5 Newly/Undo (Task 177 Stage 2)", () => {
     expect(selectors.length).toBeGreaterThan(15);
     for (const selector of selectors) {
       expect(selector).toContain('[data-color-theme="neumorphism"]');
-      expect(selector).toMatch(/data-card-presentation="inbox-explorer"|\.newly-card-shell|\.newly-undo-tooltip/);
+      expect(selector).toMatch(/data-card-presentation="inbox-explorer"|\.newly-card-shell|\.newly-undo-tooltip|\.explorer-title-tooltip/);
     }
     expect(stage).not.toMatch(/\.explorer-search-undo|\.newly-undo-action\b/);
   });
@@ -1169,5 +1169,30 @@ describe("Neumorphism target size and focus (Task 179 Stage 4b)", () => {
     expect(dark).toContain("--priority-mid: 45 93% 47%;");
     expect(dark).toContain("--priority-low: 217 91% 60%;");
     expect(css).toMatch(/\.scratch-pool\[data-triage-state="collapsed"\] \[data-triage-role="pool-total-count"\] \{[^}]*color: hsl\(var\(--foreground\) \/ 0\.75\);/);
+  });
+});
+
+describe("Explorer truncated-title plate (Task 179A)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const l1 = css.indexOf("/* Neumorphism L1 (Task 173)");
+
+  it("defines the static, wrapping base plate before the Neumorphism blocks", () => {
+    const base = css.indexOf("\n.explorer-title-tooltip {");
+    expect(base).toBeGreaterThan(-1);
+    expect(base).toBeLessThan(l1);
+    const rule = css.slice(base, css.indexOf("}", base));
+    expect(rule).toContain("max-inline-size: min(24rem, calc(100vw - 16px))");
+    expect(rule).toMatch(/overflow-wrap: anywhere/);
+    expect(css).toMatch(/\.explorer-title-tooltip, \.explorer-title-tooltip \* \{\s*animation: none !important;\s*transition: none !important;/);
+  });
+
+  it("extends only the Neumorphism Undo plate, with no other themed explorer-title rule", () => {
+    const rules = css.match(/^[^{}\n]*\.explorer-title-tooltip[^{}]*\{/gm) ?? [];
+    const themed = rules.filter((rule) => rule.includes("data-color-theme"));
+    expect(themed.length).toBeGreaterThan(0);
+    for (const rule of themed) expect(rule).toContain('[data-color-theme="neumorphism"]');
+    const plate = css.indexOf(':root[data-color-theme="neumorphism"] .explorer-title-tooltip');
+    expect(plate).toBeGreaterThan(l1);
+    expect(plate).toBeLessThan(css.indexOf("/* Neumorphism L6 (Task 178"));
   });
 });

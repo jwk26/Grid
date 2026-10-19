@@ -15,8 +15,8 @@
 > Tasks 164–165 are historical, unaccepted `[ ]` transfer records.
 > Tasks 166–172 and 171A are accepted `[x]` and Phase 34 is closed; Tasks
 > 209–212 are accepted `[x]` and Phase 41 is closed (2026-10-16); Tasks
-> 173–178 and repair Task 176A are accepted `[x]`; Task 179, repair Task 179A
-> and Tasks 180–208 are `[ ]`.
+> 173–179 and repair Task 176A are accepted `[x]`; repair Task 179A and
+> Tasks 180–208 are `[ ]`.
 > Phases 32–33 remain reserved.
 > **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
 > corrections, Tasks 209–212, from

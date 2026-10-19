@@ -5757,13 +5757,22 @@
   margin-inline-end: 0;
 }
 /* Portal content also needs the static contract; shared primitive stays intact. */
-.newly-undo-tooltip, .newly-undo-tooltip * {
+.newly-undo-tooltip, .newly-undo-tooltip *,
+.explorer-title-tooltip, .explorer-title-tooltip * {
   animation: none !important;
   transition: none !important;
 }
 .newly-undo-tooltip {
   font-family: var(--theme-font);
   max-inline-size: min(24rem, calc(100vw - 16px));
+}
+/* Explorer truncated-title plate (Task 179A): the stored title as typed, wrapped, static. */
+.explorer-title-tooltip {
+  font-family: var(--theme-font);
+  max-inline-size: min(24rem, calc(100vw - 16px));
+  overflow-wrap: anywhere;
+  text-align: start;
+  text-wrap: wrap;
 }
 
 :root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-newly-placed="true"],
@@ -8435,7 +8444,8 @@
 }
 
 /* Tooltip (eligible Undo and result-mutated): a small raised plate above the action. */
-:root[data-color-theme="neumorphism"] .newly-undo-tooltip {
+:root[data-color-theme="neumorphism"] .newly-undo-tooltip,
+:root[data-color-theme="neumorphism"] .explorer-title-tooltip {
   background: var(--page-bg);
   border: 0;
   border-radius: 12px;
@@ -8445,7 +8455,8 @@
   font-weight: 600;
   padding: 6px 10px;
 }
-:root[data-color-theme="neumorphism"] .newly-undo-tooltip svg {
+:root[data-color-theme="neumorphism"] .newly-undo-tooltip svg,
+:root[data-color-theme="neumorphism"] .explorer-title-tooltip svg {
   visibility: hidden;
 }
 

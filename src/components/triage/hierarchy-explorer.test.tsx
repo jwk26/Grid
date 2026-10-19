@@ -107,6 +107,7 @@ const explorerSearchState = vi.hoisted(() => ({
 }));
 
 vi.mock("@dnd-kit/core", () => ({
+  useDndContext: vi.fn().mockReturnValue({ active: null }),
   useDroppable: vi.fn().mockReturnValue({ setNodeRef: vi.fn() }),
 }));
 
