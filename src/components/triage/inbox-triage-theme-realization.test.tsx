@@ -1222,3 +1222,23 @@ describe("Retro Mac complete Context checkbox (Task 179A)", () => {
     expect(css).toMatch(/color-theme="retro-mac"\] \.triage-shell \[data-triage-role="context-folder-icon"\] \{\s*display: block;/);
   });
 });
+
+describe("Neumorphism complete Context title (Task 179A Stage 4)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const selector = ':root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context[data-triage-state="complete"] [data-triage-role="context-title"]';
+
+  it("strikes the complete title through at 0.75 foreground, scoped to the complete plate and the title", () => {
+    const start = css.indexOf(`${selector} {`);
+    expect(start).toBeGreaterThan(-1);
+    const rule = css.slice(start, css.indexOf("}", start));
+    expect(rule).toContain("color: hsl(var(--foreground) / 0.75);");
+    expect(rule).toContain("text-decoration: line-through;");
+    expect(rule).not.toMatch(/opacity/);
+    // Sits in the Neumorphism Context block, after the Task 173 marker and before the Task 177 Newly/Undo block.
+    expect(start).toBeGreaterThan(css.indexOf("/* Neumorphism L1 (Task 173)"));
+    expect(start).toBeLessThan(css.indexOf("/* Neumorphism L6 (Task 178"));
+    // The working title and the other themes keep their rules.
+    expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \[data-triage-role="context-title"\] \{\s*color: hsl\(var\(--foreground\)\);/);
+    expect(css.match(/text-decoration: line-through; opacity: 0\.4;/g)?.length).toBe(1);
+  });
+});
