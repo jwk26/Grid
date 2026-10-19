@@ -822,8 +822,10 @@ describe("Neumorphism L5 Placement (Task 177 Stage 1)", () => {
   it("stacks Staged confirmation by grid placement only, with a neutral guarded Cancel hover", () => {
     expect(stage).toMatch(/placement-staged-summary-row[^{]*\{\s*display: contents;/);
     expect(stage).not.toMatch(/(?:^|[\s{;])order:/);
-    expect(stage).toMatch(/\.placement-affordance \.placement-cancel \{[^}]*grid-row: 4;/);
-    expect(stage).toMatch(/\.placement-reliability-action:not\(\.placement-cancel\) \{[^}]*grid-row: 3;/);
+    expect(stage).toMatch(/\.placement-affordance \.placement-cancel \{[^}]*grid-row: 5;/);
+    expect(stage).toMatch(/\.placement-reliability-action:not\(\.placement-cancel\) \{[^}]*grid-row: 4;/);
+    expect(stage).toMatch(/\.placement-source-truth \{[^}]*grid-row: 2;/);
+    expect(stage).toMatch(/\.placement-full-target-warning \{[^}]*grid-row: 3;/);
     const hover = stage.match(/\.placement-cancel, \.placement-direct-cancel\):not\(:disabled\):not\(\[aria-disabled="true"\]\):hover \{[^}]*\}/);
     expect(hover?.[0]).toContain("var(--theme-shadow-inset-sm)");
     expect(hover?.[0]).not.toContain("destructive");

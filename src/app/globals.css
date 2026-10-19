@@ -7906,7 +7906,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) max-content;
   min-inline-size: 0;
-  row-gap: 8px;
+  row-gap: 0;
 }
 :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-staged-summary-row, .placement-staged-information, .placement-staged-type-row, .placement-reliability-actions) {
   display: contents;
@@ -7932,25 +7932,32 @@
   margin: 0;
   padding: 4px 12px;
 }
-:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-source-truth, .placement-full-target-warning) {
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-source-truth {
   grid-column: 1 / -1;
   grid-row: 2;
-  margin: 0;
+  margin: 8px 0 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-full-target-warning {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin: 8px 0 0;
 }
 :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-reliability-action:not(.placement-cancel) {
   grid-column: 1 / -1;
-  grid-row: 3;
+  grid-row: 4;
   inline-size: 100%;
+  margin-block-start: 16px;
 }
 :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-cancel {
   grid-column: 1 / -1;
-  grid-row: 4;
+  grid-row: 5;
   inline-size: 100%;
+  margin-block-start: 8px;
 }
 :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-reliability-slot {
   grid-column: 1 / -1;
-  grid-row: 5;
-  margin-block-start: 0;
+  grid-row: 6;
+  margin-block-start: 8px;
 }
 :root[data-color-theme="neumorphism"] .triage-shell .placement-header {
   margin-block-end: 14px;

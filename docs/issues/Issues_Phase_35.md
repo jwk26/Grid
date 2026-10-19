@@ -378,8 +378,8 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 ## Task 177 — Realize Placement followed by Newly/Undo
 
 ### Current state
-- Status: Awaiting User Decision
-- Next: your Newly/Undo (Stage 2) visual judgment; the task then goes to the full gate and the `expert` decision
+- Status: Implemented, awaiting acceptance
+- Next: your acceptance of Task 177 (Placement and Newly/Undo, light only)
 - Open: MI-2 (not reproduced, you decide Dropped or Deferred at phase close); MI-4 (bound to Task 179); MI-13, MI-14 (phase close); MI-17 (bound to Task 179)
 
 ### Log
@@ -458,3 +458,11 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 - Review: logic changed in `getOrdinaryNewlyUndoPresentation`; the `expert` review at finish covers it, as the advisory review asked.
 - MI-17 [Open]: at 1024px the placed-card NEW capsule, the leading icon and the Undo overlap in the narrow Explorer columns (113px cards), and the Node row overflows its column by about 21px — cause: the neumorphism NEW capsule (about 44px), the 32px icon slot and the 28px Undo plus its 48px reserve need more than a ~140px column gives — fix: none in Task 177 (1024px is Task 179); bound to Task 179, which decides a compact NEW/Undo form for narrow columns.
 - Decision: Stage 2 Newly/Undo — first judgments (the review rounds, separate from the final pass): the placement-open Undo reason as a visible rail under every NEW card was found noisy and moved to the existing tooltip, the user's first proposal (show it on clicking the unavailable Undo) declined in favour of the tooltip (user, 2026-10-19; docs `83fd9d9`). Final pass: Newly/Undo accepted visually and Stage 2 committed with the go-ahead to the task finish (user, 2026-10-19).
+- Finish fix (`expert` finding, medium): in the Staged confirmation grid the `Source: …` line and the full-target warning shared grid row 2, so a renamed over-limit title dropped on a full target drew them on top of each other (the warning explains why OK is disabled). Fix, CSS only: source line row 2, warning row 3, OK row 4, Cancel row 5, reliability slot row 6, with `row-gap: 0` and an 8px top margin per row (16px before OK, as before) so empty rows add no gap; the L5 test pins the rows. Reproduced and re-checked in the running app (Result Title over-limit Bit, renamed, dropped on `Full folder`): source 825–908, warning 916–948, OK 964–996, no overlap.
+
+### Checkpoint (task finish)
+- Changed: Task 177 in two commits — `12a8540` (Placement) and `9e7bd12` (Newly/Undo, with the placement-open tooltip projection in `hierarchy-explorer.tsx`); the `expert` fix, the tests and this ledger are committed with this checkpoint. Code: `src/app/globals.css`, `hierarchy-explorer.tsx`, `hierarchy-explorer.test.tsx`, `inbox-triage-theme-realization.test.tsx`.
+- Verified: full gate on the final tree — `git diff --check`, `pnpm test` (113 files, 1750 passed), `pnpm lint` (0 errors, 11 warnings in files this task did not change), `pnpm typecheck`, `pnpm build`. MI-2: one full `pnpm test` run in this task before the fix and one after, both passed, so it is still not reproduced (`hierarchy-explorer.test.tsx` alone ran 5 more times, all passed). Mounted checks are in the Stage 1 and Stage 2 checkpoints (light 1920×1080; 1024px light for Placement only); the dev server was restarted after the build.
+- Please check: nothing further visual; accept the task when the ledger and plan look right.
+- Unresolved: Newly/Undo states not reachable live (checking, re-enabled, descendants, operation-locked, edit-blocked, pending, unknown, reconciling, not-applied, conflict) and Placement rail states (pending, unknown, reconciling, not-applied, stale) — named remainders; MI-17 (1024px NEW/Undo crowding) is bound to Task 179 with dark mode and the Pool collapse.
+- Review: `expert` reviewed the tooltip-projection change (no findings: state-based, terminal and retry states keep the rail, announcement and `aria-describedby` kept, search untouched), the neumorphism override of the shared `!important` rule (no findings: specificity wins for transform only, reduced motion yields no transition, disabled and step swaps cannot animate, buttons only) and the Staged unboxing (one medium finding — the source line and the full-target warning sharing a grid row → fixed above; the unboxed wrappers carry no role or label, the `role="status"` rail stays in the accessibility tree, Tab order Cancel then OK, no match on the Direct selection or Result Title steps).
