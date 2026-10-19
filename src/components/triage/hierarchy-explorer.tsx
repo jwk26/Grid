@@ -241,12 +241,15 @@ function getNewlyUndoPresentation(
   };
 }
 
-// Ordinary Finder alone adopts the two-state tooltip amendment. Search keeps
-// the shared projection and visible rail; terminal copy equality is irrelevant.
+// Ordinary Finder alone adopts the tooltip amendment for three nonterminal states: available,
+// result-mutated and an open placement. Search keeps the shared projection and visible rail;
+// terminal copy equality is irrelevant.
 function getOrdinaryNewlyUndoPresentation(state: TriageNewlyPlacedUndoState, title: string) {
   const presentation = getNewlyUndoPresentation(state, title);
   const tooltip = (state.phase === "available" && state.reason === "available") ||
-    (state.phase === "blocked" && state.reason === "result-mutated" && state.terminalStatus === null);
+    (state.phase === "blocked" &&
+      (state.reason === "result-mutated" || state.reason === "placement-open") &&
+      state.terminalStatus === null);
   return { ...presentation, tooltip: tooltip ? presentation.copy : undefined };
 }
 

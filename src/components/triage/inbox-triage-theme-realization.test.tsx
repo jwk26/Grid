@@ -798,7 +798,7 @@ describe("Phase 41 Retro Mac departure sheet realization (Task 211)", () => {
 describe("Neumorphism L5 Placement (Task 177 Stage 1)", () => {
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
   const stage = css
-    .slice(css.indexOf("/* Neumorphism L5 (Task 177"))
+    .slice(css.indexOf("/* Neumorphism L5 (Task 177, Stage 1"), css.indexOf("/* Neumorphism L5 (Task 177, Stage 2"))
     .replace(/\/\*[\s\S]*?\*\//g, "");
 
   it("scopes every rule to neumorphism and draws state by depth and tint, never line styles", () => {
@@ -838,5 +838,51 @@ describe("Neumorphism L5 Placement (Task 177 Stage 1)", () => {
     expect(rest).not.toMatch(/\btransition(-\w+)?:/);
     expect(rest).not.toMatch(/\banimation(-\w+)?:/);
     expect(rest).not.toContain("!important");
+  });
+});
+
+describe("Neumorphism L5 Newly/Undo (Task 177 Stage 2)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const stage = css
+    .slice(css.indexOf("/* Neumorphism L5 (Task 177, Stage 2"))
+    .replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("binds only to the inbox-explorer card hooks, the explorer rail shell and the tooltip", () => {
+    const selectors = (stage.match(/^[^{}@]+(?=\{)/gm) ?? []).map((selector) => selector.trim());
+    expect(selectors.length).toBeGreaterThan(15);
+    for (const selector of selectors) {
+      expect(selector).toContain('[data-color-theme="neumorphism"]');
+      expect(selector).toMatch(/data-card-presentation="inbox-explorer"|\.newly-card-shell|\.newly-undo-tooltip/);
+    }
+    expect(stage).not.toMatch(/\.explorer-search-undo|\.newly-undo-action\b/);
+  });
+
+  it("draws state by depth and tint, never line styles, with no animation or !important", () => {
+    expect(stage).not.toMatch(/\b(dashed|dotted|double|solid|outline-style)\b/);
+    expect(stage).not.toMatch(/\banimation(-\w+)?:/);
+    expect(stage).not.toContain("!important");
+    expect(stage).not.toMatch(/(?:^|[\s{;])content:/);
+    expect(stage).toContain("var(--theme-shadow-inset-xs)");
+    expect(stage).toContain("var(--theme-shadow-card-xs)");
+  });
+
+  it("recolours no card surface for Newly, so selection stays authoritative", () => {
+    const newlyRules = stage.match(/[^}]*data-newly-placed="true"\][^{]*\{[^}]*\}/g) ?? [];
+    for (const rule of newlyRules) expect(rule).not.toMatch(/\bbackground(-color)?:|\bbox-shadow:/);
+  });
+
+  it("eases only the Undo hover lift, as transform, outside reduced motion and never when unavailable", () => {
+    const transitions = stage.match(/transition(?:-[\w-]+)?:[^;]+;/g) ?? [];
+    expect(transitions).toEqual([
+      "transition-duration: var(--triage-pool-motion-duration);",
+      "transition-property: transform;",
+      "transition-timing-function: ease-out;",
+    ]);
+    expect(stage).toMatch(/@media \(prefers-reduced-motion: no-preference\) \{\s*:root\[data-color-theme="neumorphism"\] \[data-card-presentation="inbox-explorer"\] \[data-triage-role="explorer-card-undo"\]:not\(\[aria-disabled="true"\]\)/);
+  });
+
+  it("keeps the unavailable Undo in its slot, subdued by inset depth, and the marker leading", () => {
+    expect(stage).toMatch(/explorer-card-undo"\]\[aria-disabled="true"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);[^}]*opacity: 1;/);
+    expect(stage).toMatch(/explorer-card-marker"\] \{[^}]*order: -1;[^}]*position: static;/);
   });
 });

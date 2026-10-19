@@ -11,6 +11,7 @@ import {
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ComponentProps } from "react";
 import type {
   TriageDragItem,
   TriageTargetFeedback,
@@ -1419,6 +1420,7 @@ describe("HierarchyExplorer Task 155 actual-card Newly Placed projection", () =>
 describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
   function renderWithUndo(
     entries: readonly TriageNewlyPlacedProvenance[],
+    extraProps: Partial<ComponentProps<typeof HierarchyExplorer>> = {},
   ) {
     let activeOperation: { kind: "undo"; operationId: string } | null = null;
     const operationLock: TriageOperationLock = {
@@ -1447,6 +1449,7 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
           <HierarchyExplorer
             {...defaultProps}
             newlyPlacedEntries={entries}
+            {...extraProps}
           />
         </ScratchTitleBlockerContext.Provider>
       </TriageOperationLockContext.Provider>,
@@ -1465,6 +1468,58 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
     const reason=screen.getByText(kind === "available" ? "Undo this placement." : "This item changed after placement. Undo is unavailable.");
     expect(reason.parentElement).toHaveClass(kind === "terminal-conflict" ? "newly-status-rail" : "newly-status-announcement");
     expect(action).not.toBeDisabled();expect(screen.getByText("NEW")).toBeInTheDocument();
+  });
+
+  it("projects the open-placement reason into the tooltip, not a visible rail, and keeps the Undo focusable", async () => {
+    const target = createNode({ id: "placement-open-card", title: "Placement open card" });
+    const entry = newlyPlacedEntry(target, "node", 1);
+    setGrid(null, [target]);
+
+    renderWithUndo([entry], { placementSnapshot: placementSnapshot() });
+    const action = await screen.findByRole("button", {
+      name: "Undo placement of Placement open card",
+    });
+    const sentence = "Finish or cancel the placement in progress first.";
+    await waitFor(() => expect(action).toHaveAttribute("aria-disabled", "true"));
+    const reason = screen.getByText(sentence);
+    expect(reason.parentElement).toHaveClass("newly-status-announcement");
+    expect(reason.parentElement).toHaveAttribute("aria-live", "polite");
+    expect(document.querySelector(".newly-status-rail")).toBeNull();
+    expect(action).not.toBeDisabled();
+    expect(action).toHaveAttribute("aria-describedby", reason.id);
+    expect(screen.getByText("NEW")).toBeInTheDocument();
+
+    // Radix popper measures with ResizeObserver, which jsdom lacks.
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    try {
+      act(() => action.focus());
+      expect(action).toHaveFocus();
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(sentence);
+      fireEvent.click(action);
+      expect(undoRepository.undoDirectPlacement).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("returns the card to its prior state when the placement closes", async () => {
+    const target = createNode({ id: "placement-close-card", title: "Placement close card" });
+    const entry = newlyPlacedEntry(target, "node", 1);
+    setGrid(null, [target]);
+
+    const first = renderWithUndo([entry], { placementSnapshot: placementSnapshot() });
+    const action = await screen.findByRole("button", {
+      name: "Undo placement of Placement close card",
+    });
+    await waitFor(() => expect(action).toHaveAttribute("aria-disabled", "true"));
+    first.unmount();
+    renderWithUndo([entry]);
+    const reopened = await screen.findByRole("button", {
+      name: "Undo placement of Placement close card",
+    });
+    await waitFor(() => expect(reopened).toHaveAttribute("aria-disabled", "false"));
+    expect(screen.queryByText("Finish or cancel the placement in progress first.")).toBeNull();
+    expect(document.querySelector(".newly-status-rail")).toBeNull();
   });
 
   it.each([
