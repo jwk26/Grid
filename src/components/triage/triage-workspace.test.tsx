@@ -683,6 +683,27 @@ describe("TriageWorkspace", () => {
     );
   });
 
+  it("marks the shell as toggled only after the Pool changes size, and keeps the mark once set", () => {
+    useTriageStore.setState({ scratchPoolExpanded: true });
+    render(<TriageWorkspace node={createNode()} />);
+    const shell = screen.getByTestId("triage-workspace");
+    expect(shell).not.toHaveAttribute("data-triage-pool-toggled");
+
+    act(() => useTriageStore.setState({ scratchPoolExpanded: false }));
+    expect(shell).toHaveAttribute("data-triage-pool-toggled", "true");
+
+    act(() => useTriageStore.setState({ scratchPoolExpanded: true }));
+    expect(shell).toHaveAttribute("data-triage-pool-toggled", "true");
+  });
+
+  it("does not mark a shell that mounts with the Pool already collapsed", () => {
+    useTriageStore.setState({ scratchPoolExpanded: false });
+    render(<TriageWorkspace node={createNode()} />);
+    expect(screen.getByTestId("triage-workspace")).not.toHaveAttribute(
+      "data-triage-pool-toggled",
+    );
+  });
+
   it("does not mount the normal Inbox projection while reload reconciliation owns startup", () => {
     useArchiveScratchMock.mockReturnValue({
       state: {

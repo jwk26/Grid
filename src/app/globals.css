@@ -6364,19 +6364,118 @@
   content: "";
   inline-size: 12px;
 }
-:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"][aria-pressed="true"]::before {
-  background: hsl(var(--foreground) / 0.75);
-  block-size: 32px;
-  box-shadow: var(--theme-shadow-card);
-  inline-size: 8px;
+/* Task 179: the selected switcher is one dark bar that travels between switchers. A single
+   pseudo-element of the switcher group is anchored to the pressed switcher, so changing the
+   selection moves it (its block position transitions); every switcher keeps its resting dot
+   under it. It is hidden when no switcher is pressed, does not travel when the rail first
+   appears, and follows the rail's scroll. Without anchor positioning each switcher draws its
+   own selected bar instead (the old per-switcher bar, checked by test only). */
+@supports (anchor-name: --a) {
+  :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"][aria-pressed="true"] {
+    anchor-name: --triage-pool-selected-switcher;
+  }
+  :root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__compact-list > [role="group"] {
+    position: relative;
+  }
+  :root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__compact-list > [role="group"]:has([aria-pressed="true"])::before {
+    background: hsl(var(--foreground) / 0.75);
+    border-radius: 999px;
+    box-shadow: var(--theme-shadow-card);
+    content: "";
+    inline-size: 8px;
+    inset-block: anchor(top) anchor(bottom);
+    inset-inline-start: anchor(center);
+    pointer-events: none;
+    position: absolute;
+    position-anchor: --triage-pool-selected-switcher;
+    translate: -50% 0;
+    z-index: 1;
+  }
+  :root[data-color-theme="neumorphism"] .scratch-pool:not(.transition-none) .scratch-pool__compact-list > [role="group"]::before {
+    transition-duration: var(--triage-pool-motion-duration);
+    transition-property: top, bottom;
+    transition-timing-function: ease-out;
+  }
+  :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:not(.transition-none)::before {
+    transition-duration: var(--triage-pool-motion-duration);
+    transition-property: transform;
+    transition-timing-function: ease-out;
+  }
 }
-:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:not(.transition-none)::before {
-  transition: transform var(--triage-pool-motion-duration) ease-out;
+@supports not (anchor-name: --a) {
+  :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"][aria-pressed="true"]::before {
+    background: hsl(var(--foreground) / 0.75);
+    block-size: 32px;
+    box-shadow: var(--theme-shadow-card);
+    inline-size: 8px;
+  }
+  :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:not(.transition-none)::before {
+    transition-duration: var(--triage-pool-motion-duration);
+    transition-property: transform, block-size, inline-size, background-color, box-shadow;
+    transition-timing-function: ease-out;
+  }
 }
 :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:not(.transition-none):hover::before { transform: scale(1.1); }
 :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:focus-visible {
   border-radius: 999px;
   box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+/* Task 179: Pool collapse/expand motion. In a heavy-shadow theme a container's width is not
+   animated: every resized card's blur shadow repaints each frame. The Pool and the main work
+   area change size in one step, the main work area scales on X from its right edge so both
+   edges end right (its content is briefly compressed on collapse and stretched on expand),
+   and the Pool content eases in. The scale ratio comes from the shell's own width and the Pool
+   tokens (`100cqi`), so it holds whenever the shell is narrower than the viewport. Where typed division in
+   `calc()` is unsupported the main work area slides by the Pool's size difference instead.
+   Nothing runs on page load: the workspace sets `data-triage-pool-toggled` after the first
+   Pool toggle. Reduced motion arrives as `.transition-none` on the Pool. */
+:root[data-color-theme="neumorphism"] .scratch-pool { transition: none; }
+:root[data-color-theme="neumorphism"] .triage-shell {
+  container-type: inline-size;
+  --triage-pool-motion-delta: calc(var(--triage-pool-inline-size) - var(--triage-pool-compact-inline-size));
+  --triage-pool-motion-collapse-scale: calc((100cqi - var(--triage-pool-inline-size) - var(--triage-frame-gap)) / (100cqi - var(--triage-pool-compact-inline-size) - var(--triage-frame-gap)));
+  --triage-pool-motion-expand-scale: calc((100cqi - var(--triage-pool-compact-inline-size) - var(--triage-frame-gap)) / (100cqi - var(--triage-pool-inline-size) - var(--triage-frame-gap)));
+}
+@keyframes triage-pool-content-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes triage-main-scale-collapse {
+  from { transform: scaleX(var(--triage-pool-motion-collapse-scale)); }
+  to { transform: none; }
+}
+@keyframes triage-main-scale-expand {
+  from { transform: scaleX(var(--triage-pool-motion-expand-scale)); }
+  to { transform: none; }
+}
+@keyframes triage-main-slide-from-right {
+  from { transform: translateX(var(--triage-pool-motion-delta)); }
+  to { transform: none; }
+}
+@keyframes triage-main-slide-from-left {
+  from { transform: translateX(calc(-1 * var(--triage-pool-motion-delta))); }
+  to { transform: none; }
+}
+:root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"] .scratch-pool:not(.transition-none) .scratch-pool__frame {
+  animation: triage-pool-content-in var(--triage-pool-motion-duration) ease-out both;
+}
+@supports (transform: scaleX(calc(10px / 5px))) {
+  :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="collapsed"]:not(.transition-none)) .triage-shell__main {
+    animation: triage-main-scale-collapse var(--triage-pool-motion-duration) ease-out both;
+    transform-origin: right center;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="expanded"]:not(.transition-none)) .triage-shell__main {
+    animation: triage-main-scale-expand var(--triage-pool-motion-duration) ease-out both;
+    transform-origin: right center;
+  }
+}
+@supports not (transform: scaleX(calc(10px / 5px))) {
+  :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="collapsed"]:not(.transition-none)) .triage-shell__main {
+    animation: triage-main-slide-from-right var(--triage-pool-motion-duration) ease-out both;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="expanded"]:not(.transition-none)) .triage-shell__main {
+    animation: triage-main-slide-from-left var(--triage-pool-motion-duration) ease-out both;
+  }
 }
 /* mi-12: Pool collapse toggles and the row Trash control respond like the Breakdown
    controls: 1px lift and stronger ink on hover, inset-sm on press. */

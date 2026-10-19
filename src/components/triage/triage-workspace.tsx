@@ -1352,6 +1352,15 @@ function TriageWorkspaceContent({
     (state) => state.poolCreatedAtSort,
   );
   const { activeScratchBits } = useInbox();
+  // Presentation only: set once the Pool has changed size after mount, so a theme's Pool
+  // motion never replays on page load or route entry. It stays set after toggling back.
+  const scratchPoolExpanded = useTriageStore((state) => state.scratchPoolExpanded);
+  const [poolExpandedSeen, setPoolExpandedSeen] = useState(scratchPoolExpanded);
+  const [poolToggled, setPoolToggled] = useState(false);
+  if (poolExpandedSeen !== scratchPoolExpanded) {
+    setPoolExpandedSeen(scratchPoolExpanded);
+    setPoolToggled(true);
+  }
   const workspaceRef = useRef<HTMLElement>(null);
   const preTransitionFocusRef = useRef<HTMLElement | null>(null);
   const previousRemovalIdRef = useRef<string | null>(null);
@@ -2224,6 +2233,7 @@ function TriageWorkspaceContent({
       data-min-viewport="1024px"
       data-testid="triage-workspace"
       data-triage-operation-kind={operationLock.activeOperation?.kind}
+      data-triage-pool-toggled={poolToggled ? "true" : undefined}
       data-triage-role="shell-background"
       data-triage-state={
         isExternalRemoval

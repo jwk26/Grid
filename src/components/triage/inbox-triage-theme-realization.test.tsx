@@ -257,7 +257,7 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
   it("keeps theme ids out of the Pool markup and scopes the L1 look to the neumorphism root", () => {
     const source = readFileSync(join(process.cwd(), "src/components/triage/scratch-pool.tsx"), "utf8");
     expect(source).not.toMatch(/neumorphism/);
-    const l1 = css.slice(css.indexOf("/* Neumorphism L1 (Task 173)")).replace(/\/\*[\s\S]*?\*\//g, "").replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*\s*\}/g, "").replace(/@media[^{]*\{/g, "");
+    const l1 = css.slice(css.indexOf("/* Neumorphism L1 (Task 173)")).replace(/\/\*[\s\S]*?\*\//g, "").replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*\s*\}/g, "").replace(/@(?:media|supports)[^{]*\{/g, "");
     for (const [, selector] of l1.matchAll(/(?:^|\})\s*([^{}@/][^{}]*)\{/g)) {
       expect(selector.trim()).toMatch(/^:root\[data-color-theme="neumorphism"\]/);
     }
@@ -942,5 +942,82 @@ describe("Neumorphism L6 completion and Archive (Task 178)", () => {
 
   it("leaves the Archive confirmation detail hidden for neumorphism until the MI-9 decision", () => {
     expect(stage).not.toContain("archive-confirmation-detail");
+  });
+});
+
+describe("Neumorphism Pool collapse/expand and Scratch-switch motion (Task 179 Stage 1)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const start = css.indexOf("/* Task 179: Pool collapse/expand motion.");
+  const stage = css.slice(start, css.indexOf("/* mi-12:", start));
+
+  it("never animates the Pool or main-area width and leaves no review gates behind", () => {
+    expect(stage).toMatch(/\[data-color-theme="neumorphism"\] \.scratch-pool \{ transition: none; \}/);
+    expect(stage).not.toMatch(/transition-property:[^;]*(width|inline-size)/);
+    expect(stage).not.toMatch(/\b(width|inline-size|block-size):[^;]*;\s*\}\s*(?=@keyframes)/);
+    expect(css).not.toContain("data-pool-motion");
+    expect(css).not.toMatch(/neumorphism-(pool|main)-/);
+  });
+
+  it("scales the main work area from its right edge using the shell width and the Pool tokens", () => {
+    expect(stage).toMatch(/\.triage-shell \{\s*container-type: inline-size;/);
+    expect(stage).toMatch(/--triage-pool-motion-collapse-scale: calc\(\(100cqi - var\(--triage-pool-inline-size\) - var\(--triage-frame-gap\)\) \/ \(100cqi - var\(--triage-pool-compact-inline-size\) - var\(--triage-frame-gap\)\)\);/);
+    expect(stage).toMatch(/--triage-pool-motion-expand-scale: calc\(\(100cqi - var\(--triage-pool-compact-inline-size\) - var\(--triage-frame-gap\)\) \/ \(100cqi - var\(--triage-pool-inline-size\) - var\(--triage-frame-gap\)\)\);/);
+    expect(stage).not.toMatch(/\d+px\)\s*\/\s*\(100vw/);
+    for (const name of ["collapse", "expand"]) {
+      expect(stage).toMatch(new RegExp(`animation: triage-main-scale-${name} var\\(--triage-pool-motion-duration\\) ease-out both;\\s*transform-origin: right center;`));
+    }
+  });
+
+  it("falls back to a slide by the Pool's size difference where typed calc division is unsupported", () => {
+    const supported = stage.slice(stage.indexOf("@supports (transform: scaleX(calc(10px / 5px)))"), stage.indexOf("@supports not"));
+    const fallback = stage.slice(stage.indexOf("@supports not (transform: scaleX(calc(10px / 5px)))"));
+    expect(supported).toContain("triage-main-scale-collapse");
+    expect(supported).not.toContain("triage-main-slide");
+    expect(fallback).toContain("triage-main-slide-from-right");
+    expect(fallback).toContain("triage-main-slide-from-left");
+    expect(stage).toMatch(/--triage-pool-motion-delta: calc\(var\(--triage-pool-inline-size\) - var\(--triage-pool-compact-inline-size\)\);/);
+  });
+
+  it("runs every Pool and main-area animation only after the first toggle and outside reduced motion", () => {
+    const rules = stage.match(/[^{}]*\{[^{}]*\banimation: [^{}]*\}/g) ?? [];
+    expect(rules.length).toBe(5);
+    for (const rule of rules) {
+      expect(rule).toContain('[data-triage-pool-toggled="true"]');
+      expect(rule).toContain(":not(.transition-none)");
+    }
+  });
+
+  it("moves only with transform and opacity", () => {
+    for (const frames of stage.match(/@keyframes [\w-]+ \{[^]*?\n\}/g) ?? []) {
+      expect(frames).not.toMatch(/\b(width|inline-size|block-size|margin|padding|box-shadow)\b/);
+    }
+  });
+
+  it("travels one anchored bar between the collapsed Scratch switchers, guarded and hidden without a selection", () => {
+    const start = css.indexOf("@supports (anchor-name: --a) {");
+    const supported = css.slice(start, css.indexOf("@supports not (anchor-name: --a)", start));
+    expect(supported).toMatch(/\[aria-pressed="true"\] \{\s*anchor-name: --triage-pool-selected-switcher;/);
+    const bar = supported.match(/\[role="group"\]:has\(\[aria-pressed="true"\]\)::before \{[^}]*\}/)?.[0] ?? "";
+    expect(bar).toContain("position-anchor: --triage-pool-selected-switcher;");
+    expect(bar).toContain("inset-block: anchor(top) anchor(bottom);");
+    expect(bar).toContain("inset-inline-start: anchor(center);");
+    expect(bar).toContain("pointer-events: none;");
+    expect(bar).toContain("box-shadow: var(--theme-shadow-card);");
+    expect(supported).not.toMatch(/\[role="group"\]::before \{[^}]*content:/);
+  });
+
+  it("transitions the bar's block position on the shared token only outside reduced motion, never on first appearance", () => {
+    const start = css.indexOf("@supports (anchor-name: --a) {");
+    const supported = css.slice(start, css.indexOf("@supports not (anchor-name: --a)", start));
+    const travel = supported.match(/\.scratch-pool:not\(\.transition-none\) \.scratch-pool__compact-list > \[role="group"\]::before \{[^}]*\}/)?.[0] ?? "";
+    expect(travel).toContain("transition-duration: var(--triage-pool-motion-duration);");
+    expect(travel).toContain("transition-property: top, bottom;");
+    expect(supported.match(/transition-property:/g)?.length).toBe(2);
+  });
+
+  it("keeps the per-switcher bar and its size transition only where anchor positioning is unsupported", () => {
+    const fallback = css.slice(css.indexOf("@supports not (anchor-name: --a) {"));
+    expect(fallback).toMatch(/\[aria-pressed="true"\]::before \{[^}]*block-size: 32px;[^}]*inline-size: 8px;/);
+    expect(fallback).toMatch(/transition-property: transform, block-size, inline-size, background-color, box-shadow;/);
   });
 });
