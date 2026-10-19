@@ -378,9 +378,9 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 ## Task 177 — Realize Placement followed by Newly/Undo
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: your acceptance of Task 177 (Placement and Newly/Undo, light only)
-- Open: MI-2 (not reproduced, you decide Dropped or Deferred at phase close); MI-4 (bound to Task 179); MI-13, MI-14 (phase close); MI-17 (bound to Task 179)
+- Status: Accepted
+- Next: Task 178
+- Open: none for this task (MI-2 and MI-4 are carried as before; MI-13 and MI-14 are phase-close items; MI-17 is bound to Task 179)
 
 ### Log
 - Decision: MI-10, MI-11 and MI-12 marked [Closed] in the first Task 177 docs commit and removed from the Task 176 Open line, as recorded in the Task 176 Decision of 2026-10-18 (user, 2026-10-18).
@@ -466,3 +466,7 @@ Carried over: MI-9 and Close Advisory A2 from Phase 34 (`Issues_Deferred.md`), b
 - Please check: nothing further visual; accept the task when the ledger and plan look right.
 - Unresolved: Newly/Undo states not reachable live (checking, re-enabled, descendants, operation-locked, edit-blocked, pending, unknown, reconciling, not-applied, conflict) and Placement rail states (pending, unknown, reconciling, not-applied, stale) — named remainders; MI-17 (1024px NEW/Undo crowding) is bound to Task 179 with dark mode and the Pool collapse.
 - Review: `expert` reviewed the tooltip-projection change (no findings: state-based, terminal and retry states keep the rail, announcement and `aria-describedby` kept, search untouched), the neumorphism override of the shared `!important` rule (no findings: specificity wins for transform only, reduced motion yields no transition, disabled and step swaps cannot animate, buttons only) and the Staged unboxing (one medium finding — the source line and the full-target warning sharing a grid row → fixed above; the unboxed wrappers carry no role or label, the `role="status"` rail stays in the accessibility tree, Tab order Cancel then OK, no match on the Direct selection or Result Title steps).
+- Review (advisory, 2026-10-19, task finish): approve. Re-run here: `git diff --check 331fd67..HEAD`, `pnpm typecheck` and full `pnpm test` (113 files, 1750 passed); `pnpm build` not re-run, to keep `:3001` serving. Checked and cleared: code changes are the four L5 files within the user-approved additions; the `expert` review covered the tooltip projection, the shared `!important` override and the Staged unboxing, and its one medium finding is fixed in `6725877` and re-checked live; first judgments are recorded apart from the final passes; MI-16 closed and MI-17 bound to Task 179; Current state matches Git. Apply: the Task 178 note and the Task 179 note addition below. Not applied: none.
+- Task 178 note (from Task 177): (a) while Archive holds the shared lock, every NEW card may show the visible `Wait for the current action to finish.` rail — the same page-wide noise the user moved into the tooltip for `placement-open`; it stays visible by the canonical documents, so if it appears, stop for the user's decision (moving it needs a document change), do not change it; (b) carry the neumorphism Placement vocabulary into the Archive surfaces: information inset, actions raised; a Cancel that discards nothing stays neutral on hover, never a destructive colour; the hover lift transitions `transform` only inside the reduced-motion guard; (c) if the Archive confirmation has a header close ×, ask the user whether neumorphism hides it as Placement does.
+- Task 179 note (addition, from Task 177): (c) dark mode of the Task 177 Placement rules — plate, inset title well, inset Node/Bit tag, neutral Cancel hover tint, OK/Cancel contrast and the Undo tooltip plate; (d) at 1024px the OK focus ring was cut by about 4px at the column bottom (Stage 1 checkpoint) — recheck; (e) re-render or name again the Placement and Newly/Undo states not reachable live in Task 177.
+- Decision: Task 177 accepted (user, 2026-10-19)

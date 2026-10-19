@@ -15,7 +15,7 @@
 > Tasks 164–165 are historical, unaccepted `[ ]` transfer records.
 > Tasks 166–172 and 171A are accepted `[x]` and Phase 34 is closed; Tasks
 > 209–212 are accepted `[x]` and Phase 41 is closed (2026-10-16); Tasks
-> 173–176 and repair Task 176A are accepted `[x]`; Tasks 177–208 are `[ ]`.
+> 173–177 and repair Task 176A are accepted `[x]`; Tasks 178–208 are `[ ]`.
 > Phases 32–33 remain reserved.
 > **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
 > corrections, Tasks 209–212, from
@@ -2868,7 +2868,7 @@ the full gate; an `expert` review.
 
 **Commit message:** `fix(triage): close the staging commit-to-snapshot gap`.
 
-### Task 177: [ ] Realize Placement followed by Newly/Undo
+### Task 177: [x] Realize Placement followed by Newly/Undo
 
 **Files and actions:** bind L5's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force. User-approved addition (2026-10-18), Stage 1: realize the Placement recipe's Neumorphism user-adopted hierarchy (muted heading label with bottom spacing, inset title well, inset Node/Bit tag at the title's right, vertical Staged stack with OK above Cancel by CSS placement only, neutral Cancel hover and inset press, `transform`-only hover-lift transition outside reduced motion) and hide the header close button, as the DESIGN_TOKENS Neumorphism exception row states, in `globals.css` only; an element CSS cannot reach stops for the user. User-approved addition (2026-10-19), Stage 2, every theme: the ordinary Finder Undo `placement-open` reason moves from the visible rail to the existing above-action tooltip, as the Newly/Undo recipe's Ordinary Finder amendment and DESIGN_TOKENS "Three tooltip states only" state; `hierarchy-explorer.tsx` (`getOrdinaryNewlyUndoPresentation`) and `hierarchy-explorer.test.tsx` only; this supersedes the L5 Ordinary Finder amendment's two-state tooltip limit for that one reason in every later L5 task; search-result Undo keeps its visible rail; covered by the task's `expert` review.
 
