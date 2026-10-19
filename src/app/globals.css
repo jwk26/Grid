@@ -1486,6 +1486,19 @@
   line-height: 1.4;
 }
 
+/* Task 179 (MI-4): the panel is a grid whose single column was sized by its content, so an
+   unbreakable destination title (a run of about 154 characters) pushed the lines past the card
+   edge; the column takes the panel's width and the title and destination lines break anywhere. */
+.external-removal-panel {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.external-removal-panel__title,
+.external-removal-panel__destination {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
 .external-removal-panel__track {
   background: hsl(var(--muted));
   block-size: 4px;
@@ -3514,7 +3527,16 @@
 
 :root[data-color-theme="neumorphism"]
   [data-triage-role="external-removal-countdown-track"] {
-  box-shadow: inset 2px 2px 4px hsl(var(--foreground) / 0.18);
+  background: transparent;
+  block-size: 6px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-xs);
+}
+/* Task 179 (MI-4): the heavy full-ink bar becomes a soft fill inside the inset trough. */
+:root[data-color-theme="neumorphism"]
+  [data-triage-role="external-removal-countdown-track"] > span {
+  background: hsl(var(--foreground) / 0.5);
+  border-radius: 999px;
 }
 
 :root[data-color-theme="neumorphism"]
@@ -6989,6 +7011,43 @@
   margin-block: 6px 5px;
 }
 :root[data-color-theme="neumorphism"] .triage-fixed-context .triage-inline-editor__field { block-size: 30px; }
+
+/* Task 179 (MI-20): with the Pool open at 1024px the Context text column is about 100px, so the
+   `Selected Scratch` eyebrow wrapped to two lines and the title editor, its validation message
+   and the date no longer fit the 72px slot. When the Context plate is narrow (under 380px) the
+   eyebrow is hidden visually but stays in the accessibility tree (a clip, not `display: none`),
+   the validation message drops below the field and wraps, and the date steps aside while the
+   title is edited. */
+:root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context { container-type: inline-size; }
+@container (max-width: 380px) {
+  :root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context [data-triage-role="context-eyebrow-meta"] {
+    block-size: 1px;
+    clip-path: inset(50%);
+    inline-size: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context .triage-inline-editor {
+    margin-block: 4px 0;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context .triage-inline-editor__required {
+    display: block;
+    line-height: 14px;
+    margin-block-start: 4px;
+    max-inline-size: none;
+    overflow: visible;
+    position: static;
+    text-overflow: clip;
+    transform: none;
+    white-space: normal;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context:has(.triage-inline-editor) [data-triage-role="context-timestamp"] {
+    display: none;
+  }
+}
 :root[data-color-theme="neumorphism"] .triage-inline-editor__field[readonly] { color: hsl(var(--foreground) / 0.75); }
 :root[data-color-theme="neumorphism"] .triage-inline-editor__required { color: var(--triage-pool-destructive-ink); }
 :root[data-color-theme="neumorphism"] .triage-inline-editor__actions button,

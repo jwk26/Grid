@@ -1066,7 +1066,7 @@ describe("Neumorphism dark mode token parity (Task 179 Stage 3)", () => {
 
   it("redefines every light neumorphism token that holds a literal colour in the dark block", () => {
     const literal = [...light.matchAll(/(--[\w-]+):\s*([^;]+);/g)].filter(([, , value]) =>
-      /#[0-9a-fA-F]{3,8}\b|\bwhite\b|\bblack\b|rgba?\(/.test(value),
+      /#[0-9a-fA-F]{3,8}\b|\bwhite\b(?!-)|\bblack\b(?!-)|rgba?\(/.test(value),
     );
     expect(literal.length).toBeGreaterThan(10);
     const darkNames = names(dark);
@@ -1089,7 +1089,7 @@ describe("Neumorphism dark mode token parity (Task 179 Stage 3)", () => {
     for (const body of bodies) {
       for (const declaration of body.split(";")) {
         if (/^\s*--/.test(declaration)) continue;
-        expect(declaration, declaration.trim()).not.toMatch(/#[0-9a-fA-F]{3,8}\b|\bwhite\b|\bblack\b|rgba?\(/);
+        expect(declaration, declaration.trim()).not.toMatch(/#[0-9a-fA-F]{3,8}\b|\bwhite\b(?!-)|\bblack\b(?!-)|rgba?\(/);
       }
     }
   });
@@ -1100,5 +1100,32 @@ describe("Neumorphism dark mode token parity (Task 179 Stage 3)", () => {
       expect(light).toContain(`${token}: hsl(var(--foreground) / 0.5);`);
     }
     expect(css).toMatch(/\.scratch-pool \[data-triage-role="pool-total-count"\] \{[^}]*color: var\(--triage-pool-row-time-color\);/);
+  });
+});
+
+describe("External-removal panel long title and narrow Context (Task 179 Stage 4a)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+
+  it("keeps an unbreakable destination title inside the panel in every theme (MI-4, shared rule)", () => {
+    expect(css).toMatch(/^\.external-removal-panel \{\s*grid-template-columns: minmax\(0, 1fr\);\s*\}/m);
+    expect(css).toMatch(/^\.external-removal-panel__title,\s*\.external-removal-panel__destination \{\s*min-inline-size: 0;\s*overflow-wrap: anywhere;\s*\}/m);
+  });
+
+  it("draws the neumorphism countdown as a soft fill in an inset trough", () => {
+    expect(css).toMatch(/neumorphism"\]\s*\[data-triage-role="external-removal-countdown-track"\] \{\s*background: transparent;\s*block-size: 6px;\s*border-radius: 999px;\s*box-shadow: var\(--theme-shadow-inset-xs\);/);
+    expect(css).toMatch(/external-removal-countdown-track"\] > span \{\s*background: hsl\(var\(--foreground\) \/ 0\.5\);/);
+  });
+
+  it("hides the Context eyebrow visually, not from assistive technology, when the plate is narrow (MI-20)", () => {
+    const start = css.indexOf("/* Task 179 (MI-20)");
+    const stage = css.slice(start, css.indexOf("\n}\n", css.indexOf("@container (max-width: 380px)", start) + 2000));
+    expect(stage).toContain('.triage-fixed-context { container-type: inline-size; }');
+    const query = stage.slice(stage.indexOf("@container (max-width: 380px) {"));
+    const eyebrow = query.match(/\[data-triage-role="context-eyebrow-meta"\] \{[^}]*\}/)?.[0] ?? "";
+    expect(eyebrow).toContain("clip-path: inset(50%);");
+    expect(eyebrow).toContain("position: absolute;");
+    expect(eyebrow).not.toMatch(/display:\s*none|visibility:\s*hidden/);
+    expect(query).toMatch(/\.triage-inline-editor__required \{[^}]*position: static;[^}]*white-space: normal;/);
+    expect(query).toMatch(/:has\(\.triage-inline-editor\) \[data-triage-role="context-timestamp"\] \{\s*display: none;/);
   });
 });
