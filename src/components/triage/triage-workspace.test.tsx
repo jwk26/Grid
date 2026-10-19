@@ -233,9 +233,11 @@ vi.mock("@/components/triage/breakdown-panel", async () => {
       completion,
       onAddDraftBlockerChange,
       overTargetId,
+      selectedScratch,
       successSignal,
     }: {
       activeDragItem?: TriageDragItem;
+      selectedScratch?: { id: string; title: string } | null;
       completion?: typeof completionState;
       onAddDraftBlockerChange?: (blocked: boolean) => void;
       overTargetId?: string | null;
@@ -273,6 +275,8 @@ vi.mock("@/components/triage/breakdown-panel", async () => {
           }
           data-withdrawal-reason={completion?.withdrawalReason ?? undefined}
           data-over-target-id={overTargetId ?? undefined}
+          data-selected-scratch-id={selectedScratch?.id}
+          data-selected-scratch-title={selectedScratch?.title}
           data-success-kind={successSignal?.kind}
           data-success-operation-id={successSignal?.operationId}
           data-success-row-id={successSignal?.rowId}
@@ -681,6 +685,23 @@ describe("TriageWorkspace", () => {
     expect(archiveScratchMock).toHaveBeenCalledWith(
       completionState.eligibility.scratch,
     );
+  });
+
+  it("passes the selected Scratch from the workspace read to the Breakdown panel (MI-22)", () => {
+    inboxState.activeScratchBits = [
+      { id: "scratch-1", title: "First Scratch" },
+      { id: "scratch-2", title: "Second Scratch" },
+    ];
+    render(<TriageWorkspace node={createNode()} />);
+    const panel = () => screen.getByTestId("breakdown-panel");
+    expect(panel()).toHaveAttribute("data-selected-scratch-id", "scratch-1");
+    expect(panel()).toHaveAttribute("data-selected-scratch-title", "First Scratch");
+
+    act(() => useTriageStore.setState({ selectedScratchId: "scratch-2" }));
+    expect(panel()).toHaveAttribute("data-selected-scratch-title", "Second Scratch");
+
+    act(() => useTriageStore.setState({ selectedScratchId: "scratch-9" }));
+    expect(panel()).not.toHaveAttribute("data-selected-scratch-id");
   });
 
   it("marks the shell as toggled only after the Pool changes size, and keeps the mark once set", () => {

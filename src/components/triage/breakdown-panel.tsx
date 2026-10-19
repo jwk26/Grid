@@ -42,7 +42,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useInbox } from "@/hooks/use-inbox";
 import type { ArchiveScratchCoordinatorState } from "@/hooks/use-archive-scratch";
 import {
   useScratchBreakdowns,
@@ -72,6 +71,7 @@ import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { useTriageStore } from "@/stores/triage-store";
+import type { Bit } from "@/types";
 import { scratchTrashDisabledCopy } from "./scratch-trash-dialog";
 
 type OpenEditorSnapshot = NonNullable<ConditionalEditorSnapshot>;
@@ -1187,6 +1187,7 @@ export function BreakdownPanel({
   completion,
   onAddDraftBlockerChange,
   overTargetId = null,
+  selectedScratch,
   authoritativeStagedSourceIds,
   stagedSourceIds,
   successSignal = null,
@@ -1197,6 +1198,11 @@ export function BreakdownPanel({
   completion?: BreakdownCompletionProjection;
   onAddDraftBlockerChange?: (blocked: boolean) => void;
   overTargetId?: string | null;
+  /**
+   * The selected Scratch, read once by the workspace. The panel remounts on every Scratch
+   * switch, so its own read would start empty and flash `Unknown Scratch`.
+   */
+  selectedScratch: Bit | null;
   /** Staged sources plus pending, unknown, reconciling and held Stage sources. */
   stagedSourceIds: ReadonlySet<string>;
   /** Only sources with a listed candidate; an open editor is invalidated by these alone. */
@@ -1243,9 +1249,9 @@ export function BreakdownPanel({
   const setBreakdownCreatedAtSort = useTriagePreferencesStore(
     (state) => state.setBreakdownCreatedAtSort,
   );
-  const { activeScratchBits } = useInbox();
   const {
     breakdowns,
+    isReady: isBreakdownReady,
     consumedBreakdownCount,
     hasObservedBreakdownHistory,
     isArchiveEligible,
@@ -1325,8 +1331,6 @@ export function BreakdownPanel({
     pendingDelete?.scratchBitId === selectedScratchId
       ? pendingDelete.breakdownId
       : null;
-  const selectedScratch =
-    activeScratchBits.find((bit) => bit.id === selectedScratchId) ?? null;
   const rawAddOperation =
     operations.find((operation) => operation.kind === "add") ?? null;
   const addOperation =
@@ -2355,7 +2359,8 @@ export function BreakdownPanel({
           )}
         </div>
 
-        {breakdownRenderItems.length > 0 ? (
+        {/* Until the first read resolves there are no rows to show and no empty or completion state to claim. */}
+        {!isBreakdownReady ? null : breakdownRenderItems.length > 0 ? (
           <div className="mt-2" role="list" data-triage-role="breakdown-row-list">
             {breakdownRenderItems.map((item) =>
               item.kind === "recovery" ? (

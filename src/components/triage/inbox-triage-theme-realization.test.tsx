@@ -33,7 +33,7 @@ vi.mock("@/hooks/use-triage-departure", () => ({
 const l2 = vi.hoisted(() => ({ stagedIds: new Set<string>() }));
 vi.mock("@/hooks/use-scratch-breakdowns", () => ({
   useScratchTitleBlockerContext: () => ({ getSnapshot: () => null, setSnapshot: vi.fn(), subscribe: () => () => {} }),
-  useScratchBreakdowns: () => ({ breakdowns: [{ id: "idea", scratchBitId: "first", content: "Prepare the research summary", order: 0, createdAt: 2000, consumedAt: null, version: 1 }],
+  useScratchBreakdowns: () => ({ isReady: true, breakdowns: [{ id: "idea", scratchBitId: "first", content: "Prepare the research summary", order: 0, createdAt: 2000, consumedAt: null, version: 1 }],
     consumedBreakdownCount: 0, hasObservedBreakdownHistory: true, isArchiveEligible: false, operations: [],
     editor: { snapshot: null, focusIntent: null, openScratchTitle: vi.fn(), openBreakdown: vi.fn() },
     addBreakdown: vi.fn(), deleteBreakdown: vi.fn() }),
@@ -41,8 +41,10 @@ vi.mock("@/hooks/use-scratch-breakdowns", () => ({
 
 // The panel takes staged-source state as props from the workspace.
 function BreakdownPanel() {
+  const selectedScratchId = useTriageStore((state) => state.selectedScratchId);
   return (
     <RealBreakdownPanel
+      selectedScratch={inbox.bits.find((bit) => bit.id === selectedScratchId) ?? null}
       archiveCandidateClear={l2.stagedIds.size === 0}
       authoritativeStagedSourceIds={l2.stagedIds}
       stagedSourceIds={l2.stagedIds}

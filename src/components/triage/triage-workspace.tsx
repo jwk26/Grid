@@ -2318,6 +2318,9 @@ function TriageWorkspaceContent({
               >
                 <BreakdownPanel
                   key={selectedScratchId ?? "none"}
+                  selectedScratch={
+                    activeScratchBits.find((bit) => bit.id === selectedScratchId) ?? null
+                  }
                   archiveCandidateClear={
                     stagedCandidates.eligibility?.archiveCandidateClear ?? true
                   }

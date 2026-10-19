@@ -397,6 +397,7 @@ beforeEach(() => {
         : (triageStoreState.stagedCandidates[scratchBitId] ?? []).length;
     return {
       breakdowns: activeRows,
+      isReady: true,
       consumedBreakdownCount: consumedRows.length,
       hasObservedBreakdownHistory: rows.length > 0,
       isArchiveEligible:
@@ -450,8 +451,12 @@ function BreakdownPanel(
     (state: typeof triageStoreState) => state.selectedScratchId,
   ) as string | null;
   const staged = useStagedCandidatesMock(selectedScratchId);
+  const { activeScratchBits } = useInboxMock() as { activeScratchBits: Bit[] };
   return (
     <RealBreakdownPanel
+      selectedScratch={
+        activeScratchBits.find((bit) => bit.id === selectedScratchId) ?? null
+      }
       archiveCandidateClear={staged.counts.authoritative === 0}
       authoritativeStagedSourceIds={staged.eligibility.stagedSourceIds}
       stagedSourceIds={staged.eligibility.stagedSourceIds}
@@ -459,6 +464,79 @@ function BreakdownPanel(
     />
   );
 }
+
+describe("BreakdownPanel first read after a Scratch switch (MI-22)", () => {
+  const readyState = (isReady: boolean, breakdowns: unknown[] = []) => ({
+    breakdowns,
+    isReady,
+    consumedBreakdownCount: 0,
+    hasObservedBreakdownHistory: false,
+    isArchiveEligible: false,
+    operations: [],
+    editor: editorState,
+    addBreakdown: hookState.createBreakdown,
+    reconcileAddBreakdown: vi.fn(),
+    deleteBreakdown: hookState.deleteBreakdown,
+    reconcileDeleteBreakdown: vi.fn(),
+  });
+
+  it("shows the passed Scratch title and date on the first render, never Unknown Scratch", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    useInboxMock.mockReturnValue({
+      activeScratchBits: [createBit({ id: "scratch-1", title: "Passed title", createdAt: Date.now() })],
+    });
+    useScratchBreakdownsMock.mockReturnValue(readyState(false));
+    render(<BreakdownPanel />);
+
+    expect(screen.getByLabelText("Selected Scratch: Passed title")).toBeInTheDocument();
+    expect(screen.queryByText("Unknown Scratch")).not.toBeInTheDocument();
+    expect(document.querySelector('[data-triage-role="context-timestamp"]')).not.toBeNull();
+  });
+
+  it("renders no rows, empty or completion state before the Breakdown read resolves", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    useScratchBreakdownsMock.mockReturnValue({
+      ...readyState(false),
+      consumedBreakdownCount: 1,
+      hasObservedBreakdownHistory: true,
+      isArchiveEligible: true,
+    });
+    render(
+      <BreakdownPanel
+        completion={{
+          presentation: "complete",
+          archive: vi.fn(async () => true),
+          cancel: vi.fn(),
+          reopen: vi.fn(),
+        } as never}
+      />,
+    );
+
+    expect(screen.queryByTestId("breakdown-empty-state")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reopen" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    expect(screen.queryByText("All items processed")).not.toBeInTheDocument();
+    expect(screen.queryByText("Scratch complete")).not.toBeInTheDocument();
+  });
+
+  it("renders the empty state after an empty read and the rows after a read with rows", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    useScratchBreakdownsMock.mockReturnValue(readyState(false));
+    const view = render(<BreakdownPanel />);
+    expect(screen.queryByTestId("breakdown-empty-state")).not.toBeInTheDocument();
+
+    useScratchBreakdownsMock.mockReturnValue(readyState(true));
+    view.rerender(<BreakdownPanel />);
+    expect(screen.getByTestId("breakdown-empty-state")).toHaveAttribute("data-triage-state", "never-used");
+
+    useScratchBreakdownsMock.mockReturnValue(
+      readyState(true, [createScratchBreakdown({ id: "row-1", content: "First row" })]),
+    );
+    view.rerender(<BreakdownPanel />);
+    expect(screen.queryByTestId("breakdown-empty-state")).not.toBeInTheDocument();
+    expect(screen.getByText("First row")).toBeInTheDocument();
+  });
+});
 
 describe("BreakdownPanel", () => {
   it("shows an authoritative Unstage signal once, preserves focus, and clears it at 1600ms", async () => {
@@ -574,6 +652,7 @@ describe("BreakdownPanel", () => {
 
     const view = render(
       <RealBreakdownPanel
+        selectedScratch={null}
         archiveCandidateClear
         authoritativeStagedSourceIds={new Set()}
         stagedSourceIds={new Set(["row-1"])}
@@ -589,6 +668,7 @@ describe("BreakdownPanel", () => {
 
     view.rerender(
       <RealBreakdownPanel
+        selectedScratch={null}
         archiveCandidateClear
         authoritativeStagedSourceIds={new Set()}
         stagedSourceIds={new Set()}
@@ -608,6 +688,7 @@ describe("BreakdownPanel", () => {
     ];
     const view = render(
       <RealBreakdownPanel
+        selectedScratch={null}
         archiveCandidateClear
         authoritativeStagedSourceIds={new Set()}
         stagedSourceIds={new Set()}
@@ -627,6 +708,7 @@ describe("BreakdownPanel", () => {
 
     view.rerender(
       <RealBreakdownPanel
+        selectedScratch={null}
         archiveCandidateClear
         authoritativeStagedSourceIds={new Set()}
         stagedSourceIds={new Set(["row-1"])}
@@ -636,6 +718,7 @@ describe("BreakdownPanel", () => {
 
     view.rerender(
       <RealBreakdownPanel
+        selectedScratch={null}
         archiveCandidateClear={false}
         authoritativeStagedSourceIds={new Set(["row-1"])}
         stagedSourceIds={new Set(["row-1"])}
@@ -657,6 +740,7 @@ describe("BreakdownPanel", () => {
     };
     const view = render(
       <RealBreakdownPanel
+        selectedScratch={null}
         archiveCandidateClear={false}
         authoritativeStagedSourceIds={new Set(["row-1"])}
         stagedSourceIds={new Set(["row-1"])}
@@ -667,6 +751,7 @@ describe("BreakdownPanel", () => {
 
     view.rerender(
       <RealBreakdownPanel
+        selectedScratch={null}
         archiveCandidateClear
         authoritativeStagedSourceIds={new Set()}
         stagedSourceIds={new Set()}
@@ -3970,6 +4055,7 @@ describe("BreakdownPanel", () => {
               ? left.createdAt - right.createdAt
               : right.createdAt - left.createdAt,
           ),
+        isReady: true,
         consumedBreakdownCount: 0,
         hasObservedBreakdownHistory: true,
         isArchiveEligible: false,
@@ -4049,6 +4135,7 @@ describe("BreakdownPanel", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     useScratchBreakdownsMock.mockReturnValue({
       breakdowns: [],
+      isReady: true,
       consumedBreakdownCount: 0,
       hasObservedBreakdownHistory: false,
       isArchiveEligible: false,
@@ -4069,6 +4156,7 @@ describe("BreakdownPanel", () => {
 
     useScratchBreakdownsMock.mockReturnValue({
       breakdowns: [],
+      isReady: true,
       consumedBreakdownCount: 0,
       hasObservedBreakdownHistory: true,
       isArchiveEligible: false,
@@ -4093,6 +4181,7 @@ describe("BreakdownPanel", () => {
     useInboxMock.mockReturnValue({ activeScratchBits: [] });
     useScratchBreakdownsMock.mockReturnValue({
       breakdowns: [],
+      isReady: true,
       consumedBreakdownCount: 1,
       hasObservedBreakdownHistory: true,
       isArchiveEligible: true,
@@ -4112,6 +4201,7 @@ describe("BreakdownPanel", () => {
     });
     useScratchBreakdownsMock.mockReturnValue({
       breakdowns: [],
+      isReady: true,
       consumedBreakdownCount: 1,
       hasObservedBreakdownHistory: true,
       isArchiveEligible: false,
