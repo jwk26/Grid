@@ -2968,6 +2968,17 @@ runs after Task 179 is accepted and before Phase 35 closes. Scope review:
   is hidden, the identity box drops its top stripe and draws a filled System 7
   checkbox (an ink square with a check in `--triage-context-surface`) in CSS,
   with no new asset file and no JSX; the struck-through title stays.
+- User-approved addition (2026-10-19), Stage 3, every theme (MI-22): a Scratch
+  switch remounts `BreakdownPanel` (`key={selectedScratchId}`), and the new
+  instance's own `useInbox()` and `useScratchBreakdowns()` start empty, so for
+  one to three frames the Context reads `Unknown Scratch` without its date (its
+  texts move 9–10px) and the rows area shows the ordinary empty state before the
+  rows arrive. `src/components/triage/triage-workspace.tsx` passes the selected
+  Scratch, from its existing `useInbox()`, to `BreakdownPanel` as a prop;
+  `src/components/triage/breakdown-panel.tsx` drops its own `useInbox()` call
+  and, while `useScratchBreakdowns` is not `isReady`, renders neither rows nor
+  an empty or completion state in the rows area; their tests. The
+  `key={selectedScratchId}` remount stays.
 - No store, copy, hook or repository change.
 
 **Dependencies:** Task 179 accepted. Phase 35 Final Close cannot start before
@@ -2995,6 +3006,12 @@ the Task 177 Undo tooltip keeps its behavior except for the mutual exclusion.
 - (b) Retro Mac, `Scratch complete`: the identity box shows the checkbox in
   light and dark; every other state keeps the folder; other themes are
   unchanged.
+- Stage 3 (MI-22): in every theme, switching the selected Scratch shows the new
+  Scratch's title and date in their places from the first frame, never
+  `Unknown Scratch`, and the rows area never shows `Add a note...`, `All items
+  processed` or `Scratch complete` before the new Scratch's rows are read; a
+  Scratch with no rows still shows its empty state. Add, edit, delete,
+  completion, Archive and the external-removal handoff behave as before.
 - The user's first judgment of each stage is recorded apart from the final
   disposition.
 
@@ -3009,6 +3026,11 @@ Mounted checks in Neumorphism and Retro Mac light/dark at 1920×1080 and
 1024px, including the compact NEW/Undo cards from Task 179 and a 100-character
 title, and a GridDO spot check of the base plate. (b) Retro Mac light/dark
 complete and non-complete Context with a long title at 1920×1080 and 1440px.
+Stage 3: a panel test that the empty state is not rendered before the
+Breakdown read resolves and is rendered after an empty read, and that the
+Context shows the passed Scratch title on the first render; a frame probe of
+Scratch switches (rows, empty, complete) in Neumorphism and Retro Mac showing no
+`Unknown Scratch` frame and no empty-state frame before rows.
 Existing region tests keep passing. Full logical gates.
 
 **Commit message:** `fix(triage): show truncated Explorer titles and the Retro Mac complete icon`.
@@ -3580,9 +3602,9 @@ This register covers every implementation/test path declared by two or more task
 | `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 176A, 179A, 210, 211; THEMES |
 | `triage-state` | `src/stores/triage-store.ts`; `src/stores/triage-store.test.ts` | 127, 130, 134, 141, 150, 161, 163, 209, 212 |
 | `triage-preferences` | `src/stores/triage-preferences-store.ts`; `src/stores/triage-preferences-store.test.ts` | 127, 130, 132 |
-| `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162, 176A, 210, 211 (conditional); BREAKDOWN, ARCHIVE |
+| `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162, 176A, 179A, 210, 211 (conditional); BREAKDOWN, ARCHIVE |
 | `breakdown-component-test` | `src/components/triage/breakdown-panel.test.tsx` | 101 plus every `breakdown-component` writer |
-| `workspace-component` | `src/components/triage/triage-workspace.tsx` | 129, 136, 137, 139, 140, 141, 145, 149, 152, 155, 159, 160, 161, 163, 171A, 176A, 209 (handoff extraction), 210, 212; POOL, BREAKDOWN, STAGING, PLACE, ARCHIVE |
+| `workspace-component` | `src/components/triage/triage-workspace.tsx` | 129, 136, 137, 139, 140, 141, 145, 149, 152, 155, 159, 160, 161, 163, 171A, 176A, 179A, 209 (handoff extraction), 210, 212; POOL, BREAKDOWN, STAGING, PLACE, ARCHIVE |
 | `workspace-component-test` | `src/components/triage/triage-workspace.test.tsx` | 101 plus every `workspace-component` writer |
 | `pool-component` | `src/components/triage/scratch-pool.tsx` | 130, 136, 141, 144, 161, 210, 212 (conditional); POOL |
 | `pool-component-test` | `src/components/triage/scratch-pool.test.tsx` | 101 plus every `pool-component` writer |
