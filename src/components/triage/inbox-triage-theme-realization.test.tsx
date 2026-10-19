@@ -1053,3 +1053,52 @@ describe("Neumorphism editor focus ring room and narrow newly placed cards (Task
     expect(query).not.toMatch(/content:\s*""/);
   });
 });
+
+describe("Neumorphism dark mode token parity (Task 179 Stage 3)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const blockOf = (selector: string) => {
+    const start = css.indexOf(`${selector} {`);
+    return css.slice(start, css.indexOf("\n}\n", start));
+  };
+  const light = blockOf(':root[data-color-theme="neumorphism"]');
+  const dark = blockOf('.dark[data-color-theme="neumorphism"]');
+  const names = (block: string) => new Set([...block.matchAll(/(--[\w-]+):/g)].map((m) => m[1]));
+
+  it("redefines every light neumorphism token that holds a literal colour in the dark block", () => {
+    const literal = [...light.matchAll(/(--[\w-]+):\s*([^;]+);/g)].filter(([, , value]) =>
+      /#[0-9a-fA-F]{3,8}\b|\bwhite\b|\bblack\b|rgba?\(/.test(value),
+    );
+    expect(literal.length).toBeGreaterThan(10);
+    const darkNames = names(dark);
+    for (const [, name] of literal) {
+      expect(darkNames.has(name), `${name} has no dark value`).toBe(true);
+    }
+  });
+
+  it("steps the Context eyebrow and date down in light (accepted exception) and meets 4.5:1 in dark", () => {
+    expect(light).toContain("--triage-context-meta-ink: hsl(var(--foreground) / 0.4);");
+    expect(dark).toContain("--triage-context-meta-ink: hsl(var(--foreground) / 0.55);");
+    for (const role of ["context-eyebrow-meta", "context-timestamp"]) {
+      expect(css).toMatch(new RegExp(`\\[data-triage-role="${role}"\\] \\{[^}]*color: var\\(--triage-context-meta-ink\\);`));
+    }
+  });
+
+  it("keeps literal colours out of the neumorphism rules: they go through tokens", () => {
+    const rules = css.slice(css.indexOf("/* Neumorphism L1 (Task 173)"));
+    const bodies = [...rules.matchAll(/:root\[data-color-theme="neumorphism"\][^{}]*\{([^{}]*)\}/g)].map((m) => m[1]);
+    for (const body of bodies) {
+      for (const declaration of body.split(";")) {
+        if (/^\s*--/.test(declaration)) continue;
+        expect(declaration, declaration.trim()).not.toMatch(/#[0-9a-fA-F]{3,8}\b|\bwhite\b|\bblack\b|rgba?\(/);
+      }
+    }
+  });
+
+  it("lifts the Pool dates, selected and focused meta and the count to at least 4.5:1 on the dark plate", () => {
+    for (const token of ["--triage-pool-row-time-color", "--triage-pool-row-selected-meta", "--triage-pool-row-focus-meta"]) {
+      expect(dark).toContain(`${token}: hsl(var(--foreground) / 0.55);`);
+      expect(light).toContain(`${token}: hsl(var(--foreground) / 0.5);`);
+    }
+    expect(css).toMatch(/\.scratch-pool \[data-triage-role="pool-total-count"\] \{[^}]*color: var\(--triage-pool-row-time-color\);/);
+  });
+});

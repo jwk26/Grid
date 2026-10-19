@@ -524,6 +524,8 @@
   --theme-shadow-card-hover: 7px 7px 14px #c5c9d1, -7px -7px 14px #ffffff;
   --triage-breakdown-grip-hover-bg: color-mix(in srgb, var(--page-bg) 55%, white);
   --triage-context-marker-working: #2fbf8f;
+  /* Task 179: the Context eyebrow and date step below the title: user-accepted exception in light (about 2.1:1). */
+  --triage-context-meta-ink: hsl(var(--foreground) / 0.4);
   --triage-context-marker-complete: hsl(var(--foreground) / 0.45);
 
   --calendar-cell-bg: var(--page-bg);
@@ -562,6 +564,12 @@
   --triage-breakdown-grip-hover-bg: color-mix(in srgb, var(--page-bg) 92%, white);
   --triage-context-marker-working: #4fd6a8;
   --triage-context-marker-complete: hsl(var(--foreground) / 0.5);
+  /* Task 179: dark meets 4.5:1 (5.05:1) for the Context eyebrow and date, the same step as the Pool meta. */
+  --triage-context-meta-ink: hsl(var(--foreground) / 0.55);
+  /* Task 179: Pool dates and count read 4.41:1 at 0.5 on the dark plate; 0.55 gives 5.05:1 (light stays 0.5). */
+  --triage-pool-row-time-color: hsl(var(--foreground) / 0.55);
+  --triage-pool-row-selected-meta: hsl(var(--foreground) / 0.55);
+  --triage-pool-row-focus-meta: hsl(var(--foreground) / 0.55);
   --calendar-cell-shadow: 4px 4px 8px #080808, -4px -4px 8px #181818;
   --calendar-today-shadow: inset 4px 4px 8px #080808, inset -4px -4px 8px #181818;
 }
@@ -6201,7 +6209,7 @@
   block-size: auto;
   border-radius: 999px;
   box-shadow: var(--theme-shadow-inset-sm);
-  color: hsl(var(--foreground) / 0.5);
+  color: var(--triage-pool-row-time-color);
   flex-shrink: 0;
   font-size: 10px;
   font-weight: 600;
@@ -6650,7 +6658,7 @@
   box-shadow: var(--theme-shadow-inset-xs);
 }
 :root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-eyebrow-meta"] {
-  color: hsl(var(--foreground) / 0.4);
+  color: var(--triage-context-meta-ink);
   letter-spacing: 0.18em;
 }
 :root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-title"] {
@@ -6658,8 +6666,8 @@
   font-weight: 700;
 }
 :root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-timestamp"] {
-  /* User-accepted contrast exception (about 2.1:1) for these two roles only; dark value in Task 179. */
-  color: hsl(var(--foreground) / 0.4);
+  /* User-accepted contrast exception (about 2.1:1 in light) for these two roles only; the dark value is 0.55 (5.05:1). */
+  color: var(--triage-context-meta-ink);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
