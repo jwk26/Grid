@@ -15,7 +15,8 @@
 > Tasks 164–165 are historical, unaccepted `[ ]` transfer records.
 > Tasks 166–172 and 171A are accepted `[x]` and Phase 34 is closed; Tasks
 > 209–212 are accepted `[x]` and Phase 41 is closed (2026-10-16); Tasks
-> 173–177 and repair Task 176A are accepted `[x]`; Tasks 178–208 are `[ ]`.
+> 173–178 and repair Task 176A are accepted `[x]`; Task 179, repair Task 179A
+> and Tasks 180–208 are `[ ]`.
 > Phases 32–33 remain reserved.
 > **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
 > corrections, Tasks 209–212, from
@@ -184,6 +185,7 @@ boundaries. No canonical Task 164 receipt or experiment fingerprint is reused.
                           →209→210→211→212  Phase 41 Scratch Trash hotfix
                                           └→173→174→175→176→177→178→179  Neumorphism
                                                         └176A┘ (repair; gates 177)
+                                                                    └179A (repair; after 179, gates Phase 35 close)
                           →180→181→182→183→184→185→186  Terminal
                           →187→188→189→190→191→192→193  Claymorphism + Origami
                           →194→195→196→197→198→199→200  GridDO + Tiny Desk
@@ -213,8 +215,8 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 34 | Completed | [Retro Mac regional realization](execution-plan/archive/phase-34.md) | 166–172 + 171A | Accepted and archived; MI-5/6/9 and close Advisory A2 carried in `Issues_Deferred.md`, MI-9 and A2 bound to Task 178. |
 | Phase 41 | Completed | [Scratch Trash and post-Phase-34 Inbox corrections](execution-plan/archive/phase-41.md) (ran before Phase 35) | 209–212 | Accepted and archived; MI-2 carried in `Issues_Deferred.md` and bound to Task 180. |
-| Phase 35 | In progress | Neumorphism, region-by-region then supported-mode conformance | 173–179 + 176A | 172 accepted + Phase 41 close/main sync. |
-| Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 accepted + Phase 35 close/main sync. |
+| Phase 35 | In progress | Neumorphism, region-by-region then supported-mode conformance | 173–179 + 176A + 179A | 172 accepted + Phase 41 close/main sync. |
+| Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 and 179A accepted + Phase 35 close/main sync. |
 | Phase 37 | Planned / unstarted | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
 | Phase 38 | Planned / unstarted | GridDO + Tiny Desk, one shared writer | 194–200 | 193 accepted + Phase 37 close/main sync; both themes require regional dispositions. |
 | Phase 39 | Planned / unstarted | Graphite, region-by-region then supported-mode conformance | 201–207 | 200 accepted + Phase 38 close/main sync. |
@@ -258,7 +260,7 @@ to the owners named in the inventories.
 | `UF-14` | Stage with source validation, pending projection, result, and navigation guard. | 121, 145, 147, 176A; STAGING, BREAKDOWN |
 | `UF-15` | Unstage through transient targets, restoring order/focus without success toast. | 121, 145, 148, 176A; STAGING, BREAKDOWN |
 | `UF-16` | Remote candidate arrival, orphan proof/cleanup, invalidation, alert, and drag release. | 122, 146, 147, 176A; STAGING |
-| `UF-17` | Explorer navigation/re-entry, full labels, anchoring, and valid fallback. | 127, 134, 150; EXPLORER |
+| `UF-17` | Explorer navigation/re-entry, full labels, anchoring, and valid fallback. | 127, 134, 150, 179A; EXPLORER |
 | `UF-18` | Dedicated whole-hierarchy search with pre-search/results/loading/stale/error/duplicates. | 114, 135, 151, 171A; EXPLORER |
 | `UF-19` | Search result reveal/navigation/close semantics, DnD interruption, and result Undo. | 151, 158; EXPLORER, PLACE |
 | `UF-20` | Staged placement through target-column confirmation and atomic mutation. | 123, 152, 153; PLACE |
@@ -2482,6 +2484,20 @@ classes for the `inbox-explorer` presentation (every Explorer Bit, not only
 overdue or completed ones), with its direct test in `bit-card.test.tsx`; the
 ordinary Grid keeps the blink. No other card change is granted.
 
+**Explorer truncated-title amendment (user-adopted, 2026-10-19):** per SPEC
+"Explorer truncated titles", Q01 approves exactly these internal-card changes
+for all themes, owned by Task 179A and granted by the user's approval of this
+amendment: in `src/components/grid/node-card.tsx` and `bit-card.tsx`, for the
+`inbox-explorer` presentation only, (1) a tooltip trigger on
+`explorer-card-title` alone, opened only while the title is truncated; (2) a
+card-root `:focus-visible` open/close for that tooltip; (3) an explorer-only
+read of the active drag from `@dnd-kit/core` `useDndContext` that keeps it
+closed during a drag; (4) the existing Undo tooltip made controlled, with the
+same behavior, only so that the two tooltips exclude each other. Direct tests
+are in `node-card.test.tsx` and `bit-card.test.tsx`. The consumer,
+`hierarchy-explorer.tsx` (`NodeDropCell`, `BitContextRow`), and the ordinary
+Grid card are unchanged. No other card change is granted.
+
 ### L5 — Placement, then Newly/Undo
 
 **Files and actions:** modify `src/app/globals.css` for assigned Placement/
@@ -2918,6 +2934,85 @@ User-approved addition (2026-10-19), Stage 3, every theme: per the `DP-VQ11` ame
 
 **Commit message:** `feat(triage): realize neumorphism theme-conformance`.
 
+### Task 179A: [ ] Repair Explorer truncated titles and the Retro Mac complete Context icon
+
+A bounded repair of two user requests from the Task 179 Stage 2 visual check
+(2026-10-19, `docs/issues/Issues_Phase_35.md` Task 179). (a) applies to every
+theme through shared JSX; (b) changes the accepted Retro Mac Context only. It
+runs after Task 179 is accepted and before Phase 35 closes. Scope review:
+[Task 179A repair scope](reviews/phase-35-task-179A-scope-review.md).
+
+**Files and actions:**
+- (a) `src/components/grid/node-card.tsx`, `bit-card.tsx` and their tests,
+  exactly the four changes of the L4 Explorer truncated-title amendment: the
+  title tooltip is rendered through a small sub-component used only for
+  `inbox-explorer`; one card-local state (`"title" | "undo" | null`) drives
+  both tooltips through `open`/`onOpenChange`; the title opens on card focus
+  only when the card root itself is the target and matches `:focus-visible`;
+  truncation is measured at open (`scrollWidth > clientWidth`, or a `Range`
+  width against the element width to catch sub-pixel overflow), and a resize
+  while open does not close it; side `top` and open delay 0, as the Undo
+  tooltip; the trigger is `asChild` on `explorer-card-title` only, the card's
+  `aria-label`/`aria-describedby` stay untouched and the title
+  `TooltipContent` is `aria-hidden="true"`. `hierarchy-explorer.tsx` and
+  `grid-explorer-search-results.tsx` are unchanged (search-result titles wrap,
+  with no ellipsis).
+- `src/app/globals.css`: the base plate for `explorer-title-tooltip` and the
+  Retro Mac rules (b) go before the `/* Neumorphism L1 (Task 173)` marker, next
+  to the base `newly-undo-tooltip` rule and the Retro Mac complete-title rule;
+  the Neumorphism plate extends its Task 177 Undo plate rule, before the L6
+  marker. No theme-id branch in components.
+- `src/components/triage/inbox-triage-theme-realization.test.tsx`.
+- (b) `src/app/globals.css` in the Retro Mac scope only, from the existing
+  `context-signature-plate[data-triage-state="complete"]` selector: the folder
+  is hidden, the identity box drops its top stripe and draws a filled System 7
+  checkbox (an ink square with a check in `--triage-context-surface`) in CSS,
+  with no new asset file and no JSX; the struck-through title stays.
+- No store, copy, hook or repository change.
+
+**Dependencies:** Task 179 accepted. Phase 35 Final Close cannot start before
+this task is accepted.
+
+**Authority / flows:** SPEC "Explorer truncated titles" (2026-10-19); the
+Explorer recipe's truncated-title amendment; DESIGN_TOKENS Newly/Undo central
+roles; the Selected Scratch Context recipe, Retro Mac (2026-10-19); UF-17 and
+UF-19 preservation; AF-05/10; all NEG. DP-VQ06-EXPLORER/07/10 are unchanged;
+the Task 177 Undo tooltip keeps its behavior except for the mutual exclusion.
+
+**Observable acceptance:**
+- (a) In every theme, an Explorer Node or Bit title cut by its ellipsis shows
+  the full stored title above it while the pointer is over the title, or while
+  the card root holds visible keyboard focus (a Node card reached by Tab, or a
+  Node or Bit card focused by placement, reveal, Undo or arrival after a
+  keyboard action); a title that fits shows none, and focus after a pointer
+  action or a mouse click shows none. Bit cards stay out of the Tab order.
+  Esc dismisses it until focus leaves the card or the pointer leaves the
+  title; it does not show while a drag is active; it and the Undo tooltip are
+  never shown at once; the card's accessible name and `aria-describedby` are
+  the same before and after opening. Selection, focus, navigation, drag and
+  placement behave as before. The ordinary Grid card is unchanged. The plate
+  wraps a long title within its maximum width; it is static.
+- (b) Retro Mac, `Scratch complete`: the identity box shows the checkbox in
+  light and dark; every other state keeps the folder; other themes are
+  unchanged.
+- The user's first judgment of each stage is recorded apart from the final
+  disposition.
+
+**Verification:** direct card tests (with `scrollWidth`/`clientWidth`
+stubbed): truncated and fitting title; pointer and `:focus-visible` opening;
+no opening on programmatic focus after a pointer interaction or on a mouse
+click; Esc and its stickiness; no tooltip with an active drag (mocked
+`useDndContext`); Undo focused then title hover, and title open then Undo
+focus/hover; no tooltip in the ordinary Grid presentation; unchanged
+accessible name and `aria-describedby`. An `expert` review of the card change.
+Mounted checks in Neumorphism and Retro Mac light/dark at 1920×1080 and
+1024px, including the compact NEW/Undo cards from Task 179 and a 100-character
+title, and a GridDO spot check of the base plate. (b) Retro Mac light/dark
+complete and non-complete Context with a long title at 1920×1080 and 1440px.
+Existing region tests keep passing. Full logical gates.
+
+**Commit message:** `fix(triage): show truncated Explorer titles and the Retro Mac complete icon`.
+
 ---
 
 ## Phase 36 — Terminal Regional Realization
@@ -2932,7 +3027,7 @@ Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-th
 
 Carried from Phase 41 (`Issues_Deferred.md`): the Terminal Pool row hover background turns the row light grey under green text, so contrast is low (MI-2). Fix it in the Terminal Pool row states and check hover contrast in light and dark.
 
-**Dependencies:** Task 179 accepted and actual Phase 35 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
+**Dependencies:** Tasks 179 and 179A accepted and actual Phase 35 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
 **Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–30, its AF/NEG constraints and no-storage boundary.
 
@@ -3482,7 +3577,7 @@ This register covers every implementation/test path declared by two or more task
 | `db-breakdown-regression` | `src/lib/db/scratch-breakdowns.test.ts` | 101, 103, 105, 120 |
 | `db-command-harness` | `src/lib/db/inbox-operations.test.ts` | 120 creates; 121, 123, 124, 209 extend |
 | `copy` | `src/lib/copy/inbox-triage.ts`; `src/lib/copy/inbox-triage.test.ts` | 128, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 210 |
-| `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 176A, 210, 211; THEMES |
+| `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 176A, 179A, 210, 211; THEMES |
 | `triage-state` | `src/stores/triage-store.ts`; `src/stores/triage-store.test.ts` | 127, 130, 134, 141, 150, 161, 163, 209, 212 |
 | `triage-preferences` | `src/stores/triage-preferences-store.ts`; `src/stores/triage-preferences-store.test.ts` | 127, 130, 132 |
 | `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162, 176A, 210, 211 (conditional); BREAKDOWN, ARCHIVE |
@@ -3496,11 +3591,11 @@ This register covers every implementation/test path declared by two or more task
 | `explorer-component` | `src/components/triage/hierarchy-explorer.tsx` | 134, 149–158, 210; EXPLORER, PLACE |
 | `explorer-component-test` | `src/components/triage/hierarchy-explorer.test.tsx` | 101, 134, 149–158, 210; EXPLORER, PLACE |
 | `explorer-results` | `src/components/triage/grid-explorer-search-results.tsx`; `src/components/triage/grid-explorer-search-results.test.tsx` | 151, 158, 171A (conditional); EXPLORER, PLACE |
-| `actual-node-card` | `src/components/grid/node-card.tsx` | 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
-| `actual-node-card-test` | `src/components/grid/node-card.test.tsx` | 101, 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
-| `actual-bit-card` | `src/components/grid/bit-card.tsx` | 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
-| `actual-bit-card-test` | `src/components/grid/bit-card.test.tsx` | 101, 155, 156, 157; EXPLORER, PLACE only after their exact Q01 approval |
-| `theme-realization-test` | `src/components/triage/inbox-triage-theme-realization.test.tsx` | THEMES, 176A, 210, 211; 166 creates, later writers extend while preserving earlier assertions |
+| `actual-node-card` | `src/components/grid/node-card.tsx` | 155, 156, 157, 179A; EXPLORER, PLACE only after their exact Q01 approval |
+| `actual-node-card-test` | `src/components/grid/node-card.test.tsx` | 101, 155, 156, 157, 179A; EXPLORER, PLACE only after their exact Q01 approval |
+| `actual-bit-card` | `src/components/grid/bit-card.tsx` | 155, 156, 157, 176, 179A; EXPLORER, PLACE only after their exact Q01 approval |
+| `actual-bit-card-test` | `src/components/grid/bit-card.test.tsx` | 101, 155, 156, 157, 176, 179A; EXPLORER, PLACE only after their exact Q01 approval |
+| `theme-realization-test` | `src/components/triage/inbox-triage-theme-realization.test.tsx` | THEMES, 176A, 179A, 210, 211; 166 creates, later writers extend while preserving earlier assertions |
 | `theme-transition-test` | `src/app/theme-transition.test.ts` | CONFORM |
 | `breakdown-hook` | `src/hooks/use-scratch-breakdowns.ts` | 132, 136, 137 |
 | `breakdown-hook-test` | `src/hooks/use-scratch-breakdowns.test.tsx` | 101, 132, 136, 137 |
@@ -3526,7 +3621,7 @@ This register covers every implementation/test path declared by two or more task
   reused for another meaning.
 - Graph reconciliation: 83 accepted tasks (101–163 plus 105A, 166–172, 171A,
   173–178 plus 176A and 209–212), eleven completed archives (Phases 23–31, 34 and 41), two historical
-  unaccepted transfer records (164/165), 30 unaccepted tasks (179–208) in
+  unaccepted transfer records (164/165), 31 unaccepted tasks (179–208 plus 179A) in
   Phases 35–40, and two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

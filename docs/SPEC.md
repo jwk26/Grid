@@ -745,6 +745,19 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   card's near-deadline urgency blink does not run in the Inbox Explorer. Every
   Explorer Bit row is static; its deadline text carries the urgency. The
   ordinary Grid keeps the blink.
+- **Explorer truncated titles (user-adopted, 2026-10-19):** in every theme, an
+  Explorer Node or Bit title cut by its ellipsis, measured when the tooltip
+  would open, shows the full stored title in a tooltip above it while the
+  pointer is over the title, or while the card itself holds visible keyboard
+  focus (`:focus-visible`): a Node card reached by Tab, or a Node or Bit card
+  focused by placement, reveal, Undo or arrival after a keyboard action. Bit
+  cards stay out of the Tab order and focus behaves as before; focus that
+  follows a pointer action shows nothing. A title that fits shows none. The
+  tooltip is presentation only: Esc dismisses it until focus leaves the card or
+  the pointer leaves the title; it does not show while a drag is active; it is
+  attached to the title alone, and it and the card's Undo tooltip are never
+  shown at once; the card's accessible name and description stay as they are,
+  so the title is read once. The ordinary Grid card is unchanged.
 - **User-selected Node/Bit distinction amendment, 2026-10-08:** within the
   ordinary Inbox/Triage Explorer body, retain the existing Node-before-Bit
   groups and within-type ordering without an inter-type divider or visible

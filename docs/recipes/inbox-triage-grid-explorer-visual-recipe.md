@@ -84,6 +84,21 @@ fresh verification and task acceptance; historical DP receipts/evidence remain.
   unaffected surfaces; existing DP-VQ06-EXPLORER/07/10, receipts, failed and
   unverified evidence, Q02/Q05 and broader D-CARD deferrals remain unchanged.
 
+### User-adopted truncated-title tooltip — 2026-10-19
+
+- **Common current/future L4 behavior:** per SPEC "Explorer truncated titles",
+  an Explorer Node or Bit title cut by its ellipsis shows the full stored title
+  in the shared tooltip; one shared component tree serves every theme, so later
+  themes inherit it without new behavior. The role is
+  `data-triage-role="explorer-title-tooltip"`; it never carries the
+  `newly-undo-tooltip` class. Each theme styles only the plate: Neumorphism
+  reuses its Undo tooltip plate; Retro Mac and unrealized themes use the shared
+  base plate, which is the base `newly-undo-tooltip` look plus the primitive,
+  wrapping within `min(24rem, 100vw - 16px)`. Like the Undo tooltip it is
+  static in normal and reduced motion, without the primitive's fade, zoom or
+  slide. It never clips or replaces the title, NEW, Undo, reason or focus ring.
+  Owner: Task 179A.
+
 ## Decision-Prerequisite Boundary
 
 - `VQ-07` — **resolved by `DP-VQ07` Choice A on 2026-08-10.** The dedicated full-hierarchy search keeps Explorer chrome and replaces only the four-column body with the approved fixed-input, state-line, flat-result realization below. After Task 114 checkpoint acceptance, Task 151 consumes the complete search body and Task 158 consumes only its search-result Undo integration after that task's other prerequisites. The source/current active-column search, global Search overlay, and ordinary columns remain prohibited fallbacks.

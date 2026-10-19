@@ -239,6 +239,7 @@ Preserve the existing working/complete and editor-state meanings, fixed geometry
 - Observed source-only: a white double-border file window uses a black title strip, folder icon block, mono title/time, compact square Edit and sort controls, and a source complete stamp.
 - Adopted fact: classic file-properties window grammar is supported.
 - Token implication: double frame, title strip, folder identity, hard control, and complete stamp require Retro Mac aliases.
+- User-adopted (2026-10-19, Task 179A): in the `Scratch complete` state the identity box shows a filled System 7 checkbox, an ink square with a check in `--triage-context-surface`, in place of the folder, and drops its top stripe; the struck-through title stays and every other state keeps the folder. It is drawn in CSS in the Retro Mac scope, with no new asset. The identity box is hidden at 1100px and narrower, so the checkbox is checked at wider viewports.
 
 ### Graphite
 
