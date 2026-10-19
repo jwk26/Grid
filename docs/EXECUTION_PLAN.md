@@ -267,7 +267,7 @@ to the owners named in the inventories.
 | `UF-23` | Staged Result Title and direct type-limit surfaces without truncation/fallback. | 116, 154; PLACE |
 | `UF-24` | Actual-card Newly marker, type pinning, normal navigation, mounted-page lifetime. | 155, 157, 171A; EXPLORER, PLACE |
 | `UF-25` | Ordinary/search Undo, dependency reasons, child-first recovery, reconcile, focus. | 124, 156–158, 209; EXPLORER, PLACE |
-| `UF-26` | Exact durable completion plus Add/title blocker reporting. | 125, 159, 160; BREAKDOWN, ARCHIVE |
+| `UF-26` | Exact durable completion plus Add/title blocker suppression, with no blocker copy since Task 178 (user, 2026-10-19). | 125, 159, 160; BREAKDOWN, ARCHIVE |
 | `UF-27` | Section-scoped overlay, Cancel, complete Context, explicit reopen, switch/re-entry. | 159, 160; ARCHIVE |
 | `UF-28` | Archive pending/recovery/retry and next→previous→filtered-null/true-empty handoff. | 125, 126, 161, 162, 171A; ARCHIVE, POOL |
 | `UF-29` | Theme/mode change preserves all work state and causes no mutation/navigation. | THEMES; complete matrix 208 |
@@ -2888,6 +2888,7 @@ the full gate; an `expert` review.
 
 **Files and actions:** bind L6's exact per-file actions to `neumorphism` only. Conditional owner/decision gates remain in force.
 Carried from Phase 34 (`Issues_Deferred.md`): move the Archive confirmation detail string from `breakdown-panel.tsx` into `INBOX_TRIAGE_COPY` with its direct test, and get the user's decision whether neumorphism shows `archive-confirmation-detail` (MI-9). While touching the Archive handoff, review whether `pendingArchiveFocusRef` can be set before `finishScratchArchive` instead of relying on React flushing after it (Phase 34 close Advisory).
+User-approved addition (2026-10-19), Stage 3, every theme: per the `DP-VQ11` amendment in the Archive/completion, Breakdown and Context recipes and DESIGN_TOKENS, remove the Add-draft completion blocker and the four Scratch-title completion sentences (eyebrow and issue-overlay forms) with their marks, live regions and programmatic associations, and their copy keys; the blocker snapshots keep suppressing the completion presentation, the eyebrow keeps `Selected Scratch`, and the withdrawal status is unchanged. Files: `breakdown-panel.tsx` and its test, `src/lib/copy/inbox-triage.ts` and its test, `globals.css` (the retired blocker rules in every theme) and the shared conformance test. Also `globals.css` only: the neumorphism Reopen takes the Archive capsules' hover lift, eased on `transform` only outside reduced motion, as the Archive recipe's Neumorphism section states.
 
 **Dependencies:** Task 177 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
 
