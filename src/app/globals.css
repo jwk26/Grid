@@ -526,6 +526,11 @@
   --triage-context-marker-working: #2fbf8f;
   /* Task 179: the Context eyebrow and date step below the title: user-accepted exception in light (about 2.1:1). */
   --triage-context-meta-ink: hsl(var(--foreground) / 0.4);
+  /* Task 179: the priority inks read 1.91:1 (mid) and 3.43:1 (high) on their tinted chips in light; these
+     neumorphism values give 6.45:1, 6.77:1 and about 6:1. The same tokens colour the sidebar inbox badge. */
+  --priority-high: 0 72% 38%;
+  --priority-mid: 38 92% 26%;
+  --priority-low: 217 80% 38%;
   --triage-context-marker-complete: hsl(var(--foreground) / 0.45);
 
   --calendar-cell-bg: var(--page-bg);
@@ -566,6 +571,10 @@
   --triage-context-marker-complete: hsl(var(--foreground) / 0.5);
   /* Task 179: dark meets 4.5:1 (5.05:1) for the Context eyebrow and date, the same step as the Pool meta. */
   --triage-context-meta-ink: hsl(var(--foreground) / 0.55);
+  /* Task 179: the base priority inks already read well on the dark chips; restated so the light overrides above do not leak. */
+  --priority-high: 0 84% 60%;
+  --priority-mid: 45 93% 47%;
+  --priority-low: 217 91% 60%;
   /* Task 179: Pool dates and count read 4.41:1 at 0.5 on the dark plate; 0.55 gives 5.05:1 (light stays 0.5). */
   --triage-pool-row-time-color: hsl(var(--foreground) / 0.55);
   --triage-pool-row-selected-meta: hsl(var(--foreground) / 0.55);
@@ -6360,7 +6369,7 @@
 :root[data-color-theme="neumorphism"] .scratch-pool[data-triage-state="collapsed"] [data-triage-role="pool-total-count"] {
   background: transparent;
   box-shadow: none;
-  color: hsl(var(--foreground) / 0.6);
+  color: hsl(var(--foreground) / 0.75);
   font-size: 9px;
   letter-spacing: 0;
   padding: 0;
@@ -6457,6 +6466,8 @@
    and the Pool content eases in. The scale ratio comes from the shell's own width and the Pool
    tokens (`100cqi`), so it holds whenever the shell is narrower than the viewport. Where typed division in
    `calc()` is unsupported the main work area slides by the Pool's size difference instead.
+   The animations use `backwards` fill, never `both`: a finished animation that keeps filling stays "in effect" and
+   makes the main work area the containing block of `position: fixed` descendants (the drag overlay).
    Nothing runs on page load: the workspace sets `data-triage-pool-toggled` after the first
    Pool toggle. Reduced motion arrives as `.transition-none` on the Pool. */
 :root[data-color-theme="neumorphism"] .scratch-pool { transition: none; }
@@ -6466,7 +6477,13 @@
   --triage-pool-motion-collapse-scale: calc((100cqi - var(--triage-pool-inline-size) - var(--triage-frame-gap)) / (100cqi - var(--triage-pool-compact-inline-size) - var(--triage-frame-gap)));
   --triage-pool-motion-expand-scale: calc((100cqi - var(--triage-pool-compact-inline-size) - var(--triage-frame-gap)) / (100cqi - var(--triage-pool-inline-size) - var(--triage-frame-gap)));
 }
-@keyframes triage-pool-content-in {
+/* One keyframes name per Pool state: the Pool keeps one DOM node across both states, and a CSS
+   animation only restarts when its name changes. */
+@keyframes triage-pool-content-in-expanded {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes triage-pool-content-in-collapsed {
   from { opacity: 0; transform: translateX(-12px); }
   to { opacity: 1; transform: none; }
 }
@@ -6486,27 +6503,40 @@
   from { transform: translateX(calc(-1 * var(--triage-pool-motion-delta))); }
   to { transform: none; }
 }
-:root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"] .scratch-pool:not(.transition-none) .scratch-pool__frame {
-  animation: triage-pool-content-in var(--triage-pool-motion-duration) ease-out both;
+:root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"] .scratch-pool[data-triage-state="expanded"]:not(.transition-none) .scratch-pool__frame {
+  animation: triage-pool-content-in-expanded var(--triage-pool-motion-duration) ease-out backwards;
+}
+:root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"] .scratch-pool[data-triage-state="collapsed"]:not(.transition-none) .scratch-pool__frame {
+  animation: triage-pool-content-in-collapsed var(--triage-pool-motion-duration) ease-out backwards;
 }
 @supports (transform: scaleX(calc(10px / 5px))) {
   :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="collapsed"]:not(.transition-none)) .triage-shell__main {
-    animation: triage-main-scale-collapse var(--triage-pool-motion-duration) ease-out both;
+    animation: triage-main-scale-collapse var(--triage-pool-motion-duration) ease-out backwards;
     transform-origin: right center;
   }
   :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="expanded"]:not(.transition-none)) .triage-shell__main {
-    animation: triage-main-scale-expand var(--triage-pool-motion-duration) ease-out both;
+    animation: triage-main-scale-expand var(--triage-pool-motion-duration) ease-out backwards;
     transform-origin: right center;
   }
 }
 @supports not (transform: scaleX(calc(10px / 5px))) {
   :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="collapsed"]:not(.transition-none)) .triage-shell__main {
-    animation: triage-main-slide-from-right var(--triage-pool-motion-duration) ease-out both;
+    animation: triage-main-slide-from-right var(--triage-pool-motion-duration) ease-out backwards;
   }
   :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="expanded"]:not(.transition-none)) .triage-shell__main {
-    animation: triage-main-slide-from-left var(--triage-pool-motion-duration) ease-out both;
+    animation: triage-main-slide-from-left var(--triage-pool-motion-duration) ease-out backwards;
   }
 }
+/* Task 179 (4b): the Explorer `Home` heading button is 38×15px, under the 24px target size; its
+   hit area grows to 46×25px without moving the heading (a transparent pseudo-element). */
+:root[data-color-theme="neumorphism"] .triage-shell .explorer-home-entry { position: relative; }
+:root[data-color-theme="neumorphism"] .triage-shell .explorer-home-entry::after {
+  content: "";
+  inset-block: -5px;
+  inset-inline: -4px;
+  position: absolute;
+}
+
 /* Task 179 (MI-17): in a narrow Explorer column (a content box under 160px, about 1024px with
    the Pool open) a newly placed card cannot hold the NEW capsule, the type icon and the Undo
    beside a readable title. The compact form keeps the marker as its dot (the word stays in the

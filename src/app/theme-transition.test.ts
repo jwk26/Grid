@@ -82,4 +82,37 @@ describe("theme transition wiring", () => {
     // origami: asymmetric radius
     expect(globals).toContain("--theme-radius: 2px 12px 2px 12px / 12px 2px 12px 2px;");
   });
+
+  it("switches theme and dark mode through CSS and attributes only, so no workflow state is touched (Task 179)", () => {
+    const store = readFileSync(join(projectRoot, "src/stores/color-theme-store.ts"), "utf8");
+    const providers = readFileSync(join(projectRoot, "src/app/providers.tsx"), "utf8");
+    // the colour theme is one persisted preference applied to the document, not a route or data change
+    expect(store).toContain("setColorTheme: (theme) => set({ colorTheme: validateColorTheme(theme) })");
+    expect(store).not.toMatch(/router|location\.|fetch\(|indexedDB|datastore/i);
+    expect(providers).not.toMatch(/key=\{[^}]*(theme|colorTheme)/);
+  });
+
+  it("gives every neumorphism dark token a light counterpart and no dark-only literal colour in a rule (Task 179)", () => {
+    const globals = readFileSync(join(projectRoot, "src/app/globals.css"), "utf8");
+    const blockOf = (selector: string) => {
+      const start = globals.indexOf(`${selector} {`);
+      return globals.slice(start, globals.indexOf("\n}\n", start));
+    };
+    const light = new Set([...blockOf(':root[data-color-theme="neumorphism"]').matchAll(/(--[\w-]+):/g)].map((m) => m[1]));
+    const dark = [...blockOf('.dark[data-color-theme="neumorphism"]').matchAll(/(--[\w-]+):/g)].map((m) => m[1]);
+    expect(dark.length).toBeGreaterThan(20);
+    for (const name of dark) expect(light.has(name), `${name} is dark-only`).toBe(true);
+    const rules = globals.slice(globals.indexOf("/* Neumorphism L1 (Task 173)"));
+    expect(rules).not.toMatch(/\.dark\[data-color-theme="neumorphism"\][^{]*\{[^}]*#[0-9a-fA-F]{3,8}/);
+  });
+
+  it("runs the neumorphism motion only outside reduced motion: the shared reset and the per-rule guards (Task 179)", () => {
+    const globals = readFileSync(join(projectRoot, "src/app/globals.css"), "utf8");
+    expect(globals).toMatch(/@media \(prefers-reduced-motion: reduce\) \{[^]*?animation-duration: 0\.01ms !important;[^]*?transition-duration: 0\.01ms !important;/);
+    const start = globals.indexOf("/* Task 179: Pool collapse/expand motion.");
+    const motion = globals.slice(start, globals.indexOf("/* mi-12:", start));
+    for (const rule of motion.match(/[^{}]*\{[^{}]*\banimation: [^{}]*\}/g) ?? []) {
+      expect(rule).toContain(":not(.transition-none)");
+    }
+  });
 });

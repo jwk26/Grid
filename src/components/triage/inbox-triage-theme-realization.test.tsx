@@ -953,7 +953,6 @@ describe("Neumorphism Pool collapse/expand and Scratch-switch motion (Task 179 S
   it("never animates the Pool or main-area width and leaves no review gates behind", () => {
     expect(stage).toMatch(/\[data-color-theme="neumorphism"\] \.scratch-pool \{ transition: none; \}/);
     expect(stage).not.toMatch(/transition-property:[^;]*(width|inline-size)/);
-    expect(stage).not.toMatch(/\b(width|inline-size|block-size):[^;]*;\s*\}\s*(?=@keyframes)/);
     expect(css).not.toContain("data-pool-motion");
     expect(css).not.toMatch(/neumorphism-(pool|main)-/);
   });
@@ -964,7 +963,7 @@ describe("Neumorphism Pool collapse/expand and Scratch-switch motion (Task 179 S
     expect(stage).toMatch(/--triage-pool-motion-expand-scale: calc\(\(100cqi - var\(--triage-pool-compact-inline-size\) - var\(--triage-frame-gap\)\) \/ \(100cqi - var\(--triage-pool-inline-size\) - var\(--triage-frame-gap\)\)\);/);
     expect(stage).not.toMatch(/\d+px\)\s*\/\s*\(100vw/);
     for (const name of ["collapse", "expand"]) {
-      expect(stage).toMatch(new RegExp(`animation: triage-main-scale-${name} var\\(--triage-pool-motion-duration\\) ease-out both;\\s*transform-origin: right center;`));
+      expect(stage).toMatch(new RegExp(`animation: triage-main-scale-${name} var\\(--triage-pool-motion-duration\\) ease-out backwards;\\s*transform-origin: right center;`));
     }
   });
 
@@ -980,11 +979,24 @@ describe("Neumorphism Pool collapse/expand and Scratch-switch motion (Task 179 S
 
   it("runs every Pool and main-area animation only after the first toggle and outside reduced motion", () => {
     const rules = stage.match(/[^{}]*\{[^{}]*\banimation: [^{}]*\}/g) ?? [];
-    expect(rules.length).toBe(5);
+    expect(rules.length).toBe(6);
     for (const rule of rules) {
       expect(rule).toContain('[data-triage-pool-toggled="true"]');
       expect(rule).toContain(":not(.transition-none)");
     }
+  });
+
+  it("never keeps a finished animation filling (a `both` fill would make the main area the containing block of the fixed drag overlay) and restarts the content ease-in on every toggle", () => {
+    expect(stage).not.toMatch(/animation:[^;]*\b(both|forwards)\b/);
+    for (const rule of stage.match(/[^{}]*\{[^{}]*\banimation: [^{}]*\}/g) ?? []) {
+      expect(rule).toMatch(/ease-out backwards;/);
+    }
+    const expanded = stage.match(/\[data-triage-state="expanded"\]:not\(\.transition-none\) \.scratch-pool__frame \{\s*animation: ([\w-]+) /)?.[1];
+    const collapsed = stage.match(/\[data-triage-state="collapsed"\]:not\(\.transition-none\) \.scratch-pool__frame \{\s*animation: ([\w-]+) /)?.[1];
+    expect(expanded).toBe("triage-pool-content-in-expanded");
+    expect(collapsed).toBe("triage-pool-content-in-collapsed");
+    expect(expanded).not.toBe(collapsed);
+    for (const name of [expanded, collapsed]) expect(stage).toContain(`@keyframes ${name} {`);
   });
 
   it("moves only with transform and opacity", () => {
@@ -1107,6 +1119,10 @@ describe("External-removal panel long title and narrow Context (Task 179 Stage 4
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
 
   it("keeps an unbreakable destination title inside the panel in every theme (MI-4, shared rule)", () => {
+    const columnRules = [...css.matchAll(/([^{}]*\.external-removal-panel[^{}]*)\{([^{}]*)\}/g)].filter(([, , body]) => /grid-template-columns/.test(body));
+    expect(columnRules.length, "only the shared panel rule sets its columns").toBe(1);
+    const wrapRules = [...css.matchAll(/([^{}]*\.external-removal-panel__(?:title|destination)[^{}]*)\{([^{}]*)\}/g)].filter(([, , body]) => /overflow-wrap/.test(body));
+    for (const [, , body] of wrapRules) expect(body).toContain("overflow-wrap: anywhere;");
     expect(css).toMatch(/^\.external-removal-panel \{\s*grid-template-columns: minmax\(0, 1fr\);\s*\}/m);
     expect(css).toMatch(/^\.external-removal-panel__title,\s*\.external-removal-panel__destination \{\s*min-inline-size: 0;\s*overflow-wrap: anywhere;\s*\}/m);
   });
@@ -1127,5 +1143,31 @@ describe("External-removal panel long title and narrow Context (Task 179 Stage 4
     expect(eyebrow).not.toMatch(/display:\s*none|visibility:\s*hidden/);
     expect(query).toMatch(/\.triage-inline-editor__required \{[^}]*position: static;[^}]*white-space: normal;/);
     expect(query).toMatch(/:has\(\.triage-inline-editor\) \[data-triage-role="context-timestamp"\] \{\s*display: none;/);
+  });
+});
+
+describe("Neumorphism target size and focus (Task 179 Stage 4b)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+
+  it("grows the 38×15px Explorer Home button to at least 24px with a transparent hit area, not a layout change", () => {
+    expect(css).toMatch(/\.triage-shell \.explorer-home-entry \{ position: relative; \}/);
+    const rule = css.match(/\.explorer-home-entry::after \{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toContain('content: "";');
+    expect(rule).toContain("inset-block: -5px;");
+    expect(rule).toContain("inset-inline: -4px;");
+    expect(rule).toContain("position: absolute;");
+    expect(rule).not.toMatch(/background|border|box-shadow/);
+  });
+
+  it("raises the light priority inks and the collapsed-rail count to at least 4.5:1 and keeps the dark inks", () => {
+    const light = css.slice(css.indexOf(':root[data-color-theme="neumorphism"] {'), css.indexOf("\n}\n", css.indexOf(':root[data-color-theme="neumorphism"] {')));
+    const dark = css.slice(css.indexOf('.dark[data-color-theme="neumorphism"] {'), css.indexOf("\n}\n", css.indexOf('.dark[data-color-theme="neumorphism"] {')));
+    expect(light).toContain("--priority-high: 0 72% 38%;");
+    expect(light).toContain("--priority-mid: 38 92% 26%;");
+    expect(light).toContain("--priority-low: 217 80% 38%;");
+    expect(dark).toContain("--priority-high: 0 84% 60%;");
+    expect(dark).toContain("--priority-mid: 45 93% 47%;");
+    expect(dark).toContain("--priority-low: 217 91% 60%;");
+    expect(css).toMatch(/\.scratch-pool\[data-triage-state="collapsed"\] \[data-triage-role="pool-total-count"\] \{[^}]*color: hsl\(var\(--foreground\) \/ 0\.75\);/);
   });
 });
