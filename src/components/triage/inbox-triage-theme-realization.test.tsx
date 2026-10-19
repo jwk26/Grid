@@ -257,7 +257,7 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
   it("keeps theme ids out of the Pool markup and scopes the L1 look to the neumorphism root", () => {
     const source = readFileSync(join(process.cwd(), "src/components/triage/scratch-pool.tsx"), "utf8");
     expect(source).not.toMatch(/neumorphism/);
-    const l1 = css.slice(css.indexOf("/* Neumorphism L1 (Task 173)")).replace(/\/\*[\s\S]*?\*\//g, "").replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*\s*\}/g, "").replace(/@(?:media|supports)[^{]*\{/g, "");
+    const l1 = css.slice(css.indexOf("/* Neumorphism L1 (Task 173)")).replace(/\/\*[\s\S]*?\*\//g, "").replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*\s*\}/g, "").replace(/@(?:media|supports|container)[^{]*\{/g, "");
     for (const [, selector] of l1.matchAll(/(?:^|\})\s*([^{}@/][^{}]*)\{/g)) {
       expect(selector.trim()).toMatch(/^:root\[data-color-theme="neumorphism"\]/);
     }
@@ -1019,5 +1019,37 @@ describe("Neumorphism Pool collapse/expand and Scratch-switch motion (Task 179 S
     const fallback = css.slice(css.indexOf("@supports not (anchor-name: --a) {"));
     expect(fallback).toMatch(/\[aria-pressed="true"\]::before \{[^}]*block-size: 32px;[^}]*inline-size: 8px;/);
     expect(fallback).toMatch(/transition-property: transform, block-size, inline-size, background-color, box-shadow;/);
+  });
+});
+
+describe("Neumorphism editor focus ring room and narrow newly placed cards (Task 179 Stage 2)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+
+  it("leaves 4px of inline room for the 4px editor focus ring and 6px above the Context field", () => {
+    expect(css).toMatch(/\[data-color-theme="neumorphism"\] \.triage-inline-editor \{ padding-inline: 4px; \}/);
+    expect(css).toMatch(/\.triage-fixed-context \.triage-inline-editor \{\s*margin-block: 6px 5px;/);
+    expect(css).toMatch(/\.triage-fixed-context \.triage-inline-editor__field \{ block-size: 30px; \}/);
+    expect(css).toMatch(/\.triage-inline-editor__field:focus-visible \{\s*box-shadow: var\(--theme-shadow-inset-sm\), 0 0 0 2px hsl\(var\(--background\)\), 0 0 0 4px/);
+  });
+
+  it("switches a newly placed Explorer card to its compact form from the column's own width", () => {
+    const start = css.indexOf("/* Task 179 (MI-17)");
+    const stage = css.slice(start, css.indexOf("/* mi-12:", start));
+    expect(stage).toContain('[data-triage-role="explorer-viewport"] { container-type: inline-size; }');
+    const query = stage.slice(stage.indexOf("@container (max-width: 160px) {"));
+    expect(query).toMatch(/\[data-triage-role="explorer-card-marker"\] \{\s*font-size: 0;/);
+    expect(query).toMatch(/:is\(\[data-triage-role="explorer-card-icon"\], \[data-triage-role="explorer-card-icon-slot"\]\) \{\s*display: none;/);
+    expect(query).toMatch(/explorer-card-chevron"\] \{\s*display: none;/);
+    for (const rule of query.match(/:root\[[^{]*\{/g) ?? []) {
+      expect(rule).toContain('.triage-shell [data-card-presentation="inbox-explorer"]');
+    }
+  });
+
+  it("never removes the Undo, the card title or the NEW text from the compact form", () => {
+    const start = css.indexOf("@container (max-width: 160px) {");
+    const query = css.slice(start, css.indexOf("/* mi-12:", start));
+    expect(query).not.toMatch(/explorer-card-undo"\][^{]*\{[^}]*display: none/);
+    expect(query).not.toMatch(/explorer-card-title[^{]*\{[^}]*display: none/);
+    expect(query).not.toMatch(/content:\s*""/);
   });
 });

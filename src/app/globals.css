@@ -6477,6 +6477,44 @@
     animation: triage-main-slide-from-left var(--triage-pool-motion-duration) ease-out both;
   }
 }
+/* Task 179 (MI-17): in a narrow Explorer column (a content box under 160px, about 1024px with
+   the Pool open) a newly placed card cannot hold the NEW capsule, the type icon and the Undo
+   beside a readable title. The compact form keeps the marker as its dot (the word stays in the
+   text, only drawn at zero size), drops the decorative type icon and, on a Node, the chevron
+   while the Undo is shown (the accessible name still says Bit or Node), and tightens the card
+   padding and the Undo margin, so the title keeps the room. The `.triage-shell` prefix keeps these rules above the
+   Task 177 Newly/Undo rules, which come later in the file. */
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-viewport"] { container-type: inline-size; }
+@container (max-width: 160px) {
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-newly-placed="true"] [data-triage-role="explorer-card-marker"] {
+    font-size: 0;
+    gap: 0;
+    letter-spacing: 0;
+    margin-inline-start: 8px;
+    padding: 3px 6px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-newly-placed="true"] :is([data-triage-role="explorer-card-icon"], [data-triage-role="explorer-card-icon-slot"]) {
+    display: none;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-newly-placed="true"] [data-triage-role="explorer-card-undo"] {
+    margin-inline: auto 8px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-newly-placed="true"] [data-triage-role="explorer-card-content"] {
+    padding-inline: 6px 4px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] [data-triage-role="explorer-card-undo"] {
+    inset-inline-end: 8px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][data-newly-placed="true"] {
+    --newly-action-reserve: 40px;
+    gap: 6px;
+    padding-inline-start: 8px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][data-newly-placed="true"] [data-triage-role="explorer-card-chevron"] {
+    display: none;
+  }
+}
+
 /* mi-12: Pool collapse toggles and the row Trash control respond like the Breakdown
    controls: 1px lift and stronger ink on hover, inset-sm on press. */
 :root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__toggle:not(:disabled):hover {
@@ -6935,6 +6973,14 @@
 :root[data-color-theme="neumorphism"] .triage-inline-editor__field[aria-invalid="true"] {
   box-shadow: var(--theme-shadow-inset-sm), 0 0 0 2px var(--triage-pool-destructive-ink);
 }
+/* Task 179 (MI-18): the focus ring reaches 4px outside the field, so the editor leaves 4px of
+   inline room inside the clipping content slot, and in the Context a 30px field keeps 6px
+   between the `Selected Scratch` eyebrow and the ring inside the fixed 104px plate. */
+:root[data-color-theme="neumorphism"] .triage-inline-editor { padding-inline: 4px; }
+:root[data-color-theme="neumorphism"] .triage-fixed-context .triage-inline-editor {
+  margin-block: 6px 5px;
+}
+:root[data-color-theme="neumorphism"] .triage-fixed-context .triage-inline-editor__field { block-size: 30px; }
 :root[data-color-theme="neumorphism"] .triage-inline-editor__field[readonly] { color: hsl(var(--foreground) / 0.75); }
 :root[data-color-theme="neumorphism"] .triage-inline-editor__required { color: var(--triage-pool-destructive-ink); }
 :root[data-color-theme="neumorphism"] .triage-inline-editor__actions button,
