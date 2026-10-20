@@ -42,7 +42,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useInbox } from "@/hooks/use-inbox";
 import type { ArchiveScratchCoordinatorState } from "@/hooks/use-archive-scratch";
 import {
   useScratchBreakdowns,
@@ -52,7 +51,6 @@ import {
   type ConditionalEditorSnapshot,
   type ScratchTitleBlockerSnapshot,
 } from "@/hooks/use-scratch-breakdowns";
-import { useStagedCandidates } from "@/hooks/use-staged-candidates";
 import {
   TrashDraftRegistryContext,
   useTrashScratchEntries,
@@ -73,6 +71,7 @@ import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/utils/relative-time";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { useTriageStore } from "@/stores/triage-store";
+import type { Bit } from "@/types";
 import { scratchTrashDisabledCopy } from "./scratch-trash-dialog";
 
 type OpenEditorSnapshot = NonNullable<ConditionalEditorSnapshot>;
@@ -215,6 +214,9 @@ export function ArchiveOperationCard({
 
   if (sentence === null) return null;
 
+  const [detailBefore, detailAfter] =
+    INBOX_TRIAGE_COPY.archive.confirmationDetail.split("{title}");
+
   const runCurrentAction = () => {
     if (operation === undefined) {
       void onArchive?.();
@@ -259,8 +261,9 @@ export function ArchiveOperationCard({
             data-archive-detail={operation === undefined ? "visible" : "reserved"}
             data-triage-role="archive-confirmation-detail"
           >
-            Every idea segment in &ldquo;<strong>{scratchTitle}</strong>&rdquo; has
-            been successfully placed. File it to disk?
+            {detailBefore}
+            <strong>{scratchTitle}</strong>
+            {detailAfter}
           </p>
         ) : null}
         <div className="archive-actions" data-triage-role="archive-actions">
@@ -331,8 +334,6 @@ function InlineEditor({
   successSignal,
   actionRole,
   actionTestId,
-  completionBlockerCopy = null,
-  completionBlockerDescriptionId,
 }: {
   contentAfter?: ReactNode;
   contentBefore?: ReactNode;
@@ -346,8 +347,6 @@ function InlineEditor({
   successSignal?: BreakdownSuccessSignal | null;
   actionRole: string;
   actionTestId: string;
-  completionBlockerCopy?: string | null;
-  completionBlockerDescriptionId?: string;
 }) {
   const copy = INBOX_TRIAGE_COPY.inlineEditor;
   const isScratchTitle = snapshot.target.kind === "scratch-title";
@@ -492,7 +491,6 @@ function InlineEditor({
     snapshot.phase === "pristine" || snapshot.phase === "dirty"
       ? null
       : statusId,
-    completionBlockerDescriptionId ?? null,
   ].filter((id): id is string => id !== null);
   const commonFieldProps = {
     "aria-describedby": describedBy.length > 0 ? describedBy.join(" ") : undefined,
@@ -681,12 +679,6 @@ function InlineEditor({
             data-triage-role="inline-editor-issue-status"
           >
             {statusCopy}
-            {completionBlockerCopy !== null ? (
-              <span data-triage-role="context-completion-blocker">
-                {" "}
-                {completionBlockerCopy}
-              </span>
-            ) : null}
             {latestStatus && <span> {latestStatus}</span>}
             {copyStatus && (
               <span data-triage-role="inline-editor-copy-status">
@@ -762,22 +754,6 @@ function InlineEditor({
       )}
     </>
   );
-}
-
-function getTitleCompletionBlockerCopy(
-  blocker: ScratchTitleBlockerSnapshot | null,
-): string | null {
-  if (blocker === null) return null;
-  if (blocker === "saving") {
-    return INBOX_TRIAGE_COPY.completion.titleBlocker.saving;
-  }
-  if (blocker === "conflicted") {
-    return INBOX_TRIAGE_COPY.completion.titleBlocker.conflicted;
-  }
-  if (blocker === "reconciling") {
-    return INBOX_TRIAGE_COPY.completion.titleBlocker.reconciling;
-  }
-  return INBOX_TRIAGE_COPY.completion.titleBlocker.openOrDirty;
 }
 
 type ReliabilityState =
@@ -1207,17 +1183,32 @@ function ScratchTimestamp({ createdAt }: { createdAt: number }) {
 
 export function BreakdownPanel({
   activeDragItem = null,
+  archiveCandidateClear,
   completion,
   onAddDraftBlockerChange,
   overTargetId = null,
+  selectedScratch,
+  authoritativeStagedSourceIds,
+  stagedSourceIds,
   successSignal = null,
 }: {
   activeDragItem?: TriageDragItem;
+  /** True when the Scratch has no authoritative staged candidate. */
+  archiveCandidateClear: boolean;
   completion?: BreakdownCompletionProjection;
   onAddDraftBlockerChange?: (blocked: boolean) => void;
   overTargetId?: string | null;
+  /**
+   * The selected Scratch, read once by the workspace. The panel remounts on every Scratch
+   * switch, so its own read would start empty and flash `Unknown Scratch`.
+   */
+  selectedScratch: Bit | null;
+  /** Staged sources plus pending, unknown, reconciling and held Stage sources. */
+  stagedSourceIds: ReadonlySet<string>;
+  /** Only sources with a listed candidate; an open editor is invalidated by these alone. */
+  authoritativeStagedSourceIds: ReadonlySet<string>;
   successSignal?: BreakdownSuccessSignal | null;
-} = {}) {
+}) {
   const operationLock = useTriageOperationLockContext();
   const isStagedDrag =
     activeDragItem?.kind === "triage-staged-node" ||
@@ -1235,8 +1226,6 @@ export function BreakdownPanel({
   const isDepartureDecision = departure.pendingDestination !== null;
   const departureHeadingId = useId();
   const departureDescriptionId = `${departureHeadingId}-departure-description`;
-  const addCompletionBlockerId = useId();
-  const titleCompletionBlockerId = useId();
   const departureContinueRef = useRef<HTMLButtonElement>(null);
   const departureDiscardRef = useRef<HTMLButtonElement>(null);
   const departureSheetRef = useRef<HTMLDivElement>(null);
@@ -1260,9 +1249,9 @@ export function BreakdownPanel({
   const setBreakdownCreatedAtSort = useTriagePreferencesStore(
     (state) => state.setBreakdownCreatedAtSort,
   );
-  const { activeScratchBits } = useInbox();
   const {
     breakdowns,
+    isReady: isBreakdownReady,
     consumedBreakdownCount,
     hasObservedBreakdownHistory,
     isArchiveEligible,
@@ -1277,8 +1266,6 @@ export function BreakdownPanel({
     breakdownCreatedAtSort,
     { operationLock, titleBlockerHandle },
   );
-  const { counts: stagedCandidateCounts, eligibility: stagedEligibility } =
-    useStagedCandidates(selectedScratchId);
   const [isAdding, setIsAdding] = useState(false);
   const [newContent, setNewContent] = useState("");
   const [activeSuccessSignal, setActiveSuccessSignal] =
@@ -1344,8 +1331,6 @@ export function BreakdownPanel({
     pendingDelete?.scratchBitId === selectedScratchId
       ? pendingDelete.breakdownId
       : null;
-  const selectedScratch =
-    activeScratchBits.find((bit) => bit.id === selectedScratchId) ?? null;
   const rawAddOperation =
     operations.find((operation) => operation.kind === "add") ?? null;
   const addOperation =
@@ -1401,8 +1386,8 @@ export function BreakdownPanel({
   const isSuccessTargetActive = useCallback(
     (signal: BreakdownSuccessSignal) =>
       breakdowns.some((row) => row.id === signal.rowId) &&
-      !stagedEligibility.stagedSourceIds.has(signal.rowId),
-    [breakdowns, stagedEligibility.stagedSourceIds],
+      !stagedSourceIds.has(signal.rowId),
+    [breakdowns, stagedSourceIds],
   );
 
   const observeSuccess = useCallback(
@@ -1433,7 +1418,7 @@ export function BreakdownPanel({
     ) {
       startSuccess(pendingSignal);
     }
-  }, [breakdowns, isSuccessTargetActive, stagedEligibility.stagedSourceIds, startSuccess]);
+  }, [breakdowns, isSuccessTargetActive, stagedSourceIds, startSuccess]);
 
   useEffect(
     () => () => {
@@ -1703,11 +1688,11 @@ export function BreakdownPanel({
     if (
       editorSnapshot.target.kind === "breakdown" &&
       (!breakdowns.some((row) => row.id === editorSnapshot.target.id) ||
-        stagedEligibility.stagedSourceIds.has(editorSnapshot.target.id))
+        authoritativeStagedSourceIds.has(editorSnapshot.target.id))
     ) {
       editor.invalidate();
     }
-  }, [breakdowns, editor, selectedScratch?.id, stagedEligibility.stagedSourceIds]);
+  }, [authoritativeStagedSourceIds, breakdowns, editor, selectedScratch?.id]);
   const persistedConsumedCompletion =
     selectedScratch !== null &&
     isArchiveEligible &&
@@ -1749,18 +1734,6 @@ export function BreakdownPanel({
     completion !== undefined &&
     isConsumedCompletion &&
     completionPresentation === "complete";
-  const addCompletionBlocker =
-    completion?.completionBlockers?.addDraft === true;
-  const titleCompletionBlocker =
-    completion?.completionBlockers?.title ?? null;
-  const titleCompletionBlockerCopy = getTitleCompletionBlockerCopy(
-    titleCompletionBlocker,
-  );
-  const isTitleIssueOverlay =
-    editor.snapshot?.target.kind === "scratch-title" &&
-    (editor.snapshot.phase === "offline" ||
-      editor.snapshot.phase === "not_applied" ||
-      editor.snapshot.phase === "conflict");
   const withdrawalCopy =
     completion?.withdrawalReason === "active-breakdown"
       ? INBOX_TRIAGE_COPY.completion.withdrawal.activeBreakdown
@@ -1771,7 +1744,7 @@ export function BreakdownPanel({
           : null;
   const emptyState = isConsumedCompletion
     ? "consumed-completion"
-    : consumedBreakdownCount > 0 || stagedCandidateCounts.authoritative > 0
+    : consumedBreakdownCount > 0 || !archiveCandidateClear
       ? "ordinary"
       : hasObservedBreakdownHistory
         ? "all-deleted"
@@ -2277,33 +2250,10 @@ export function BreakdownPanel({
               actionTestId="context-action-slot"
               contentBefore={
                 <div
-                  aria-atomic={titleCompletionBlockerCopy !== null || undefined}
-                  aria-live={titleCompletionBlockerCopy !== null ? "polite" : undefined}
-                  className={cn(
-                    "text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
-                    titleCompletionBlockerCopy !== null &&
-                      !isTitleIssueOverlay &&
-                      "context-completion-blocker-mark",
-                  )}
-                  data-triage-role={
-                    titleCompletionBlockerCopy !== null && !isTitleIssueOverlay
-                      ? "context-completion-blocker-mark"
-                      : "context-eyebrow-meta"
-                  }
-                  id={
-                    titleCompletionBlockerCopy !== null && !isTitleIssueOverlay
-                      ? titleCompletionBlockerId
-                      : undefined
-                  }
+                  className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+                  data-triage-role="context-eyebrow-meta"
                 >
-                  {titleCompletionBlockerCopy !== null && !isTitleIssueOverlay ? (
-                    <>
-                      <span aria-hidden="true">!</span>{" "}
-                      {titleCompletionBlockerCopy}
-                    </>
-                  ) : (
-                    "Selected Scratch"
-                  )}
+                  Selected Scratch
                 </div>
               }
               contentAfter={
@@ -2315,14 +2265,6 @@ export function BreakdownPanel({
               contentRole="context-content-slot"
               contentTestId="context-content-slot"
               editor={editor}
-              completionBlockerCopy={
-                isTitleIssueOverlay ? titleCompletionBlockerCopy : null
-              }
-              completionBlockerDescriptionId={
-                titleCompletionBlockerCopy !== null && !isTitleIssueOverlay
-                  ? titleCompletionBlockerId
-                  : undefined
-              }
               onSave={handleEditorSave}
               onUseMine={handleEditorUseMine}
               snapshot={editor.snapshot}
@@ -2396,7 +2338,14 @@ export function BreakdownPanel({
                           ? INBOX_TRIAGE_COPY.baseActions.sortNewestFirst
                           : INBOX_TRIAGE_COPY.baseActions.sortOldestFirst}
                       </span>
-                      <span aria-hidden="true">{breakdownCreatedAtSort}</span>
+                      <span aria-hidden="true" data-triage-role="context-sort-order-label">
+                        {breakdownCreatedAtSort}
+                      </span>
+                      <span aria-hidden="true" data-triage-role="context-sort-short-label">
+                        {breakdownCreatedAtSort === "DESC"
+                          ? INBOX_TRIAGE_COPY.baseActions.sortTrackNew
+                          : INBOX_TRIAGE_COPY.baseActions.sortTrackOld}
+                      </span>
                     </span>
                     <span data-triage-role="context-sort-next-label">
                       {breakdownCreatedAtSort === "DESC"
@@ -2410,7 +2359,8 @@ export function BreakdownPanel({
           )}
         </div>
 
-        {breakdownRenderItems.length > 0 ? (
+        {/* Until the first read resolves there are no rows to show and no empty or completion state to claim. */}
+        {!isBreakdownReady ? null : breakdownRenderItems.length > 0 ? (
           <div className="mt-2" role="list" data-triage-role="breakdown-row-list">
             {breakdownRenderItems.map((item) =>
               item.kind === "recovery" ? (
@@ -2427,7 +2377,7 @@ export function BreakdownPanel({
                   deleteOperation={
                     deleteOperationsByBreakdownId.get(item.row.id) ?? null
                   }
-                  isStaged={stagedEligibility.stagedSourceIds.has(item.row.id)}
+                  isStaged={stagedSourceIds.has(item.row.id)}
                   isOperationLocked={operationLock.activeOperation !== null}
                   editor={editor}
                   onEdit={handleOpenBreakdown}
@@ -2562,9 +2512,6 @@ export function BreakdownPanel({
                 addEntryRef.current = element;
               }}
               className="block h-8 w-full appearance-none rounded-md border border-border bg-background px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
-              aria-describedby={
-                addCompletionBlocker ? addCompletionBlockerId : undefined
-              }
               data-triage-role="breakdown-add-field"
               maxLength={500}
               onChange={(event) => updateAddDraft(event.target.value)}
@@ -2631,19 +2578,6 @@ export function BreakdownPanel({
                   : () => void handleReconcileAdd()
               }
             />
-          ) : null}
-          {addCompletionBlocker ? (
-            <div
-              aria-atomic="true"
-              aria-live="polite"
-              className="breakdown-add-completion-blocker"
-              data-triage-role="breakdown-add-completion-blocker"
-              id={addCompletionBlockerId}
-              role="status"
-            >
-              <span aria-hidden="true">!</span>
-              <span>{INBOX_TRIAGE_COPY.completion.addBlocker}</span>
-            </div>
           ) : null}
         </div>
         {isDepartureDecision ? (

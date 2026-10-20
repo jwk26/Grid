@@ -450,6 +450,88 @@
   --theme-card-bg: var(--page-bg);
   --theme-shadow: 8px 8px 16px #c5c9d1, -8px -8px 16px #ffffff;
   --theme-shadow-hover: 12px 12px 20px #c5c9d1, -12px -12px 20px #ffffff;
+  /* Named inset/card family (Task 173): only the variants a realized region uses. */
+  --theme-shadow-inset: inset 6px 6px 12px #c5c9d1, inset -6px -6px 12px #ffffff;
+  --theme-shadow-inset-sm: inset 3px 3px 6px #c5c9d1, inset -3px -3px 6px #ffffff;
+  --theme-shadow-card: 5px 5px 10px #c5c9d1, -5px -5px 10px #ffffff;
+  --theme-shadow-card-xs: 2px 2px 4px #c5c9d1, -2px -2px 4px #ffffff;
+
+  /* L1: common frame and Scratch Pool roles. */
+  --triage-frame-gap: 1.25rem;
+  --triage-frame-padding: 1rem 1.25rem 1.25rem 0.75rem;
+  --triage-frame-surface: var(--page-bg);
+  --triage-frame-radius: var(--theme-radius);
+  --triage-frame-shadow: var(--theme-shadow);
+  --triage-frame-overflow: hidden;
+  --triage-frame-top-divider-size: 0px;
+  --triage-frame-border-size: 0px;
+  --triage-frame-heading-size: 3rem;
+  --triage-frame-heading-font-size: 11px;
+  --triage-frame-heading-weight: 600;
+  --triage-frame-heading-tracking: 0.18em;
+  --triage-frame-heading-transform: uppercase;
+  --triage-frame-heading-color: hsl(var(--foreground) / 0.75);
+  --triage-pool-inline-size: 18rem;
+  --triage-pool-compact-inline-size: 4rem;
+  --triage-pool-header-size: 3.25rem;
+  --triage-pool-header-border-size: 0px;
+  --triage-pool-heading-font-size: 11px;
+  --triage-pool-heading-weight: 600;
+  --triage-pool-heading-tracking: 0.18em;
+  --triage-pool-list-padding: 12px;
+  --triage-pool-tools-size: auto;
+  --triage-pool-tools-gap: 10px;
+  --triage-pool-tools-padding: 0 12px 12px;
+  --triage-pool-tools-rule-size: 0px;
+  --triage-pool-field-size: 36px;
+  --triage-pool-field-background: transparent;
+  --triage-pool-field-radius: 999px;
+  --triage-pool-field-padding: 0 36px;
+  --triage-pool-field-font-size: 12px;
+  --triage-pool-field-placeholder: hsl(var(--foreground) / 0.4);
+  --triage-pool-field-focus-background: transparent;
+  --triage-pool-field-focus-shadow: var(--theme-shadow-inset), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  --triage-pool-clear-inset: 12px;
+  --triage-pool-row-size: 62px;
+  --triage-pool-row-gap: 12px;
+  --triage-pool-row-border-size: 0px;
+  --triage-pool-row-padding: 12px 16px;
+  --triage-pool-row-title-size: 14px;
+  --triage-pool-row-title-weight: 600;
+  --triage-pool-row-title-line-height: 20px;
+  --triage-pool-row-time-size: 10px;
+  --triage-pool-row-time-line-height: 15px;
+  --triage-pool-row-time-color: hsl(var(--foreground) / 0.5);
+  --triage-pool-row-hover-background: transparent;
+  --triage-pool-row-selected-background: transparent;
+  --triage-pool-row-selected-foreground: hsl(var(--foreground));
+  --triage-pool-row-selected-meta: hsl(var(--foreground) / 0.5);
+  --triage-pool-row-focus-background: transparent;
+  --triage-pool-row-focus-foreground: hsl(var(--foreground));
+  --triage-pool-row-focus-meta: hsl(var(--foreground) / 0.5);
+  --triage-pool-selected-marker-display: none;
+  --triage-pool-sort-icon-display: none;
+  --triage-pool-sort-label-display: none;
+  --triage-pool-sort-badge-display: none;
+  --triage-pool-sort-track-display: grid;
+  --triage-pool-sort-active: #3f4fd0;
+  --triage-pool-sort-inactive: #566070;
+  --triage-pool-destructive-ink: #b3261e;
+  --triage-pool-motion-duration: 150ms;
+
+  /* L2: Selected Scratch Context marker (non-text) and one more shadow step. */
+  --theme-shadow-inset-xs: inset 2px 2px 4px #c5c9d1, inset -2px -2px 4px #ffffff;
+  --theme-shadow-card-hover: 7px 7px 14px #c5c9d1, -7px -7px 14px #ffffff;
+  --triage-breakdown-grip-hover-bg: color-mix(in srgb, var(--page-bg) 55%, white);
+  --triage-context-marker-working: #2fbf8f;
+  /* Task 179: the Context eyebrow and date step below the title: user-accepted exception in light (about 2.1:1). */
+  --triage-context-meta-ink: hsl(var(--foreground) / 0.4);
+  /* Task 179: the priority inks read 1.91:1 (mid) and 3.43:1 (high) on their tinted chips in light; these
+     neumorphism values give 6.45:1, 6.77:1 and about 6:1. The same tokens colour the sidebar inbox badge. */
+  --priority-high: 0 72% 38%;
+  --priority-mid: 38 92% 26%;
+  --priority-low: 217 80% 38%;
+  --triage-context-marker-complete: hsl(var(--foreground) / 0.45);
 
   --calendar-cell-bg: var(--page-bg);
   --calendar-cell-radius: 24px;
@@ -475,6 +557,28 @@
   --theme-card-bg: var(--page-bg);
   --theme-shadow: 5px 5px 10px #0b0b0b, -5px -5px 10px #292929;
   --theme-shadow-hover: 8px 8px 15px #0b0b0b, -8px -8px 15px #292929;
+  --theme-shadow-inset: inset 5px 5px 10px #0b0b0b, inset -5px -5px 10px #292929;
+  --theme-shadow-inset-sm: inset 3px 3px 6px #0b0b0b, inset -3px -3px 6px #292929;
+  --theme-shadow-card: 5px 5px 10px #0b0b0b, -5px -5px 10px #292929;
+  --theme-shadow-card-xs: 2px 2px 4px #0b0b0b, -2px -2px 4px #292929;
+  --triage-pool-sort-active: #9aa6ff;
+  --triage-pool-sort-inactive: #9aa1ae;
+  --triage-pool-destructive-ink: #ff8f86;
+  --theme-shadow-inset-xs: inset 2px 2px 4px #0b0b0b, inset -2px -2px 4px #292929;
+  --theme-shadow-card-hover: 7px 7px 14px #0b0b0b, -7px -7px 14px #292929;
+  --triage-breakdown-grip-hover-bg: color-mix(in srgb, var(--page-bg) 92%, white);
+  --triage-context-marker-working: #4fd6a8;
+  --triage-context-marker-complete: hsl(var(--foreground) / 0.5);
+  /* Task 179: dark meets 4.5:1 (5.05:1) for the Context eyebrow and date, the same step as the Pool meta. */
+  --triage-context-meta-ink: hsl(var(--foreground) / 0.55);
+  /* Task 179: the base priority inks already read well on the dark chips; restated so the light overrides above do not leak. */
+  --priority-high: 0 84% 60%;
+  --priority-mid: 45 93% 47%;
+  --priority-low: 217 91% 60%;
+  /* Task 179: Pool dates and count read 4.41:1 at 0.5 on the dark plate; 0.55 gives 5.05:1 (light stays 0.5). */
+  --triage-pool-row-time-color: hsl(var(--foreground) / 0.55);
+  --triage-pool-row-selected-meta: hsl(var(--foreground) / 0.55);
+  --triage-pool-row-focus-meta: hsl(var(--foreground) / 0.55);
   --calendar-cell-shadow: 4px 4px 8px #080808, -4px -4px 8px #181818;
   --calendar-today-shadow: inset 4px 4px 8px #080808, inset -4px -4px 8px #181818;
 }
@@ -976,6 +1080,7 @@
   background: var(--triage-frame-surface, hsl(var(--card)));
   box-shadow: var(--triage-frame-shadow, none);
   padding: var(--triage-frame-inset, 0px);
+  overflow: var(--triage-frame-overflow, visible);
 }
 
 .triage-shell__section::before {
@@ -1010,6 +1115,7 @@
   border-radius: var(--triage-frame-radius, 0px);
   box-shadow: var(--triage-frame-shadow, none);
   padding: 0;
+  overflow: var(--triage-frame-overflow, visible);
   transition-duration: var(--triage-pool-motion-duration, 200ms);
 }
 
@@ -1289,6 +1395,7 @@
 .scratch-pool__sort:hover { background: var(--triage-pool-sort-hover-background, hsl(var(--muted))); }
 .scratch-pool__sort-icon { display: var(--triage-pool-sort-icon-display, block); }
 .scratch-pool__sort-label { display: var(--triage-pool-sort-label-display, none); }
+.scratch-pool__sort-track { display: var(--triage-pool-sort-track-display, none); }
 .scratch-pool__sort-direction {
   display: var(--triage-pool-sort-badge-display, none);
   background: var(--triage-pool-sort-badge-background, hsl(var(--background)));
@@ -1386,6 +1493,19 @@
   color: hsl(var(--muted-foreground));
   font-size: 0.75rem;
   line-height: 1.4;
+}
+
+/* Task 179 (MI-4): the panel is a grid whose single column was sized by its content, so an
+   unbreakable destination title (a run of about 154 characters) pushed the lines past the card
+   edge; the column takes the panel's width and the title and destination lines break anywhere. */
+.external-removal-panel {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.external-removal-panel__title,
+.external-removal-panel__destination {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
 }
 
 .external-removal-panel__track {
@@ -1682,33 +1802,6 @@
   background: hsl(var(--card));
   border-block-end-style: double;
   font-family: var(--theme-font);
-}
-
-:root[data-color-theme="neumorphism"] .explorer-search-body {
-  background: hsl(var(--background));
-}
-
-:root[data-color-theme="neumorphism"] .explorer-search-field {
-  border: 0;
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
-}
-
-:root[data-color-theme="neumorphism"] .explorer-search-result {
-  border: 0;
-  box-shadow: var(--theme-shadow);
-}
-
-:root[data-color-theme="neumorphism"] .explorer-search-entry {
-  font-family: var(--theme-font);
-  text-shadow: 1px 1px 0 hsl(var(--background));
-}
-
-:root[data-color-theme="neumorphism"] .explorer-search-status,
-:root[data-color-theme="neumorphism"] .explorer-reveal-status {
-  border: 0;
-  box-shadow: inset 2px 2px 4px hsl(var(--foreground) / 0.1),
-    inset -2px -2px 4px hsl(var(--background) / 0.82);
 }
 
 :root[data-color-theme="claymorphism"] .explorer-search-body {
@@ -2099,24 +2192,24 @@
   border-width: 0;
 }
 
-:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"]) {
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"]) {
   animation: none;
   transition: none;
   box-shadow: none;
 }
 
-:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-target-state="idle-valid"] {
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-target-state="idle-valid"] {
   outline: 1px dashed var(--explorer-ink);
   outline-offset: -1px;
 }
 
-:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-target-state="valid"] {
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-target-state="valid"] {
   background-image: repeating-linear-gradient(45deg, var(--explorer-ink) 0 4px, var(--explorer-paper) 4px 8px);
   outline: 2px solid var(--explorer-ink);
   outline-offset: -2px;
 }
 
-:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"]):is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"]):is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
   background-image: repeating-conic-gradient(hsl(var(--foreground) / 0.18) 0% 25%, transparent 0% 50%);
   background-size: 2px 2px;
   outline: 3px double var(--explorer-ink);
@@ -2124,7 +2217,7 @@
   cursor: not-allowed;
 }
 
-:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-target-state="pending-confirmation"] {
+:root[data-color-theme="retro-mac"] :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-target-state="pending-confirmation"] {
   outline: 3px double var(--explorer-ink);
   outline-offset: -3px;
 }
@@ -2294,17 +2387,6 @@
 :root[data-color-theme="tiny-desk"] .explorer-path-status {
   border-block-end-style: double;
   box-shadow: inset 0 -2px 0 hsl(var(--border) / 0.16);
-}
-
-:root[data-color-theme="neumorphism"] .explorer-path-status {
-  border: 0;
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
-}
-
-:root[data-color-theme="neumorphism"] .explorer-remote-count {
-  border: 0;
-  box-shadow: var(--theme-shadow);
 }
 
 :root[data-color-theme="claymorphism"] .explorer-path-status {
@@ -2566,9 +2648,8 @@
 :root[data-color-theme="neumorphism"] .placement-result-title-shell,
 :root[data-color-theme="neumorphism"] .placement-direct-type-option {
   border: 0;
-  border-radius: var(--theme-radius);
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
 }
 
 :root[data-color-theme="claymorphism"] .placement-result-title-shell,
@@ -2714,9 +2795,8 @@
 
 :root[data-color-theme="neumorphism"] .placement-reliability-rail {
   border: 0;
-  border-radius: var(--theme-radius);
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
 }
 
 :root[data-color-theme="claymorphism"] .placement-reliability-rail {
@@ -3295,14 +3375,8 @@
 
 :root[data-color-theme="neumorphism"] .newly-status-rail {
   border: 0;
-  border-radius: var(--theme-radius);
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
-}
-
-:root[data-color-theme="neumorphism"] .newly-undo-action {
-  border: 0;
-  box-shadow: var(--theme-shadow);
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
 }
 
 :root[data-color-theme="claymorphism"] .newly-status-rail {
@@ -3462,7 +3536,16 @@
 
 :root[data-color-theme="neumorphism"]
   [data-triage-role="external-removal-countdown-track"] {
-  box-shadow: inset 2px 2px 4px hsl(var(--foreground) / 0.18);
+  background: transparent;
+  block-size: 6px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-xs);
+}
+/* Task 179 (MI-4): the heavy full-ink bar becomes a soft fill inside the inset trough. */
+:root[data-color-theme="neumorphism"]
+  [data-triage-role="external-removal-countdown-track"] > span {
+  background: hsl(var(--foreground) / 0.5);
+  border-radius: 999px;
 }
 
 :root[data-color-theme="neumorphism"]
@@ -3697,7 +3780,8 @@
   justify-content: var(--triage-frame-heading-justify, flex-start);
   letter-spacing: var(--triage-frame-heading-tracking, normal);
   position: relative;
-  text-transform: var(--triage-pool-row-title-transform, none);
+  color: var(--triage-frame-heading-color, hsl(var(--foreground)));
+  text-transform: var(--triage-frame-heading-transform, var(--triage-pool-row-title-transform, none));
 }
 
 .triage-shell__section-heading::before {
@@ -3798,6 +3882,7 @@
 /* L3 common owners; retro-mac aliases bind the same semantic tree. */
 .triage-staging__viewport { padding: 0.75rem; }
 .triage-staging__bit-icon { display: none; }
+.triage-shell__heading-icon { display: none; }
 .triage-staging__remove { animation: none; }
 .triage-staging__remove-default-icon { display: var(--triage-staging-remove-default-icon-display, block); }
 .triage-staging__remove-trash { display: var(--triage-staging-remove-trash-display, none); }
@@ -3870,8 +3955,19 @@
   background: transparent; border-color: transparent; box-shadow: none;
 }
 :root[data-color-theme="retro-mac"] .triage-staging__well:is([data-triage-state="invalid"], [data-triage-state="unavailable"]) {
-  background: transparent; border: 1px dashed hsl(var(--muted-foreground));
+  background: transparent; border-color: transparent;
   color: hsl(var(--muted-foreground)); box-shadow: none;
+}
+/* Drop-state lines mark the whole subsection (the drop region), never the well; a hovered valid
+   subsection shows only the hatch, with no border or ring. */
+:root[data-color-theme="retro-mac"] .triage-staging__well:is([data-triage-state="idle-valid"], [data-triage-state="valid"]) {
+  background: transparent; border-color: transparent; box-shadow: none;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__subsection[data-triage-state="idle-valid"] {
+  outline: 1px dashed hsl(var(--muted-foreground)); outline-offset: -4px;
+}
+:root[data-color-theme="retro-mac"] .triage-staging__subsection:is([data-triage-state="invalid"], [data-triage-state="unavailable"]) {
+  outline: 1px dashed hsl(var(--muted-foreground)); outline-offset: -4px;
 }
 :root[data-color-theme="retro-mac"] .triage-staging__subsection:has(.triage-staging__well[data-triage-hover="true"]) {
   background-image: var(--triage-staging-hover-pattern);
@@ -3883,6 +3979,16 @@
   background: var(--triage-staging-surface); border: var(--triage-staging-border);
   border-radius: 0; box-shadow: var(--triage-staging-shadow);
   color: var(--triage-staging-ink); font-family: var(--triage-staging-font);
+}
+/* The dimmed card fades its surface by alpha, never by ancestor opacity, so an attached status line stays at full ink. */
+:root[data-color-theme="retro-mac"] .triage-staging :is(.triage-staging__node, .triage-staging__bit)[data-triage-dimmed] {
+  background: transparent; border-color: transparent; box-shadow: none;
+  isolation: isolate; position: relative;
+}
+:root[data-color-theme="retro-mac"] .triage-staging :is(.triage-staging__node, .triage-staging__bit)[data-triage-dimmed]::before {
+  background: var(--triage-staging-surface); border: var(--triage-staging-border);
+  box-shadow: var(--triage-staging-shadow); box-sizing: border-box;
+  content: ""; inset: 0; opacity: 0.3; pointer-events: none; position: absolute; z-index: -1;
 }
 :root[data-color-theme="retro-mac"] .triage-staging__node,
 :root[data-color-theme="retro-mac"] .staging-node-status-card {
@@ -4034,6 +4140,12 @@
   padding-block-start: 0.125rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* A Node card's status line is fitted to the card width, so it ellipsizes in every theme. */
+.triage-staging__node-content > .staging-operation-status {
+  align-self: stretch;
+  max-inline-size: 100%;
 }
 
 .staging-node-status-card,
@@ -4245,8 +4357,7 @@
 
 :root[data-color-theme="neumorphism"] .pool-status-band {
   border-radius: var(--theme-radius);
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
+  box-shadow: var(--theme-shadow-inset-sm);
 }
 
 :root[data-color-theme="neumorphism"] .pool-activity-marker {
@@ -4500,26 +4611,6 @@
   grid-column: 1 / -1;
 }
 
-.breakdown-add-completion-blocker {
-  align-items: center;
-  background: hsl(var(--muted) / 0.28);
-  border-block-start: var(--theme-border-width) solid hsl(var(--border));
-  color: hsl(var(--foreground));
-  display: flex;
-  font-family: var(--theme-font);
-  font-size: 0.75rem;
-  gap: 0.375rem;
-  grid-column: 1 / -1;
-  line-height: 1rem;
-  min-block-size: 1.75rem;
-  padding: 0.25rem 0.375rem;
-}
-
-.context-completion-blocker-mark {
-  line-height: 0.875rem;
-  white-space: normal;
-}
-
 .archive-withdrawal-status {
   align-items: center;
   background: hsl(var(--muted) / 0.28);
@@ -4660,8 +4751,10 @@
 }
 
 :root[data-color-theme="neumorphism"] .archive-card {
+  background: var(--page-bg);
   border: 0;
-  box-shadow: var(--theme-shadow), inset 3px 3px 7px hsl(var(--foreground) / 0.08);
+  border-radius: 28px;
+  box-shadow: var(--theme-shadow-card-hover);
 }
 
 :root[data-color-theme="claymorphism"] .archive-card {
@@ -4698,11 +4791,7 @@
   box-shadow: none;
 }
 
-.breakdown-add-completion-blocker,
-.context-completion-blocker-mark,
 .archive-withdrawal-status,
-.breakdown-add-completion-blocker *,
-.context-completion-blocker-mark *,
 .archive-withdrawal-status * {
   animation: none !important;
   transition: none !important;
@@ -4716,19 +4805,12 @@
   white-space: normal;
 }
 
-:root[data-color-theme="tiny-desk"] .breakdown-add-completion-blocker,
 :root[data-color-theme="tiny-desk"] .archive-withdrawal-status,
-:root[data-color-theme="neumorphism"] .breakdown-add-completion-blocker,
 :root[data-color-theme="neumorphism"] .archive-withdrawal-status,
-:root[data-color-theme="claymorphism"] .breakdown-add-completion-blocker,
 :root[data-color-theme="claymorphism"] .archive-withdrawal-status,
-:root[data-color-theme="origami"] .breakdown-add-completion-blocker,
 :root[data-color-theme="origami"] .archive-withdrawal-status,
-:root[data-color-theme="terminal"] .breakdown-add-completion-blocker,
 :root[data-color-theme="terminal"] .archive-withdrawal-status,
-:root[data-color-theme="retro-mac"] .breakdown-add-completion-blocker,
 :root[data-color-theme="retro-mac"] .archive-withdrawal-status,
-:root[data-color-theme="graphite"] .breakdown-add-completion-blocker,
 :root[data-color-theme="graphite"] .archive-withdrawal-status {
   background: hsl(var(--card));
   border-color: hsl(var(--border));
@@ -5248,6 +5330,7 @@
 .triage-shell [data-triage-role="context-identity-object"] { display: contents; }
 [data-triage-role="context-sort-current-label"] { display: inline; }
 [data-triage-role="context-sort-next-label"] { display: none; }
+[data-triage-role="context-sort-short-label"] { display: none; }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-current-label"] { display: none; }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-edit-label"],
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-sort-icon"] { display: none; }
@@ -5317,8 +5400,7 @@
   block-size: var(--triage-context-title-slot-height);
   display: flex; align-items: center;
 }
-:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-eyebrow-meta"],
-:root[data-color-theme="retro-mac"] .triage-shell .context-completion-blocker-mark {
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-eyebrow-meta"] {
   color: hsl(var(--muted-foreground));
   font-family: var(--triage-context-font);
   font-size: var(--triage-context-meta-size);
@@ -5362,6 +5444,27 @@
   background: var(--triage-context-ink); color: var(--triage-context-surface);
 }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"] [data-triage-role="context-title"] { text-decoration: line-through; opacity: 0.4; }
+/* Scratch complete (Task 179A): the identity box swaps the folder for a filled System 7
+   checkbox, an ink square (::before) with a check in the Context surface colour (::after). */
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"] [data-triage-role="context-folder-icon"] { display: none; }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"] [data-triage-role="context-identity-object"]::before {
+  background: var(--triage-context-ink);
+  block-size: 14px;
+  inline-size: 14px;
+  inset: 50% auto auto 50%;
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-signature-plate"][data-triage-state="complete"] [data-triage-role="context-identity-object"]::after {
+  block-size: 8px;
+  border: solid var(--triage-context-surface);
+  border-width: 0 2px 2px 0;
+  content: "";
+  inline-size: 4px;
+  inset: 50% auto auto 50%;
+  position: absolute;
+  transform: translate(-50%, -62%) rotate(45deg);
+}
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-content-viewport"] { padding: 8px 16px; background: var(--triage-context-surface); }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-row-list"] { margin-block-start: 32px; }
 :root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-breakdown-row {
@@ -5497,8 +5600,7 @@
     column-gap: 0; padding: var(--triage-context-small-padding);
   }
   :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-identity-object"] { display: none; }
-  :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-eyebrow-meta"],
-  :root[data-color-theme="retro-mac"] .triage-shell .context-completion-blocker-mark {
+  :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-eyebrow-meta"] {
     block-size: var(--triage-context-small-meta-height); flex-shrink: 0;
   }
 }
@@ -5547,12 +5649,13 @@
   --triage-explorer-card-bit-surface: var(--triage-staging-surface);
   position: relative;
 }
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-pane"] { position: relative; }
 
 :root[data-color-theme="retro-mac"] .triage-shell .placement-affordance {
   margin-inline: 0;
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-viewport"]:has([data-triage-role="placement-affordance"]),
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-pane"]:has([data-triage-role="placement-affordance"]),
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-node-target"][data-triage-target-state="pending-confirmation"] {
   border-width: 0;
   outline: none;
@@ -5563,11 +5666,11 @@
   position: relative;
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
   background-image: none;
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -5578,17 +5681,17 @@
   outline-offset: -2px;
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
   background-image: repeating-conic-gradient(hsl(var(--foreground) / 0.18) 0% 25%, transparent 0% 50%);
   background-size: 2px 2px;
   outline: 3px double var(--explorer-ink);
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"] {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"] {
   outline-color: hsl(var(--destructive));
 }
 
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"]::after {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"]::after {
   background-image: repeating-conic-gradient(hsl(var(--destructive) / 0.18) 0% 25%, transparent 0% 50%);
   outline-color: hsl(var(--destructive));
 }
@@ -5675,13 +5778,22 @@
   margin-inline-end: 0;
 }
 /* Portal content also needs the static contract; shared primitive stays intact. */
-.newly-undo-tooltip, .newly-undo-tooltip * {
+.newly-undo-tooltip, .newly-undo-tooltip *,
+.explorer-title-tooltip, .explorer-title-tooltip * {
   animation: none !important;
   transition: none !important;
 }
 .newly-undo-tooltip {
   font-family: var(--theme-font);
   max-inline-size: min(24rem, calc(100vw - 16px));
+}
+/* Explorer truncated-title plate (Task 179A): the stored title as typed, wrapped, static. */
+.explorer-title-tooltip {
+  font-family: var(--theme-font);
+  max-inline-size: min(24rem, calc(100vw - 16px));
+  overflow-wrap: anywhere;
+  text-align: start;
+  text-wrap: wrap;
 }
 
 :root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-newly-placed="true"],
@@ -5711,23 +5823,23 @@
 :root[data-color-theme="retro-mac"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] [data-triage-role="explorer-card-undo"] {
   inset-block-start: calc(50% + var(--triage-explorer-folder-rise) / 2);
 }
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
   --triage-finder-feedback-pattern: repeating-conic-gradient(hsl(var(--foreground) / 0.18) 0% 25%, transparent 0% 50%);
   --triage-finder-feedback-pattern-size: 2px 2px;
   --triage-finder-feedback-outline: 3px double var(--explorer-ink);
 }
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"] {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"] {
   --triage-finder-feedback-pattern: repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.18) 0 4px, transparent 4px 8px);
   --triage-finder-feedback-surface: var(--triage-finder-unavailable-surface);
   --triage-finder-feedback-pattern-size: auto;
   --triage-finder-feedback-outline: 2px solid var(--explorer-ink);
   outline: var(--triage-finder-feedback-outline);
 }
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"])::after {
   background-image: var(--triage-finder-feedback-pattern);
   background-color: var(--triage-finder-feedback-surface);
 }
-:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-viewport"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"]::after {
+:root[data-color-theme="retro-mac"] .triage-shell :is([data-triage-role="explorer-pane"], [data-triage-role="explorer-node-target"])[data-triage-unavailable="true"][data-triage-target-state="invalid"]::after {
   background-image: var(--triage-finder-feedback-pattern);
   background-size: auto;
   background-color: var(--triage-finder-feedback-surface);
@@ -5744,7 +5856,7 @@
   content: none;
 }
 /* Local foreground coverage survives actual Bit z-10 paint and column scrolling. */
-:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-viewport"][data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"]) [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"]::after {
+:root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="explorer-pane"][data-triage-feedback-source]:is([data-triage-target-state="valid"], [data-triage-target-state="full"], [data-triage-target-state="invalid"]) [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"]::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -5938,7 +6050,6 @@
   box-shadow: none;
   transform: translate(2px, 2px);
 }
-:root[data-color-theme="retro-mac"] .triage-shell .breakdown-add-completion-blocker,
 :root[data-color-theme="retro-mac"] :is(.triage-shell, .archive-recovery-boundary) .archive-withdrawal-status {
   background: hsl(var(--background));
   border: 2px solid hsl(var(--foreground));
@@ -5962,12 +6073,6 @@
   inline-size: 20px;
   justify-content: center;
 }
-:root[data-color-theme="retro-mac"] .triage-shell .context-completion-blocker-mark {
-  font-family: var(--triage-context-font);
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
 
 /* Phase 41 (Task 210): Scratch Trash control, Scratch Trash dialog, Context [X], Breakdown Delete dialog. */
 .scratch-pool__row-container {
@@ -5980,6 +6085,9 @@
 .scratch-pool__row.scratch-pool__row--with-trash { padding-inline-end: 40px; }
 .scratch-trash-dialog__mark,
 .breakdown-delete-dialog__mark { display: none; }
+/* A long unbreakable Scratch title wraps inside the card instead of pushing the footer off screen. */
+.scratch-trash-dialog__content { min-inline-size: 0; }
+.scratch-trash-dialog [data-triage-role="scratch-trash-body"] { overflow-wrap: anywhere; }
 
 /* The [X] is a control only where a theme shows the strip (Retro Mac); elsewhere the strip stays display:none. */
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="context-title-strip"] [data-triage-role="context-decoration-close"] {
@@ -6124,4 +6232,2366 @@
 :root[data-color-theme="retro-mac"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* Neumorphism L1 (Task 173): common frame and Scratch Pool. Values come from the
+   alias block in the neumorphism root; these rules only shape elements the shared
+   aliases cannot reach. Light and dark share them through the shadow variables. */
+:root[data-color-theme="neumorphism"] .scratch-pool__header {
+  background: transparent;
+  gap: 8px;
+  padding-inline: 12px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__header::before { display: none; }
+:root[data-color-theme="neumorphism"] .scratch-pool__header > div { display: contents; }
+:root[data-color-theme="neumorphism"] .scratch-pool__header > div > svg {
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.75);
+  flex-shrink: 0;
+  inline-size: 28px;
+  order: 1;
+  padding: 6px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__heading {
+  background: transparent;
+  color: hsl(var(--foreground) / 0.75);
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  order: 2;
+  overflow: hidden;
+  padding-inline: 0;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-total-count"] {
+  background: transparent;
+  block-size: auto;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: var(--triage-pool-row-time-color);
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  order: 3;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__header .scratch-pool__toggle {
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.6);
+  display: grid;
+  flex-shrink: 0;
+  inline-size: 28px;
+  order: 4;
+  padding: 0;
+  place-items: center;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__header .scratch-pool__toggle svg { block-size: 14px; inline-size: 14px; }
+
+:root[data-color-theme="neumorphism"] .scratch-pool__search-icon {
+  block-size: 14px;
+  color: hsl(var(--foreground) / 0.4);
+  inline-size: 14px;
+  left: 14px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__field {
+  box-shadow: var(--theme-shadow-inset);
+  min-block-size: 36px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__field:focus,
+:root[data-color-theme="neumorphism"] .scratch-pool__field:focus-visible {
+  box-shadow: var(--triage-pool-field-focus-shadow);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__field::placeholder { font-style: italic; }
+:root[data-color-theme="neumorphism"] .scratch-pool__sort {
+  block-size: 36px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset);
+  inline-size: 112px;
+  justify-content: center;
+  padding: 4px;
+  position: relative;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort:hover { background: transparent; }
+:root[data-color-theme="neumorphism"] .scratch-pool__sort::before {
+  background: var(--page-bg);
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card);
+  content: "";
+  inline-size: 50px;
+  inset-block-start: 4px;
+  inset-inline-start: 4px;
+  position: absolute;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort[data-triage-state="desc"]::before { transform: translateX(54px); }
+:root[data-color-theme="neumorphism"] .scratch-pool__sort:not(.transition-none)::before {
+  transition: transform var(--triage-pool-motion-duration) ease-out;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort-track {
+  gap: 4px;
+  grid-template-columns: 50px 50px;
+  position: relative;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort-track > span {
+  align-items: center;
+  block-size: 28px;
+  color: var(--triage-pool-sort-inactive);
+  display: flex;
+  font-size: 9px;
+  font-weight: 700;
+  justify-content: center;
+  letter-spacing: 0.08em;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort[data-triage-state="asc"] .scratch-pool__sort-track > span:first-child,
+:root[data-color-theme="neumorphism"] .scratch-pool__sort[data-triage-state="desc"] .scratch-pool__sort-track > span:last-child {
+  color: var(--triage-pool-sort-active);
+  font-weight: 800;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__sort:focus-visible {
+  box-shadow: var(--theme-shadow-inset), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+
+:root[data-color-theme="neumorphism"] .scratch-pool__list { padding: 12px 16px 20px; }
+:root[data-color-theme="neumorphism"] .scratch-pool__row {
+  background: transparent;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-card);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__row[data-triage-state="selected"] { box-shadow: var(--theme-shadow-inset); }
+:root[data-color-theme="neumorphism"] .scratch-pool__row:not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__row:not(.transition-none)[data-triage-state="default"]:hover { transform: translateY(-2px); }
+:root[data-color-theme="neumorphism"] .scratch-pool__row:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__row[data-triage-state="selected"]:focus-visible {
+  box-shadow: var(--theme-shadow-inset), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__row-time {
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Neumorphism L1, collapsed rail: inset icon well with a bare count, raised expand
+   control and inset switcher dots; the selected switcher is a raised bar. */
+:root[data-color-theme="neumorphism"] .scratch-pool[data-triage-state="collapsed"] .scratch-pool__compact-tools {
+  gap: 12px;
+  padding: 16px 8px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__compact-tools > div > svg {
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.75);
+  inline-size: 28px;
+  padding: 6px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool[data-triage-state="collapsed"] [data-triage-role="pool-total-count"] {
+  background: transparent;
+  box-shadow: none;
+  color: hsl(var(--foreground) / 0.75);
+  font-size: 9px;
+  letter-spacing: 0;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__compact-tools .scratch-pool__toggle {
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.6);
+  display: grid;
+  inline-size: 28px;
+  padding: 0;
+  place-items: center;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__compact-tools .scratch-pool__toggle svg { block-size: 14px; inline-size: 14px; }
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"] {
+  background: transparent;
+  block-size: 32px;
+  border-radius: 0;
+  box-shadow: none;
+  inline-size: 32px;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]::before {
+  background: hsl(var(--foreground) / 0.12);
+  block-size: 12px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  content: "";
+  inline-size: 12px;
+}
+/* Task 179: the selected switcher is one dark bar that travels between switchers. A single
+   pseudo-element of the switcher group is anchored to the pressed switcher, so changing the
+   selection moves it (its block position transitions); every switcher keeps its resting dot
+   under it. It is hidden when no switcher is pressed, does not travel when the rail first
+   appears, and follows the rail's scroll. Without anchor positioning each switcher draws its
+   own selected bar instead (the old per-switcher bar, checked by test only). */
+@supports (anchor-name: --a) {
+  :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"][aria-pressed="true"] {
+    anchor-name: --triage-pool-selected-switcher;
+  }
+  :root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__compact-list > [role="group"] {
+    position: relative;
+  }
+  :root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__compact-list > [role="group"]:has([aria-pressed="true"])::before {
+    background: hsl(var(--foreground) / 0.75);
+    border-radius: 999px;
+    box-shadow: var(--theme-shadow-card);
+    content: "";
+    inline-size: 8px;
+    inset-block: anchor(top) anchor(bottom);
+    inset-inline-start: anchor(center);
+    pointer-events: none;
+    position: absolute;
+    position-anchor: --triage-pool-selected-switcher;
+    translate: -50% 0;
+    z-index: 1;
+  }
+  :root[data-color-theme="neumorphism"] .scratch-pool:not(.transition-none) .scratch-pool__compact-list > [role="group"]::before {
+    transition-duration: var(--triage-pool-motion-duration);
+    transition-property: top, bottom;
+    transition-timing-function: ease-out;
+  }
+  :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:not(.transition-none)::before {
+    transition-duration: var(--triage-pool-motion-duration);
+    transition-property: transform;
+    transition-timing-function: ease-out;
+  }
+}
+@supports not (anchor-name: --a) {
+  :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"][aria-pressed="true"]::before {
+    background: hsl(var(--foreground) / 0.75);
+    block-size: 32px;
+    box-shadow: var(--theme-shadow-card);
+    inline-size: 8px;
+  }
+  :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:not(.transition-none)::before {
+    transition-duration: var(--triage-pool-motion-duration);
+    transition-property: transform, block-size, inline-size, background-color, box-shadow;
+    transition-timing-function: ease-out;
+  }
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:not(.transition-none):hover::before { transform: scale(1.1); }
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:focus-visible {
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+/* Task 179: Pool collapse/expand motion. In a heavy-shadow theme a container's width is not
+   animated: every resized card's blur shadow repaints each frame. The Pool and the main work
+   area change size in one step, the main work area scales on X from its right edge so both
+   edges end right (its content is briefly compressed on collapse and stretched on expand),
+   and the Pool content eases in. The scale ratio comes from the shell's own width and the Pool
+   tokens (`100cqi`), so it holds whenever the shell is narrower than the viewport. Where typed division in
+   `calc()` is unsupported the main work area slides by the Pool's size difference instead.
+   The animations use `backwards` fill, never `both`: a finished animation that keeps filling stays "in effect" and
+   makes the main work area the containing block of `position: fixed` descendants (the drag overlay).
+   Nothing runs on page load: the workspace sets `data-triage-pool-toggled` after the first
+   Pool toggle. Reduced motion arrives as `.transition-none` on the Pool. */
+:root[data-color-theme="neumorphism"] .scratch-pool { transition: none; }
+:root[data-color-theme="neumorphism"] .triage-shell {
+  container-type: inline-size;
+  --triage-pool-motion-delta: calc(var(--triage-pool-inline-size) - var(--triage-pool-compact-inline-size));
+  --triage-pool-motion-collapse-scale: calc((100cqi - var(--triage-pool-inline-size) - var(--triage-frame-gap)) / (100cqi - var(--triage-pool-compact-inline-size) - var(--triage-frame-gap)));
+  --triage-pool-motion-expand-scale: calc((100cqi - var(--triage-pool-compact-inline-size) - var(--triage-frame-gap)) / (100cqi - var(--triage-pool-inline-size) - var(--triage-frame-gap)));
+}
+/* One keyframes name per Pool state: the Pool keeps one DOM node across both states, and a CSS
+   animation only restarts when its name changes. */
+@keyframes triage-pool-content-in-expanded {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes triage-pool-content-in-collapsed {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes triage-main-scale-collapse {
+  from { transform: scaleX(var(--triage-pool-motion-collapse-scale)); }
+  to { transform: none; }
+}
+@keyframes triage-main-scale-expand {
+  from { transform: scaleX(var(--triage-pool-motion-expand-scale)); }
+  to { transform: none; }
+}
+@keyframes triage-main-slide-from-right {
+  from { transform: translateX(var(--triage-pool-motion-delta)); }
+  to { transform: none; }
+}
+@keyframes triage-main-slide-from-left {
+  from { transform: translateX(calc(-1 * var(--triage-pool-motion-delta))); }
+  to { transform: none; }
+}
+:root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"] .scratch-pool[data-triage-state="expanded"]:not(.transition-none) .scratch-pool__frame {
+  animation: triage-pool-content-in-expanded var(--triage-pool-motion-duration) ease-out backwards;
+}
+:root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"] .scratch-pool[data-triage-state="collapsed"]:not(.transition-none) .scratch-pool__frame {
+  animation: triage-pool-content-in-collapsed var(--triage-pool-motion-duration) ease-out backwards;
+}
+@supports (transform: scaleX(calc(10px / 5px))) {
+  :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="collapsed"]:not(.transition-none)) .triage-shell__main {
+    animation: triage-main-scale-collapse var(--triage-pool-motion-duration) ease-out backwards;
+    transform-origin: right center;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="expanded"]:not(.transition-none)) .triage-shell__main {
+    animation: triage-main-scale-expand var(--triage-pool-motion-duration) ease-out backwards;
+    transform-origin: right center;
+  }
+}
+@supports not (transform: scaleX(calc(10px / 5px))) {
+  :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="collapsed"]:not(.transition-none)) .triage-shell__main {
+    animation: triage-main-slide-from-right var(--triage-pool-motion-duration) ease-out backwards;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell[data-triage-pool-toggled="true"]:has(.scratch-pool[data-triage-state="expanded"]:not(.transition-none)) .triage-shell__main {
+    animation: triage-main-slide-from-left var(--triage-pool-motion-duration) ease-out backwards;
+  }
+}
+/* Task 179 (4b): the Explorer `Home` heading button is 38×15px, under the 24px target size; its
+   hit area grows to 46×25px without moving the heading (a transparent pseudo-element). */
+:root[data-color-theme="neumorphism"] .triage-shell .explorer-home-entry { position: relative; }
+:root[data-color-theme="neumorphism"] .triage-shell .explorer-home-entry::after {
+  content: "";
+  inset-block: -5px;
+  inset-inline: -4px;
+  position: absolute;
+}
+
+/* Task 179 (MI-17): in a narrow Explorer column (a content box under 160px, about 1024px with
+   the Pool open) a newly placed card cannot hold the NEW capsule, the type icon and the Undo
+   beside a readable title. The compact form keeps the marker as its dot (the word stays in the
+   text, only drawn at zero size), drops the decorative type icon and, on a Node, the chevron
+   while the Undo is shown (the accessible name still says Bit or Node), and tightens the card
+   padding and the Undo margin, so the title keeps the room. The `.triage-shell` prefix keeps these rules above the
+   Task 177 Newly/Undo rules, which come later in the file. */
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-viewport"] { container-type: inline-size; }
+@container (max-width: 160px) {
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-newly-placed="true"] [data-triage-role="explorer-card-marker"] {
+    font-size: 0;
+    gap: 0;
+    letter-spacing: 0;
+    margin-inline-start: 8px;
+    padding: 3px 6px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-newly-placed="true"] :is([data-triage-role="explorer-card-icon"], [data-triage-role="explorer-card-icon-slot"]) {
+    display: none;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-newly-placed="true"] [data-triage-role="explorer-card-undo"] {
+    margin-inline: auto 8px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-newly-placed="true"] [data-triage-role="explorer-card-content"] {
+    padding-inline: 6px 4px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] [data-triage-role="explorer-card-undo"] {
+    inset-inline-end: 8px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][data-newly-placed="true"] {
+    --newly-action-reserve: 40px;
+    gap: 6px;
+    padding-inline-start: 8px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][data-newly-placed="true"] [data-triage-role="explorer-card-chevron"] {
+    display: none;
+  }
+}
+
+/* mi-12: Pool collapse toggles and the row Trash control respond like the Breakdown
+   controls: 1px lift and stronger ink on hover, inset-sm on press. */
+:root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__toggle:not(:disabled):hover {
+  color: hsl(var(--foreground) / 0.9);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__toggle:not(:disabled):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool :is(.scratch-pool__toggle, [data-triage-role="pool-row-trash-action"]):not(:disabled):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform, color;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool :is(.scratch-pool__toggle, [data-triage-role="pool-row-trash-action"]):not(:disabled):not(.transition-none):hover {
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool :is(.scratch-pool__toggle, [data-triage-role="pool-row-trash-action"]):not(:disabled):not(.transition-none):active {
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool .scratch-pool__toggle:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__compact-list > [role="group"] { gap: 8px; }
+
+/* Neumorphism L1, Phase 41 surfaces (no prototype source; proposed look, set by the
+   user's disposition): the Pool row Trash control and the Scratch Trash dialog. */
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"] {
+  background: transparent;
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.6);
+  inline-size: 28px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:not(:disabled):hover {
+  background: transparent;
+  box-shadow: var(--theme-shadow-card);
+  color: var(--triage-pool-destructive-ink);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:not(:disabled):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-row-trash-action"]:disabled {
+  box-shadow: none;
+  opacity: 0.5;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool__row.scratch-pool__row--with-trash { padding-inline-end: 48px; }
+:root[data-color-theme="neumorphism"] .scratch-pool__trash { right: 10px; }
+
+:root[data-color-theme="neumorphism"] :is(.scratch-trash-dialog-overlay, .breakdown-delete-dialog-overlay) {
+  background: hsl(var(--background) / 0.7);
+  backdrop-filter: blur(2px);
+}
+:root[data-color-theme="neumorphism"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: var(--theme-radius);
+  box-shadow: var(--theme-shadow);
+  font-family: var(--theme-font);
+  padding: 28px;
+}
+:root[data-color-theme="neumorphism"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) [data-slot="alert-dialog-title"] {
+  color: hsl(var(--foreground) / 0.85);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) [data-slot="alert-dialog-description"] {
+  color: hsl(var(--foreground) / 0.7);
+}
+:root[data-color-theme="neumorphism"] .scratch-trash-dialog__state:not(:empty) {
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  padding: 6px 16px;
+}
+:root[data-color-theme="neumorphism"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.8);
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button[data-variant="destructive"],
+:root[data-color-theme="neumorphism"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button.bg-destructive {
+  color: var(--triage-pool-destructive-ink);
+}
+:root[data-color-theme="neumorphism"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button:not(:disabled):active { box-shadow: var(--theme-shadow-inset-sm); }
+:root[data-color-theme="neumorphism"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.scratch-trash-dialog, .breakdown-delete-dialog) button:disabled {
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+/* Neumorphism L2 (Task 174): Selected Scratch Context. Fixed 104px plate (the source's
+   110px/py-7 is not adopted); the working-dot pulse is not adopted. */
+:root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context {
+  background: transparent;
+  border: 0;
+  border-radius: 30px;
+  box-shadow: var(--theme-shadow-inset);
+  column-gap: 14px;
+  padding-inline: 12px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context[data-triage-state="complete"] {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-identity-object"] {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-base-icon"] { display: none; }
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-identity-object"]::before {
+  background: var(--triage-context-marker-working);
+  block-size: 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 6px var(--triage-context-marker-working);
+  content: "";
+  inline-size: 10px;
+}
+/* Complete: hollow inset ring (shape differs from the working dot). */
+:root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context[data-triage-state="complete"] [data-triage-role="context-identity-object"]::before {
+  background: transparent;
+  border: 2px solid var(--triage-context-marker-complete);
+  box-shadow: var(--theme-shadow-inset-xs);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-eyebrow-meta"] {
+  color: var(--triage-context-meta-ink);
+  letter-spacing: 0.18em;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-title"] {
+  color: hsl(var(--foreground));
+  font-weight: 700;
+}
+/* Scratch complete (Task 179A): struck through and dimmed to 5.03:1 light, 8.30:1 dark on the page surface. */
+:root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context[data-triage-state="complete"] [data-triage-role="context-title"] {
+  color: hsl(var(--foreground) / 0.75);
+  text-decoration: line-through;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-timestamp"] {
+  /* User-accepted contrast exception (about 2.1:1 in light) for these two roles only; the dark value is 0.55 (5.05:1). */
+  color: var(--triage-context-meta-ink);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="context-edit-control"], [data-triage-role="context-sort-control"]) {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-sort-control"] {
+  color: var(--triage-pool-sort-active);
+  letter-spacing: 0.08em;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-edit-label"],
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-sort-icon"],
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-sort-order-label"] { display: none; }
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-sort-short-label"] {
+  display: inline;
+  font-size: 11px;
+  font-weight: 700;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-edit-control"] {
+  block-size: 32px;
+  inline-size: 32px;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="context-sort-control"] {
+  block-size: 32px;
+  inline-size: 60px;
+  justify-content: center;
+  padding-inline: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="context-edit-control"], [data-triage-role="context-sort-control"]):not(:disabled):hover {
+  background: var(--page-bg);
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="context-edit-control"], [data-triage-role="context-sort-control"]):not(:disabled):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="context-edit-control"], [data-triage-role="context-sort-control"]):focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="context-edit-control"], [data-triage-role="context-sort-control"]):disabled {
+  box-shadow: none;
+  opacity: 0.5;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="context-edit-control"], [data-triage-role="context-sort-control"]):not(:disabled):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="context-edit-control"], [data-triage-role="context-sort-control"]):not(:disabled):not(.transition-none):hover {
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="context-edit-control"], [data-triage-role="context-sort-control"]):hover { transform: none; }
+}
+
+/* Neumorphism L2 (Task 174, Stage 2): Breakdown rows, Add, empty states and the
+   DP-VQ11 troughs. The content viewport pads its edges so raised shadows are not
+   clipped by the scroll viewport (the frame section also clips overflow). */
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-content-viewport"] {
+  padding: 8px 22px 22px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-row-list"] { margin-block-start: 16px; }
+:root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-breakdown-row {
+  background: transparent;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-card);
+  column-gap: 12px;
+  margin-block-end: 12px;
+  padding-inline: 8px 12px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-staged-row"] {
+  box-shadow: var(--theme-shadow-inset-sm);
+  opacity: 0.35;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-staged-row"] :is([data-triage-role="breakdown-grip-control"], [data-triage-role="breakdown-row-action"]):disabled {
+  opacity: 0.1;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-staged-row"] [data-triage-role="breakdown-view-text"] {
+  color: hsl(var(--foreground) / 0.75);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-view-text"] { font-weight: 500; }
+:root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-breakdown-row:not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, color, background-color;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-active-row"][data-triage-state="active"]:hover {
+  box-shadow: var(--theme-shadow-card-hover);
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="breakdown-grip-control"], [data-triage-role="breakdown-row-action"]) {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  color: hsl(var(--foreground) / 0.65);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"] {
+  box-shadow: var(--theme-shadow-card-xs);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"]:not(:disabled):hover {
+  background: var(--triage-breakdown-grip-hover-bg);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"]:not(:disabled):hover svg {
+  color: hsl(var(--foreground) / 0.85);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"]:not(:disabled):not(.transition-none) svg {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: color;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-action-slot"] { gap: 8px; }
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"] svg { color: hsl(var(--foreground) / 0.6); }
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-row-action"] {
+  box-shadow: var(--theme-shadow-card-xs);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-row-action"]:not(:disabled):hover {
+  background: var(--page-bg);
+  color: hsl(var(--foreground) / 0.9);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-row-action"][aria-label="Delete"]:not(:disabled):hover {
+  color: var(--triage-pool-destructive-ink);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-row-action"]:not(:disabled):active,
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"]:not(:disabled):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-row-action"]:focus-visible,
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-grip-control"]:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="breakdown-grip-control"], [data-triage-role="breakdown-row-action"]):disabled {
+  box-shadow: none;
+  opacity: 0.5;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="breakdown-grip-control"], [data-triage-role="breakdown-row-action"]):not(:disabled):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform, color, background-color;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-row-action"]:not(:disabled):not(.transition-none):hover {
+  transform: translateY(-1px);
+}
+
+/* DP-VQ02 success: end the wash on the ordinary raised row shadow, not on none. */
+:root[data-color-theme="neumorphism"] [data-triage-role="breakdown-active-row"][data-triage-state~="success"] {
+  --breakdown-success-rest-shadow: var(--theme-shadow-card);
+  animation-name: breakdown-success-wash-neumorphism;
+}
+@keyframes breakdown-success-wash-neumorphism {
+  from {
+    --breakdown-success-wash-progress: 1;
+    background-color: hsl(var(--primary) / 0.16);
+    box-shadow: var(--breakdown-success-rest-shadow), var(--breakdown-success-shadow);
+  }
+  to {
+    --breakdown-success-wash-progress: 0;
+    background-color: transparent;
+    box-shadow: var(--breakdown-success-rest-shadow);
+  }
+}
+
+/* Add region: inset pill field with a raised Add control. */
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-footer"] {
+  border-block-start: 0;
+  padding: 10px 22px 18px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-field"] {
+  background: transparent;
+  block-size: 40px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset);
+  color: hsl(var(--foreground) / 0.9);
+  padding-inline: 18px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-field"]:is(div) {
+  color: hsl(var(--foreground) / 0.75);
+  font-style: italic;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-field"]::placeholder {
+  color: hsl(var(--foreground) / 0.75);
+  font-style: italic;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-field"]:is(:focus, :focus-visible),
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-field"]:is(div):hover {
+  background: transparent;
+  border: 0;
+  box-shadow: var(--theme-shadow-inset);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-field"]:is(:focus-visible) {
+  box-shadow: var(--theme-shadow-inset), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-control"] {
+  background: var(--page-bg);
+  block-size: 40px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.85);
+  font-weight: 600;
+  padding-inline: 22px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-control"]:not(:disabled):hover { background: var(--page-bg); }
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-control"]:not(:disabled):active { box-shadow: var(--theme-shadow-inset-sm); }
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-control"]:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-add-control"]:disabled {
+  box-shadow: var(--theme-shadow-inset-xs);
+  opacity: 0.6;
+}
+
+/* Empty states (prototype dials, drawn on the existing object role): ordinary empty is a
+   112px inset dial with a small raised dot; consumed completion / Scratch complete is a 64px
+   inset-sm circle. The existing icon sits inside the circle; copy is unchanged. */
+:root[data-color-theme="neumorphism"] .triage-shell [data-testid="breakdown-empty-state"] {
+  align-content: center;
+  background: transparent;
+  border: 0;
+  display: grid;
+  justify-items: center;
+  min-block-size: 0;
+  padding-block: 24px 20px;
+  row-gap: 4px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-testid="breakdown-empty-state"] > [data-triage-role="breakdown-empty-object"] {
+  border-radius: 999px;
+  display: block;
+  grid-area: 1 / 1;
+  pointer-events: none;
+  position: relative;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-testid="breakdown-empty-state"] > svg {
+  align-self: center;
+  grid-area: 1 / 1;
+  position: relative;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-ordinary-empty"] > [data-triage-role="breakdown-empty-object"] {
+  block-size: 112px;
+  box-shadow: var(--theme-shadow-inset);
+  inline-size: 112px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-ordinary-empty"] > [data-triage-role="breakdown-empty-object"]::after {
+  background: var(--page-bg);
+  block-size: 10px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  content: "";
+  inline-size: 10px;
+  inset-block-start: 14px;
+  inset-inline-start: calc(50% - 5px);
+  position: absolute;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-consumed-completion"] > [data-triage-role="breakdown-empty-object"] {
+  block-size: 64px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  inline-size: 64px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-testid="breakdown-empty-state"] > span:not([data-triage-role]) {
+  color: hsl(var(--foreground) / 0.75);
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="archive-completion-reopen"] {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.85);
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="archive-completion-reopen"]:not(:disabled):active { box-shadow: var(--theme-shadow-inset-sm); }
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="archive-completion-reopen"]:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+
+/* DP-VQ11 withdrawal status: inset trough, no floating card. */
+:root[data-color-theme="neumorphism"] .archive-withdrawal-status {
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.85);
+  padding: 0.5rem 0.875rem;
+}
+
+/* Neumorphism L2 (Task 174, Stage 3): inline editors, source-bound issue overlay,
+   DP-VQ05 reliability lines, DP-VQ03 departure sheet. All changes here are static
+   (DP-VQ03/04/05 are no-motion), so none adds a transition or a hover transform. */
+:root[data-color-theme="neumorphism"] .triage-inline-editor__field {
+  background: transparent;
+  block-size: 32px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.9);
+  padding-inline: 14px;
+}
+:root[data-color-theme="neumorphism"] .triage-inline-editor__field:focus-visible {
+  box-shadow: var(--theme-shadow-inset-sm), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .triage-inline-editor__field[aria-invalid="true"] {
+  box-shadow: var(--theme-shadow-inset-sm), 0 0 0 2px var(--triage-pool-destructive-ink);
+}
+/* Task 179 (MI-18): the focus ring reaches 4px outside the field, so the editor leaves 4px of
+   inline room inside the clipping content slot, and in the Context a 30px field keeps 6px
+   between the `Selected Scratch` eyebrow and the ring inside the fixed 104px plate. */
+:root[data-color-theme="neumorphism"] .triage-inline-editor { padding-inline: 4px; }
+:root[data-color-theme="neumorphism"] .triage-fixed-context .triage-inline-editor {
+  margin-block: 6px 5px;
+}
+:root[data-color-theme="neumorphism"] .triage-fixed-context .triage-inline-editor__field { block-size: 30px; }
+
+/* Task 179 (MI-20): with the Pool open at 1024px the Context text column is about 100px, so the
+   `Selected Scratch` eyebrow wrapped to two lines and the title editor, its validation message
+   and the date no longer fit the 72px slot. When the Context plate is narrow (under 380px) the
+   eyebrow is hidden visually but stays in the accessibility tree (a clip, not `display: none`),
+   the validation message drops below the field and wraps, and the date steps aside while the
+   title is edited. */
+:root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context { container-type: inline-size; }
+@container (max-width: 380px) {
+  :root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context [data-triage-role="context-eyebrow-meta"] {
+    block-size: 1px;
+    clip-path: inset(50%);
+    inline-size: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context .triage-inline-editor {
+    margin-block: 4px 0;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context .triage-inline-editor__required {
+    display: block;
+    line-height: 14px;
+    margin-block-start: 4px;
+    max-inline-size: none;
+    overflow: visible;
+    position: static;
+    text-overflow: clip;
+    transform: none;
+    white-space: normal;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context:has(.triage-inline-editor) [data-triage-role="context-timestamp"] {
+    display: none;
+  }
+}
+:root[data-color-theme="neumorphism"] .triage-inline-editor__field[readonly] { color: hsl(var(--foreground) / 0.75); }
+:root[data-color-theme="neumorphism"] .triage-inline-editor__required { color: var(--triage-pool-destructive-ink); }
+:root[data-color-theme="neumorphism"] .triage-inline-editor__actions button,
+:root[data-color-theme="neumorphism"] [data-triage-role="inline-editor-issue-actions"] button {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: none;
+  color: hsl(var(--foreground) / 0.85);
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="inline-editor-issue-actions"] button {
+  background: var(--page-bg);
+  box-shadow: var(--theme-shadow-card-xs);
+}
+:root[data-color-theme="neumorphism"] .triage-inline-editor__actions button:not(:disabled):hover { box-shadow: var(--theme-shadow-card-xs); }
+:root[data-color-theme="neumorphism"] :is(.triage-inline-editor__actions, [data-triage-role="inline-editor-issue-actions"]) button:not(:disabled):active { box-shadow: var(--theme-shadow-inset-sm); }
+:root[data-color-theme="neumorphism"] :is(.triage-inline-editor__actions, [data-triage-role="inline-editor-issue-actions"]) button:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-inline-editor__actions, [data-triage-role="inline-editor-issue-actions"]) button:disabled {
+  box-shadow: none;
+  opacity: 0.5;
+}
+:root[data-color-theme="neumorphism"] [data-triage-emphasis="destructive"][data-triage-contrast="adaptive"]:not(:disabled) { color: var(--triage-pool-destructive-ink); }
+:root[data-color-theme="neumorphism"] .triage-inline-editor__actions [data-triage-role="inline-editor-progress"] { color: hsl(var(--foreground) / 0.8); }
+:root[data-color-theme="neumorphism"] .triage-inline-editor__issue-overlay {
+  background: color-mix(in srgb, var(--page-bg) 92%, transparent);
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .triage-fixed-context .triage-inline-editor__issue-overlay {
+  border-radius: 24px;
+  padding-inline: 24px;
+}
+:root[data-color-theme="neumorphism"] .triage-fixed-breakdown-row .triage-inline-editor__issue-overlay { padding-inline: 16px; }
+:root[data-color-theme="neumorphism"] .triage-inline-editor__issue-overlay [data-triage-role="inline-editor-issue-status"] { color: hsl(var(--foreground) / 0.85); }
+
+/* DP-VQ05 reliability lines: one shallow inset channel with a raised recovery control. */
+:root[data-color-theme="neumorphism"] .breakdown-reliability {
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.85);
+  padding: 0.25rem 0.625rem;
+}
+:root[data-color-theme="neumorphism"] .breakdown-reliability__status { box-shadow: none; }
+:root[data-color-theme="neumorphism"] .breakdown-reliability__action {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.9);
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] .breakdown-reliability__action:not(:disabled):not([aria-disabled="true"]):active { box-shadow: var(--theme-shadow-inset-sm); }
+:root[data-color-theme="neumorphism"] .breakdown-reliability__action:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .breakdown-reliability__action[aria-disabled="true"] { box-shadow: var(--theme-shadow-inset-xs); opacity: 0.6; }
+
+/* DP-VQ03 departure sheet: inset well, raised primary, separate text-led destructive secondary. */
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet {
+  background: transparent;
+  border: 0;
+  border-radius: 20px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  padding: 1rem 1.125rem;
+}
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__eyebrow { color: hsl(var(--foreground) / 0.75); }
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__heading { font-weight: 700; }
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__actions { gap: 0.75rem; }
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__actions button {
+  border: 0;
+  border-radius: 999px;
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="breakdown-departure-continue"],
+:root[data-color-theme="neumorphism"] [data-triage-role="breakdown-departure-continue"]:hover,
+:root[data-color-theme="neumorphism"] [data-triage-role="breakdown-departure-continue"]:focus-visible,
+:root[data-color-theme="neumorphism"] [data-triage-role="breakdown-departure-continue"]:active {
+  background-color: var(--page-bg);
+  box-shadow: var(--theme-shadow-card);
+  color: var(--triage-pool-sort-active);
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="breakdown-departure-continue"]:active { box-shadow: var(--theme-shadow-inset-sm); }
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__discard,
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__discard:hover,
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__discard:focus-visible,
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__discard:active {
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--triage-pool-destructive-ink);
+}
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__discard:hover { box-shadow: var(--theme-shadow-inset-xs); }
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__discard:active { box-shadow: var(--theme-shadow-inset-sm); }
+:root[data-color-theme="neumorphism"] .breakdown-departure-sheet__actions button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="breakdown-departure-continue"]:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="breakdown-row-action"]:hover { transform: none; }
+  :root[data-color-theme="neumorphism"] [data-triage-role="breakdown-active-row"][data-triage-state~="success"] {
+    box-shadow: var(--theme-shadow-card), var(--breakdown-success-shadow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] .scratch-pool__row[data-triage-state="default"]:hover,
+  :root[data-color-theme="neumorphism"] .scratch-pool [data-triage-role="pool-compact-switcher"]:hover::before { transform: none; }
+  :root[data-color-theme="neumorphism"] .scratch-pool :is(.scratch-pool__toggle, [data-triage-role="pool-row-trash-action"]):hover { transform: none; }
+  :root[data-color-theme="neumorphism"] .scratch-pool__sort::before { transition: none; }
+}
+:root[data-color-theme="neumorphism"] .scratch-pool .pool-status-band {
+  margin: 0 12px 8px;
+  padding: 8px 14px;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool .pool-status-action {
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  padding: 2px 10px;
+  text-decoration: none;
+}
+:root[data-color-theme="neumorphism"] .scratch-pool .pool-status-action:not(:disabled):active { box-shadow: var(--theme-shadow-inset-sm); }
+:root[data-color-theme="neumorphism"] .scratch-pool__no-match {
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  padding: 14px 16px;
+}
+
+/* Task 175 (L3, neumorphism): section heading icons, Staging wells and candidates. */
+:root[data-color-theme="neumorphism"] .triage-shell__section-heading:has(.triage-shell__heading-icon) { gap: 8px; }
+:root[data-color-theme="neumorphism"] .triage-shell :is([data-triage-role="breakdown-heading-icon"], [data-triage-role="staging-heading-icon"]) {
+  block-size: 28px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.75);
+  display: block;
+  flex-shrink: 0;
+  inline-size: 28px;
+  padding: 6px;
+}
+:root[data-color-theme="neumorphism"] .triage-staging .triage-shell__staging {
+  gap: 12px;
+  padding: 0 16px 16px;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__subsection {
+  background: transparent;
+  border: 0;
+  border-radius: 20px;
+  box-shadow: var(--theme-shadow-inset);
+  overflow: hidden;
+}
+:root[data-color-theme="neumorphism"] .triage-staging .triage-shell__subsection-heading {
+  background: transparent;
+  border: 0;
+  color: hsl(var(--foreground) / 0.72);
+  font-size: 10px;
+  font-weight: 600;
+  justify-content: center;
+  letter-spacing: 0.18em;
+  padding-top: 8px;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__viewport { padding: 0.5rem; }
+:root[data-color-theme="neumorphism"] .triage-staging__well {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 14px;
+  padding: 6px;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__node,
+:root[data-color-theme="neumorphism"] .triage-staging__bit,
+:root[data-color-theme="neumorphism"] .staging-node-status-card,
+:root[data-color-theme="neumorphism"] .staging-bit-status-row {
+  background: var(--page-bg);
+  border-radius: 18px;
+  border-width: 0;
+  box-shadow: var(--theme-shadow-card);
+}
+:root[data-color-theme="neumorphism"] .triage-staging__node,
+:root[data-color-theme="neumorphism"] .staging-node-status-card { max-inline-size: none; }
+:root[data-color-theme="neumorphism"] .triage-staging__node { overflow: visible; }
+:root[data-color-theme="neumorphism"] .triage-staging__bit,
+:root[data-color-theme="neumorphism"] .staging-bit-status-row { padding-block: 9px; }
+:root[data-color-theme="neumorphism"] .triage-staging__well > :is(.grid, .flex-col) { gap: 12px; }
+/* The dimmed card fades its surface by alpha, never by ancestor opacity, so an attached status line stays at full ink. */
+:root[data-color-theme="neumorphism"] .triage-staging :is(.triage-staging__node, .triage-staging__bit)[data-triage-dimmed] {
+  box-shadow: none;
+  isolation: isolate;
+  position: relative;
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.triage-staging__node, .triage-staging__bit)[data-triage-dimmed]::before {
+  border-radius: inherit;
+  box-shadow: var(--theme-shadow-inset-xs);
+  content: "";
+  inset: 0;
+  opacity: 0.3;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.triage-staging__node, .triage-staging__bit):focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-staging .triage-shell__subsection-heading:focus-visible {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__node-content { padding: 8px 12px; }
+:root[data-color-theme="neumorphism"] .triage-staging__node-content > svg {
+  block-size: 36px;
+  border-radius: 16px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  inline-size: 36px;
+  margin-block-end: 8px;
+  padding: 8px;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__node-label {
+  color: hsl(var(--foreground) / 0.8);
+  flex-shrink: 0;
+  margin-block-start: 0;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__bit-icon {
+  block-size: 24px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.65);
+  display: block;
+  flex-shrink: 0;
+  inline-size: 24px;
+  margin-inline-end: 10px;
+  padding: 5px;
+}
+
+/* Task 175 Stage 2 (L3, neumorphism): drop targets and drag token. Skin only, static. */
+:root[data-color-theme="neumorphism"] .triage-staging__remove,
+:root[data-color-theme="neumorphism"] .triage-breakdown__return {
+  background: var(--page-bg);
+  border: 0;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.72);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .triage-staging:has(.triage-staging__remove) .triage-shell__staging { padding-block-end: 68px; }
+:root[data-color-theme="neumorphism"] .triage-staging__remove {
+  block-size: 40px;
+  border-radius: 18px;
+  border-top-width: 0;
+  bottom: 16px;
+  inline-size: auto;
+  inset-inline: 16px;
+}
+/* Return overlay covers the whole Breakdown body below the heading (no gap at its top). */
+:root[data-color-theme="neumorphism"] .triage-breakdown__return {
+  border-radius: 18px;
+  inset: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__remove[data-triage-state="active-hover"],
+:root[data-color-theme="neumorphism"] .triage-breakdown__return[data-drop-active="true"] {
+  background: color-mix(in srgb, var(--page-bg) 91%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset);
+  color: hsl(var(--foreground));
+}
+/* Task 176 Stage 4: the whole subsection is the drop region and carries the state. The well
+   drops the base line cues (dashed border, ring) for depth and tint on the subsection, in the
+   Explorer language: eligible a light tint, hovered a deeper inset with a stronger tint,
+   unavailable and invalid flat and dimmed. Static; reason copy unchanged. */
+:root[data-color-theme="neumorphism"] .triage-staging__well {
+  border-color: transparent;
+  box-shadow: none;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__well:is([data-triage-state="valid"], [data-triage-state="idle-valid"], [data-triage-state="neutral"], [data-triage-state="unavailable"], [data-triage-state="invalid"]) {
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__subsection[data-triage-state="idle-valid"] {
+  background: color-mix(in srgb, var(--page-bg) 97%, hsl(var(--foreground)));
+}
+:root[data-color-theme="neumorphism"] .triage-staging__subsection[data-triage-state="neutral"][data-triage-hover="true"] {
+  background: color-mix(in srgb, var(--page-bg) 95%, hsl(var(--foreground)));
+}
+:root[data-color-theme="neumorphism"] .triage-staging__subsection[data-triage-state="valid"] {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset), var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .triage-staging__subsection:is([data-triage-state="unavailable"], [data-triage-state="invalid"]) {
+  box-shadow: none;
+}
+/* Dim the heading and the candidates, never the reason note that explains the state. */
+:root[data-color-theme="neumorphism"] .triage-staging__subsection:is([data-triage-state="unavailable"], [data-triage-state="invalid"]) :is(.triage-shell__subsection-heading, .triage-staging__well > :is(.grid, .flex-col)) {
+  opacity: 0.7;
+}
+:root[data-color-theme="neumorphism"] .triage-staging__subsection[data-triage-state="invalid"] { cursor: not-allowed; }
+:root[data-color-theme="neumorphism"] .triage-drag-token {
+  background: var(--page-bg);
+  border: 0;
+  box-shadow: var(--theme-shadow-card-hover);
+  color: hsl(var(--foreground) / 0.8);
+}
+
+/* Task 175 Stage 3 (L3, neumorphism): DP-VQ06-STAGING — candidate status line, arrival count, alert well. */
+:root[data-color-theme="neumorphism"] .triage-staging .staging-local-alert {
+  background: transparent;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 11px;
+  font-weight: 600;
+  margin: 0 16px 12px;
+  padding: 8px 8px 8px 16px;
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count) {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.8);
+}
+:root[data-color-theme="neumorphism"] .triage-staging .staging-alert-action { block-size: 28px; inline-size: 28px; }
+:root[data-color-theme="neumorphism"] .triage-staging .staging-arrival-count {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  line-height: 14px;
+  padding: 3px 10px;
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):not(:disabled):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):not(:disabled):not(.transition-none):hover {
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):hover { transform: none; }
+}
+:root[data-color-theme="neumorphism"] .staging-operation-status,
+:root[data-color-theme="neumorphism"] [data-triage-role="staging-integrity-status"] {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.72);
+  padding: 1px 6px;
+}
+:root[data-color-theme="neumorphism"] .staging-node-status-card > .staging-operation-status,
+:root[data-color-theme="neumorphism"] .staging-node-status-card > [data-triage-role="staging-integrity-status"] {
+  max-inline-size: 100%;
+}
+:root[data-color-theme="neumorphism"] .staging-target-reason {
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.72);
+  margin: 8px 4px 4px;
+  padding: 4px 8px;
+}
+:root[data-color-theme="neumorphism"] .staging-bit-status-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+:root[data-color-theme="neumorphism"] .staging-bit-status-row > :is(.staging-operation-status, [data-triage-role="staging-integrity-status"]) {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/* Task 176 Stage 1 (L4, neumorphism): Explorer base chrome. Raised frame comes from the shared
+   section frame; panes are inset plates, rows are raised cards through the Task 169 card hooks. */
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-root"] {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-header"] {
+  block-size: 3rem;
+  gap: 12px;
+  padding-inline: 20px;
+}
+:root[data-color-theme="neumorphism"] .explorer-header__identity,
+:root[data-color-theme="neumorphism"] .explorer-header__control,
+:root[data-color-theme="neumorphism"] .triage-shell__heading-label--explorer {
+  background: transparent;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-panes"] {
+  gap: 16px;
+  padding: 0 16px 16px;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"] {
+  background: transparent;
+  border: 0;
+  border-radius: 20px;
+  box-shadow: var(--theme-shadow-inset);
+  overflow: hidden;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"][data-explorer-dimmed="true"] {
+  background: transparent;
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-column-header"] {
+  background: transparent;
+  border: 0;
+  padding: 12px 16px 4px;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-column-label"] {
+  color: hsl(var(--foreground) / 0.72);
+  font-family: var(--theme-font);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-viewport"] {
+  background: transparent;
+  padding: 8px 12px 16px;
+  scrollbar-width: none;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-viewport"]::-webkit-scrollbar { display: none; }
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-empty"] {
+  color: hsl(var(--foreground) / 0.72);
+  font-family: var(--theme-font);
+  font-size: 12px;
+}
+:root[data-color-theme="neumorphism"] :is([data-triage-role="explorer-card-list"], [data-triage-role="explorer-bit-list"]) { gap: 12px; }
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-node-target"] {
+  background: transparent;
+  border-radius: 18px;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-card-shell"] { inline-size: 100%; min-inline-size: 0; }
+
+/* Rows: one raised card per Node/Bit; hover is colour only. */
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"]:is([data-triage-role="explorer-card-node"], [data-triage-role="explorer-card-bit"]) {
+  background: var(--page-bg);
+  block-size: auto;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.8);
+  inline-size: 100%;
+  max-block-size: none;
+  min-inline-size: 0;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] {
+  block-size: auto;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"]:is([data-triage-role="explorer-card-node"], [data-triage-role="explorer-card-bit"]):hover {
+  background: color-mix(in srgb, var(--page-bg) 95%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground));
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"]:is([data-triage-role="explorer-card-node"], [data-triage-role="explorer-card-bit"]):focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  padding: 10px 14px 10px 12px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][aria-current="true"] {
+  background: color-mix(in srgb, var(--page-bg) 80%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][aria-current="true"]:focus-visible {
+  box-shadow: var(--theme-shadow-inset-sm), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-icon-slot"] {
+  align-items: center;
+  block-size: 32px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  flex: none;
+  inline-size: 32px;
+  justify-content: center;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] [data-triage-role="explorer-card-icon"] {
+  block-size: 16px;
+  inline-size: 16px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] [data-triage-role="explorer-card-title-slot"] {
+  align-self: center;
+  block-size: auto;
+  flex: 1;
+  min-inline-size: 0;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-title"] {
+  color: inherit;
+  font-family: var(--theme-font);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: start;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-chevron"] {
+  block-size: 14px;
+  color: hsl(var(--foreground) / 0.6);
+  display: block;
+  flex: none;
+  inline-size: 14px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] {
+  align-items: stretch;
+  display: flex;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-accent"] { display: none; }
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-content"] {
+  gap: 4px;
+  min-inline-size: 0;
+  padding: 9px 14px 9px 12px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-primary"] {
+  align-items: center;
+  gap: 10px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-icon"] {
+  block-size: 24px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.65);
+  flex: none;
+  inline-size: 24px;
+  padding: 5px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-title"] {
+  font-weight: 500;
+}
+
+/* Bit states: overdue keeps a readable title on a subdued surface with the static mark;
+   completed mutes the title (still at least 4.5:1) with strike-through and the static check. */
+:root[data-color-theme="neumorphism"] {
+  --triage-explorer-overdue-surface: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--foreground)));
+  --triage-explorer-state-ink: hsl(var(--foreground) / 0.8);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"][data-card-state="overdue"] {
+  background: var(--triage-explorer-overdue-surface);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-card-muted="true"] [data-triage-role="explorer-card-title"] {
+  color: hsl(var(--foreground) / 0.72);
+  text-decoration: line-through;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-deadline"] {
+  color: hsl(var(--foreground) / 0.8);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"].explorer-revealed-row {
+  outline: 1px solid hsl(var(--foreground) / 0.45);
+  outline-offset: -1px;
+}
+
+/* Header search control (one of the six raised controls): raised pill, lifts 1px on hover,
+   inset on press, timed by the Pool token behind the reduced-motion override. */
+:root[data-color-theme="neumorphism"] .explorer-search-entry {
+  background: var(--page-bg);
+  block-size: 32px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-family: var(--theme-font);
+  padding-inline: 14px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-entry:hover {
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] .explorer-search-entry:active {
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-entry:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-entry:not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform, color;
+  transition-timing-function: ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] .explorer-search-entry { transition: none; }
+  :root[data-color-theme="neumorphism"] .explorer-search-entry:hover { transform: none; }
+}
+:root[data-color-theme="neumorphism"] .explorer-home-entry {
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+/* Task 176 Stage 2 (L4, neumorphism): column drop region (whole pane), Node-row targets.
+   Depth and tint only, as in Task 175: eligible is the resting plate with a light tint, hovered
+   (and pending) is a deeper inset with a stronger tint, full and invalid are flat and dimmed
+   with the not-allowed cursor. Static: no outline, animation, transform or pulse. */
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"] {
+  animation: none;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"][data-triage-target-state="idle-valid"] {
+  background: color-mix(in srgb, var(--page-bg) 97%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset);
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"]:is([data-triage-target-state="valid"], [data-triage-target-state="pending-confirmation"]) {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset), var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-pane"]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+  background: transparent;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-node-target"] {
+  animation: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-node-target"]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) { cursor: not-allowed; }
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][data-triage-target-state="idle-valid"] {
+  background: color-mix(in srgb, var(--page-bg) 97%, hsl(var(--foreground)));
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]:is([data-triage-target-state="valid"], [data-triage-target-state="pending-confirmation"]) {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]:is([data-triage-target-state="full"], [data-triage-target-state="invalid"]) {
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* DP-VQ06-EXPLORER: raised `N new` count and inset column notice with a raised Dismiss. */
+:root[data-color-theme="neumorphism"] .explorer-remote-count,
+:root[data-color-theme="neumorphism"] .explorer-status-action {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-family: var(--theme-font);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  padding: 2px 10px;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action):hover {
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action):focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform, color;
+  transition-timing-function: ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action) { transition: none; }
+  :root[data-color-theme="neumorphism"] :is(.explorer-remote-count, .explorer-status-action):hover { transform: none; }
+}
+:root[data-color-theme="neumorphism"] .explorer-path-status {
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-family: var(--theme-font);
+  margin: 4px 12px 0;
+  padding: 6px 8px 6px 12px;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-column-label"]:focus-visible,
+:root[data-color-theme="neumorphism"] .explorer-home-entry:focus-visible {
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+
+/* Task 176 Stage 3 (L4, neumorphism): DP-VQ07 replacement search body and the search-result
+   Undo slice (DP-VQ10). Inset field and state trough, raised result rows, raised controls with
+   the shared interaction. Static; copy, focus order and lifetime unchanged. */
+:root[data-color-theme="neumorphism"] .explorer-search-body {
+  background: transparent;
+  padding: 0 6px 16px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-status:not(:empty) { margin-inline: 10px; }
+:root[data-color-theme="neumorphism"] .explorer-search-field {
+  background: transparent;
+  block-size: 32px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset);
+  padding: 0 14px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-field:focus-within {
+  border: 0;
+  box-shadow: var(--theme-shadow-inset), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .explorer-search-field input {
+  color: hsl(var(--foreground));
+  font-family: var(--theme-font);
+  font-size: 12px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-field input::placeholder { color: hsl(var(--foreground) / 0.6); }
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-search-field"]:focus-visible {
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo) {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-family: var(--theme-font);
+}
+:root[data-color-theme="neumorphism"] .explorer-search-close {
+  align-items: center;
+  block-size: 28px;
+  display: inline-flex;
+  inline-size: 28px;
+  justify-content: center;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-retry, .explorer-search-undo) {
+  align-self: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  min-block-size: 0;
+  min-inline-size: 0;
+  padding: 2px 10px;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo):not([aria-disabled="true"]):hover {
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo):not([aria-disabled="true"]):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo):focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform, color;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-undo[aria-disabled="true"] {
+  box-shadow: var(--theme-shadow-inset-xs);
+  cursor: not-allowed;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo) { transition: none; }
+  :root[data-color-theme="neumorphism"] :is(.explorer-search-close, .explorer-search-retry, .explorer-search-undo):hover { transform: none; }
+}
+:root[data-color-theme="neumorphism"] .explorer-search-status,
+:root[data-color-theme="neumorphism"] .explorer-reveal-status,
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-search-undo-status"] {
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.8);
+  font-family: var(--theme-font);
+  padding: 6px 14px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-status:empty {
+  box-shadow: none;
+  min-block-size: 0;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] .explorer-reveal-status { margin: 12px 16px 0; }
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-search-undo-status"] {
+  border-radius: 10px;
+  margin-block-start: 0;
+  min-block-size: 0;
+  padding: 4px 10px;
+}
+:root[data-color-theme="neumorphism"] [data-triage-role="explorer-search-undo-status"] .newly-status-mark {
+  border-radius: 999px;
+  box-shadow: none;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-results {
+  gap: 12px;
+  padding: 12px 10px 4px;
+  scrollbar-width: none;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-results::-webkit-scrollbar { display: none; }
+:root[data-color-theme="neumorphism"] .explorer-search-result {
+  align-items: center;
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground) / 0.8);
+  gap: 12px;
+  padding: 10px 14px 10px 12px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-result:hover {
+  background: color-mix(in srgb, var(--page-bg) 95%, hsl(var(--foreground)));
+  color: hsl(var(--foreground));
+}
+:root[data-color-theme="neumorphism"] .explorer-search-result:focus-visible {
+  box-shadow: var(--theme-shadow-card), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-result-icon {
+  block-size: 24px;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  flex: none;
+  inline-size: 24px;
+  margin-block-start: 0;
+  padding: 5px;
+}
+:root[data-color-theme="neumorphism"] .explorer-search-result-title {
+  font-family: var(--theme-font);
+  font-size: 13px;
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] :is(.explorer-search-type, .explorer-search-duplicate, .explorer-search-breadcrumb) {
+  color: hsl(var(--foreground) / 0.72);
+}
+
+/* Task 176 Stage 4 (e, neumorphism only): entering or leaving a Staging subsection, Explorer column
+   or Node-row target changes tint and inset depth over the Pool motion token — background and
+   box-shadow only, no transform or layout change; reduced motion makes it immediate. */
+:root[data-color-theme="neumorphism"] :is(.triage-staging__subsection, [data-triage-role="explorer-pane"], [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: background-color, box-shadow;
+  transition-timing-function: ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] :is(.triage-staging__subsection, [data-triage-role="explorer-pane"], [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"]) { transition: none; }
+}
+
+/* Task 176 Stage 4 (g, neumorphism only): the Remove target and the Return overlay take the same
+   tint and inset-depth hover transition as the subsection targets, and fade in at drag start
+   (opacity only; they leave immediately when the drag ends). Reduced motion makes both immediate. */
+:root[data-color-theme="neumorphism"] :is(.triage-staging__remove, .triage-breakdown__return):not(.transition-none) {
+  animation: triage-target-fade-in var(--triage-pool-motion-duration) ease-out;
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: background-color, box-shadow;
+  transition-timing-function: ease-out;
+}
+@keyframes triage-target-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] :is(.triage-staging__remove, .triage-breakdown__return) { animation: none; transition: none; }
+}
+
+/* Neumorphism L5 (Task 177, Stage 1): Placement. The affordance is one raised plate inside the
+   target column; state is carried by depth and tint, never line styles. Every swap, validation
+   change, rail change and shadow or colour change stays immediate: the shared
+   `.placement-affordance *` rule keeps `transition: none !important`. The only motion is the
+   `transform`-only hover lift of the raised actions, eased by the rule at the end of this block
+   outside reduced motion. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-card);
+  color: hsl(var(--foreground));
+  font-family: var(--theme-font);
+  margin: 8px 6px 14px;
+  padding: 14px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-header {
+  gap: 8px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-confirm-heading, .placement-direct-heading, .placement-result-title-heading) {
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-confirm-heading, .placement-direct-heading) > span[aria-hidden="true"] {
+  display: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-confirm-heading, .placement-direct-heading):focus-visible {
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-direct-eyebrow, .placement-result-title-eyebrow) {
+  color: hsl(var(--foreground) / 0.8);
+  letter-spacing: 0.08em;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-direct-eyebrow.placement-direct-heading {
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 11px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-confirm-source, .placement-result-title-source) {
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell :is(.placement-target-path, .placement-source-truth, .placement-result-title-explanation, .placement-direct-type-reason) {
+  color: hsl(var(--foreground) / 0.76);
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-type {
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-full-target-warning {
+  background: color-mix(in srgb, var(--page-bg) 90%, hsl(var(--destructive)));
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+  padding: 8px 12px;
+}
+
+/* Raised controls: Confirm, Cancel, Continue, Direct Node/Bit and the header close. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button {
+  background: var(--page-bg);
+  block-size: 32px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.85);
+  font-family: var(--theme-font);
+  font-size: 12px;
+  font-weight: 600;
+  padding-inline: 16px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button:not(:disabled):not([aria-disabled="true"]):hover {
+  background: var(--page-bg);
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button:not(:disabled):not([aria-disabled="true"]):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button:is(:disabled, [aria-disabled="true"]) {
+  box-shadow: none;
+  opacity: 0.5;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-confirm, .placement-result-title-continue, .placement-direct-type) {
+  color: var(--triage-pool-sort-active);
+  font-weight: 700;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-cancel, .placement-direct-cancel) {
+  color: hsl(var(--foreground) / 0.72);
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-direct-cancel {
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-direct-cancel:not(:disabled):hover {
+  background: transparent;
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-direct-cancel:focus-visible {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+/* The header close is not shown: out of layout and focus order. Body Cancel and Escape close. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button.placement-header-close {
+  display: none;
+}
+
+/* Information is inset, actions are raised: the item title sits in a shallow well (Direct title
+   scoped to the direct shell so the Result Title step is unchanged) and the staged type is a
+   small raised pill, like the Context NEW pill. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-confirm-source,
+:root[data-color-theme="neumorphism"] .triage-shell .placement-direct-limit-shell .placement-result-title-source {
+  background: var(--page-bg);
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  padding: 8px 12px;
+}
+/* Confirmation (Staged, and Direct after a type is chosen: same markup, either shell class) stacks like Direct: heading; title well with the Node/Bit type as an inset
+   tag in a fixed area at its right; the primary action, then Cancel, both full width; the
+   reliability reservation below. The wrappers are unboxed and the frame body is a grid, so the
+   DOM and Tab order stay Cancel then OK (accepted exception) and OK sits above Cancel by grid row
+   only. Any `.placement-reliability-action` other than Cancel (OK, Retry, Check again) takes the
+   primary row. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-frame-body:has(> .placement-staged-summary-row) {
+  column-gap: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  min-inline-size: 0;
+  row-gap: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-staged-summary-row, .placement-staged-information, .placement-staged-type-row, .placement-reliability-actions) {
+  display: contents;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-confirm-source {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-result-type {
+  align-self: center;
+  background: var(--page-bg);
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: var(--triage-pool-sort-active);
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  grid-column: 2;
+  grid-row: 1;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  margin: 0;
+  padding: 4px 12px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-source-truth {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 8px 0 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-full-target-warning {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin: 8px 0 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-reliability-action:not(.placement-cancel) {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  inline-size: 100%;
+  margin-block-start: 16px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-cancel {
+  grid-column: 1 / -1;
+  grid-row: 5;
+  inline-size: 100%;
+  margin-block-start: 8px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-reliability-slot {
+  grid-column: 1 / -1;
+  grid-row: 6;
+  margin-block-start: 8px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-header {
+  margin-block-end: 14px;
+}
+
+/* Cancel stays neutral in Direct and Staged: stronger text and a shallow inset tint on hover, inset
+   on press; never on a disabled or aria-disabled Cancel, never a destructive colour. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-cancel, .placement-direct-cancel):not(:disabled):not([aria-disabled="true"]):hover {
+  background: color-mix(in srgb, var(--page-bg) 94%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance :is(.placement-cancel, .placement-direct-cancel):not(:disabled):not([aria-disabled="true"]):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+
+/* Result title step: the field is an inset well; the counter and errors keep text cues. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-result-title-shell,
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-direct-limit-shell {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-input {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 12px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+  padding: 8px 12px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-input:focus-visible {
+  box-shadow: var(--theme-shadow-inset-sm), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-input[aria-invalid="true"] {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--destructive)));
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-error {
+  color: color-mix(in srgb, hsl(var(--destructive)) 62%, hsl(var(--foreground)));
+  font-weight: 600;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-count {
+  color: hsl(var(--foreground) / 0.76);
+}
+
+/* Direct choice: unavailable reasons and the too-long summary are inset troughs, no rules. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-direct-type-option {
+  padding: 8px 12px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-direct-limit-summary {
+  background: color-mix(in srgb, var(--page-bg) 90%, hsl(var(--destructive)));
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground));
+  padding: 8px 12px;
+}
+
+/* Reliability rail: shallow inset trough; state marks keep their glyph, no ring line. */
+:root[data-color-theme="neumorphism"] .triage-shell .placement-reliability-rail {
+  background: transparent;
+  color: hsl(var(--foreground) / 0.85);
+  padding: 8px 12px;
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-reliability-mark {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.85);
+}
+:root[data-color-theme="neumorphism"] .triage-shell .placement-reliability-rail[data-placement-reliability-state="not-applied"],
+:root[data-color-theme="neumorphism"] .triage-shell .placement-affordance[data-placement-reliability="not-applied"] .placement-reliability-rail {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--destructive)));
+}
+
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-explorer-column] {
+  scroll-padding-block: 8px;
+}
+
+/* At 1024px the target column is about 140px wide: the plate tightens, the staged summary and
+   its actions stack, and the actions wrap instead of clipping. The column keeps all scroll. */
+@media (max-width: 1100px) {
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance {
+    margin: 6px 4px 10px;
+    padding: 10px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-result-title-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-header {
+    margin-block-end: 10px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance .placement-result-type {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button {
+    padding-inline: 12px;
+  }
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-confirm-source,
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-direct-limit-shell .placement-result-title-source {
+    font-size: 12px;
+    line-height: 16px;
+    padding: 6px 8px;
+  }
+}
+
+/* Raised Placement actions ease their hover lift and its return on press: `transform` only, on the
+   Pool motion token, outside reduced motion. This overrides the shared `.placement-affordance *`
+   `transition: none !important` for the transform property alone; shadow, colour, disabled and
+   every state, validation or step change stay immediate (a disabled control leaves the selector). */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-color-theme="neumorphism"] .triage-shell .placement-affordance button:not(:disabled):not([aria-disabled="true"]) {
+    transition-duration: var(--triage-pool-motion-duration) !important;
+    transition-property: transform !important;
+    transition-timing-function: ease-out !important;
+  }
+}
+
+/* Neumorphism L5 (Task 177, Stage 2): Newly Placed and Undo on the ordinary Explorer Node/Bit
+   cards, through the Task 169/170 hooks under `data-card-presentation="inbox-explorer"` only
+   (search-result Undo and ordinary Grid keep their own rules). Information is inset and actions
+   are raised; selection stays authoritative because no card surface is recoloured for Newly. State
+   is carried by depth and tint, never line styles; marker, rail and availability changes stay
+   immediate and only the Undo hover lift eases, `transform` only, outside reduced motion. */
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-newly-placed="true"] {
+  --newly-action-reserve: 48px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-newly-action-kind="recovery"] {
+  --newly-action-reserve: 112px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-marker"] {
+  align-items: center;
+  align-self: center;
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: var(--triage-pool-sort-active);
+  display: inline-flex;
+  flex: none;
+  font-family: var(--theme-font);
+  font-size: 10px;
+  font-weight: 700;
+  gap: 5px;
+  inset: auto;
+  letter-spacing: 0.08em;
+  line-height: 14px;
+  order: -1;
+  padding: 3px 10px;
+  position: static;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-marker"]::before {
+  block-size: 6px;
+  inline-size: 6px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"][data-newly-placed="true"] {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-marker"] {
+  margin-inline-start: 12px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"] [data-triage-role="explorer-card-marker"] {
+  margin-inline-end: -4px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node"][data-newly-placed="true"] {
+  padding-inline-end: var(--newly-action-reserve);
+}
+
+/* Undo: a raised 28px circle (a raised pill for the recovery text actions) in a stable internal
+   slot; unavailable keeps the slot, subdued by the same inset depth as the search-result Undo. */
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-undo"] {
+  align-items: center;
+  align-self: center;
+  background: var(--page-bg);
+  block-size: 28px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.8);
+  display: inline-flex;
+  flex: none;
+  font-family: var(--theme-font);
+  font-size: 11px;
+  font-weight: 700;
+  inline-size: 28px;
+  justify-content: center;
+  margin-inline: auto 12px;
+  min-inline-size: 28px;
+  padding: 0;
+  position: static;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-undo"] svg {
+  block-size: 14px;
+  inline-size: 14px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-newly-action-kind="recovery"] [data-triage-role="explorer-card-undo"] {
+  inline-size: auto;
+  min-inline-size: 0;
+  padding-inline: 14px;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] [data-triage-role="explorer-card-undo"] {
+  bottom: auto;
+  inset-block-start: 50%;
+  inset-inline-end: 12px;
+  margin: 0;
+  position: absolute;
+  transform: translateY(-50%);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-undo"]:not([aria-disabled="true"]):hover {
+  color: hsl(var(--foreground));
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-undo"]:not([aria-disabled="true"]):hover {
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] [data-triage-role="explorer-card-undo"]:not([aria-disabled="true"]):hover {
+  transform: translateY(calc(-50% - 1px));
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-undo"]:not([aria-disabled="true"]):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-bit"] [data-triage-role="explorer-card-undo"]:not([aria-disabled="true"]):active {
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"][data-triage-role="explorer-card-node-shell"] [data-triage-role="explorer-card-undo"]:not([aria-disabled="true"]):active {
+  transform: translateY(-50%);
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-undo"]:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-undo"][aria-disabled="true"] {
+  box-shadow: var(--theme-shadow-inset-xs);
+  color: hsl(var(--foreground) / 0.72);
+  cursor: not-allowed;
+  opacity: 1;
+}
+:root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-undo"][aria-disabled="true"]:focus-visible {
+  box-shadow: var(--theme-shadow-inset-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-color-theme="neumorphism"] [data-card-presentation="inbox-explorer"] [data-triage-role="explorer-card-undo"]:not([aria-disabled="true"]) {
+    transition-duration: var(--triage-pool-motion-duration);
+    transition-property: transform;
+    transition-timing-function: ease-out;
+  }
+}
+
+/* The visible rail (non-tooltip reasons and recovery copy) is a shallow inset trough under the
+   card; its mark is a small raised dot with the existing glyph, no ring line. Failure states take
+   a destructive tint, never colour alone: the copy and glyph stay. */
+:root[data-color-theme="neumorphism"] .newly-card-shell .newly-status-rail {
+  background: transparent;
+  color: hsl(var(--foreground) / 0.85);
+  padding: 6px 12px;
+}
+:root[data-color-theme="neumorphism"] .newly-card-shell .newly-status-rail:is([data-undo-state="not-applied"], [data-undo-state="conflict"], [data-undo-state="result-mutated"]) {
+  background: color-mix(in srgb, var(--page-bg) 92%, hsl(var(--destructive)));
+}
+:root[data-color-theme="neumorphism"] .newly-card-shell .newly-status-mark {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.85);
+}
+
+/* Tooltip (eligible Undo and result-mutated): a small raised plate above the action. */
+:root[data-color-theme="neumorphism"] .newly-undo-tooltip,
+:root[data-color-theme="neumorphism"] .explorer-title-tooltip {
+  background: var(--page-bg);
+  border: 0;
+  border-radius: 12px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground));
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+}
+:root[data-color-theme="neumorphism"] .newly-undo-tooltip svg,
+:root[data-color-theme="neumorphism"] .explorer-title-tooltip svg {
+  visibility: hidden;
+}
+
+/* Neumorphism L6 (Task 178): Breakdown-scoped completion and Archive card. Information is inset
+   (status mark, status line), actions are raised; state is carried by depth, tint and text, never
+   line styles. Card content, copy, action and state changes stay immediate (the shared
+   `.archive-card *` rule keeps `transition: none !important`); the only motion is the
+   `transform`-only hover lift of the raised actions, eased at the end of this block outside
+   reduced motion. The Archive confirmation detail stays hidden here (MI-9 decision pending). */
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-operation-overlay {
+  background: hsl(var(--background) / 0.6);
+  backdrop-filter: blur(2px);
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card {
+  color: hsl(var(--foreground));
+  font-family: var(--theme-font);
+  max-inline-size: 24rem;
+  padding: 28px;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-status-mark {
+  background: transparent;
+  block-size: 40px;
+  border: 0;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 16px;
+  inline-size: 40px;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-status {
+  align-items: center;
+  border-radius: 18px;
+  box-shadow: var(--theme-shadow-inset-sm);
+  color: hsl(var(--foreground) / 0.88);
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  justify-content: center;
+  line-height: 1.45;
+  margin-block-start: 16px;
+  max-inline-size: none;
+  /* Two lines of the longest state sentence, so the card keeps one height in every state. */
+  min-block-size: 60px;
+  padding: 10px 18px;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-status:focus-visible {
+  box-shadow: var(--theme-shadow-inset-sm), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-actions {
+  gap: 12px;
+  padding-block-start: 24px;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button {
+  background: var(--page-bg);
+  block-size: 36px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--theme-shadow-card-xs);
+  color: hsl(var(--foreground) / 0.72);
+  font-family: var(--theme-font);
+  font-size: 12px;
+  font-weight: 600;
+  padding-inline: 20px;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button.archive-current-action {
+  color: var(--triage-pool-sort-active);
+  font-weight: 700;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:not(:disabled):not([aria-disabled="true"]):hover {
+  background: var(--page-bg);
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button.archive-cancel:not(:disabled):not([aria-disabled="true"]):hover {
+  background: color-mix(in srgb, var(--page-bg) 94%, hsl(var(--foreground)));
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:not(:disabled):not([aria-disabled="true"]):active {
+  box-shadow: var(--theme-shadow-inset-sm);
+  transform: none;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:focus-visible {
+  box-shadow: var(--theme-shadow-card-xs), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground) / 0.45);
+  outline: none;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:is(:disabled, [aria-disabled="true"]) {
+  box-shadow: var(--theme-shadow-inset-xs);
+}
+/* Pending and reconciling keep their label readable (4.5:1); only depth marks them inactive. */
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:disabled {
+  opacity: 0.6;
+}
+:root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button[aria-disabled="true"] {
+  opacity: 1;
+}
+/* The complete-state Reopen takes the same raised-control hover lift as the Archive capsules. */
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="archive-completion-reopen"]:not(:disabled):hover {
+  color: hsl(var(--foreground));
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="archive-completion-reopen"]:not(:disabled):active {
+  transform: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-color-theme="neumorphism"] :is(.triage-shell, .archive-recovery-boundary) .archive-card button:not(:disabled):not([aria-disabled="true"]),
+  :root[data-color-theme="neumorphism"] .triage-shell [data-triage-role="archive-completion-reopen"]:not(:disabled) {
+    transition-duration: var(--triage-pool-motion-duration) !important;
+    transition-property: transform !important;
+    transition-timing-function: ease-out !important;
+  }
 }

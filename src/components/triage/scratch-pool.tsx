@@ -569,6 +569,7 @@ export function ScratchPool() {
             <button
               type="button"
               data-triage-role="pool-created-at-sort"
+              data-triage-state={poolCreatedAtSort === "ASC" ? "asc" : "desc"}
               aria-label={
                 poolCreatedAtSort === "ASC"
                   ? INBOX_TRIAGE_COPY.baseActions.sortOldestFirst
@@ -592,6 +593,10 @@ export function ScratchPool() {
               <span className="scratch-pool__sort-label" aria-hidden="true">Date Created</span>
               <span className="scratch-pool__sort-direction" aria-hidden="true">
                 {poolCreatedAtSort === "ASC" ? "NEW FIRST" : "OLD FIRST"}
+              </span>
+              <span className="scratch-pool__sort-track" aria-hidden="true">
+                <span>{INBOX_TRIAGE_COPY.baseActions.sortTrackOld}</span>
+                <span>{INBOX_TRIAGE_COPY.baseActions.sortTrackNew}</span>
               </span>
             </button>
           </div>

@@ -1,9 +1,10 @@
+import type { ComponentProps } from "react";
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TriageDragItem } from "@/hooks/use-dnd";
 import type { StagedCandidateProjection } from "@/hooks/use-staged-candidates";
-import { StagingAlertBand, StagingZone } from "./staging-zone";
+import { StagingAlertBand, StagingSubsection, StagingZone } from "./staging-zone";
 
 const useDroppableMock = vi.hoisted(() => vi.fn());
 const useDraggableMock = vi.hoisted(() => vi.fn());
@@ -461,6 +462,7 @@ describe("StagingZone — DP-VQ06-STAGING state projection", () => {
           operations: [
             {
               operationId: "stage-1",
+              scratchBitId: "scratch-1",
               candidateId: "candidate-pending",
               sourceBreakdownId: "breakdown-1",
               kind: "stage",
@@ -473,10 +475,14 @@ describe("StagingZone — DP-VQ06-STAGING state projection", () => {
       />,
     );
 
-    const status = screen.getByText("Staging “Project plan”…");
-    expect(status).toHaveAttribute("data-triage-role", "staging-operation-status");
-    expect(status).toHaveAttribute("data-triage-state", "pending");
-    expect(status.closest('[data-testid="node-operation-card"]')).toBeInTheDocument();
+    // Task 176A (e): no in-card line while pending; the projection shows the
+    // candidate's icon and title in the durable card's layout.
+    const card = screen.getByTestId("node-operation-card");
+    expect(card).toHaveAttribute("data-triage-state", "pending");
+    expect(within(card).getByText("Project plan")).toHaveClass("triage-staging__node-label");
+    expect(card.querySelector("svg")).not.toBeNull();
+    expect(screen.queryByText("Staging “Project plan”…")).not.toBeInTheDocument();
+    expect(card.querySelector('[data-triage-role="staging-operation-status"]')).toBeNull();
     expect(useDraggableMock).not.toHaveBeenCalled();
   });
 
@@ -491,6 +497,7 @@ describe("StagingZone — DP-VQ06-STAGING state projection", () => {
           operations: [
             {
               operationId: "unstage-1",
+              scratchBitId: "scratch-1",
               candidateId: staged.id,
               sourceBreakdownId: staged.sourceBreakdownId,
               kind: "unstage",
@@ -591,4 +598,237 @@ describe("L3 semantic state distinctions", () => {
     view.rerender(<StagingZone type={type} activeDragItem={{ ...makeDragItem("triage-breakdown")!, integrity: "invalidated" }} overTargetId={dropId} />);
     expect(screen.getByTestId(`${type}-staging-zone`)).toHaveAttribute("data-triage-state", "invalid");
   });
+});
+
+describe("StagingSubsection drop region", () => {
+  it("registers the node and bit drop ids on the subsection, with heading and well inside it", () => {
+    useDroppableMock.mockReturnValue({ setNodeRef: vi.fn(), isOver: false });
+    useDroppableMock.mockClear();
+    render(
+      <>
+        <StagingSubsection className="s-node" type="node"><h3>Nodes</h3><div data-testid="inside-node" /></StagingSubsection>
+        <StagingSubsection className="s-bit" type="bit"><h3>Bits</h3></StagingSubsection>
+      </>,
+    );
+    const ids = useDroppableMock.mock.calls.map(([arg]) => [arg.id, arg.data.kind]);
+    expect(ids).toEqual([
+      ["triage-node-zone-drop", "triage-node-zone-drop"],
+      ["triage-bit-zone-drop", "triage-bit-zone-drop"],
+    ]);
+    expect(screen.getByText("Nodes").closest('[data-triage-role="staging-node-subsection"]')).toContainElement(screen.getByTestId("inside-node"));
+  });
+
+  it.each([
+    ["node", { kind: "triage-breakdown", id: "b", label: "x" }, "node-zone-drop", "valid"],
+    ["bit", { kind: "triage-staged-node", id: "c", label: "x" }, "bit-zone-drop", "unavailable"],
+    ["bit", { kind: "triage-staged-bit", id: "c", label: "x" }, "bit-zone-drop", "neutral"],
+  ] as const)("projects %s subsection state from the drag and the pointer target", (type, item, zone, expected) => {
+    useDroppableMock.mockReturnValue({ setNodeRef: vi.fn(), isOver: false });
+    useDroppableMock.mockClear();
+    render(<StagingSubsection activeDragItem={item as unknown as TriageDragItem} className="s" overTargetId={`triage-${zone}`} type={type}><span /></StagingSubsection>);
+    const dropId = useDroppableMock.mock.calls[0][0].id as string;
+    cleanup();
+    render(<StagingSubsection activeDragItem={item as unknown as TriageDragItem} className="s" overTargetId={dropId} type={type}><span /></StagingSubsection>);
+    const region = document.querySelector(`[data-triage-role="staging-${type}-subsection"]`);
+    expect(region).toHaveAttribute("data-triage-hover", "true");
+    expect(region).toHaveAttribute("data-triage-state", expected);
+  });
+
+describe("StagingZone — commit-to-snapshot repair (Task 176A)", () => {
+  type View = NonNullable<
+    ComponentProps<typeof StagingZone>["projection"]
+  >["operations"][number];
+
+  function operation(overrides: Partial<View>): View {
+    return {
+      operationId: "op-1",
+      scratchBitId: "scratch-1",
+      candidateId: "candidate-1",
+      sourceBreakdownId: "breakdown-1",
+      kind: "unstage",
+      phase: "pending",
+      resultType: "node",
+      title: "Keep me",
+      ...overrides,
+    };
+  }
+
+  function renderCard(op: View | null, isDragging = false) {
+    useDraggableMock.mockReturnValue({
+      setNodeRef: vi.fn(),
+      setActivatorNodeRef: vi.fn(),
+      attributes: {},
+      listeners: {},
+      isDragging,
+    });
+    const staged = createCandidate({ id: "candidate-1", content: "Keep me" });
+    render(
+      <StagingZone
+        type="node"
+        projection={{
+          candidates: [staged],
+          integrityCandidates: [],
+          operations: op === null ? [] : [op],
+        }}
+      />,
+    );
+    return screen.getByTestId("node-candidate-card");
+  }
+
+  it("renders Stage projections above the cards, newest first", () => {
+    const first = createCandidate({ id: "candidate-a", content: "Existing" });
+    render(
+      <StagingZone
+        type="node"
+        projection={{
+          candidates: [first],
+          integrityCandidates: [],
+          operations: [
+            operation({ operationId: "s1", candidateId: "p1", kind: "stage", title: "Older" }),
+            operation({ operationId: "s2", candidateId: "p2", kind: "stage", title: "Newer" }),
+          ],
+        }}
+      />,
+    );
+
+    const order = screen
+      .getAllByTestId(/node-(operation|candidate)-card/)
+      .map((element) => element.textContent);
+    expect(order[0]).toContain("Newer");
+    expect(order[1]).toContain("Older");
+    expect(order[2]).toContain("Existing");
+  });
+
+  it("orders projections by issue sequence, not by phase group", () => {
+    render(
+      <StagingZone
+        type="node"
+        projection={{
+          candidates: [],
+          integrityCandidates: [],
+          operations: [
+            operation({ operationId: "b", candidateId: "pb", kind: "stage", title: "Newer", sequence: 2 }),
+            operation({ operationId: "a", candidateId: "pa", kind: "stage", title: "Held older", sequence: 1, held: true }),
+          ],
+        }}
+      />,
+    );
+    const order = screen
+      .getAllByTestId("node-operation-card")
+      .map((element) => element.textContent);
+    expect(order[0]).toContain("Newer");
+    expect(order[1]).toContain("Held older");
+  });
+
+  it("keeps the card dimmed while its Unstage is pending, with the status line outside any dimmed element", () => {
+    const card = renderCard(operation({ phase: "pending" }), false);
+
+    expect(card).toHaveAttribute("data-triage-dimmed", "true");
+    expect(card).not.toHaveClass("opacity-30");
+    // Task 176A (e): pending shows no in-card line.
+    expect(screen.queryByText("Returning “Keep me” to Breakdown…")).not.toBeInTheDocument();
+  });
+
+  it("keeps the in-card line for unknown and reconciling, outside any dimmed element", () => {
+    renderCard(operation({ phase: "unknown" }));
+    const unknown = screen.getByText("We couldn’t confirm whether “Keep me” was returned.");
+    expect(unknown).toHaveAttribute("data-triage-state", "unknown");
+    expect(unknown.closest(".opacity-30")).toBeNull();
+    cleanup();
+    renderCard(operation({ phase: "reconciling" }));
+    expect(screen.getByText("Checking whether “Keep me” was returned…")).toBeInTheDocument();
+    cleanup();
+    renderCard(operation({ phase: "reconciling", held: true }));
+    expect(screen.getByText("Checking whether “Keep me” was returned…")).toBeInTheDocument();
+    cleanup();
+    renderCard(operation({ phase: "pending", held: true }));
+    expect(screen.queryByText(/Returning/)).not.toBeInTheDocument();
+  });
+
+  it("renders a Stage projection with the candidate's title in the durable layout and keeps the unknown line", () => {
+    render(
+      <StagingZone
+        type="bit"
+        projection={{
+          candidates: [],
+          integrityCandidates: [],
+          operations: [
+            operation({ kind: "stage", resultType: "bit", candidateId: "p1", title: "Plan it", phase: "pending" }),
+          ],
+        }}
+      />,
+    );
+    const row = screen.getByTestId("bit-operation-row");
+    expect(row).toHaveClass("triage-staging__bit");
+    expect(row).not.toHaveClass("cursor-grab");
+    expect(within(row).getByText("Plan it")).toBeInTheDocument();
+    expect(within(row).queryByText(/Staging/)).not.toBeInTheDocument();
+    cleanup();
+    render(
+      <StagingZone
+        type="bit"
+        projection={{
+          candidates: [],
+          integrityCandidates: [],
+          operations: [
+            operation({ kind: "stage", resultType: "bit", candidateId: "p1", title: "Plan it", phase: "unknown" }),
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen.getByText("We couldn’t confirm whether “Plan it” was staged."),
+    ).toBeInTheDocument();
+  });
+
+  it("dims the dragged card with no operation, and does not dim unknown or reconciling Unstage", () => {
+    expect(renderCard(null, true)).toHaveAttribute("data-triage-dimmed", "true");
+    cleanup();
+    expect(renderCard(operation({ phase: "unknown" }))).not.toHaveAttribute(
+      "data-triage-dimmed",
+    );
+    cleanup();
+    expect(renderCard(operation({ phase: "reconciling" }))).not.toHaveAttribute(
+      "data-triage-dimmed",
+    );
+  });
+
+  it("a held Unstage keeps the dimming of its phase, marks the hold and is not draggable", () => {
+    const held = renderCard(operation({ phase: "pending", held: true }));
+    expect(held).toHaveAttribute("data-triage-dimmed", "true");
+    expect(held).toHaveAttribute("data-triage-hold", "true");
+    expect(useDraggableMock).toHaveBeenCalledWith(
+      expect.objectContaining({ disabled: true }),
+    );
+    cleanup();
+    const heldReconciling = renderCard(
+      operation({ phase: "reconciling", held: true }),
+    );
+    expect(heldReconciling).not.toHaveAttribute("data-triage-dimmed");
+  });
+
+  it("marks a held Stage projection", () => {
+    render(
+      <StagingZone
+        type="bit"
+        projection={{
+          candidates: [],
+          integrityCandidates: [],
+          operations: [
+            operation({
+              kind: "stage",
+              resultType: "bit",
+              held: true,
+              candidateId: "p1",
+            }),
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByTestId("bit-operation-row")).toHaveAttribute(
+      "data-triage-hold",
+      "true",
+    );
+  });
+});
 });

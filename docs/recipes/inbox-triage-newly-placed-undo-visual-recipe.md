@@ -45,14 +45,19 @@ retain their existing presentation contracts.
   the Undo button in that navigation button. Pointer and keyboard activation
   cannot bubble into card navigation or acknowledgement. Keep the actual
   action ref and accessible action name; the glyph is decorative.
-- Only ordinary `available` copy `Undo this placement.` and nonterminal
+- Only ordinary `available` copy `Undo this placement.`, nonterminal
   eligibility `result-mutated` copy `This item changed after placement. Undo
-  is unavailable.` move from the visible reason rail to an above-action
+  is unavailable.` and, by user decision in Task 177 (2026-10-19), nonterminal
+  eligibility `placement-open` copy `Finish or cancel the placement in progress
+  first.` move from the visible reason rail to an above-action
   tooltip. Choose this projection from authoritative state/phase, never by
   matching the sentence alone. Show the exact current reason on pointer hover
   and keyboard focus, associate it programmatically with the action, and
-  retain existing once-per-change polite announcements. These two states
-  reserve no empty reason-rail line when the tooltip is closed.
+  retain existing once-per-change polite announcements. These three states
+  reserve no empty reason-rail line when the tooltip is closed. The other
+  page-wide blockers (operation-locked `Wait for the current action to
+  finish.`, edit-blocked `Save or cancel the current edit before undoing.`)
+  stay visible until the user decides otherwise.
 - An unavailable Undo keeps the same stable slot, visibly subdued treatment,
   keyboard focusability and `aria-disabled` meaning. Suppress pointer,
   keyboard and programmatic mutation without removing NEW or changing

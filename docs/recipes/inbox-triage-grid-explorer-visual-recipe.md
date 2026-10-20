@@ -16,6 +16,8 @@
 - The sourced base body is four progressive columns with visible section chrome and full `Home`, `Level 1`, `Level 2`, `Level 3` labels. Do not expose `L1/L2/L3` or repeat selected titles below headers.
 - Nodes and Bits retain native, shape-distinct rows/cards. Columns hide scrollbar chrome while preserving ordinary input scrolling.
 - Supported target grammar includes idle, eligible, hovered eligible, unavailable/invalid, and base placement anchoring without changing path or column size.
+- User-adopted 2026-10-17: the column-level target covers the whole column pane, full-label header included, per SPEC "Column drop region"; target-state styling paints that whole pane, and Node rows remain their own targets.
+- User-adopted 2026-10-17 (Neumorphism only): entering or leaving a column or Node-row target changes its tint and inset depth over `--triage-pool-motion-duration` (background and box-shadow only, no transform or layout change); reduced motion makes it immediate. Other themes keep immediate target changes.
 - Grid semantic/default name is `Grid Explorer`; Tiny Desk may show `Library Index`, Retro Mac `Finder`, and Terminal `GRID EXPLORER`.
 - Source active-column search inputs and filtered columns are observations only and are superseded; they do not source the selected replacement search mode.
 
@@ -46,6 +48,7 @@ fresh verification and task acceptance; historical DP receipts/evidence remain.
   or unreadable blur. Completed Bits use muted title/strike-through plus static
   check. NEW/Undo/reason/focus remain unobscured. Use actual deadline/status/
   priority, without new completion/dismiss writes.
+- User-adopted 2026-10-17 (MI-10): Explorer Bit rows never run the ordinary Grid urgency blink; near-deadline Bits stay static and the deadline text carries the urgency.
 - Realize through shared roles and centralized theme values. The selected
   retro-mac compact-row values are not dimensions for every later theme.
 
@@ -80,6 +83,21 @@ fresh verification and task acceptance; historical DP receipts/evidence remain.
   fidelity thresholds from enlarged pixels. The pinned source still governs
   unaffected surfaces; existing DP-VQ06-EXPLORER/07/10, receipts, failed and
   unverified evidence, Q02/Q05 and broader D-CARD deferrals remain unchanged.
+
+### User-adopted truncated-title tooltip — 2026-10-19
+
+- **Common current/future L4 behavior:** per SPEC "Explorer truncated titles",
+  an Explorer Node or Bit title cut by its ellipsis shows the full stored title
+  in the shared tooltip; one shared component tree serves every theme, so later
+  themes inherit it without new behavior. The role is
+  `data-triage-role="explorer-title-tooltip"`; it never carries the
+  `newly-undo-tooltip` class. Each theme styles only the plate: Neumorphism
+  reuses its Undo tooltip plate; Retro Mac and unrealized themes use the shared
+  base plate, which is the base `newly-undo-tooltip` look plus the primitive,
+  wrapping within `min(24rem, 100vw - 16px)`. Like the Undo tooltip it is
+  static in normal and reduced motion, without the primitive's fade, zoom or
+  slide. It never clips or replaces the title, NEW, Undo, reason or focus ring.
+  Owner: Task 179A.
 
 ## Decision-Prerequisite Boundary
 

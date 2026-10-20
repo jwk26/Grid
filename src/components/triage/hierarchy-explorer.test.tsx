@@ -11,6 +11,7 @@ import {
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ComponentProps } from "react";
 import type {
   TriageDragItem,
   TriageTargetFeedback,
@@ -106,6 +107,7 @@ const explorerSearchState = vi.hoisted(() => ({
 }));
 
 vi.mock("@dnd-kit/core", () => ({
+  useDndContext: vi.fn().mockReturnValue({ active: null }),
   useDroppable: vi.fn().mockReturnValue({ setNodeRef: vi.fn() }),
 }));
 
@@ -450,6 +452,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// The column drop region is the whole pane (SPEC "Column drop region"), not the row viewport.
+function columnPane(testId: string): HTMLElement {
+  return screen.getByTestId(testId).closest<HTMLElement>('[data-triage-role="explorer-pane"]')!;
+}
+
 describe("HierarchyExplorer Task 134 base", () => {
   it("renders distinct valid, invalid, and full target feedback", () => {
     const { home } = seedDeepGrid();
@@ -490,7 +497,7 @@ describe("HierarchyExplorer Task 134 base", () => {
         }}
       />,
     );
-    expect(screen.getByTestId("hierarchy-section-body-home")).toHaveAttribute(
+    expect(columnPane("hierarchy-section-body-home")).toHaveAttribute(
       "data-triage-target-state",
       "invalid",
     );
@@ -737,7 +744,7 @@ describe("HierarchyExplorer Task 134 base", () => {
     expect(button).toHaveAttribute("aria-disabled", "true");
     expect(row).toHaveAttribute("data-triage-target-state", "invalid");
     expect(row).toHaveAttribute("data-triage-paint-suppressed", "unavailable");
-    expect(screen.getByTestId("hierarchy-section-body-l3")).toHaveAttribute("data-triage-unavailable", "true");
+    expect(columnPane("hierarchy-section-body-l3")).toHaveAttribute("data-triage-unavailable", "true");
     rerender(<HierarchyExplorer {...defaultProps} />);
     expect(row).not.toHaveAttribute("data-triage-paint-suppressed");
     expect(button).toHaveAttribute("aria-disabled", "false");
@@ -1414,6 +1421,7 @@ describe("HierarchyExplorer Task 155 actual-card Newly Placed projection", () =>
 describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
   function renderWithUndo(
     entries: readonly TriageNewlyPlacedProvenance[],
+    extraProps: Partial<ComponentProps<typeof HierarchyExplorer>> = {},
   ) {
     let activeOperation: { kind: "undo"; operationId: string } | null = null;
     const operationLock: TriageOperationLock = {
@@ -1442,6 +1450,7 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
           <HierarchyExplorer
             {...defaultProps}
             newlyPlacedEntries={entries}
+            {...extraProps}
           />
         </ScratchTitleBlockerContext.Provider>
       </TriageOperationLockContext.Provider>,
@@ -1460,6 +1469,58 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
     const reason=screen.getByText(kind === "available" ? "Undo this placement." : "This item changed after placement. Undo is unavailable.");
     expect(reason.parentElement).toHaveClass(kind === "terminal-conflict" ? "newly-status-rail" : "newly-status-announcement");
     expect(action).not.toBeDisabled();expect(screen.getByText("NEW")).toBeInTheDocument();
+  });
+
+  it("projects the open-placement reason into the tooltip, not a visible rail, and keeps the Undo focusable", async () => {
+    const target = createNode({ id: "placement-open-card", title: "Placement open card" });
+    const entry = newlyPlacedEntry(target, "node", 1);
+    setGrid(null, [target]);
+
+    renderWithUndo([entry], { placementSnapshot: placementSnapshot() });
+    const action = await screen.findByRole("button", {
+      name: "Undo placement of Placement open card",
+    });
+    const sentence = "Finish or cancel the placement in progress first.";
+    await waitFor(() => expect(action).toHaveAttribute("aria-disabled", "true"));
+    const reason = screen.getByText(sentence);
+    expect(reason.parentElement).toHaveClass("newly-status-announcement");
+    expect(reason.parentElement).toHaveAttribute("aria-live", "polite");
+    expect(document.querySelector(".newly-status-rail")).toBeNull();
+    expect(action).not.toBeDisabled();
+    expect(action).toHaveAttribute("aria-describedby", reason.id);
+    expect(screen.getByText("NEW")).toBeInTheDocument();
+
+    // Radix popper measures with ResizeObserver, which jsdom lacks.
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    try {
+      act(() => action.focus());
+      expect(action).toHaveFocus();
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(sentence);
+      fireEvent.click(action);
+      expect(undoRepository.undoDirectPlacement).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("returns the card to its prior state when the placement closes", async () => {
+    const target = createNode({ id: "placement-close-card", title: "Placement close card" });
+    const entry = newlyPlacedEntry(target, "node", 1);
+    setGrid(null, [target]);
+
+    const first = renderWithUndo([entry], { placementSnapshot: placementSnapshot() });
+    const action = await screen.findByRole("button", {
+      name: "Undo placement of Placement close card",
+    });
+    await waitFor(() => expect(action).toHaveAttribute("aria-disabled", "true"));
+    first.unmount();
+    renderWithUndo([entry]);
+    const reopened = await screen.findByRole("button", {
+      name: "Undo placement of Placement close card",
+    });
+    await waitFor(() => expect(reopened).toHaveAttribute("aria-disabled", "false"));
+    expect(screen.queryByText("Finish or cancel the placement in progress first.")).toBeNull();
+    expect(document.querySelector(".newly-status-rail")).toBeNull();
   });
 
   it.each([
@@ -2748,6 +2809,42 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
     );
   });
 
+  it("scrolls a revealed row below its column fold into view inside that column viewport only (MI-11)", async () => {
+    const projects = createNode({ id: "projects", title: "Projects" });
+    setGrid(null, [projects]);
+    const selected = searchResult("node:projects");
+    explorerSearchState.mode = "active";
+    explorerSearchState.activeQuery = "projects";
+    explorerSearchState.results = [selected];
+    explorerSearchState.status = "ready";
+    explorerSearchState.selectResult.mockImplementation(async () => {
+      explorerSearchState.mode = "closed";
+      explorerSearchState.activeQuery = null;
+      explorerSearchState.results = [];
+      explorerSearchState.revealPresentation = { kind: "revealed", result: selected };
+      return { kind: "selected", result: selected };
+    });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.dataset.testid === "hierarchy-section-body-home") {
+        return { top: 100, bottom: 300, left: 0, right: 200, width: 200, height: 200, x: 0, y: 100, toJSON() {} };
+      }
+      if (this.dataset.explorerItemId === "projects") {
+        return { top: 340, bottom: 380, left: 0, right: 200, width: 200, height: 40, x: 0, y: 340, toJSON() {} };
+      }
+      return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON() {} };
+    });
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    render(<HierarchyExplorer {...defaultProps} />);
+
+    fireEvent.click(explorerSearchResultRow());
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Select Node: Projects" })).toHaveFocus());
+    // The row's bottom (380) is 80px below the viewport bottom (300): only that viewport scrolls.
+    expect(screen.getByTestId("hierarchy-section-body-home").scrollTop).toBe(80);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
   it("keeps search and navigation untouched when selection-time validation is stale", async () => {
     const selected = searchResult("node:projects");
     explorerSearchState.mode = "active";
@@ -3681,7 +3778,7 @@ describe("Task170 Cycle7 visual correction seams", () => {
     expect(globalsCss).toContain("--triage-explorer-card-node-surface: var(--triage-staging-surface)");
     expect(globalsCss).toContain("--triage-explorer-card-bit-surface: var(--triage-staging-surface)");
     expect(globalsCss).toMatch(/\.placement-affordance\s*\{[^}]*margin-inline:\s*0;/);
-    expect(globalsCss).toContain('[data-triage-role="explorer-viewport"]:has([data-triage-role="placement-affordance"])');
+    expect(globalsCss).toContain('[data-triage-role="explorer-pane"]:has([data-triage-role="placement-affordance"])');
     expect(globalsCss).toMatch(/\[data-triage-feedback-source\][\s\S]*?::after\s*\{[^}]*pointer-events:\s*none;[^}]*z-index:\s*1;/);
     expect(globalsCss).toContain('[data-triage-unavailable="true"]');
   });
@@ -3702,7 +3799,7 @@ it("Task170 Cycle7 paint metadata preserves staged Bit Home rejection and clears
   const target = createNode({ id: "target-1", title: "Target" }); setGrid(null, [target]);
   const base = { ...defaultProps, activeDragItem: { kind: "triage-staged-bit" as const, id: "candidate", label: "Candidate" } };
   const view = render(<HierarchyExplorer {...base} />);
-  const home = screen.getByTestId("hierarchy-section-body-home");
+  const home = columnPane("hierarchy-section-body-home");
   expect(home).toHaveAttribute("data-triage-target-state", "invalid");
   expect(home).toHaveAttribute("data-triage-unavailable", "true");
   expect(home).toHaveAttribute("data-triage-feedback-source", "bit");
@@ -3716,4 +3813,51 @@ it("Task170 Cycle7 paint metadata preserves staged Bit Home rejection and clears
 
 it("Task170 Cycle7 Staged Cancel hover overrides the general enabled-button inversion without touching recovery", () => {
   expect(globalsCss).toContain('.placement-staged-summary-row .placement-cancel:hover:not(:disabled):not([aria-disabled="true"])');
+});
+
+it("registers the whole column pane, header included, as the column drop target", () => {
+  const target = createNode({ id: "target-1", title: "Target" }); setGrid(null, [target]);
+  render(<HierarchyExplorer {...defaultProps} activeDragItem={{ kind: "triage-staged-node" as const, id: "candidate", label: "Candidate" }} />);
+  const pane = columnPane("hierarchy-section-body-home");
+  const dropId = getTriageHierarchyDropId("body-home");
+  expect(pane).toHaveAttribute("data-triage-drop-id", dropId);
+  expect(JSON.parse(pane.getAttribute("data-triage-hierarchy-drop") ?? "{}")).toMatchObject({ dropId, parentNodeId: null });
+  // The header and the viewport sit inside the target; the viewport is no second target.
+  expect(pane).toContainElement(screen.getByTestId("hierarchy-column-heading-home"));
+  const viewport = screen.getByTestId("hierarchy-section-body-home");
+  expect(viewport).not.toHaveAttribute("data-triage-drop-id");
+  expect(viewport).toHaveAttribute("data-triage-explorer-column", "true");
+});
+
+it("edge-scrolls only from the row viewport, never from a pointer over the column header", () => {
+  let frame: FrameRequestCallback | null = null;
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => { frame = callback; return 1; });
+  vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+  const target = createNode({ id: "target-1", title: "Target" }); setGrid(null, [target]);
+  const dropId = getTriageHierarchyDropId("body-home");
+  render(<HierarchyExplorer {...defaultProps} activeDragItem={{ kind: "triage-staged-node" as const, id: "candidate", label: "Candidate" }} targetFeedback={{ dropId, state: "valid" }} />);
+  const body = screen.getByTestId("hierarchy-section-body-home");
+  const pane = columnPane("hierarchy-section-body-home");
+  Object.defineProperties(body, { clientHeight: { configurable: true, value: 200 }, scrollHeight: { configurable: true, value: 600 } });
+  vi.spyOn(body, "getBoundingClientRect").mockReturnValue({ top: 100, bottom: 300, left: 0, right: 200, width: 200, height: 200, x: 0, y: 100, toJSON() {} });
+  const heading = screen.getByTestId("hierarchy-column-heading-home");
+  Object.defineProperty(document, "elementsFromPoint", { configurable: true, value: vi.fn(() => [heading, pane]) });
+  fireEvent.mouseMove(document, { clientX: 100, clientY: 80 });
+  act(() => frame?.(0));
+  expect(body.scrollTop).toBe(0);
+  // The same pane under the pointer, but inside the viewport's top edge, scrolls.
+  Object.defineProperty(document, "elementsFromPoint", { configurable: true, value: vi.fn(() => [body, pane]) });
+  body.scrollTop = 50;
+  fireEvent.mouseMove(document, { clientX: 100, clientY: 104 });
+  act(() => frame?.(16));
+  expect(body.scrollTop).toBeLessThan(50);
+});
+
+it("keeps a column with no selected parent out of the drop hooks", () => {
+  const target = createNode({ id: "target-1", title: "Target" }); setGrid(null, [target]);
+  render(<HierarchyExplorer {...defaultProps} activeDragItem={{ kind: "triage-staged-node" as const, id: "candidate", label: "Candidate" }} />);
+  const closed = columnPane("hierarchy-section-body-l1");
+  expect(closed).not.toHaveAttribute("data-triage-drop-id");
+  expect(closed).not.toHaveAttribute("data-triage-hierarchy-drop");
+  expect(columnPane("hierarchy-section-body-home")).toHaveAttribute("data-triage-drop-id");
 });

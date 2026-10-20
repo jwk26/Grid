@@ -21,6 +21,8 @@
 
 **Report an overlay's result on unmount as well as on close.** When another overlay can replace one (a global shortcut opening the command palette), a result reported only from `onClose` is lost. Report it once from whichever comes first, close or unmount, through its own callback. *(Phase 41, Task 212 MI-4)*
 
+**Do not draw an empty state from a not-yet-read array.** A component remounted by `key` restarts every hook it owns from its initial value, so data the parent already holds flashes empty for a frame (`Unknown Scratch`, an empty-rows state). Pass loaded data down as props and draw the empty state only after the read reports ready. *(Phase 35, Task 179A MI-22)*
+
 ---
 
 ## Radix UI
@@ -30,6 +32,8 @@
 **React portal event bubbling.** `PopoverContent` (and any Radix portal) bubbles clicks through the React component tree, not the DOM tree. If an ancestor has `onClick`, clicks inside the portal reach it. Fix: `onClick={(e) => e.stopPropagation()}` on `PopoverContent`. *(Phase 14)*
 
 **Whole-cell click + controlled Popover.** When an outer `div` is clickable to open a popup, add `onClick={(e) => e.stopPropagation()}` to the inner `PopoverTrigger` button to prevent the cell handler from double-firing. *(Phase 14)*
+
+**A focus-opened Radix Tooltip needs controlled state.** Radix Tooltip closes on any ancestor scroll, and keyboard focus itself scrolls the trigger into view, so a tooltip opened on focus closes at once. Hold it open in controlled state until Esc or blur, and hide it with `hideWhenDetached` when the trigger scrolls out of view. *(Phase 35, Task 179A)*
 
 ---
 
@@ -69,6 +73,8 @@
 
 **Put a per-theme row gap on the row's container, not inside it.** A gap kept as `margin-block-end` inside a positioned container made a `top: 50%` control centre on row + gap. *(Phase 41, Task 210 mi-1)*
 
+**Do not animate a container's width under heavy shadows.** In a blur-shadow theme every resized child repaints its shadow each frame (Neumorphism Pool: 13.1ms per frame, a third of frames over 20ms). Change the size in one step and move content with `transform`. A `transform` animation with `both`/`forwards` fill keeps the element a containing block for `position: fixed` descendants after it ends (a drag overlay drew offset); use `backwards` when the last keyframe equals the resting style. A CSS animation restarts only when its name changes, so give each state its own keyframe name when React reuses the element. *(Phase 35, Task 179)*
+
 ---
 
 ## Accessibility
@@ -88,6 +94,8 @@
 **Run the real coordinator when a test proves handoff identity or focus.** With the Archive coordinator mocked, workspace-identity and marker tests passed while every successful Archive remounted the workspace. At least one test must drive the real hook through pending → selection change → terminal and fail on the old code. *(Phase 34, Task 171A)*
 
 **dnd-kit drags need stepped pointer moves.** One-jump drag tools (Chrome DevTools MCP `drag`, Playwright `dragTo`) never pass the 8px sensor activation, so no Staging or Placement drop completed. Use `scripts/dev-fixtures/drag.js` in the Playwright MCP browser. *(Phase 34, Task 172; corrected after the drag trial)*
+
+**jsdom never matches `:focus-visible`.** A keyboard-focus test needs a stubbed `matches`, and its negative tests pass with no implementation at all. Check the browser heuristic (Tab, mouse, drop, click) in the mounted app before claiming focus-visible behavior. *(Phase 35, Task 179A)*
 
 ---
 
@@ -117,7 +125,7 @@
 
 **Serialize gates that share generated output.** Logically independent checks are not operationally independent when they read or write the same generated tree. In this project, `next build` and `tsc` can contend through `.next/types`; run them serially unless isolated outputs are configured. *(Phase 23 pilot)*
 
-**Stop a dev server by its own port.** `pkill -f next-server` matched by name and also ended the user's server on another port. Use `lsof -ti tcp:<port> -sTCP:LISTEN | xargs kill`; without `-sTCP:LISTEN` it also returns the Playwright browser connected to that port. After a CSS-only change that does not show, clear `.next` before judging it. *(Phase 41, Task 210)*
+**Stop a dev server by its own port.** `pkill -f next-server` matched by name and also ended the user's server on another port. Use `lsof -ti tcp:<port> -sTCP:LISTEN | xargs kill`; without `-sTCP:LISTEN` it also returns the Playwright browser connected to that port. After a CSS-only change that does not show, clear `.next` before judging it; with Turbopack remove `.next/dev`, since a restart alone kept serving stale `globals.css` rules (Phase 35, Task 179). *(Phase 41, Task 210)*
 
 **Canonical file boundaries must include the real composition owner.** When an accepted behavior requires a parent component to project child counts or close parent-owned transient state, include that parent and its focused test in the canonical task contract. A child-only file list cannot truthfully own cross-boundary callback or heading behavior. *(Phase 26, Tasks 133–134)*
 

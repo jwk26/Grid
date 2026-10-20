@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useArchiveActions } from "@/hooks/use-archive";
@@ -38,6 +38,12 @@ vi.mock("motion/react", async () => {
     },
   };
 });
+
+const dndState = vi.hoisted(() => ({ active: null as { id: string } | null }));
+
+vi.mock("@dnd-kit/core", () => ({
+  useDndContext: () => ({ active: dndState.active }),
+}));
 
 vi.mock("@/hooks/use-archive", () => ({
   useArchiveActions: vi.fn(() => ({ archive: vi.fn() })),
@@ -326,4 +332,207 @@ it("Task170 Node unavailable Undo exposes its exact reason on semantic focus and
   fireEvent.focus(action);expect(await screen.findByRole("tooltip")).toHaveTextContent("This item changed after placement. Undo is unavailable.");
   fireEvent.keyDown(action,{key:"Enter"});fireEvent.keyDown(action,{key:" "});fireEvent.click(action);
   expect(activate).not.toHaveBeenCalled();expect(navigate).not.toHaveBeenCalled();
+});
+
+describe("Task 179A Explorer truncated-title tooltip", () => {
+  const TITLE_ROLE = '[data-triage-role="explorer-title-tooltip"]';
+  const item = createNode({ title: "A very long stored title" });
+  let view: ReturnType<typeof render>;
+  let widths = { scroll: 0, client: 0 };
+  let focusVisible = true;
+  const originalMatches = Element.prototype.matches;
+
+  beforeEach(() => {
+    vi.useRealTimers();
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    widths = { scroll: 200, client: 100 };
+    focusVisible = true;
+    dndState.active = null;
+    Object.defineProperty(HTMLElement.prototype, "scrollWidth", { configurable: true, get: () => widths.scroll });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => widths.client });
+    // jsdom never matches :focus-visible; the gate is exercised through this stub.
+    Element.prototype.matches = function (selector: string) {
+      if (selector === ":focus-visible") return focusVisible;
+      return originalMatches.call(this, selector);
+    };
+  });
+
+  afterEach(() => {
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollWidth;
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientWidth;
+    Element.prototype.matches = originalMatches;
+  });
+
+  const open = () => document.querySelector(TITLE_ROLE);
+  const title = () => document.querySelector('[data-triage-role="explorer-card-title"]') as HTMLElement;
+  const root = () => document.querySelector('[data-triage-role="explorer-card-node"]') as HTMLElement;
+  const undoProps = { disabled: false, reason: "available", tooltip: "Undo this placement.", onActivate: vi.fn() };
+  const hover = () => fireEvent.pointerMove(title(), { pointerType: "mouse" });
+
+  it("shows the full title above a truncated title on pointer hover and none for a fitting title", async () => {
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    hover();
+    await waitFor(() => expect(open()).toHaveTextContent("A very long stored title"));
+    cleanup();
+    widths = { scroll: 100, client: 100 };
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    hover();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(open()).toBeNull();
+  });
+
+  it("detects sub-pixel overflow through a text Range width", async () => {
+    widths = { scroll: 100, client: 100 };
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ width: 100 } as DOMRect);
+    const rangeSpy = vi.spyOn(document, "createRange").mockReturnValue({
+      selectNodeContents: vi.fn(),
+      getBoundingClientRect: () => ({ width: 100.4 }),
+    } as unknown as Range);
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    hover();
+    await waitFor(() => expect(open()).not.toBeNull());
+    rangeSpy.mockRestore();
+    vi.restoreAllMocks();
+  });
+
+  it("does not treat a shrink-wrapped title that fits as truncated, even with a fractional width", async () => {
+    widths = { scroll: 87, client: 87 };
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ width: 87.36 } as DOMRect);
+    vi.spyOn(document, "createRange").mockReturnValue({
+      selectNodeContents: vi.fn(),
+      getBoundingClientRect: () => ({ width: 87.36 }),
+    } as unknown as Range);
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    hover();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(open()).toBeNull();
+    vi.restoreAllMocks();
+  });
+
+  it("does not leave the card in the undo state after hovering an Undo that has no tooltip", async () => {
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} isNewlyPlaced undo={{ ...undoProps, tooltip: undefined }} />);
+    const undo = screen.getByRole("button", { name: /Undo placement of/ });
+    fireEvent.pointerMove(undo, { pointerType: "mouse" });
+    fireEvent.focus(undo);
+    fireEvent.pointerLeave(undo);
+    fireEvent.blur(undo);
+    view.rerender(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} isNewlyPlaced undo={undoProps} />);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).toBeNull();
+  });
+
+  it("opens on card-root focus only when it matches :focus-visible and the card root is the target", async () => {
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    focusVisible = false;
+    fireEvent.focus(root());
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(open()).toBeNull();
+    fireEvent.blur(root());
+    focusVisible = true;
+    fireEvent.focus(root());
+    await waitFor(() => expect(open()).not.toBeNull());
+    fireEvent.blur(root());
+    await waitFor(() => expect(open()).toBeNull());
+  });
+
+  it("does not open when a descendant, not the card root, takes focus", async () => {
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} isNewlyPlaced undo={undoProps} />);
+    fireEvent.focus(screen.getByRole("button", { name: /Undo placement of/ }));
+    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).not.toBeNull());
+    expect(open()).toBeNull();
+  });
+
+  it("stays closed after Esc until the pointer leaves the title", async () => {
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    hover();
+    await waitFor(() => expect(open()).not.toBeNull());
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    await waitFor(() => expect(open()).toBeNull());
+    hover();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(open()).toBeNull();
+    fireEvent.pointerLeave(title());
+    hover();
+    await waitFor(() => expect(open()).not.toBeNull());
+  });
+
+  it("keeps a focus-opened tooltip through the scroll that focus causes, until blur", async () => {
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    fireEvent.focus(root());
+    await waitFor(() => expect(open()).not.toBeNull());
+    fireEvent.scroll(document.body);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(open()).not.toBeNull();
+    fireEvent.blur(root());
+    await waitFor(() => expect(open()).toBeNull());
+  });
+
+  it("keeps a focus-opened title closed after Esc until focus leaves the card", async () => {
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    fireEvent.focus(root());
+    await waitFor(() => expect(open()).not.toBeNull());
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    await waitFor(() => expect(open()).toBeNull());
+    fireEvent.pointerMove(title(), { pointerType: "mouse" });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(open()).toBeNull();
+    fireEvent.blur(root());
+    fireEvent.focus(root());
+    await waitFor(() => expect(open()).not.toBeNull());
+  });
+
+  it("does not close when the title resizes while open", async () => {
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    hover();
+    await waitFor(() => expect(open()).not.toBeNull());
+    widths = { scroll: 100, client: 100 };
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(open()).not.toBeNull();
+  });
+
+  it("shows nothing while a drag is active and closes when one starts", async () => {
+    dndState.active = { id: "drag" };
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    hover();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(open()).toBeNull();
+    dndState.active = null;
+    view.rerender(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    fireEvent.pointerLeave(title());
+    hover();
+    await waitFor(() => expect(open()).not.toBeNull());
+    dndState.active = { id: "drag" };
+    view.rerender(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    await waitFor(() => expect(open()).toBeNull());
+  });
+
+  it("never shows the title and Undo tooltips at once, in either order", async () => {
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} isNewlyPlaced undo={undoProps} />);
+    const undo = screen.getByRole("button", { name: /Undo placement of/ });
+    fireEvent.focus(undo);
+    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).not.toBeNull());
+    hover();
+    await waitFor(() => expect(open()).not.toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).toBeNull());
+    fireEvent.focus(undo);
+    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).not.toBeNull());
+    await waitFor(() => expect(open()).toBeNull());
+  });
+
+  it("keeps the accessible name and aria-describedby of the card unchanged while open", async () => {
+    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
+    const before = [root().getAttribute("aria-label"), root().getAttribute("aria-describedby")];
+    hover();
+    await waitFor(() => expect(open()).not.toBeNull());
+    expect([root().getAttribute("aria-label"), root().getAttribute("aria-describedby")]).toEqual(before);
+    expect(open()).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("renders no title tooltip in the ordinary Grid presentation", async () => {
+    view = render(<NodeCard node={item} onClick={vi.fn()} />);
+    hover();
+    fireEvent.focus(root());
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(open()).toBeNull();
+  });
 });

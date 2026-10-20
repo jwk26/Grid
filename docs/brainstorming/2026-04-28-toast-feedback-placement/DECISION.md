@@ -9,7 +9,9 @@
 - Source topic: migrated from out_of_phase ideation
 - Source prototype: n/a
 - Tags: toast, feedback, spatial-ui, notification, sonner
+- Updated: 2026-10-19
 - Dependencies: none
+- Related: `2026-10-18-staging-item-status-feedback` (Inbox item status: icon and tooltip on the item; failures whose item disappears keep the Staging alert band, not toast)
 
 ## Summary
 

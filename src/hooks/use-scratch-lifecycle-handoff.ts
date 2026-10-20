@@ -19,8 +19,8 @@ type UseScratchLifecycleHandoffOptions = Readonly<{
   onDestination?: (destination: ExternalScratchRemovalDestination) => void;
   /**
    * Runs with the resolved destination before the store changes, so a caller
-   * that needs its focus target settled ahead of the selection change (Trash)
-   * can record it. Archive does not use it.
+   * that needs its focus target settled ahead of the selection change (Archive
+   * and Trash) can record it.
    */
   onBeforeDestination?: (destination: ExternalScratchRemovalDestination) => void;
   readTerminalSnapshot: (

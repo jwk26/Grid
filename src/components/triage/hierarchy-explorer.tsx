@@ -241,12 +241,15 @@ function getNewlyUndoPresentation(
   };
 }
 
-// Ordinary Finder alone adopts the two-state tooltip amendment. Search keeps
-// the shared projection and visible rail; terminal copy equality is irrelevant.
+// Ordinary Finder alone adopts the tooltip amendment for three nonterminal states: available,
+// result-mutated and an open placement. Search keeps the shared projection and visible rail;
+// terminal copy equality is irrelevant.
 function getOrdinaryNewlyUndoPresentation(state: TriageNewlyPlacedUndoState, title: string) {
   const presentation = getNewlyUndoPresentation(state, title);
   const tooltip = (state.phase === "available" && state.reason === "available") ||
-    (state.phase === "blocked" && state.reason === "result-mutated" && state.terminalStatus === null);
+    (state.phase === "blocked" &&
+      (state.reason === "result-mutated" || state.reason === "placement-open") &&
+      state.terminalStatus === null);
   return { ...presentation, tooltip: tooltip ? presentation.copy : undefined };
 }
 
@@ -786,9 +789,14 @@ export function HierarchyExplorer({
             element.closest<HTMLElement>("[data-triage-drop-id]"),
           )
           .find((element) => element !== null);
-        const body = pointerTarget?.closest<HTMLElement>(
-          "[data-triage-explorer-column]",
-        );
+        // The column drop region is the whole pane; only its row viewport scrolls, so a
+        // pointer over the header (outside the viewport bounds) never edge-scrolls.
+        const body =
+          pointerTarget?.closest<HTMLElement>("[data-triage-explorer-column]") ??
+          pointerTarget?.querySelector<HTMLElement>(
+            ":scope > [data-triage-explorer-column]",
+          ) ??
+          null;
         if (
           pointerTarget?.dataset.triageDropId === feedback.dropId &&
           body !== null &&
@@ -1132,7 +1140,8 @@ export function HierarchyExplorer({
     );
     if (row !== undefined) {
       focusedRevealKeyRef.current = reveal.key;
-      row.focus({ preventScroll: true });
+      // Focus without a page scroll, then scroll only the owning column viewport minimally.
+      focusInOwningExplorerViewport(row);
     }
   }, [
     level1Bits,
@@ -2159,9 +2168,11 @@ function ExplorerColumn({
   const sectionDropId = getTriageHierarchyDropId(
     sectionIndex === 0 ? "body-home" : `body-l${sectionIndex}`,
   );
+  // A column with no selected parent stays disabled: no droppable and no DOM drop hooks.
+  const dropDisabled = sectionIndex > 0 && parentNode === null;
   const { setNodeRef } = useDroppable({
     id: sectionDropId,
-    disabled: sectionIndex > 0 && parentNode === null,
+    disabled: dropDisabled,
     data: {
       kind: "triage-hierarchy-drop",
       dropId: sectionDropId,
@@ -2230,6 +2241,7 @@ function ExplorerColumn({
 
   return (
     <section
+      ref={setNodeRef}
       aria-labelledby={`${headingTestId}-label`}
       data-triage-role="explorer-pane"
       data-explorer-dimmed={isDimmed ? "true" : undefined}
@@ -2237,7 +2249,16 @@ function ExplorerColumn({
         "flex min-w-0 flex-1 flex-col bg-background",
         hasRightBorder && "border-r border-border/50",
         isDimmed && "bg-muted/30 border-border/50",
+        CELL_STATE_CLASSES[bodyState],
       )}
+      data-triage-drop-id={dropDisabled ? undefined : sectionDropId}
+      data-triage-hierarchy-drop={dropDisabled ? undefined : JSON.stringify(sectionDropData)}
+      data-triage-target-state={bodyState}
+      data-triage-feedback-source={feedbackSource ?? undefined}
+      data-triage-unavailable={
+        (feedbackSource === "node" && parentNode !== null && parentNode.level >= 2) ||
+        (feedbackSource === "bit" && sectionIndex === 0) ? "true" : undefined
+      }
     >
       <div className="border-b border-border/50 bg-muted/30 px-3 py-2" data-triage-role="explorer-column-header">
         <div className="flex min-w-0 items-center justify-between gap-2">
@@ -2323,26 +2344,14 @@ function ExplorerColumn({
         </div>
       ) : null}
       <div
-        ref={(node) => {
-          bodyRef.current = node;
-          setNodeRef(node);
-        }}
+        ref={bodyRef}
         className={cn(
           "min-h-0 flex-1 overflow-y-auto p-2",
           isDimmed && "bg-muted/30",
-          CELL_STATE_CLASSES[bodyState],
         )}
         data-testid={`hierarchy-section-body-${sectionIndex === 0 ? "home" : `l${sectionIndex}`}`}
-        data-triage-drop-id={sectionDropId}
         data-triage-explorer-column="true"
         data-triage-role="explorer-viewport"
-        data-triage-hierarchy-drop={JSON.stringify(sectionDropData)}
-        data-triage-target-state={bodyState}
-        data-triage-feedback-source={feedbackSource ?? undefined}
-        data-triage-unavailable={
-          (feedbackSource === "node" && parentNode !== null && parentNode.level >= 2) ||
-          (feedbackSource === "bit" && sectionIndex === 0) ? "true" : undefined
-        }
         onScroll={handleScroll}
       >
         {children}

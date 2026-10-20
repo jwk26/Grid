@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import {
   act,
   cleanup,
@@ -21,6 +21,7 @@ import {
   useTriageDeparture,
   type TriageDepartureController,
 } from "@/hooks/use-triage-departure";
+import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import type { ScratchBreakdown } from "@/lib/db/schema";
 import type { Bit } from "@/types";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
@@ -31,7 +32,7 @@ import {
   type TrashScratchDisabledReason,
   type TrashScratchEntries,
 } from "@/hooks/use-trash-scratch";
-import { BreakdownPanel } from "./breakdown-panel";
+import { BreakdownPanel as RealBreakdownPanel } from "./breakdown-panel";
 
 const hookState = vi.hoisted(() => ({
   breakdownsByScratch: {} as Record<string, unknown[]>,
@@ -168,10 +169,6 @@ vi.mock("@/hooks/use-scratch-breakdowns", () => ({
 
 vi.mock("@/hooks/use-inbox", () => ({
   useInbox: useInboxMock,
-}));
-
-vi.mock("@/hooks/use-staged-candidates", () => ({
-  useStagedCandidates: useStagedCandidatesMock,
 }));
 
 vi.mock("@/hooks/use-triage-operation-lock", () => ({
@@ -400,6 +397,7 @@ beforeEach(() => {
         : (triageStoreState.stagedCandidates[scratchBitId] ?? []).length;
     return {
       breakdowns: activeRows,
+      isReady: true,
       consumedBreakdownCount: consumedRows.length,
       hasObservedBreakdownHistory: rows.length > 0,
       isArchiveEligible:
@@ -442,6 +440,102 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   vi.restoreAllMocks();
+});
+
+// The panel receives staged-source state from the workspace; this stands in for it
+// from the same fixture the hook mock used to serve.
+function BreakdownPanel(
+  props: Partial<ComponentProps<typeof RealBreakdownPanel>> = {},
+) {
+  const selectedScratchId = useTriageStoreMock(
+    (state: typeof triageStoreState) => state.selectedScratchId,
+  ) as string | null;
+  const staged = useStagedCandidatesMock(selectedScratchId);
+  const { activeScratchBits } = useInboxMock() as { activeScratchBits: Bit[] };
+  return (
+    <RealBreakdownPanel
+      selectedScratch={
+        activeScratchBits.find((bit) => bit.id === selectedScratchId) ?? null
+      }
+      archiveCandidateClear={staged.counts.authoritative === 0}
+      authoritativeStagedSourceIds={staged.eligibility.stagedSourceIds}
+      stagedSourceIds={staged.eligibility.stagedSourceIds}
+      {...props}
+    />
+  );
+}
+
+describe("BreakdownPanel first read after a Scratch switch (MI-22)", () => {
+  const readyState = (isReady: boolean, breakdowns: unknown[] = []) => ({
+    breakdowns,
+    isReady,
+    consumedBreakdownCount: 0,
+    hasObservedBreakdownHistory: false,
+    isArchiveEligible: false,
+    operations: [],
+    editor: editorState,
+    addBreakdown: hookState.createBreakdown,
+    reconcileAddBreakdown: vi.fn(),
+    deleteBreakdown: hookState.deleteBreakdown,
+    reconcileDeleteBreakdown: vi.fn(),
+  });
+
+  it("shows the passed Scratch title and date on the first render, never Unknown Scratch", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    useInboxMock.mockReturnValue({
+      activeScratchBits: [createBit({ id: "scratch-1", title: "Passed title", createdAt: Date.now() })],
+    });
+    useScratchBreakdownsMock.mockReturnValue(readyState(false));
+    render(<BreakdownPanel />);
+
+    expect(screen.getByLabelText("Selected Scratch: Passed title")).toBeInTheDocument();
+    expect(screen.queryByText("Unknown Scratch")).not.toBeInTheDocument();
+    expect(document.querySelector('[data-triage-role="context-timestamp"]')).not.toBeNull();
+  });
+
+  it("renders no rows, empty or completion state before the Breakdown read resolves", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    useScratchBreakdownsMock.mockReturnValue({
+      ...readyState(false),
+      consumedBreakdownCount: 1,
+      hasObservedBreakdownHistory: true,
+      isArchiveEligible: true,
+    });
+    render(
+      <BreakdownPanel
+        completion={{
+          presentation: "complete",
+          archive: vi.fn(async () => true),
+          cancel: vi.fn(),
+          reopen: vi.fn(),
+        } as never}
+      />,
+    );
+
+    expect(screen.queryByTestId("breakdown-empty-state")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reopen" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    expect(screen.queryByText("All items processed")).not.toBeInTheDocument();
+    expect(screen.queryByText("Scratch complete")).not.toBeInTheDocument();
+  });
+
+  it("renders the empty state after an empty read and the rows after a read with rows", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    useScratchBreakdownsMock.mockReturnValue(readyState(false));
+    const view = render(<BreakdownPanel />);
+    expect(screen.queryByTestId("breakdown-empty-state")).not.toBeInTheDocument();
+
+    useScratchBreakdownsMock.mockReturnValue(readyState(true));
+    view.rerender(<BreakdownPanel />);
+    expect(screen.getByTestId("breakdown-empty-state")).toHaveAttribute("data-triage-state", "never-used");
+
+    useScratchBreakdownsMock.mockReturnValue(
+      readyState(true, [createScratchBreakdown({ id: "row-1", content: "First row" })]),
+    );
+    view.rerender(<BreakdownPanel />);
+    expect(screen.queryByTestId("breakdown-empty-state")).not.toBeInTheDocument();
+    expect(screen.getByText("First row")).toBeInTheDocument();
+  });
 });
 
 describe("BreakdownPanel", () => {
@@ -548,6 +642,123 @@ describe("BreakdownPanel", () => {
     expect(screen.getByRole("status")).toBeInTheDocument();
     act(() => vi.advanceTimersByTime(1));
     expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("treats a source in stagedSourceIds as staged before any candidate is listed, with grip, Edit and Delete disabled", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Held stage source" }),
+    ];
+
+    const view = render(
+      <RealBreakdownPanel
+        selectedScratch={null}
+        archiveCandidateClear
+        authoritativeStagedSourceIds={new Set()}
+        stagedSourceIds={new Set(["row-1"])}
+      />,
+    );
+
+    const row = screen.getByTestId("breakdown-row");
+    expect(row).toHaveAttribute("data-triage-role", "breakdown-staged-row");
+    expect(row).toHaveClass("opacity-50");
+    expect(within(row).getByRole("button", { name: "Drag breakdown" })).toBeDisabled();
+    expect(within(row).getByRole("button", { name: /edit/i })).toBeDisabled();
+    expect(within(row).getByRole("button", { name: /delete/i })).toBeDisabled();
+
+    view.rerender(
+      <RealBreakdownPanel
+        selectedScratch={null}
+        archiveCandidateClear
+        authoritativeStagedSourceIds={new Set()}
+        stagedSourceIds={new Set()}
+      />,
+    );
+    expect(screen.getByTestId("breakdown-row")).toHaveAttribute(
+      "data-triage-role",
+      "breakdown-active-row",
+    );
+    expect(screen.getByTestId("breakdown-row")).not.toHaveClass("opacity-50");
+  });
+
+  it("does not invalidate an open editor for a Stage that is only pending or held", async () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Editing row" }),
+    ];
+    const view = render(
+      <RealBreakdownPanel
+        selectedScratch={null}
+        archiveCandidateClear
+        authoritativeStagedSourceIds={new Set()}
+        stagedSourceIds={new Set()}
+      />,
+    );
+    editorState.snapshot = {
+      target: { kind: "breakdown", id: "row-1" },
+      phase: "dirty",
+      base: { value: "Editing row", version: 1, order: 0 },
+      draft: "Draft",
+      latest: null,
+      copyableDraft: null,
+      pendingIntent: false,
+      focusIntent: "field",
+      command: null,
+    };
+
+    view.rerender(
+      <RealBreakdownPanel
+        selectedScratch={null}
+        archiveCandidateClear
+        authoritativeStagedSourceIds={new Set()}
+        stagedSourceIds={new Set(["row-1"])}
+      />,
+    );
+    expect(editorState.invalidate).not.toHaveBeenCalled();
+
+    view.rerender(
+      <RealBreakdownPanel
+        selectedScratch={null}
+        archiveCandidateClear={false}
+        authoritativeStagedSourceIds={new Set(["row-1"])}
+        stagedSourceIds={new Set(["row-1"])}
+      />,
+    );
+    expect(editorState.invalidate).toHaveBeenCalled();
+  });
+
+  it("holds the Unstage success signal while the source is still in stagedSourceIds", () => {
+    vi.useFakeTimers();
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Held unstage" }),
+    ];
+    const signal = {
+      kind: "unstage" as const,
+      operationId: "unstage-held",
+      rowId: "row-1",
+    };
+    const view = render(
+      <RealBreakdownPanel
+        selectedScratch={null}
+        archiveCandidateClear={false}
+        authoritativeStagedSourceIds={new Set(["row-1"])}
+        stagedSourceIds={new Set(["row-1"])}
+        successSignal={signal}
+      />,
+    );
+    expect(screen.queryByRole("status")).toBeNull();
+
+    view.rerender(
+      <RealBreakdownPanel
+        selectedScratch={null}
+        archiveCandidateClear
+        authoritativeStagedSourceIds={new Set()}
+        stagedSourceIds={new Set()}
+        successSignal={signal}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Returned to Breakdown.");
   });
 
   it("keeps the row-local status mounted if inline edit begins during its lifetime", () => {
@@ -2585,6 +2796,58 @@ describe("BreakdownPanel", () => {
     }
   });
 
+  it("renders the Archive confirmation detail from the shared copy with a bold title, reserved during an operation, shown only by Retro Mac", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", consumedAt: currentTime }),
+    ];
+    const view = render(<CompletionHarness />);
+    const detail = view.container.querySelector(
+      '[data-triage-role="archive-confirmation-detail"]',
+    ) as HTMLElement;
+    const [before, after] =
+      INBOX_TRIAGE_COPY.archive.confirmationDetail.split("{title}");
+    expect(detail.textContent?.startsWith(before)).toBe(true);
+    expect(detail.textContent?.endsWith(after)).toBe(true);
+    expect(detail.querySelector("strong")?.textContent).toBe("Scratch");
+    expect(detail).toHaveAttribute("data-archive-detail", "visible");
+    expect(detail).not.toHaveAttribute("aria-hidden");
+
+    view.unmount();
+    const recovery = {
+      scratchBitId: "scratch-1",
+      operationId: "00000000-0000-4000-8000-000000000001",
+      expectedVersion: 7,
+      startedAt: currentTime,
+    };
+    const pending = render(
+      <CompletionHarness
+        archiveOperation={{
+          state: { phase: "pending", recovery },
+          isRecoveryProjection: false,
+          reconcile: vi.fn(),
+          retry: vi.fn(),
+          dismissTerminal: vi.fn(() => true),
+        }}
+      />,
+    );
+    const reserved = pending.container.querySelector(
+      '[data-triage-role="archive-confirmation-detail"]',
+    );
+    expect(reserved).toHaveAttribute("data-archive-detail", "reserved");
+    expect(reserved).toHaveAttribute("aria-hidden", "true");
+
+    const shown = [
+      ...globalsCss.matchAll(
+        /([^{}]*)\.archive-confirmation-detail\s*\{[^}]*display:\s*block/g,
+      ),
+    ].map((match) => match[0]);
+    expect(shown.length).toBeGreaterThan(0);
+    for (const rule of shown) {
+      expect(rule).toContain('data-color-theme="retro-mac"');
+    }
+  });
+
   it("Cancel restores Add, marks Context complete, and focuses explicit Reopen", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
@@ -2775,7 +3038,7 @@ describe("BreakdownPanel", () => {
     );
   });
 
-  it("renders the Add completion blocker below reliability copy and preserves Add focus", () => {
+  it("renders no Add completion blocker, keeps Add focus and shows neither the complete state nor Reopen", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.operations = [
       {
@@ -2795,92 +3058,31 @@ describe("BreakdownPanel", () => {
       cancel: vi.fn(),
       reopen: vi.fn(),
     };
-    render(<BreakdownPanel completion={completion} />);
+    const view = render(<BreakdownPanel completion={completion} />);
     const input = screen.getByPlaceholderText("Add a note...");
     input.focus();
 
-    const region = screen.getByTestId("breakdown-add-row");
-    const reliability = within(region).getByText(
-      "Not added. Your draft is still here.",
-    );
-    const blocker = within(region).getByText(
-      "Add this idea or clear the draft to complete this Scratch.",
-    );
-    expect(reliability.compareDocumentPosition(blocker)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-    expect(blocker.closest('[role="status"]')).toHaveAttribute(
-      "data-triage-role",
-      "breakdown-add-completion-blocker",
-    );
-    expect(input).toHaveAttribute(
-      "aria-describedby",
-      blocker.closest('[role="status"]')?.id,
-    );
+    expect(
+      screen.queryByText("Add this idea or clear the draft to complete this Scratch."),
+    ).toBeNull();
+    expect(
+      view.container.querySelector('[data-triage-role="breakdown-add-completion-blocker"]'),
+    ).toBeNull();
+    expect(input).not.toHaveAttribute("aria-describedby");
     expect(input).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Scratch complete" })).toBeNull();
   });
 
   it.each([
-    ["pristine", "open", "Save or cancel the Scratch title edit to complete this Scratch."],
-    ["dirty", "dirty", "Save or cancel the Scratch title edit to complete this Scratch."],
-    ["saving", "saving", "Saving the Scratch title before completion…"],
-    ["reconciling", "reconciling", "Checking the Scratch title before completion…"],
+    ["pristine", "open"],
+    ["dirty", "dirty"],
+    ["saving", "saving"],
+    ["reconciling", "reconciling"],
+    ["conflict", "conflicted"],
   ] as const)(
-    "uses the Context eyebrow for %s title completion blocking without moving focus",
-    (phase, title, copy) => {
-      triageStoreState.selectedScratchId = "scratch-1";
-      editorState.snapshot = {
-        target: { kind: "scratch-title", id: "scratch-1" },
-        phase,
-        base: { value: "Scratch", version: 1 },
-        draft: "Scratch draft",
-        latest: null,
-        copyableDraft: null,
-        pendingIntent: false,
-        focusIntent: "field",
-        command: null,
-      };
-      const completion = {
-        presentation: "working" as const,
-        persistedEligible: true,
-        completionBlockers: { addDraft: false, title },
-        withdrawalReason: null,
-        cancel: vi.fn(),
-        reopen: vi.fn(),
-      };
-      const view = render(<BreakdownPanel completion={completion} />);
-      const field = screen.getByRole("textbox", { name: "Scratch title" });
-      expect(field).toHaveFocus();
-      const eyebrow = screen.getByText(copy);
-      expect(eyebrow).toHaveAttribute(
-        "data-triage-role",
-        "context-completion-blocker-mark",
-      );
-      expect(field.getAttribute("aria-describedby")?.split(" ")).toContain(
-        eyebrow.id,
-      );
-      expect(screen.queryByText("Selected Scratch")).toBeNull();
-
-      view.rerender(
-        <BreakdownPanel
-          completion={{
-            ...completion,
-            completionBlockers: { addDraft: false, title: null },
-          }}
-        />,
-      );
-      expect(screen.getByText("Selected Scratch")).toBeInTheDocument();
-      expect(field).toHaveFocus();
-    },
-  );
-
-  it.each([
-    ["offline", "dirty", "Offline. Your draft is still here."],
-    ["not_applied", "dirty", "Not saved. Your draft is still here."],
-    ["conflict", "conflicted", "This changed elsewhere."],
-  ] as const)(
-    "appends the %s title blocker inside the existing issue overlay",
-    (phase, title, editorCopy) => {
+    "keeps the Context eyebrow and shows no completion sentence for %s title editing, without moving focus",
+    (phase, title) => {
       triageStoreState.selectedScratchId = "scratch-1";
       editorState.snapshot = {
         target: { kind: "scratch-title", id: "scratch-1" },
@@ -2896,7 +3098,7 @@ describe("BreakdownPanel", () => {
         focusIntent: phase === "conflict" ? "pending-action" : "field",
         command: null,
       };
-      render(
+      const view = render(
         <BreakdownPanel
           completion={{
             presentation: "working",
@@ -2908,19 +3110,22 @@ describe("BreakdownPanel", () => {
           }}
         />,
       );
-
-      const overlay = screen.getByTestId("inline-editor-issue-overlay");
-      const status = overlay.querySelector(
-        '[data-triage-role="inline-editor-issue-status"]',
+      expect(screen.getByText("Selected Scratch")).toHaveAttribute(
+        "data-triage-role",
+        "context-eyebrow-meta",
       );
-      expect(status).not.toBeNull();
-      expect(status).toHaveTextContent(editorCopy);
-      expect(status).toHaveTextContent(
-        title === "conflicted"
-          ? "Resolve the Scratch title conflict to complete this Scratch."
-          : "Save or cancel the Scratch title edit to complete this Scratch.",
-      );
-      expect(screen.getAllByTestId("inline-editor-issue-overlay")).toHaveLength(1);
+      expect(view.container.textContent).not.toMatch(/to complete this Scratch|before completion/);
+      expect(
+        view.container.querySelector(
+          '[data-triage-role="context-completion-blocker-mark"], [data-triage-role="context-completion-blocker"]',
+        ),
+      ).toBeNull();
+      const field = screen.queryByRole("textbox", { name: "Scratch title" });
+      if (field !== null) {
+        expect(field.getAttribute("aria-describedby") ?? "").not.toMatch(/:r/);
+        if (phase !== "conflict") expect(field).toHaveFocus();
+      }
+      expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
     },
   );
 
@@ -2949,15 +3154,11 @@ describe("BreakdownPanel", () => {
     expect(screen.queryByRole("region", { name: "Scratch complete" })).toBeNull();
   });
 
-  it("maps Task 160 roles through every theme with immediate reduced-motion-identical treatment", () => {
-    expect(globalsCss).toContain(".breakdown-add-completion-blocker");
-    expect(globalsCss).toContain(".context-completion-blocker-mark");
+  it("maps the withdrawal status through every theme and retires the Add and title blocker rules", () => {
+    expect(globalsCss).not.toContain("completion-blocker");
     expect(globalsCss).toContain(".archive-withdrawal-status");
     expect(globalsCss).toContain("animation: none !important;");
     expect(globalsCss).toContain("transition: none !important;");
-    expect(getCssBlock(".context-completion-blocker-mark")).toContain(
-      "white-space: normal",
-    );
     expect(globalsCss).toMatch(
       /\.triage-fixed-context \.triage-inline-editor__issue-overlay[\s\S]*\[data-triage-role="inline-editor-issue-status"\][\s\S]*white-space: normal/,
     );
@@ -2970,9 +3171,6 @@ describe("BreakdownPanel", () => {
       "retro-mac",
       "graphite",
     ]) {
-      expect(globalsCss).toContain(
-        `:root[data-color-theme="${theme}"] .breakdown-add-completion-blocker`,
-      );
       expect(globalsCss).toContain(
         `:root[data-color-theme="${theme}"] .archive-withdrawal-status`,
       );
@@ -3857,6 +4055,7 @@ describe("BreakdownPanel", () => {
               ? left.createdAt - right.createdAt
               : right.createdAt - left.createdAt,
           ),
+        isReady: true,
         consumedBreakdownCount: 0,
         hasObservedBreakdownHistory: true,
         isArchiveEligible: false,
@@ -3936,6 +4135,7 @@ describe("BreakdownPanel", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     useScratchBreakdownsMock.mockReturnValue({
       breakdowns: [],
+      isReady: true,
       consumedBreakdownCount: 0,
       hasObservedBreakdownHistory: false,
       isArchiveEligible: false,
@@ -3956,6 +4156,7 @@ describe("BreakdownPanel", () => {
 
     useScratchBreakdownsMock.mockReturnValue({
       breakdowns: [],
+      isReady: true,
       consumedBreakdownCount: 0,
       hasObservedBreakdownHistory: true,
       isArchiveEligible: false,
@@ -3980,6 +4181,7 @@ describe("BreakdownPanel", () => {
     useInboxMock.mockReturnValue({ activeScratchBits: [] });
     useScratchBreakdownsMock.mockReturnValue({
       breakdowns: [],
+      isReady: true,
       consumedBreakdownCount: 1,
       hasObservedBreakdownHistory: true,
       isArchiveEligible: true,
@@ -3999,6 +4201,7 @@ describe("BreakdownPanel", () => {
     });
     useScratchBreakdownsMock.mockReturnValue({
       breakdowns: [],
+      isReady: true,
       consumedBreakdownCount: 1,
       hasObservedBreakdownHistory: true,
       isArchiveEligible: false,

@@ -30,6 +30,8 @@ describe("Inbox/Triage core-English copy", () => {
       collapseScratchPool: "Collapse Scratch Pool",
       sortNewestFirst: "Sort: newest first",
       sortOldestFirst: "Sort: oldest first",
+      sortTrackOld: "OLD",
+      sortTrackNew: "NEW",
     });
   });
 
@@ -162,17 +164,8 @@ describe("Inbox/Triage core-English copy", () => {
     );
   });
 
-  it("owns the exact approved DP-VQ11 blocker and withdrawal wording", () => {
+  it("owns only the approved DP-VQ11 withdrawal wording, with no Add or title blocker copy", () => {
     expect(INBOX_TRIAGE_COPY.completion).toEqual({
-      addBlocker: "Add this idea or clear the draft to complete this Scratch.",
-      titleBlocker: {
-        openOrDirty:
-          "Save or cancel the Scratch title edit to complete this Scratch.",
-        saving: "Saving the Scratch title before completion…",
-        conflicted:
-          "Resolve the Scratch title conflict to complete this Scratch.",
-        reconciling: "Checking the Scratch title before completion…",
-      },
       withdrawal: {
         activeBreakdown:
           "Completion is no longer available because a Breakdown item is active.",
@@ -182,6 +175,8 @@ describe("Inbox/Triage core-English copy", () => {
           "Completion is no longer available because Breakdown and Staging have active items.",
       },
     });
+    expect("addBlocker" in INBOX_TRIAGE_COPY.completion).toBe(false);
+    expect("titleBlocker" in INBOX_TRIAGE_COPY.completion).toBe(false);
     expect(160 in INBOX_TRIAGE_COPY.receiptDependent).toBe(false);
   });
 
@@ -200,6 +195,8 @@ describe("Inbox/Triage core-English copy", () => {
           "Archive couldn’t finish because this Scratch changed while the result was being checked.",
         success: "Scratch archived.",
       },
+      confirmationDetail:
+        "Every idea segment in “{title}” has been successfully placed. File it to disk?",
       actions: {
         checkAgain: "Check again",
         retry: "Retry",

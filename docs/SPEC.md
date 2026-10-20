@@ -619,7 +619,7 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   no large or repeated placeholder card. Each independently scrollable list
   sorts `createdAt` DESC then stable ID, has no manual reorder or count cap, and
   preserves the 35/65 split and panel height.
-- A subsection label is just `Nodes` or `Bits` for zero or one presentation candidate. It receives a numeric prefix only at two or more (`2 Nodes`, `3 Bits`). For each type, this presentation total includes source-resolved durable candidates and visible non-draggable Stage projections in pending, unknown, or reconciling, counting an authoritative candidate and its operation projection with the same candidate ID once. Unstage adds no projection count and retains its durable candidate until authoritative disappearance. Unresolved-source integrity slots are not presentation candidates and are excluded from this total. Repository membership, authoritative counts, Archive eligibility and operation locks remain durable truth. The heading total is not a success claim. Authoritative `applied` and `already_applied` outcomes retain their SCHEMA semantics and, where applicable, accepted DP-VQ02 success-signal authority; the heading total still derives only from the current reactive candidate/projection inputs. Terminal projection removal may precede live-query delivery, temporarily lowering the presentation total; do not retain a synthetic count or infer membership before the snapshot arrives. The subsection-local remote-arrival `new items` indicator remains separate and is never added to this total.
+- A subsection label is just `Nodes` or `Bits` for zero or one presentation candidate. It receives a numeric prefix only at two or more (`2 Nodes`, `3 Bits`). For each type, this presentation total includes source-resolved durable candidates and visible non-draggable Stage projections in pending, unknown, or reconciling, counting an authoritative candidate and its operation projection with the same candidate ID once. Unstage adds no projection count and retains its durable candidate until authoritative disappearance. Unresolved-source integrity slots are not presentation candidates and are excluded from this total. Repository membership, authoritative counts, Archive eligibility and operation locks remain durable truth. The heading total is not a success claim. Authoritative `applied` and `already_applied` outcomes retain their SCHEMA semantics and, where applicable, accepted DP-VQ02 success-signal authority; the heading total still derives only from the current reactive candidate/projection inputs. Terminal projection removal follows the post-terminal presentation hold (amended 2026-10-18, MI-15). On `applied` or `already_applied`, a Stage projection whose candidate ID is already in the current snapshot is removed in the same commit; otherwise it stays as a post-terminal presentation hold: it keeps its current phase, copy and non-draggable shape, holds no lock or navigation guard, makes no new announcement, and keeps counting once with its candidate ID. The displayed phase is presentation only: the item is marked held, no lock, guard, live sentence or other consumer treats it as unresolved, and it keeps the interactivity it had while pending (a held candidate is not draggable; a held source row's grip, Edit and Delete stay disabled). The hold is checked when the result arrives and on every later snapshot. It ends when the snapshot contains the candidate ID (as a source-resolved candidate or an unresolved-source integrity slot), when a live-query read that started after the result returns without it, or when the subscription errors. `rejected`, `conflict`, `not_applied`, failure and orphan cleanup are never held. No timer or elapsed time decides removal, and membership is never inferred before the snapshot. Stage projections render at the top of their list, newest first, where the candidate lands under the `createdAt` DESC sort. A pending Stage projection, and one held from pending, shows the candidate's icon and title in its final card or row shape and no in-card status line; its pending sentence is announced only through the Staging live region (2026-10-18, mi-14). Unknown and reconciling keep the attached line. The subsection-local remote-arrival `new items` indicator remains separate and is never added to this total.
 - The whole staged candidate root is the primary pointer/touch drag activator;
   it has no select/detail/menu behavior and no internal grip. Every grab point
   uses the same pointer-centered, type-specific compact `TriageDragToken` and
@@ -659,6 +659,15 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   scroll padding disappears with the drag. Same-type Staging drop is a neutral
   mutation-free cancel; opposite type is invalid and requires Unstage first;
   release/Escape/browser cancel elsewhere is silent and mutation-free.
+- **Staging subsection drop region (user-adopted, 2026-10-17):** the `Nodes`
+  and `Bits` subsections each accept their drop anywhere in the subsection —
+  its heading row, including the count and the `N new` control, plus its well
+  — so the heading is part of the target. Stage, neutral, invalid and
+  unavailable meanings are unchanged, and the lower Remove target keeps
+  priority where it overlaps a subsection. Hover feedback covers the same
+  whole subsection. Heading controls stay clickable and are not targets of
+  their own; well scrolling and observed-top clearing stay on the well. All
+  themes share this region through one tree.
 - At staged-candidate drag start, semantically invalid Grid columns expose an
   invalid signal under the existing Home/Level-3/hierarchy type rules; actual
   invalid hover adds a direct reason without replacing the column label. The
@@ -667,6 +676,7 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   resizes, or relabels existing Breakdown content. These transient signals clear
   on target exit or drag end and never blink, pulse, or trigger an automatic
   drop.
+- Unstage uses the same post-terminal presentation hold (2026-10-18, MI-15): after `applied` or `already_applied`, the retained candidate keeps its Unstage operation state until a snapshot no longer contains it, until a live-query read that started after the result still contains it, or until the subscription errors. While its Unstage is pending, the candidate card stays dimmed and shows no in-card status line (2026-10-18, mi-14); in unknown or reconciling the card is not dimmed and shows its attached line; a held Unstage keeps the dimming of the phase it was held from. On Stage, the Breakdown source row stays dimmed from drop until the Stage settles and its hold ends, and changes in the same commit as the Staging region. Dimming follows operation state, not the drag state. After a Scratch switch, no commit shows the previous Scratch's operation rows, counts, remote-arrival indicator or Staging alert.
 - Unstage keeps candidate/source staged until success. Success removes the
   candidate, restores the source's original created-at sort position, scrolls
   only the Breakdown list if needed, restores source focus, and reuses the
@@ -731,6 +741,23 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   not blurred or clipped. These are projections of existing deadline/status,
   not new completion/dismiss commands or writes to `pastDeadlineDismissed`.
   Priority remains the actual stored metadata.
+- **Explorer urgency (user-adopted, 2026-10-17, MI-10):** the ordinary Grid
+  card's near-deadline urgency blink does not run in the Inbox Explorer. Every
+  Explorer Bit row is static; its deadline text carries the urgency. The
+  ordinary Grid keeps the blink.
+- **Explorer truncated titles (user-adopted, 2026-10-19):** in every theme, an
+  Explorer Node or Bit title cut by its ellipsis, measured when the tooltip
+  would open, shows the full stored title in a tooltip above it while the
+  pointer is over the title, or while the card itself holds visible keyboard
+  focus (`:focus-visible`): a Node card reached by Tab, or a Node or Bit card
+  focused by placement, reveal, Undo or arrival after a keyboard action. Bit
+  cards stay out of the Tab order and focus behaves as before; focus that
+  follows a pointer action shows nothing. A title that fits shows none. The
+  tooltip is presentation only: Esc dismisses it until focus leaves the card or
+  the pointer leaves the title; it does not show while a drag is active; it is
+  attached to the title alone, and it and the card's Undo tooltip are never
+  shown at once; the card's accessible name and description stay as they are,
+  so the title is read once. The ordinary Grid card is unchanged.
 - **User-selected Node/Bit distinction amendment, 2026-10-08:** within the
   ordinary Inbox/Triage Explorer body, retain the existing Node-before-Bit
   groups and within-type ordering without an inter-type divider or visible
@@ -812,6 +839,17 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   Invalid/other columns, the Explorer shell, and page never auto-scroll. Stop
   on edge exit/end, never change path automatically, and continuously hit-test
   the pointer-under target. Pointer release determines the final target.
+- **Column drop region (user-adopted, 2026-10-17):** an open Explorer column
+  accepts its column-level drop anywhere in its pane — the full-label header,
+  including its `N new` count and path-status strip, plus the scrolling rows —
+  so a column filled with Node rows keeps an always-visible column target. A
+  Node row under the pointer still targets that Node; anywhere else in the pane
+  targets the column's own parent (`Home` or the selected Node). Eligible,
+  hovered and unavailable feedback covers the same whole pane. Header controls
+  stay clickable and are not targets of their own; the header adds no
+  auto-scroll zone, so edge auto-scroll stays on the row viewport's own
+  top/bottom edges. A column with no selected parent stays disabled. All
+  themes share this region through one tree.
 - Home accepts Node only; Level 3 accepts Bit only; intermediate hierarchy
   constraints remain. Invalid hover performs no write. A full destination still
   enters the selected target-column placement affordance with visible full-

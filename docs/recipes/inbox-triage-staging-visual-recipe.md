@@ -14,9 +14,11 @@
 ## Shared Adopted Contract
 
 - Keep visible `Staging`, `Nodes`, and `Bits` identity. Nodes are a two-column grid of icon-centered cards; Bits are a vertical list of text rows. Shape/information, not color alone, carries type.
+- User-adopted 2026-10-17: the Node and Bit drop targets each cover their whole subsection, heading included, per SPEC "Staging subsection drop region"; well-state styling paints that whole subsection.
 - Preserve the selected Node/Bit `35/65` split, independent internal scroll containers, hidden scrollbar chrome, stable section height, and quiet empty state with no large placeholder cards.
 - The candidate root is the full drag activator. Production retains the shared compact pointer-centered `TriageDragToken`; no internal handle, native snapshot, primary click, detail, or menu is adopted.
 - During staged drag, the dedicated lower unstage overlay and Breakdown drop-back share one meaning. The overlay must not resize, blur, or move the lists.
+- Both drop targets — the lower Remove-from-staging target and the Breakdown Return overlay — are realized for each theme in its own L3 binding (EXECUTION_PLAN L3 "Drop targets"), including themes whose prototype lacks the Return overlay; until then they keep the current look.
 - Base pending, invalid, same-type neutral, opposite-type unavailable, and drop-back meanings remain semantic states. Source mock mutations do not define their lifecycle.
 - The lower Remove-from-staging target remains a transient, static Unstage affordance with fixed list geometry. Other themes retain the dashed neutral idle surface and compatible-hover destructive border, restrained background and text/icon tokens. The exact Task168 P34-15 Retro Mac supplement below instead defines an opaque framed Remove surface with monochrome compatible-hover inversion and restrained destructive emphasis for compatible Breakdown Return. Cancellation, incompatible or invalidated sources and Node/Bit neutral, unavailable and invalid states receive no destructive emphasis. Both targets perform Unstage, not deletion.
 
@@ -38,10 +40,13 @@ history, permanent Unstage/Retry button, or Pool/Explorer presentation.
 - A Stage pending projection uses the candidate's final Node-card or Bit-row
   shape in the destination subsection and reserves one fixed status line inside
   that candidate. Unstage keeps the durable candidate in its current position
-  and uses the same attached line. Pending, unknown, and reconciling never
+  and uses the same attached line. Amended 2026-10-18 (user, mi-14): pending,
+  and a hold from pending, shows no line; the projection shows the
+  candidate's icon and title, and the pending sentence is announced only
+  through the Staging live region. Unknown and reconciling keep the line. Pending, unknown, and reconciling never
   replace the subsection, resize the Staging panel, or become draggable,
   unstageable, or placeable.
-- `Nodes` and `Bits` use the presentation total defined in [SPEC — Durable Staging](../SPEC.md#durable-staging): zero or one renders the bare label and two or more renders the total prefix (`2 Nodes`, `3 Bits`). Include source-resolved durable candidates and visible pending, unknown, or reconciling Stage projections without counting the same candidate ID twice; Unstage adds no count and unresolved-source integrity slots are excluded. A separate actionable `1 new` / `{count} new` indicator sits beside only the affected subsection heading and is never added to the heading total. This presentation count changes no durable membership, success, lock, reconciliation or eligibility meaning and introduces no synthetic count lifetime across terminal-to-live-query delivery.
+- `Nodes` and `Bits` use the presentation total defined in [SPEC — Durable Staging](../SPEC.md#durable-staging): zero or one renders the bare label and two or more renders the total prefix (`2 Nodes`, `3 Bits`). Include source-resolved durable candidates and visible pending, unknown, or reconciling Stage projections without counting the same candidate ID twice; Unstage adds no count and unresolved-source integrity slots are excluded. A separate actionable `1 new` / `{count} new` indicator sits beside only the affected subsection heading and is never added to the heading total. This presentation count changes no durable membership, success, lock, reconciliation or eligibility meaning and introduces no count lifetime across terminal-to-live-query delivery other than the SPEC post-terminal presentation hold (2026-10-18, MI-15), which counts a held projection once with its candidate ID.
 - The terminal/integrity alert is one static band immediately below the
   `Staging` title and above both subsection wells. A later failure replaces the
   earlier alert; no stack, queue, history, or rotating carousel is created.
@@ -53,8 +58,8 @@ history, permanent Unstage/Retry button, or Pool/Explorer presentation.
 
 | State | Exact visible copy | Action |
 |---|---|---|
-| Stage pending | `Staging “{title}”…` | None |
-| Unstage pending | `Returning “{title}” to Breakdown…` | None |
+| Stage pending | `Staging “{title}”…` (live region only, 2026-10-18) | None |
+| Unstage pending | `Returning “{title}” to Breakdown…` (live region only, 2026-10-18) | None |
 | Stage unknown | `We couldn’t confirm whether “{title}” was staged.` | None; reconciliation begins before another drag |
 | Stage reconciling | `Checking whether “{title}” was staged…` | None |
 | Unstage unknown | `We couldn’t confirm whether “{title}” was returned.` | None; reconciliation begins before another drag |
@@ -103,6 +108,10 @@ separately approved `DP-VQ02` Unstage success signal and creates no alert/toast.
 - Unknown/reconciling attached status lasts until authoritative resolution.
   Terminal authority removes the line and projects the exact latest
   candidate/source state; it never uses the drag snapshot as authority.
+  After `applied` or `already_applied`, the line stays through the SPEC
+  post-terminal presentation hold (2026-10-18, MI-15) with no new
+  announcement, and leaves with the hold. A card dimmed for its pending Unstage,
+  or held from pending, shows no line (2026-10-18, mi-14).
 - Confirmed orphan cleanup is announced once only after authoritative proof
   and atomic cleanup. Cache miss, offline, or delayed subscription remains the
   unresolved-source status and never uses orphan wording.
@@ -114,6 +123,12 @@ dismissal, target reasons, scroll, and focus handoff are immediate. There is no
 fade, slide, scale, spinner, pulse, ping, bounce, blink, flicker, or
 layout-transition animation. Reduced motion uses identical geometry, copy,
 controls, timing, focus, and lifetime.
+
+User-adopted 2026-10-17 (Neumorphism only): when a drag enters or leaves a
+Staging subsection target, its tint and inset depth change over the theme's
+`--triage-pool-motion-duration` (background and box-shadow only, no fade-in,
+transform or layout change); reduced motion makes it immediate. Every other
+theme keeps the immediate change above.
 
 | Theme | Exact realization mapping |
 |---|---|
@@ -150,6 +165,8 @@ candidate truth, Pool behavior, Explorer behavior, `DP-VQ02`, or `D-CARD`.
 - Observed source-only: source declares exact `grid-cols-[35fr_65fr]`; both wells use `20px` radius and inset shadows; candidates use raised card shadows. A rounded bottom return target is declared.
 - Adopted fact: inset Node/Bit wells and raised candidate objects are supported.
 - Token implication: reuse named inset/card shadows for zone/candidate roles; source internal handles are excluded.
+- User-adopted (2026-10-17), a Neumorphism exception to the fixed list geometry above: while the lower Remove-from-staging target is mounted (a staged drag), the Staging columns' bottom padding grows from `16px` to `68px`, so both wells end above it instead of under it; the target sits `16px` inside the Staging section's left, right and bottom edges, `40px` tall with `18px` radius, spanning the combined width of the two wells. The change is immediate — the source's height/opacity entry animation stays excluded. CSS only, scoped to `neumorphism`; copy, Unstage meaning, delivery and other themes are unchanged. It holds only while actual pointer drags deliver the correct target at the wells' lower edges and at the target's edges, including the Node/Bit neutral and unavailable states; if delivery is wrong, stop and return to the user.
+- User-adopted (2026-10-17, Neumorphism): the Breakdown Return overlay covers the whole Breakdown body below the section heading, with no gap at its top through which list content shows. The Remove target and the Return overlay take the same hover transition as the subsection targets (tint and inset depth over `--triage-pool-motion-duration`, background and box-shadow only, immediate under reduced motion); at drag start both fade in over the same token (opacity only; the source's height animation stays excluded, so list geometry never animates), immediate under reduced motion; they disappear immediately when the drag ends. This supersedes the "change is immediate" sentence above for the Remove target's entry only. CSS only.
 
 ### Claymorphism
 
@@ -174,6 +191,7 @@ candidate truth, Pool behavior, Explorer behavior, `DP-VQ02`, or `D-CARD`.
 - Observed source-only: `Staging Area` uses black/white folder-like Node tiles and document-like Bit rows, with a lower Trash target labeled as unstage. Hard borders and source drop patterns distinguish states.
 - Adopted fact: classic file/folder shapes and transient Trash-like return target are supported as Unstage semantics, never deletion. Under the separately approved Task168 P34-15 supplement, Remove is a static 60px overlay with left/right/bottom inset12px, 2px foreground border, radius4px and a static decorative Trash icon. Idle uses a fully opaque background surface; compatible active-hover uses fully opaque foreground/background inversion. Copy remains `Remove from staging`; wells and lists do not resize or move. Drag start alone does not wash or dim Node/Bit backgrounds; a 45-degree 4px/4px monochrome pattern appears only in the actually hovered subsection while preserving neutral/unavailable/invalid meaning, copy and eligibility. Breakdown Return preserves background alpha0.90 in both idle and hover; compatible hover uses card surface with destructive tint12%, destructive border and text, excluding invalidated sources. Normal and reduced-motion presentation is immediate/static. Continue the existing desktop pattern through Breakdown/Staging/Finder gaps without changing panel surfaces or geometry. Other themes retain their existing presentation.
 - Token implication: Mac Node/Bit/target roles need explicit semantic naming so Trash imagery does not imply deletion.
+- User-adopted (2026-10-17): drop-state lines leave the item area (the well) and mark the whole subsection, heading included, which is the actual drop region (SPEC "Staging subsection drop region"): the eligible dashed frame and the unavailable/invalid dashed frame (restored after Task 176 removed it from the well) sit on the subsection; a hovered valid subsection shows only the hatch, with no border or ring. CSS only.
 
 ### Graphite
 

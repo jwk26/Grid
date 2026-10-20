@@ -18,6 +18,7 @@ import { useArchiveActions } from "@/hooks/use-archive";
 import { useEditModeStore } from "@/stores/edit-mode-store";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ExplorerTitle, useExplorerCardTooltips } from "./explorer-title-tooltip";
 import type { Bit } from "@/types";
 
 type BitCardProps = {
@@ -53,6 +54,8 @@ export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard
     undoActionRef,
     undo,
     className,
+    onBlur,
+    onFocus,
     onKeyDown,
     role,
     style,
@@ -61,15 +64,22 @@ export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard
   },
   ref,
 ) {
+  const tooltips = useExplorerCardTooltips();
   const agingFilter = getAgingFilter(getAgingState(bit.mtime));
   const urgencyLevel = getUrgencyLevel(bit.deadline);
   const pastDeadline = isPastDeadline(bit.deadline);
   const isComplete = bit.status === "complete";
   const isExplorer = presentation === "inbox-explorer";
   const isStaticExplorerState = isExplorer && (pastDeadline || isComplete);
+  // Explorer rows are static; the deadline text carries urgency (SPEC "Explorer urgency").
+  const blinks = !isExplorer;
   const isEditMode = useEditModeStore((state) => state.isEditMode);
   const Icon = NODE_ICON_MAP[bit.icon] ?? NODE_ICON_MAP.Box;
   const { archive } = useArchiveActions();
+  const bitTitleClass = cn(
+    "truncate text-[13px] font-medium text-foreground",
+    (isComplete || (!isExplorer && pastDeadline)) && "line-through text-muted-foreground",
+  );
   const formattedDeadline = bit.deadline ? format(new Date(bit.deadline), "MMM d") : null;
 
   const undoButton = undo !== undefined ? (
@@ -113,14 +123,22 @@ export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard
         "group/bit relative z-10 inline-flex shrink-0 select-none items-stretch rounded-[10px] border border-border bg-card shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
         isExplorer ? "cursor-default" : "cursor-grab active:cursor-grabbing",
         !isExplorer && isDragging && "z-20 cursor-grabbing",
-        !isStaticExplorerState && urgencyLevel === 1 && "animate-urgency-blink-1",
-        !isStaticExplorerState && urgencyLevel === 2 && "animate-urgency-blink-2",
-        !isStaticExplorerState && urgencyLevel === 3 && "animate-urgency-blink-3",
+        blinks && urgencyLevel === 1 && "animate-urgency-blink-1",
+        blinks && urgencyLevel === 2 && "animate-urgency-blink-2",
+        blinks && urgencyLevel === 3 && "animate-urgency-blink-3",
         !isStaticExplorerState && isEditMode && "motion-safe:animate-jiggle",
         !isExplorer && isComplete && "opacity-50",
         className,
       )}
       ref={ref}
+      onBlur={(event) => {
+        onBlur?.(event);
+        if (isExplorer) tooltips.onCardBlur(event);
+      }}
+      onFocus={(event) => {
+        onFocus?.(event);
+        if (isExplorer) tooltips.onCardFocus(event);
+      }}
       onClick={onClick}
       onKeyDown={(event) => {
         onKeyDown?.(event);
@@ -161,15 +179,13 @@ export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard
             </span>
           ) : null}
           <div data-triage-role="explorer-card-title-slot" className="min-w-0 flex-1">
-            <p
-              data-triage-role="explorer-card-title"
-              className={cn(
-                "truncate text-[13px] font-medium text-foreground",
-                (isComplete || (!isExplorer && pastDeadline)) && "line-through text-muted-foreground",
-              )}
-            >
-              {bit.title}
-            </p>
+            {isExplorer ? (
+              <ExplorerTitle tooltips={tooltips} title={bit.title} className={bitTitleClass} />
+            ) : (
+              <p data-triage-role="explorer-card-title" className={bitTitleClass}>
+                {bit.title}
+              </p>
+            )}
             {formattedDeadline ? (
               <p
                 data-triage-role="explorer-card-deadline"
@@ -229,7 +245,10 @@ export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard
       ) : null}
 
       {undo !== undefined && isExplorer ? (
-        <TooltipProvider><Tooltip open={undo.tooltip === undefined ? false : undefined}>
+        <TooltipProvider><Tooltip
+          open={undo.tooltip === undefined ? false : tooltips.undoOpen}
+          onOpenChange={undo.tooltip === undefined ? undefined : tooltips.onUndoOpenChange}
+        >
           <TooltipTrigger asChild>{undoButton}</TooltipTrigger>
           {undo.tooltip !== undefined ? <TooltipContent side="top" sideOffset={4} avoidCollisions={false}
             className="newly-undo-tooltip" data-triage-role="explorer-undo-tooltip">

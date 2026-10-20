@@ -21,7 +21,7 @@
 
 ## Decision-Prerequisite Boundary
 
-- `VQ-11` — **resolved by `DP-VQ11` on 2026-08-11.** The user selected Choice A: Add/title blockers stay attached to their source status regions, while actual eligibility loss removes completion presentation and places an exact persistent status in its vacated Breakdown completion slot. Task 160 is the only realization edge after Task 118 checkpoint acceptance.
+- `VQ-11` — **resolved by `DP-VQ11` on 2026-08-11.** The user selected Choice A: Add/title blockers stay attached to their source status regions, while actual eligibility loss removes completion presentation and places an exact persistent status in its vacated Breakdown completion slot. Task 160 is the only realization edge after Task 118 checkpoint acceptance. **Amended by user decision in Task 178 (2026-10-19), every theme:** the Add and title blockers still suppress the automatic completion presentation but render no copy, mark, description or announcement; the Add draft and the open title editor are their own cue. Withdrawal is unchanged.
 - `VQ-12` — **resolved by `DP-VQ12` on 2026-08-11.** The user selected Choice A: retain one stable Breakdown-scoped Archive card and change its content plus one current-action slot in place through pending, unknown, reconciliation, terminal failure, forced-reload recovery, and authoritative success. Task 162 is the only realization edge after Task 119 checkpoint acceptance.
 
 ## `DP-VQ11` Approved Completion Composition
@@ -32,11 +32,11 @@ missing presentation contract around those owners:
 
 | Condition | Exact surface ownership |
 |---|---|
-| Otherwise-eligible Scratch with non-empty Add draft | The Breakdown Add recipe owns exact `Add this idea or clear the draft to complete this Scratch.` directly below the Add row |
-| Otherwise-eligible Scratch with Task 137 title snapshot `open|dirty|saving|conflicted|reconciling` | The Context recipe owns the matching exact completion sentence inside the existing editor status region |
+| Otherwise-eligible Scratch with non-empty Add draft | Suppress the completion presentation with no copy (Task 178 amendment); the Breakdown Add recipe owns the rule |
+| Otherwise-eligible Scratch with Task 137 title snapshot `open|dirty|saving|conflicted|reconciling` | Suppress the completion presentation with no copy (Task 178 amendment); the Context recipe owns the rule |
 | Previously presented completion becomes persistently ineligible from active Breakdown rows and/or staged candidates | Remove scrim/card, complete Context, and Reopen; the Breakdown recipe owns the narrow exact reason in the vacated completion slot |
 | Selected Scratch becomes archived/deleted/inactive | Show no blocker or withdrawal card; the canonical active-Scratch/workspace owner exits the stale surface |
-| Blocker resolves or persisted eligibility returns | Remove only the `DP-VQ11` status and let Task 159 recompute from current truth; never auto-save, auto-submit, auto-cancel, or auto-Archive |
+| Blocker resolves or persisted eligibility returns | Remove only the `DP-VQ11` withdrawal status, if shown, and let Task 159 recompute from current truth; never auto-save, auto-submit, auto-cancel, or auto-Archive |
 
 The Add and title blockers suppress the automatic completion presentation but
 do not withdraw stored eligibility. The withdrawal status is reserved for a
@@ -180,6 +180,7 @@ are discarded by Task 161/126 and never produce a `DP-VQ12` card or mutation.
 - Observed source-only: a translucent light scrim and `28px` raised card use card-hover shadow, rounded action capsules, and a check. Complete state uses inset/raised resolution surfaces.
 - Adopted fact: raised soft archive card and inset resolved Context are supported.
 - Token implication: archive card/actions consume named neumorphic shadow variants; rendered layering/depth is unverified.
+- User-adopted (Task 178, 2026-10-19): the raised Archive and Cancel capsules and the complete-state Reopen lift on hover; outside reduced motion the lift eases on `transform` only. Content, state and terminal changes stay immediate, as above.
 
 ### Claymorphism
 

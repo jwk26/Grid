@@ -53,6 +53,8 @@ export interface InboxTriageCopy {
     readonly collapseScratchPool: string;
     readonly sortNewestFirst: string;
     readonly sortOldestFirst: string;
+    readonly sortTrackOld: string;
+    readonly sortTrackNew: string;
   };
   readonly validation: {
     readonly scratchTitleRequired: InboxTriageCopyValue;
@@ -101,13 +103,6 @@ export interface InboxTriageCopy {
     readonly discardAction: string;
   };
   readonly completion: {
-    readonly addBlocker: string;
-    readonly titleBlocker: {
-      readonly openOrDirty: string;
-      readonly saving: string;
-      readonly conflicted: string;
-      readonly reconciling: string;
-    };
     readonly withdrawal: {
       readonly activeBreakdown: string;
       readonly staging: string;
@@ -126,6 +121,7 @@ export interface InboxTriageCopy {
       readonly conflict: string;
       readonly success: string;
     };
+    readonly confirmationDetail: string;
     readonly actions: {
       readonly checkAgain: string;
       readonly retry: string;
@@ -447,6 +443,8 @@ export const INBOX_TRIAGE_COPY = {
     collapseScratchPool: "Collapse Scratch Pool",
     sortNewestFirst: "Sort: newest first",
     sortOldestFirst: "Sort: oldest first",
+    sortTrackOld: "OLD",
+    sortTrackNew: "NEW",
   },
   validation: {
     scratchTitleRequired: "Enter a Scratch title.",
@@ -495,15 +493,6 @@ export const INBOX_TRIAGE_COPY = {
     discardAction: "Discard and move",
   },
   completion: {
-    addBlocker: "Add this idea or clear the draft to complete this Scratch.",
-    titleBlocker: {
-      openOrDirty:
-        "Save or cancel the Scratch title edit to complete this Scratch.",
-      saving: "Saving the Scratch title before completion…",
-      conflicted:
-        "Resolve the Scratch title conflict to complete this Scratch.",
-      reconciling: "Checking the Scratch title before completion…",
-    },
     withdrawal: {
       activeBreakdown:
         "Completion is no longer available because a Breakdown item is active.",
@@ -527,6 +516,8 @@ export const INBOX_TRIAGE_COPY = {
         "Archive couldn’t finish because this Scratch changed while the result was being checked.",
       success: "Scratch archived.",
     },
+    confirmationDetail:
+      "Every idea segment in “{title}” has been successfully placed. File it to disk?",
     actions: {
       checkAgain: "Check again",
       retry: "Retry",

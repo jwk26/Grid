@@ -24,13 +24,13 @@
 - `VQ-02` — **resolved by `DP-VQ02` on 2026-08-09.** The user selected Choice A, the row-attached confirmation wash/check/text signal specified below. Task 148 is its only realization edge; successful Unstage still has no toast.
 - `VQ-03` — **resolved by `DP-VQ03` on 2026-08-09.** The user selected Choice A, the Add-adjacent inline decision sheet specified below. Task 140 is its only realization edge; Task 139 remains headless and native unload remains browser-owned.
 - `VQ-05` — **resolved by `DP-VQ05` on 2026-08-09.** The user selected Choice A, the Add-region and source-row-attached reliability system specified below. Task 143 is its only realization edge; Task 136 remains the headless owner.
-- `VQ-11` — **resolved by `DP-VQ11` on 2026-08-11.** The user selected Choice A: attach the Add-draft blocker to the Add region and place actual eligibility-withdrawal status in the vacated Breakdown completion slot. Task 160 is the only realization edge after Task 118 checkpoint acceptance.
+- `VQ-11` — **resolved by `DP-VQ11` on 2026-08-11.** The user selected Choice A: attach the Add-draft blocker to the Add region and place actual eligibility-withdrawal status in the vacated Breakdown completion slot. Task 160 is the only realization edge after Task 118 checkpoint acceptance. **Amended by user decision in Task 178 (2026-10-19), every theme:** the Add-draft blocker renders no copy; see below.
 - `VQ-04` — **resolved by `DP-VQ04` on 2026-08-09.** The user selected Choice A, the direct in-place Scratch-title and Breakdown-content editor system. This recipe owns the Breakdown-row half specified below; Task 138 is the only realization edge and Task 137 remains headless.
 
 ## `DP-VQ11` Approved Add Blocker And Withdrawal Slot
 
 Choice A keeps each reason beside the surface that can resolve it. A page-local
-Add draft uses the Add region; a persisted eligibility loss after completion
+Add draft suppresses completion with no copy (Task 178 amendment below); a persisted eligibility loss after completion
 was presented uses the same Breakdown completion slot from which the overlay,
 complete prompt, or Reopen control was withdrawn. Neither state replaces an
 ordinary empty state or creates a toast, dialog, page-global banner, detached
@@ -38,25 +38,25 @@ status panel, or automatic action.
 
 ### Non-Empty Add Draft Blocker
 
-- Render one static status line immediately below the stable Add field/control
-  row and inside the same Add region. Use exact copy:
-  `Add this idea or clear the draft to complete this Scratch.`
-- Show it only when the selected active Scratch satisfies persisted Archive
-  eligibility and the page-local Add draft is non-empty. Keep the draft, input,
-  Add control, and any `DP-VQ05` reliability state unchanged. When both status
-  families are present, the operation/reliability sentence stays first and the
-  completion-blocker sentence follows in the same source-attached status area.
+**Amended by user decision in Task 178 (2026-10-19), every theme:** the draft in the
+Add field is its own cue, so the blocker has no visible or announced form. The
+earlier status line and its exact copy `Add this idea or clear the draft to
+complete this Scratch.` are superseded.
+
+- While the selected active Scratch satisfies persisted Archive eligibility and
+  the page-local Add draft is non-empty, the completion presentation stays
+  suppressed as before. Render no status line, mark, live announcement or
+  programmatic description for it. Keep the draft, input, Add control, and any
+  `DP-VQ05` reliability state unchanged; that reliability copy stands alone.
 - Add no new completion button. The existing Add path and ordinary text-editing
   path are the only resolution controls; clearing text is not a synthetic
   `Clear` command. Never submit, clear, blur-submit, discard, persist, or move
   focus on behalf of completion.
-- Associate the blocker with the Add input and announce it politely/atomically
-  only when the blocker first becomes current. Do not announce each keystroke.
-  Focus remains in the Add input or at the current user-owned destination.
-- Keep the blocker without a timer until the draft becomes empty, the Scratch
+- Focus remains in the Add input or at the current user-owned destination.
+- Keep the suppression without a timer until the draft becomes empty, the Scratch
   changes, persisted eligibility changes, or the Inbox page exits/reloads/
-  unmounts. If the draft becomes empty and eligibility is still true, remove
-  the line and let Task 159 perform its current-truth completion transition.
+  unmounts. If the draft becomes empty and eligibility is still true, let
+  Task 159 perform its current-truth completion transition.
 
 ### Actual Eligibility Withdrawal
 
@@ -101,19 +101,19 @@ the old completion snapshot.
 
 ### Eight-Theme Mapping
 
-The Add blocker stays in the Add region and withdrawal stays in the completion
-slot in every theme. Product logic and copy never branch on theme ID:
+Withdrawal stays in the completion slot in every theme; the Add blocker has no
+visual form (Task 178 amendment). Product logic and copy never branch on theme ID:
 
-| Theme | Add blocker / withdrawal realization |
+| Theme | Withdrawal realization |
 |---|---|
-| GridDO | Ruled technical Add status / compact ruled completion-slot status with a static warning mark |
-| Tiny Desk | Same-paper Add annotation / pinned filing-status note in the completion slot |
-| Neumorphism | Inset Add reason trough / inset completion-status trough without a new floating card |
-| Claymorphism | Sculpted Add ribbon / stable completion-status ribbon with tactile non-color mark |
-| Origami | Seam-bound Add note / folded completion-slot notice with no animated fold |
-| Terminal | `[completion blocked]` Add record / `[completion withdrawn]` status plus exact copy, no blink |
-| Retro Mac | 1-bit Add system line / hard in-section completion status preserving current focus inversion |
-| Graphite | Editorial Add caption / strengthened-rule completion notice with precise focus outline |
+| GridDO | Compact ruled completion-slot status with a static warning mark |
+| Tiny Desk | Pinned filing-status note in the completion slot |
+| Neumorphism | Inset completion-status trough without a new floating card |
+| Claymorphism | Stable completion-status ribbon with tactile non-color mark |
+| Origami | Folded completion-slot notice with no animated fold |
+| Terminal | `[completion withdrawn]` status plus exact copy, no blink |
+| Retro Mac | Hard in-section completion status preserving current focus inversion |
+| Graphite | Strengthened-rule completion notice with precise focus outline |
 
 ## `DP-VQ02` Approved Add/Unstage Success Signal
 
@@ -291,7 +291,9 @@ Retro Mac realization as the Scratch Trash dialog in the Scratch Pool recipe's
 Phase 41 supplement: Archive-alert scrim, `4px` double border, radius `0`,
 `6px 6px 0` hard shadow, Context font, `!` mark column, square hard-bordered
 buttons with the default-button outline on Cancel. Copy, behavior, locking and
-focus stay unchanged; other themes keep the current look.
+focus stay unchanged. Every other theme realizes this dialog in its own L2
+binding (EXECUTION_PLAN L2 "Phase 41 surfaces"); until then it keeps the
+current look.
 
 ## `DP-VQ04` Approved Breakdown-Content Inline Editor
 
@@ -478,6 +480,7 @@ not prototype or adjacent-surface literals:
 - Observed source-only: rows declare `18px` radius with card/inset shadows and circular raised actions; Add is a round inset field with a raised circular add control. Ordinary empty uses a large inset well; completion uses a separate checked/status surface.
 - Adopted fact: raised rows/actions and inset input/empty wells are supported.
 - Token implication: reuse `--theme-shadow-card`, `--theme-shadow-inset*`, and semantic row/empty roles; rendered depth is unverified.
+- User-adopted (2026-10-17, replaces the 2026-10-16 entry): a staged row follows the source look — the whole row at `opacity: 0.35` in the `--theme-shadow-inset-sm` well, its disabled grip, Edit and Trash at `opacity: 0.1` inside it. The source's `scale-95` stays excluded (fixed 48px slot, no width change). User-accepted contrast exception: the staged row's text falls to about 1.6:1; it is an inactive duplicate whose controls are all disabled and whose candidate stays readable in Staging, and the inset well is its non-colour cue. Realized in Task 175.
 
 ### Claymorphism
 

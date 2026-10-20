@@ -23,7 +23,7 @@
 ## Decision-Prerequisite Boundary
 
 - `VQ-04` — **resolved by `DP-VQ04` on 2026-08-09.** The user selected Choice A, the direct in-place Scratch-title and Breakdown-content editor system. This recipe owns the Context half specified below; Task 138 is the only realization edge and Task 137 remains headless.
-- Context subset of `VQ-11` — **behavior/copy resolved by `DP-VQ11` on 2026-08-11; fixed-geometry compatibility C1 approved on 2026-09-01.** Preserve the editor, exact blocker copy, logical focus, fixed `104px` Context geometry except retro-mac `120.25px` under the Phase 34 / Task 167 P34-04 supplement, and fixed `9.5rem` action region with no detached completion surface. Task 160 uses the existing eyebrow/meta line for `open|dirty|saving|reconciling` and the existing source-bound issue-overlay status column for visual `offline|not_applied|conflict`.
+- Context subset of `VQ-11` — **behavior/copy resolved by `DP-VQ11` on 2026-08-11; fixed-geometry compatibility C1 approved on 2026-09-01.** Preserve the editor, exact blocker copy, logical focus, fixed `104px` Context geometry except retro-mac `120.25px` under the Phase 34 / Task 167 P34-04 supplement, and fixed `9.5rem` action region with no detached completion surface. Task 160 uses the existing eyebrow/meta line for `open|dirty|saving|reconciling` and the existing source-bound issue-overlay status column for visual `offline|not_applied|conflict`. **Amended by user decision in Task 178 (2026-10-19), every theme:** these title blockers render no copy; see the compatibility section below.
 - `D-LENS` — Neumorphism water-lens sort treatment is deferred and excluded.
 
 ### Phase 34 / Task 167 P34-04 Context-geometry supplement
@@ -44,6 +44,14 @@ Task138/160 evidence verifies only its original geometry.
 
 ## `DP-VQ11` Scratch-Title Completion Blocker Compatibility
 
+**Amended by user decision in Task 178 (2026-10-19), every theme:** a title blocker
+snapshot still suppresses the completion presentation, but no completion
+sentence, `context-completion-blocker-mark`, live announcement or programmatic
+description is rendered. The eyebrow/meta keeps `Selected Scratch`, and the
+issue-overlay status column keeps only its editor-state sentence. The C1
+placement below and the sentences in the table are superseded; the preserved
+behavior column and the rule after the table stay in force.
+
 The prior prescription to append completion copy to a persistent visible editor
 status region is superseded by the fixed `DP-VQ04` geometry. Approved C1
 supersedes only that stale placement. For `open|dirty|saving|reconciling`,
@@ -57,7 +65,7 @@ behavior, action, focus, lifetime, theme, and prohibition remains unchanged.
 
 ### Preserved Copy And Behavior
 
-The following exact sentences and headless snapshots remain Task 160 inputs:
+The following headless snapshots remain inputs; their sentences are superseded by the Task 178 amendment above:
 
 | Task 137 blocker snapshot | Exact completion sentence | Preserved behavior |
 |---|---|---|
@@ -206,6 +214,8 @@ Preserve the existing working/complete and editor-state meanings, fixed geometry
 - Observed source-only: a `min-h-[110px]` plate with `px-4 py-7`, `30px` radius, inset shadow, title/meta, circular raised controls, and source status marker is declared.
 - Adopted fact: a broad inset identity plate with raised action controls is supported.
 - Token implication: Context well and action button consume named inset/card shadows; the deferred lens is not inferred from the capsule sort.
+- User-adopted (Task 174, 2026-10-16): the Breakdown sort control shows one visual label for the current order, `OLD` for ASC/oldest first and `NEW` for DESC/newest first, taken from the existing `INBOX_TRIAGE_COPY.baseActions.sortTrackOld`/`sortTrackNew`; the sort icon and the `ASC`/`DESC` text are not shown. The label is aria-hidden; the control stays one toggle button whose accessible name keeps the existing `sortOldestFirst`/`sortNewestFirst` copy, which must stay mounted. There is no track, thumb or slide. The Edit control is icon-only; its accessible name stays `Edit`. Other themes keep their current Context sort and Edit presentation, including Retro Mac's next-order label.
+- User-adopted (2026-10-19, Task 179A): in the `Scratch complete` state the Context title is struck through and drawn in `hsl(var(--foreground) / 0.75)` in light and dark, at 4.5:1 or more on the page surface (not Retro Mac's 0.4 opacity, which would read about 2.1:1 here); the hollow ring marker and the shallower inset stay. The title editor and the working state are unchanged.
 
 ### Claymorphism
 
@@ -230,6 +240,7 @@ Preserve the existing working/complete and editor-state meanings, fixed geometry
 - Observed source-only: a white double-border file window uses a black title strip, folder icon block, mono title/time, compact square Edit and sort controls, and a source complete stamp.
 - Adopted fact: classic file-properties window grammar is supported.
 - Token implication: double frame, title strip, folder identity, hard control, and complete stamp require Retro Mac aliases.
+- User-adopted (2026-10-19, Task 179A): in the `Scratch complete` state the identity box shows a filled System 7 checkbox, an ink square with a check in `--triage-context-surface`, in place of the folder, and drops its top stripe; the struck-through title stays and every other state keeps the folder. It is drawn in CSS in the Retro Mac scope, with no new asset. The identity box is hidden at 1100px and narrower, so the checkbox is checked at wider viewports.
 
 ### Graphite
 
