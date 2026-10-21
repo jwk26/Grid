@@ -35,6 +35,12 @@
 > `candidateOrphanAuditEvents`, the confirmed-orphan command (S18) and the
 > `settings` store (S11, S41) from the target. Entity fields, versions and the
 > command/result contract are kept.
+> **Feedback lane amendment (promotion ②):** 2026-10-22, from
+> [`DECISION.md`](brainstorming/2026-10-18-staging-item-status-feedback/DECISION.md)
+> F26, F27 and F33. Settles how the breadcrumb-zone migration and `settings`
+> leave ([Not ported](#not-ported)). No table, column, function or migration
+> changes; the last selected Scratch (F27) is a device preference in browser
+> storage, not schema data.
 > **Promotion provenance:** selected topic
 > [`DECISION.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/DECISION.md),
 > approved [`PROMOTION_MAP.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/PROMOTION_MAP.md),
@@ -642,14 +648,17 @@ The demo seed fits the guest limits.
 
 - `settings`, which holds only breadcrumb-zone migration markers. No new data
   can land in a blocked cell during the SaaS phases (the client still guards
-  the zone, and S04 discards local data), and feedback F26 (promotion ②)
-  removes the zone afterwards (S11, S41). If F26 has not shipped when Phase 45
-  starts, the Supabase store implements `runBreadcrumbZoneMigration` as a
-  no-op and the zone guards stay client-only until F26 (S43 (4)).
+  the zone, and S04 discards local data) (S11, S41). Phase 45 implements
+  `runBreadcrumbZoneMigration` in the Supabase store as a no-op, and the zone
+  guards stay client-only (S43 (4), the plan under feedback F33). Feedback F26
+  (Phase 50, Task 249) then removes the zone, the method from the `DataStore`
+  interface and both stores, and every `settings` use. The Dexie `settings`
+  store keeps its declaration, with no schema version bump, until Phase 46
+  removes Dexie; if Phase 46 lands first, nothing of it remains to change.
 - `candidateOrphanAuditEvents` and the confirmed-orphan command (S18).
 - Local IndexedDB data: discarded, with no export, import or migration (S04).
-- Device preferences (color theme, Inbox sorts) stay in browser storage per
-  device (S11).
+- Device preferences (color theme, Inbox sorts and, from Phase 50, the last
+  selected Scratch, feedback F27) stay in browser storage per device (S11).
 
 ### Migrations
 
@@ -1579,8 +1588,8 @@ title drafts, remote-arrival counters, archive overlay open/Cancel state,
 newly-placed markers/pinning, and Undo availability/dependency projections.
 Only the minimal reload identity descriptor specified above may cross a forced
 reload, and it contains no product payload or queued mutation. Device
-preferences (color theme, Inbox sorts) stay in browser storage per device
-(S11).
+preferences (color theme, Inbox sorts and, from Phase 50, the last selected
+Scratch, feedback F27) stay in browser storage per device (S11).
 
 This document owns data and operation semantics only. It does not select copy,
 layout, color, animation, focus-surface appearance, or another visual fallback
