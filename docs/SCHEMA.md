@@ -482,6 +482,7 @@ states the database rules. The exact SQL lives in `supabase/migrations/`.
 | `public` | Yes | Only the functions the client calls ([Database Functions](#database-functions)) |
 | `app` | No | The tables below |
 | `internal` | No | Internal functions: shared helpers, the demo seed copy, guest cleanup |
+| `dev` | Locally only | Local only: `dev.seed_fixture()` for browser checks, created by `supabase/seed.sql` (never a migration, so never in production) and executable only by `service_role` |
 
 - Default `EXECUTE` is revoked from `public`, `anon` and `authenticated` on
   every function, because Postgres grants it to everyone by default; each
@@ -1040,9 +1041,12 @@ function (S31). Every function follows the SQL function checklist in
   `unconsumeScratchBreakdown`, `deleteScratchBreakdown`) are not ported;
   Phase 46 removes them from the interface.
 - One user action is one call. An action that today calls several `DataStore`
-  writes in a row becomes one function: Empty Trash (today one `hardDelete*`
-  call per item) and the deadline-conflict answer that extends the parent
-  (today `updateNode`, then `updateBit`; Hook 2).
+  writes in a row becomes one function: Empty Trash (`empty_trash()`; today one
+  `hardDelete*` call per item), the deadline-conflict answer that extends the
+  parent Node (today `updateNode`, then `updateBit`; Hook 2), the Calendar
+  answer that extends a Chunk's parent Bit (today `updateBit`, then
+  `updateChunk`; Hook 2), and the Chunk reorder in Bit detail
+  (`reorder_chunks()`; today one `updateChunk` call per Chunk).
 
 ### Internal functions
 
@@ -1064,7 +1068,7 @@ type WriteEnvelope<Result> = {
       { upserted: DatabaseRow[]; deleted: string[] }
     >
   >;
-  rejection?: { code: string; table?: string };
+  rejection?: { code: string; table?: string; limit?: number };
 };
 ```
 
@@ -1076,11 +1080,13 @@ type WriteEnvelope<Result> = {
 - The client changes its snapshot base only from `changes` and from refetches
   (S32).
 - Ordinary writes use the same envelope, with `applied` or `rejected`.
+- `rejection.limit` carries the limit number with `account_limit`, because
+  the numbers differ for guests and live only on the server.
 - `rejection.code` names the rule: `account_limit`, `cell_taken`,
   `grid_full`, `not_found`, `invalid_target` (a move into a descendant, a Bit
   onto Home, a system-Node rule), `parent_inactive`, `deadline_exceeds_parent`,
-  `account_deleting` (deletion fallback only), and the existing Inbox command
-  reasons. A rule the function does not check, such as a CHECK
+  `account_deleting` (deletion fallback only), `account_missing`, and the
+  existing Inbox command reasons. A rule the function does not check, such as a CHECK
   violation, ends the call with an error, which the client treats as a failed
   write (S16).
 - Test (S31): for every function, the snapshot before the call plus the
@@ -1139,7 +1145,11 @@ simply be repeated. In one transaction it:
    trashed or archived system Node to active in place (in its own cell if that
    is free, otherwise in the first free cell; a hidden one stays where it is),
    as `ensureSystemNodes()` does today. When no L0 cell is free, that Node is
-   left as it is and the rest of the call still applies, as today;
+   skipped and the rest of the call still applies, so entry is never blocked
+   (user, 2026-10-22). Today `ensureSystemNodes()` throws and writes nothing,
+   and the app still loads only because its caller ignores the error; the
+   visible outcome is the same, and the ported test changes from "throws" to
+   "skips";
 3. for a guest whose `seeded_at` is null and which holds no row besides its
    system Nodes, copies the demo seed and sets `seeded_at` (Phase 48). Every
    copied row gets a new id, parent and candidate-to-source references are
@@ -1149,11 +1159,21 @@ simply be repeated. In one transaction it:
 
 A real account gets no seed and starts with its system Nodes only (S10).
 
+When the caller's auth user no longer exists (the account was deleted while a
+session was still open), `ensure_account()` cannot create the `accounts` row
+and returns `rejected` with `account_missing`.
+
 ### Account deletion
 
 `delete_my_account()` deletes the caller's own auth user, and the `user_id`
 cascade deletes every row (S23, S42 (1)). Tests: it cannot delete another
 account, and an account with a staged candidate can be deleted (S29).
+
+Another open tab of the deleted account keeps a valid access token until it
+expires. So `get_snapshot()`, the reconcile functions and every write function
+reject a caller that has no `accounts` row with `account_missing` (user,
+2026-10-22); the client then shows the account-deleted screen (SPEC) instead
+of an empty Grid.
 
 Fallback, if hosted Supabase refuses the dedicated role or its grant (user,
 2026-10-22): `delete_my_account()` runs as a write function, records

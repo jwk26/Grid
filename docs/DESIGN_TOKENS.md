@@ -1464,6 +1464,7 @@ Shared elements carry `data-app-role`:
 | `app-frame-security-check` | Turnstile widget slot (S42 (3)) | The widget's own rendering inside the frame |
 | `narrow-notice` | Narrow-window notice (S42 (4)) | Laid over the mounted, `inert` app |
 | `account-modal` | Guest and account modal (Phase 48) | Contents per SPEC |
+| (reused) server-confirmed pending loader | The loader on a control or row of a SPEC write-feel group 3 action | The feedback F03 loader role (promotion ②), one loader app-wide; shown after `DISPLAY_DELAY_MS`; static under reduced motion. Not part of `DP-SAAS-01` (user, 2026-10-22) |
 
 ### Toast use
 
@@ -1486,7 +1487,7 @@ are or what colour they use (S28):
 | Missing decision | The look of the account icon and badge, the loading screen, the failure, guest-creation-failure, session-expired, account-being-deleted and security-check screens (one frame), the narrow-window notice, and the guest and account modal |
 | How it is decided | One rendered option sheet in `griddo`, with `retro-mac` and `neumorphism` spot-checks, all surfaces together (S27, S40); shapes copied from the realized theme CSS, not from base components |
 | Resume condition | The user's choice is recorded in this section and committed |
-| Blocks | The Phase 47 surface tasks (icon, badge, frame screens, narrow notice) and the Phase 48 account modal task; not the data, network-state or toast-helper work |
+| Blocks | The Phase 45 load-failure screens (Task 228), the Phase 47 icon, badge, loading and session-expired screens (Task 234), and the Phase 48 modal, account-being-deleted screen, security-check screen and narrow-window notice (Tasks 235, 236, 238); not the data, network-state or toast-helper work. It is decided in Task 225, at the start of Phase 45 |
 | No fallback | Until it is recorded, no size, spacing, layout, motion or per-theme value for these surfaces is chosen by implementation |
 
 ---

@@ -158,7 +158,7 @@ status, toast position and colour, the breadcrumb reveal) is promotion ②.
 
 19. **Account snapshot with a pending-write layer** — At session start the client loads the whole account with `get_snapshot()` into an in-memory snapshot; views, search and render-time compute run over it as today (S07, S19). The snapshot has two layers: the server-confirmed base and an ordered list of pending writes. The view is the base with the pending writes applied on top. Function results (SCHEMA §Result envelope) and refetches change only the base; a pending write leaves the list when it settles, applied or rolled back; writes to one record are sent in order (S31, S32). A refetch sent before a write settled is discarded and sent again, so an older read never overwrites a newer result. The snapshot is refetched when a tab becomes visible or focused and after reconnecting (S17), and dropped on reload and sign-out. It is not a per-query cache and not a sync engine; Realtime is deferred.
 
-20. **Account entry without auth routes** — A visit without a session becomes an isolated guest through Supabase anonymous sign-in; GitHub or Google sign-in from the account modal gives an own account (S10, S23). There is no sign-in page and no new route. See [Account Entry And App States](#account-entry-and-app-states).
+20. **Account entry without auth routes** — A visit without a session becomes an isolated guest through Supabase anonymous sign-in; GitHub or Google sign-in from the account modal gives an own account (S10, S23). There is no sign-in page and no new route. Tabs share the session: when another tab changes the signed-in user, this tab drops its snapshot and repeats entry behind the loading frame (user, 2026-10-22). See [Account Entry And App States](#account-entry-and-app-states).
 
 21. **Network failure is a visible state, not an offline mode** — v1 has no offline editing. Loading, load failure, connection states, unknown outcomes and session expiry follow [Feedback And Network States](#feedback-and-network-states) (S16, S26–S28). The display delay `DISPLAY_DELAY_MS` (300ms) only postpones presentation and never decides success (F02).
 
@@ -1104,7 +1104,16 @@ only (S40).
 
 There is no sign-in page, no `/demo` route and no top banner (S23). Before
 Phase 48 there is no Turnstile and no OAuth; locally, browser checks sign in as
-a local test user with email and password (S20).
+a local test user with email and password (S20). From Phase 48 local Supabase
+also runs OAuth and Turnstile ([Environments And Hosting](#environments-and-hosting)).
+
+**Several tabs** (user, 2026-10-22). The session is shared by every tab of the
+browser. When another tab signs in, signs out or switches to a new guest, this
+tab drops its snapshot and repeats steps 3–5 for the new user behind the
+loading frame. Only the tab whose user pressed `Sign out` creates the new
+guest; the other tabs follow that session. Two tabs on a first visit may each
+create a guest; both converge on the session stored last, and the extra guest
+is never shown again and is cleaned up 7 days later.
 
 ### Account icon and modal (sidebar, not a route)
 
@@ -1118,9 +1127,9 @@ a local test user with email and password (S20).
   (S43 (1)).
 - **Guest modal:** that the visitor is browsing as a guest; that guest data is
   deleted 7 days after the last visit (S42 (5)); `Sign in with GitHub` and
-  `Sign in with Google`; that signing in opens a new, empty account and leaves
-  the guest data where it is (a guest is never converted, S23); and the privacy
-  note. No sign-out: a guest has nothing to sign out of.
+  `Sign in with Google`; that signing in opens a new, empty account and does
+  not move the guest data into it (a guest is never converted, S23); and the
+  privacy note. No sign-out: a guest has nothing to sign out of.
 - **Account modal:** the account name, `Sign out` and `Delete account`.
   Sign-out drops the snapshot and leaves the visitor as a new guest (S23).
   `Delete account` asks for confirmation in the modal, since it cannot be
@@ -1130,6 +1139,12 @@ a local test user with email and password (S20).
   completes the sign-in in the browser; there is no server code (S21). Sign-up
   is open to anyone, and a new real account starts with its system Nodes only
   (S10).
+- If the visitor cancels at the provider or the provider returns an error, the
+  current guest session stays, the error parameters are removed from the URL,
+  and the account modal opens again with an inline error (a problem inside a
+  dialog, F11) (user, 2026-10-22). If the sign-in started from the
+  session-expired screen, there is no session to keep: the screen returns
+  instead ([Session expiry](#session-expiry)).
 
 ### App-level screens
 
@@ -1143,13 +1158,14 @@ that shows an action moves focus to its first action (F19).
 | Load failure | `ensure_account()` or `get_snapshot()` failed (absorbs Phase 35 MI-23) | A reason line | `Retry` |
 | Guest creation failure | Anonymous sign-in failed: Turnstile, rate limit, a paused or unreachable project (S26) | A reason line | `Retry`; also retries by itself on reconnect |
 | Security check | Turnstile needs an interactive check (S42 (3)) | The Turnstile widget | The widget's own |
-| Session expired | The session refresh failed (F20, S16) | Real-account or guest variant (S43 (2)) | `Sign in with GitHub`, `Sign in with Google`, `Continue as guest`; before Phase 48 only `Continue as guest` |
+| Session expired | The auth server rejected the session refresh (F20, S16) | Real-account or guest variant (S43 (2)) | `Sign in with GitHub`, `Sign in with Google`, `Continue as guest`; before Phase 48 only `Continue as guest` |
 | Account being deleted | A function returned `account_deleting` (SCHEMA account-deletion fallback) | That the account is being deleted, that deletion finishes within 24 hours, and that the same account can sign up again afterwards | `Continue as guest` |
+| Account deleted | A function returned `account_missing`: the account was deleted from another device or browser (user, 2026-10-22). Tabs of the same browser follow the new guest instead (Several tabs) | That the account was deleted and its data is gone | `Continue as guest` |
 | Narrow window | Viewport narrower than 1024px (S42 (4)) | The larger-window notice, laid over the mounted, `inert` app | — |
 
 - The session-expired screen creates no guest account before the visitor
   chooses (F20). `Continue as guest` on it, and on the account-being-deleted
-  screen, signs out and starts a new guest.
+  and account-deleted screens, signs out and starts a new guest.
 - The narrow-window notice is the one screen laid over the app instead of
   replacing it; the others replace the app until they are resolved.
 - A loading or failure screen never replaces a surface for an ordinary
@@ -1167,7 +1183,7 @@ Everyday interactions feel as they do today (S09). Writes fall into four groups
 |---|---|---|
 | 1. Immediate | Position moves (Grid drag, Calendar reschedule, Chunk order), parent-change moves (a drop on a Node, a breadcrumb drop), field edits (title, description, icon, color, deadline, priority), completion toggles, and creating Nodes, Bits and Chunks | Shown at once through the pending-write layer; on failure rolled back with a failure toast |
 | 2. Immediate hide | Trash and archive | The target hides at once and comes back on failure; the cascade is not predicted on the client, since descendants are reached only through the target |
-| 3. Server-confirmed | Permanent delete, Empty Trash, restore from Trash or Archive, Bit-to-Node promotion | The control or row that started it shows a loader after `DISPLAY_DELAY_MS` and a busy state; the result appears when the function answers |
+| 3. Server-confirmed | Permanent delete, Empty Trash, restore from Trash or Archive, Bit-to-Node promotion | The control or row that started it shows a loader after `DISPLAY_DELAY_MS` and a busy state; the result appears when the function answers. The loader is the feedback F03 loader (promotion ②), one loader app-wide (user, 2026-10-22) |
 | 4. Inbox/Triage commands | The SCHEMA atomic commands | Their pending/reconciling UI and reconcile contract, as built (S28) |
 
 - Ordinary writes stay last-write-wins: no expected version (S15).
@@ -1220,11 +1236,23 @@ Judged from real request results, not from `navigator.onLine` alone (S27):
 
 ### Session expiry
 
-An expired session refreshes automatically. If the refresh fails, the
-session-expired screen appears ([App-level screens](#app-level-screens)); the
-visitor never falls back to a guest silently, because a silent new guest would
-show the demo seed in place of their own Grid and read as data loss (F20,
-amends S16).
+An expired session refreshes automatically. Only a refresh that the auth
+server rejects (a missing, invalid or revoked refresh token, or a user that no
+longer exists) shows the session-expired screen
+([App-level screens](#app-level-screens)). A refresh that fails on the network
+is a connection state ([Connection states](#connection-states)) and is retried
+after recovery (user, 2026-10-22). The visitor never falls back to a guest
+silently, because a silent new guest would show the demo seed in place of
+their own Grid and read as data loss (F20, amends S16).
+
+supabase-js clears its stored session when a refresh is rejected, so a reload
+would otherwise start a new guest without asking. The client therefore keeps a
+small session-expired marker in `localStorage` (whether the lost session was a
+guest or a real account; no domain data). It is cleared only when the chosen
+action completes: a finished OAuth sign-in or a started guest session. While it
+is present, entry shows the session-expired screen instead of creating a
+guest, so a cancelled OAuth sign-in returns to that screen (user,
+2026-10-22).
 
 ### Toasts
 
@@ -1311,6 +1339,7 @@ writes shows one counted toast (S28).
 | Session expired, real account | `Your sign-in expired.` | `Your saved data is safe. The last change may not have been saved.` | `Sign in with GitHub`, `Sign in with Google`, `Continue as guest` |
 | Session expired, guest | `Your guest session ended.` | `Guest data may have been deleted. You can start a new guest session or sign in.` | same |
 | Account being deleted | `This account is being deleted.` | `Deletion finishes within 24 hours. After that you can sign up again with the same account.` | `Continue as guest` |
+| Account deleted | `This account was deleted.` | `Its data is gone. You can continue as a guest.` | `Continue as guest` |
 | Narrow window | `Please use a larger window.` | `grid needs a window at least 1024 pixels wide, such as a desktop browser.` | — |
 
 **Account modal**
@@ -1319,7 +1348,8 @@ writes shows one counted toast (S28).
 |---|---|
 | Guest heading | `You're browsing as a guest` |
 | Guest retention | `Guest data is deleted 7 days after your last visit.` |
-| Guest sign-in note | `Signing in opens a new, empty account. Your guest data stays in this guest session.` |
+| Guest sign-in note | `Signing in opens a new, empty account. Guest data isn't moved to it.` |
+| Sign-in did not complete (inline, in the modal) | `Sign-in didn't complete. You're still browsing as a guest.` |
 | Sign-in buttons | `Sign in with GitHub`, `Sign in with Google` |
 | Privacy note | `grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.` |
 | Account actions | `Sign out`, `Delete account` |
@@ -1336,10 +1366,18 @@ writes shows one counted toast (S28).
   public env vars (`NEXT_PUBLIC_SUPABASE_URL`,
   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`).
   The secret key never enters client code or Git (the repository is public).
-  OAuth and Turnstile secrets live in the Supabase dashboard. Local values live
-  in a git-ignored `.env.local`; `.env.local.example` lists the names.
-- **Local auth:** anonymous sign-in and email/password test users only. OAuth
-  is configured for production only (S20).
+  Production OAuth and Turnstile secrets live in the Supabase dashboard. Local
+  values live in a git-ignored `.env.local`; `.env.local.example` lists the
+  names.
+- **Local auth** (amends S20; user, 2026-10-22): anonymous sign-in and
+  email/password test users, and from Phase 48 OAuth through development GitHub
+  and Google OAuth apps whose client secrets live only in the git-ignored
+  `.env.local`, never in Git, since the repository is public. Turnstile runs
+  locally with Cloudflare's public test keys. The development OAuth apps and
+  test keys are separate from the production ones.
+- **Launch smoke:** Phase 48 is verified on local Supabase. The production smoke
+  runs right after the Phase 48 merge, before the URL is announced; if it
+  fails, the URL stays unannounced and the fix goes through a new phase.
 - **Migrations:** `supabase/migrations/` in Git. Before launch, production holds
   no real data and migrations apply there freely after the user's approval
   (S36). From launch on, a phase that changes SQL closes in this order: manual
@@ -1358,9 +1396,11 @@ writes shows one counted toast (S28).
   stays outside Git. The job checks that Docker is running and reports a failed
   run. Phase 48 runs one restore test into local Supabase. The manual dump
   before each production migration stays (S22, S34).
-- **Development switch** (S36): in Phase 42 a development-only setting selects
-  the Supabase store for the end-to-end slice; it never ships enabled. From
-  Phase 45 the Supabase store is the only store the app uses.
+- **Development switch** (S36): in Phase 42 the end-to-end slice is a
+  development-only page behind `NEXT_PUBLIC_GRIDDO_SUPABASE_SLICE`. It is not a
+  product route: outside development, or with the switch off, it returns 404,
+  and Phase 46 removes it. From Phase 45 the Supabase store is the only store
+  the app uses.
 
 ---
 
@@ -1373,7 +1413,7 @@ is authoritative when a state might be mistaken for domain storage.
 | Lifetime | Owner and state | End/reset rule |
 |----------|-----------------|----------------|
 | Durable domain/integrity | Existing Node/Bit/Scratch Breakdown records and approved versions; `StagedCandidate`; archive/consumed lifecycle; the `accounts` row — in Postgres (SCHEMA §Postgres Target) | Repository lifecycle only. Candidate display joins its source; a snapshot miss is never orphan proof. No general operation log, journal, outbox, or offline queue |
-| App session (account) | `src/lib/db/snapshot-store.ts`: the account snapshot base and its in-memory pending writes (Decision 19); the Supabase session; `src/lib/db/connection-monitor.ts`: the connection state | Dropped on reload and sign-out; the session persists in the browser through supabase-js. Never persisted as domain data |
+| App session (account) | `src/lib/db/snapshot-store.ts`: the account snapshot base and its in-memory pending writes (Decision 19); the Supabase session; `src/lib/db/connection-monitor.ts`: the connection state; the session-expired marker in `localStorage` ([Session expiry](#session-expiry)) | Snapshot and pending writes are dropped on reload and sign-out; the session persists in the browser through supabase-js; the marker lasts until the visitor chooses an action. Never persisted as domain data |
 | App session (survives same-session Inbox route leave/re-entry, not reload) | `src/stores/triage-store.ts`: last active selected Scratch, Pool expanded/collapsed and per-Scratch manual-reopen exception, Pool query/result/scroll context, Explorer hierarchy path/open columns and column scroll | Validate against current data on re-entry; full reload/new session applies the fallback below |
 | Mounted Inbox page session | Add/Edit base snapshots and drafts; one pending intent; deleting/pending/reconciling presentation and operation IDs; Explorer active/interrupted search, result scroll and reveal; placement/type/Result Title state; remote-arrival counts; external-removal transition; Scratch Trash dialog, pending/result state and this page's own-Trash marker; the new-capture selection request and its one-shot Pool reveal; completion overlay/Cancel/reopen presentation; proposed `use-triage-newly-placed.ts` markers/pinning/Undo/dependencies. The items shared across component trees or Inbox instances (Explorer remote presentation, the external-removal transition, own-Trash markers, the new-capture request and reveal, and the workspace-mounted flag) are held non-persisted in `src/stores/triage-store.ts` | Scratch changes preserve only the states explicitly named in the behavior sections. Inbox route exit clears Explorer search/reveal and Newly Placed/Undo; reload clears all except the Archive recovery identity below |
 | Forced-reload recovery identity | SCHEMA `PendingOperationRecovery` in current-tab `sessionStorage`, owned by the Archive operation coordinator | Archive only; written before dispatch, validated on read, cleared after terminal reconcile; no payload, draft, UI cache, mutation queue, or other workflow kind |
