@@ -1,0 +1,61 @@
+# SaaS Conversion (Supabase)
+
+## Metadata
+
+- Created: 2026-10-21
+- Readiness: draft
+- Category: architecture / product direction
+- Source project: GridDO
+- Source topic: `2026-06-04-storage-reliability-and-cloud-sync` (superseded by
+  this topic); the post-Phase-35 planning session (2026-10-20/21)
+- Source prototype: n/a
+- Tags: saas, supabase, auth, rls, postgres, datastore, reactive-hooks, hosting, portfolio
+- Dependencies: none; this work runs before the status-feedback, toast and
+  remaining theme work
+- Related: `2026-10-18-staging-item-status-feedback`,
+  `2026-04-28-toast-feedback-placement`, `2026-10-21-default-theme` (runs in
+  parallel on `prototype/default-theme`), the Phase 35 MI-13 re-plan of
+  Phases 36–40
+
+## Summary
+
+GridDO started as a local-only app: all data in the browser's IndexedDB, no
+server and no auth (PRD §Storage Strategy, v1). After a browser data loss made
+the app unusable, the user changed the product goal: GridDO becomes a SaaS
+with Supabase as the server-side source of truth. The near-term purpose is a
+developer portfolio, not a commercial launch. This conversion runs before any
+other planned work.
+
+This entry records the decisions made so far. The architecture is still open:
+`NOTES.md` holds the open questions, the facts checked in the code and the
+brief for the next brainstorming session.
+
+## Decisions (user, 2026-10-20/21)
+
+| ID | Decision |
+|---|---|
+| S01 | Purpose: a developer portfolio project built as a SaaS. Commercial launch, domain, marketing and billing are out of scope for now. |
+| S02 | Supabase is the source of truth for user data, per account. Browser storage is not a source of truth. This replaces the local safety-net direction (Track A, local backup files) of `2026-06-04-storage-reliability-and-cloud-sync`. |
+| S03 | Multi-device use is not a requirement for the owner. Nothing extra is built for it. |
+| S04 | Existing local IndexedDB data is discarded. There is no export, import or migration of local data; the owner does not use the app until the conversion ships. |
+| S05 | The SaaS conversion runs first, before the status-feedback redesign, the toast work and the remaining theme work (the re-plan of Phases 36–40, Phase 35 MI-13). |
+| S06 | Naming: the user-facing product name is "grid". Inside the project (code identifiers, storage keys, documents, package name, repository) the name stays "griddo"/"GridDO", because "Grid" is already a domain term (Grid page, Grid Explorer, `useGridData`, `/grid/[id]`). |
+
+## Out of scope (for now)
+
+- Billing, a custom domain, marketing, and shared or team workspaces (S01).
+- Export, import or migration of existing local data (S04).
+
+## Canonical documents to amend at promotion
+
+- `docs/prd.md` §Storage Strategy (v1 local-only, v2 optional sync with auth
+  that does not gate access).
+- `CLAUDE.md`: the "Local-first Task Management" title and Architecture 1, 2,
+  5 and 6.
+- `docs/SPEC.md` §Architecture Decisions 1–3 and 11, and Key File Paths.
+- `docs/SCHEMA.md`: Dexie object stores and migrations become Postgres tables,
+  RLS policies and functions; the command/result contract is kept.
+- `docs/DESIGN_TOKENS.md` for any new sign-in or account surface, and
+  `docs/PLANNING_STANDARD.md` where verification rules name IndexedDB.
+- `docs/EXECUTION_PLAN.md`: new phases from the next unallocated numbers
+  (Phase 42 / Task 213).
