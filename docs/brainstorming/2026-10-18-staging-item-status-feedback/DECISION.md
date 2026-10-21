@@ -3,7 +3,7 @@
 ## Metadata
 
 - Created: 2026-10-18
-- Updated: 2026-10-19
+- Updated: 2026-10-21
 - Readiness: draft
 - Category: interaction reference
 - Source project: griddo2-claude
@@ -11,6 +11,7 @@
 - Source prototype: n/a
 - Tags: staging, breakdown, add, inline-editor, operation-status, status-icon, tooltip, node-card, bit-card
 - Dependencies: `2026-04-28-toast-feedback-placement`, `2026-07-14-cross-surface-text-capacity-and-overflow`
+- Related: `2026-10-21-saas-conversion` (S26–S28: server latency makes Inbox `pending` visible more often; SaaS Phase 47 may apply this topic's display-delay rule ahead of its promotion; the Inbox status presentation otherwise stays as built until this topic; connection and load-failure states are SaaS-owned)
 
 ## Summary
 

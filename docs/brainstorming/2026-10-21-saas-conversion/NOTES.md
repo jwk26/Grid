@@ -436,3 +436,36 @@ Question 15 (S25), same session:
 Close of this session: Readiness set to `code-ready`. Next step: `/craft-docs`
 with this topic in a fresh Opus session (effort high), on branch
 `docs/saas-conversion` in `/Users/jwk/Documents/grid-saas`.
+
+Follow-up after code-ready (S16 amended, S26–S28), same session:
+
+- The user asked how data delay, load failure and network instability are
+  handled, whether their earlier Supabase setup experience still applies, and
+  whether CRUD notices connect to the toast and status-feedback topics. The
+  advisory acknowledged that S16 covered only the main lines and that the
+  gaps should have been raised before marking code-ready.
+- Gaps filled: the app-level loading screen (with IndexedDB the hooks'
+  loading state was invisible; over the network an empty Grid would flash and
+  read as lost data), slow responses and a 15-second timeout into the unknown
+  path, background refetch failure, guest creation failure, and a connection
+  state model. `navigator.onLine` reports online on a connected Wi-Fi without
+  internet, so states are judged from request results.
+- Supabase keys (API keys docs, 2026-10-21): publishable (`sb_publishable_`)
+  and secret (`sb_secret_`) keys replace the legacy `anon` and
+  `service_role` JWT keys, which "Supabase is deprecating ... by the end of
+  2026"; the browser uses the publishable key. The user's earlier steps
+  (project, env key, GitHub/Google OAuth apps with the
+  `/auth/v1/callback` URL, provider secrets in the dashboard) still apply in
+  Phase 48; new are the anonymous sign-in switch, Turnstile and the Site URL.
+  OAuth is configured for production only (S20).
+- Notices: the SaaS entry linked the toast topic in one S16 line, while S05
+  and S25 schedule both topics after Phase 48, so Phase 47 would build
+  notices before their rules. Both topics are `draft` and predate the SaaS
+  decision. The app already uses `sonner` (`<Toaster richColors
+  position="bottom-right" />` in `providers.tsx`) at about 18 call sites
+  (grid full, deadline update failure, Trash restore/delete results, drag
+  rejections). Reordering the topics ahead of the conversion was not chosen;
+  instead S28 applies their principles now and both topics got a reference
+  line. A rejected alternative was a top banner as the offline surface (S16's
+  first wording): it is a new surface competing with the breadcrumb, so the
+  look moved to the option sheet.

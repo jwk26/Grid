@@ -9,9 +9,9 @@
 - Source topic: migrated from out_of_phase ideation
 - Source prototype: n/a
 - Tags: toast, feedback, spatial-ui, notification, sonner
-- Updated: 2026-10-19
+- Updated: 2026-10-21
 - Dependencies: none
-- Related: `2026-10-18-staging-item-status-feedback` (Inbox item status: icon and tooltip on the item; failures whose item disappears keep the Staging alert band, not toast)
+- Related: `2026-10-18-staging-item-status-feedback` (Inbox item status: icon and tooltip on the item; failures whose item disappears keep the Staging alert band, not toast); `2026-10-21-saas-conversion` (S26–S28: the SaaS conversion adds toasts for failed ordinary writes, grouped failure bursts and write attempts while offline through the existing Toaster; the connection indicator and loading screen are SaaS surfaces; the Toaster placement change stays with this topic)
 
 ## Summary
 
