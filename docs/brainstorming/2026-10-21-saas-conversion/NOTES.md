@@ -469,3 +469,35 @@ Follow-up after code-ready (S16 amended, S26–S28), same session:
   line. A rejected alternative was a top banner as the offline surface (S16's
   first wording): it is a new surface competing with the breadcrumb, so the
   look moved to the option sheet.
+
+### Orchestrator review, 2026-10-21
+
+After `code-ready`, the planning (orchestrator) session reviewed this entry for
+backend gaps, since the user is a frontend developer who relies on the design.
+The user adopted the recommendations on 2026-10-21 (S29–S40). The rules sit in
+`DECISION.md`, not only here, because `/craft-docs` never promotes NOTES-only
+items.
+
+| ID | Finding (GridDO example) | Disposition |
+|---|---|---|
+| R1 | New functions are executable by everyone by default, and Supabase exposes the `public` schema as an API: a guest-cleanup function there could be called from a visitor's browser console. | S29 (1) |
+| R2 | A function that runs with the write role's rights and a mutable `search_path` can be redirected to a same-named object in another schema. | S29 (2) |
+| R3 | Foreign-key checks bypass RLS, and Node ids appear in `/grid/[id]` URLs: one function that skips the parent check lets a guest attach a Bit under the owner's Node. | S29 (3) |
+| R4 | A `RESTRICT` key from candidates to their source Breakdown can fail the cascade of an account deletion or the daily guest cleanup, which would then fail silently every day. | S29 (4) |
+| R5 | No automatic backup after launch: between phase closes, one function bug or bad migration loses data for good, the same class of loss that started this topic. | S35 |
+| R6 | Check-then-write races: two tabs, a double click or a retry after a timeout put two items into one cell; two tabs on a first visit create two Inbox Nodes or copy the seed twice. | S30 |
+| R7 | Optimistic writes, fast repeated writes and focus refetches interact: a slow result for the first of two quick moves makes the card jump back; a refetch during a pending write hides it. This is structure, not a `/craft-docs` detail. | S32 |
+| R8 | A function result that misses one changed row (Trash cascade, ancestor `mtime`, placement) leaves the snapshot silently wrong until the next refetch. | S31 |
+| R9 | S08 ("reads are table selects") contradicted S17 ("one function call"); a row-set result is cut at the API row limit without an error. | S31 |
+| R10 | After launch, Vercel deploys on merge while migrations are applied by hand at phase close: code that ships first calls functions that do not exist yet. | S34 |
+| R11 | Production first appears in Phase 48, so OAuth redirects, the Site URL, the Turnstile domain and latency surface together at the end; the result envelope first meets the client in Phase 45, after Phases 43–44 have ported every function. | S36 |
+| R12 | Guests can write; Turnstile guards only sign-in. A scripted guest can fill the 500 MB free database and stop the owner's app too. | S37 |
+| R13 | Rules live in Zod and in CHECK constraints, names in snake_case and camelCase; one side changes without the other. | S33 |
+| R14 | `user_id = auth.uid()` in a policy is evaluated per row. | S29 (5) |
+| R15 | No error visibility in production. | Optional; not adopted (Out of scope) |
+
+Also from this review: a checklist and an `expert` review for every SQL change
+(S38), so the user can check the presence of each safeguard without reading
+SQL; the "eight themes" wording of S23 was wrong after Phase 35 MI-13 and is
+replaced by S40; the order with the feedback topic and the theme stage, agreed
+in the same session, is S39.
