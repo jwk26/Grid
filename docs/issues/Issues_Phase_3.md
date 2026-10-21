@@ -41,6 +41,7 @@
 - **Root Cause:** The context hook was implemented in Task 11 but the hooks written in Task 9/10 used direct imports (likely following Phase 2 patterns before the context existed). The inconsistency was never reconciled.
 - **Solution:** For Phase 3, the direct-import pattern was kept for consistency with existing hooks. Migration to `useDataStore()` is a separate concern.
 - **Learning:** When a context-based data access pattern is introduced, update all existing consumers in the same commit or create a follow-up task. Letting two patterns coexist creates confusion about which is canonical.
+- **Closed (user, 2026-10-22):** stale. Hooks reach the store through `getDataStore()`; no hook imports `indexedDBStore`. Checked during the SaaS conversion promotion.
 
 ---
 
@@ -53,4 +54,4 @@
 | 3 | `pnpm typecheck` does not exist | Gate is `pnpm lint && pnpm build` |
 | 4 | Lint has 2 pre-existing warnings | No fix needed — exits 0, not introduced here |
 | 5 | Radiogroup keyboard navigation not fully compliant | Deferred to future a11y pass |
-| 6 | DataStore context and direct imports coexist | Deferred migration — keep consistent with existing pattern for now |
+| 6 | DataStore context and direct imports coexist | Closed (user, 2026-10-22): stale, hooks use `getDataStore()` |
