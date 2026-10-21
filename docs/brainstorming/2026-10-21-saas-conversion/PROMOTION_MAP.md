@@ -3,7 +3,7 @@
 ## Metadata
 
 - Created: 2026-10-22
-- Status: plan approved by the user (2026-10-22); canonical edits in progress
+- Status: promotion ① complete (2026-10-22): canonical documents, execution plan and flow review approved
 - Route: `/craft-docs` promotion route, branch `docs/saas-conversion`
 - Sources: this topic's `DECISION.md` (S01–S43) and, within the S41 boundary,
   `2026-10-18-staging-item-status-feedback/DECISION.md` F02, F11, F13, F14,
@@ -96,6 +96,34 @@ Phase 48). ① marks Phases 36–40 only as awaiting ②.
   function call (Empty Trash, the deadline extension); `ensure_account()` keeps
   today's behavior when L0 is full.
 
+## Flow review round 1 decisions (user, 2026-10-22)
+
+All advisory recommendations taken:
+
+1. Phase 48 is verified locally: development GitHub and Google OAuth apps
+   (secrets only in the git-ignored `.env.local`; the repository is public) and
+   Cloudflare's public Turnstile test keys; the production smoke runs right
+   after the Phase 48 merge, before the URL is announced (amends S20).
+2. OAuth cancel or provider error: the guest session stays, the URL is cleaned,
+   and the account modal reopens with an inline error.
+3. A user change in another tab drops the snapshot and repeats entry; only the
+   tab that signed out creates the new guest; first-visit tabs converge.
+4. A caller with no `accounts` row gets `account_missing`; the client shows the
+   account-deleted screen.
+5. Only an auth-server rejection is a session expiry; a network failure is a
+   connection state; a `localStorage` marker keeps the expired screen across a
+   reload.
+6. The server-confirmed pending loader is feedback F03's loader (promotion ②).
+7. `ensure_account()` with L0 full skips that Node and applies the rest.
+8. Guest modal copy: "Signing in opens a new, empty account. Guest data isn't
+   moved to it."
+
+Mechanical repairs in the same round: `reorder_chunks` and the Calendar
+Chunk-time extension join the one-call list; `rejection.limit`; the
+`getDataStore()` switch moves to Task 228; the local `dev.seed_fixture()`;
+hosted checks of the deletion role and of `pg_cron` deleting an auth user in
+Task 218; the CLAUDE.md Production wording aligned with S36.
+
 ## Phase waits (user, 2026-10-22)
 
 | Phase | Waits for |
@@ -137,11 +165,11 @@ it.
 
 | # | Question | Owner | Class |
 |---|---|---|---|
-| Q4 | The look of the account icon and badge, the loading, failure and expiry screens and the account modal (S27, S40) | User | Phase-local: a decision task at the start of Phase 47 with a rendered option sheet |
-| Q5 | Demo seed content (S10) | User | Phase-local: a decision step in Phase 48 |
+| Q4 | The look of the account icon and badge, the loading, failure and expiry screens and the account modal (S27, S40) | User | Phase-local: decision Task 225 at the start of Phase 45 (the Phase 45 load-failure screen needs it), with a rendered option sheet |
+| Q5 | Demo seed content (S10) | User | Phase-local: `DP-SAAS-02` inside Task 237 (Phase 48) |
 | Q6 | Exact copy: toasts, tooltips, screens, privacy note | User | Drafted in SPEC, decided at SPEC approval |
 | Q7 | Dedicated write role and `pg_cron` on hosted Supabase | Technical check | Phase-local (Phase 42); fallbacks recorded in S14 and S22 |
-| Q8 | The `/run-phase` change for two open lanes (S41) | User, own fresh session | Needed only to open the feedback lane beside Phase 42; does not block ① |
+| Q8 | The `/run-phase` change for two open lanes (S41) | User, own fresh session | Resolved: applied in a separate session (claude-workflow `b2b7671`, `6044e30`, `b27e9f3`) |
 
 ## Progress
 
@@ -151,6 +179,6 @@ Each document is approved by the user and committed before the next.
 - [x] `docs/SPEC.md` (approved 2026-10-22; the narrow-window notice overlays the mounted app, and Phase 47 only checks the Inbox status presentation under real latency)
 - [x] `docs/DESIGN_TOKENS.md` (approved 2026-10-22)
 - [x] `CLAUDE.md` and the `docs/prd.md` note (approved 2026-10-22)
-- [ ] `docs/EXECUTION_PLAN.md` (Phases 42–48, expected Tasks 213–239) and `docs/PLANNING_STANDARD.md`
-- [ ] Flow review (`expert`) in `docs/reviews/`
-- [ ] `docs/issues/Issues_Deferred.md` (MI-19, MI-23)
+- [x] `docs/EXECUTION_PLAN.md` (Phases 42–48, Tasks 213–240) and `docs/PLANNING_STANDARD.md` (approved 2026-10-22)
+- [x] Flow review (`expert`) in `docs/reviews/saas-conversion-flow-review.md` (round 2 PASS, approved 2026-10-22)
+- [x] `docs/issues/Issues_Deferred.md` (MI-19 to Task 229, MI-23 to Tasks 228 and 234)

@@ -16,9 +16,14 @@
 > Tasks 166–172 and 171A are accepted `[x]` and Phase 34 is closed; Tasks
 > 209–212 are accepted `[x]` and Phase 41 is closed (2026-10-16); Tasks
 > 173–179 and repair Tasks 176A and 179A are accepted `[x]` and Phase 35 is
-> closed (2026-10-20); Tasks 180–208 are `[ ]`, pending the Phases 36–40
-> re-plan (Phase 35 MI-13).
+> closed (2026-10-20); Tasks 180–208 are `[ ]`, awaiting retirement by
+> promotion ② (feedback F28).
 > Phases 32–33 remain reserved.
+> **SaaS conversion (2026-10-22):** Phases 42–48, Tasks 213–240, from the
+> [SaaS DECISION](brainstorming/2026-10-21-saas-conversion/DECISION.md)
+> (promotion ①). They run before Phases 36–40, which promotion ② (the feedback
+> topic) retires; ② also adds the feedback lane phase, numbered after Phase 48.
+> See [SaaS Conversion — Phases 42–48](#saas-conversion--phases-4248).
 > **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
 > corrections, Tasks 209–212, from
 > [DECISION](brainstorming/2026-10-15-scratch-trash-hotfix/DECISION.md). It
@@ -129,7 +134,8 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 35 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20). Phase 35 MI-13 changes the theme scope, so a fresh `/craft-docs` session re-plans Phases 36–40 (with MI-14, MI-19, MI-21, MI-23) before `/run-phase 36`. |
+| Execution lifecycle | Phase 35 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20). The SaaS conversion (Phases 42–48) runs next. Promotion ② retires Phases 36–40 and carries MI-13, MI-14 and MI-21; MI-19 is bound to Task 229 and MI-23 is absorbed by Tasks 228 and 234. |
+| SaaS conversion | `PLANNED / UNSTARTED` | Phase 42 waits only for closed phases; later phases follow [the phase waits](#lanes-and-phase-waits). Docker Desktop must be installed before Task 213. |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
 | Headless/base UI | Tasks 127–163 accepted | Task 163 integration and bounded R01/I01 corrections are included in the Phase 31 Final Close transaction. Original task evidence is retained; correction/candidate evidence is separate. |
@@ -193,6 +199,15 @@ boundaries. No canonical Task 164 receipt or experiment fingerprint is reused.
                           →201→202→203→204→205→206→207  Graphite
                           →208 full implementation/preservation gate
 
+SaaS lane (runs before 36–40; promotion ② retires 36–40 and adds the feedback lane):
+  213→214→215→216→217→218  Phase 42 (waits only for closed phases)
+  →219→220  Phase 43
+  →221→222→223→224  Phase 44
+  →[feedback lane Final Close, or the S43 (4) fallback]→225→226→227→228→229  Phase 45
+  →230  Phase 46
+  →[feedback lane Final Close]→231→232→233→234  Phase 47
+  →235→236→237→238→239→240  Phase 48
+
 Every accepted foundation, including 105/105A and every DP edge, plus all
 Tasks 166–207 and 209–212 feeds Task 208. Retired 164/165 are not dependency nodes.
 Cross-phase arrows also require the preceding phase's actual Final Close/main
@@ -216,12 +231,19 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 34 | Completed | [Retro Mac regional realization](execution-plan/archive/phase-34.md) | 166–172 + 171A | Accepted and archived; MI-5/6/9 and close Advisory A2 carried in `Issues_Deferred.md`, MI-9 and A2 bound to Task 178. |
 | Phase 41 | Completed | [Scratch Trash and post-Phase-34 Inbox corrections](execution-plan/archive/phase-41.md) (ran before Phase 35) | 209–212 | Accepted and archived; MI-2 carried in `Issues_Deferred.md` and bound to Task 180. |
-| Phase 35 | Completed | [Neumorphism regional realization](execution-plan/archive/phase-35.md) | 173–179 + 176A + 179A | Accepted and archived; MI-13/14/19/21/23 carried in `Issues_Deferred.md` to the Phases 36–40 re-plan. |
-| Phase 36 | Planned / unstarted | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 and 179A accepted + Phase 35 close/main sync; Phases 36–40 re-plan (Phase 35 MI-13) first. |
-| Phase 37 | Planned / unstarted | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
-| Phase 38 | Planned / unstarted | GridDO + Tiny Desk, one shared writer | 194–200 | 193 accepted + Phase 37 close/main sync; both themes require regional dispositions. |
-| Phase 39 | Planned / unstarted | Graphite, region-by-region then supported-mode conformance | 201–207 | 200 accepted + Phase 38 close/main sync. |
-| Phase 40 | Planned / unstarted | Complete campaign integration and preservation gate | 208 | All accepted Tasks 101–163/105A/166–207, all prior close/main sync and exact retained schema/DP authority. |
+| Phase 35 | Completed | [Neumorphism regional realization](execution-plan/archive/phase-35.md) | 173–179 + 176A + 179A | Accepted and archived; MI-19 bound to Task 229, MI-23 absorbed by Tasks 228 and 234, MI-13/14/21 to promotion ②. |
+| Phase 42 | Planned / unstarted | [Database foundation, end-to-end slice and early production](#phase-42--database-foundation-end-to-end-slice-and-early-production) | 213–218 | Only closed phases; Docker Desktop installed by the user. |
+| Phase 43 | Planned / unstarted | [Ordinary write functions](#phase-43--ordinary-write-functions) | 219–220 | Phase 42 close/main sync. |
+| Phase 44 | Planned / unstarted | [Inbox/Triage command functions](#phase-44--inboxtriage-command-functions) | 221–224 | Phase 43 close/main sync. |
+| Phase 45 | Planned / unstarted | [Client switch](#phase-45--client-switch) | 225–229 | Phase 44 close/main sync and the feedback lane's close, or the S43 (4) fallback. |
+| Phase 46 | Planned / unstarted | [Dexie removal](#phase-46--dexie-removal) | 230 | Phase 45 close/main sync. |
+| Phase 47 | Planned / unstarted | [Feel and resilience](#phase-47--feel-and-resilience) | 231–234 | Phase 46 close/main sync and the feedback lane's close. |
+| Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 | Phase 47 close/main sync. |
+| Phase 36 | Awaiting retirement by promotion ② | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 and 179A accepted + Phase 35 close/main sync; Phases 36–40 re-plan (Phase 35 MI-13) first. |
+| Phase 37 | Awaiting retirement by promotion ② | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
+| Phase 38 | Awaiting retirement by promotion ② | GridDO + Tiny Desk, one shared writer | 194–200 | 193 accepted + Phase 37 close/main sync; both themes require regional dispositions. |
+| Phase 39 | Awaiting retirement by promotion ② | Graphite, region-by-region then supported-mode conformance | 201–207 | 200 accepted + Phase 38 close/main sync. |
+| Phase 40 | Awaiting retirement by promotion ② | Complete campaign integration and preservation gate | 208 | All accepted Tasks 101–163/105A/166–207, all prior close/main sync and exact retained schema/DP authority. |
 
 ## Theme Realization Task Sets
 
@@ -2702,11 +2724,950 @@ MI-2 (Terminal Pool row hover contrast) is in
 
 Neumorphism Tasks 173–179 and repair Tasks 176A and 179A are accepted. Their
 task contracts and completion-time scope are in
-[the Phase 35 archive](execution-plan/archive/phase-35.md). Carried items
-MI-13, MI-14, MI-19, MI-21 and MI-23 are in
-[Issues_Deferred.md](issues/Issues_Deferred.md) and target the Phases 36–40
-re-plan (`/craft-docs`), which runs before `/run-phase 36`: MI-13 changes the
-theme scope of Phases 36–40.
+[the Phase 35 archive](execution-plan/archive/phase-35.md). Carried items are in
+[Issues_Deferred.md](issues/Issues_Deferred.md): MI-19 is bound to Task 229
+and MI-23 is absorbed by Tasks 228 and 234 (SaaS S16, S39); MI-13, MI-14 and
+MI-21 go to promotion ② (the feedback topic).
+
+## SaaS Conversion — Phases 42–48
+
+Authority: [SaaS DECISION](brainstorming/2026-10-21-saas-conversion/DECISION.md)
+S01–S43 and its [PROMOTION_MAP](brainstorming/2026-10-21-saas-conversion/PROMOTION_MAP.md)
+(promotion ①); the feedback topic's F02, F11, F13, F14, F16 copy alignment and
+F17–F20 within SaaS S41; SCHEMA §Postgres Target and §Database Functions; SPEC
+Architecture Decisions 19–21, §Account Entry And App States, §Feedback And
+Network States and §Environments And Hosting; DESIGN_TOKENS §SaaS App-State
+Surfaces; CLAUDE.md Architecture 10 and §Workflow.
+
+Flow review: [SaaS conversion flow review](reviews/saas-conversion-flow-review.md)
+covers Phases 42–48.
+
+These phases run before Phases 36–40, which promotion ② retires (feedback F28),
+as Phase 41 ran before Phase 35. Each phase leaves `main` working.
+
+### Lanes and phase waits
+
+The SaaS lane is Phases 42–48. The feedback lane is one phase numbered after
+Phase 48 (promotion ②), which runs beside Phases 42–44 and closes before
+Phase 45 starts (S41). The `/run-phase` change that allows two open lanes is
+applied (claude-workflow `b2b7671`, `6044e30`, `b27e9f3`).
+
+| Phase | Waits for (Final Close and `main` sync) |
+|---|---|
+| 42 | Only phases already closed. Phases 36–40, numbered before it, do not block it: promotion ② retires them |
+| 43 | Phase 42 |
+| 44 | Phase 43 |
+| 45 | Phase 44 and the feedback lane. If the lane has not closed, Phase 45 waits, or the user chooses the S43 (4) fallback at `/run-phase 45` |
+| 46 | Phase 45 |
+| 47 | Phase 46 and the feedback lane |
+| 48 | Phase 47 |
+
+### Shared rules for every SaaS task
+
+- **Gates:** the full CLAUDE.md gate, `pnpm test:db` included, on every code
+  task from Task 213 on; a decision-only task (225, the `DP-SAAS-02` step of
+  237) runs `git diff --check`. `pnpm test:db` resets the local database to the branch's
+  migrations first. The local Supabase rules in CLAUDE.md §Workflow apply.
+- **SQL:** every task that adds or changes a database function or table follows
+  the SQL function checklist in PLANNING_STANDARD §6, adds the cross-account,
+  concurrency and change-set tests SCHEMA §Database tests names for it, and gets
+  an `expert` review before acceptance (S38). A phase that changes SQL closes
+  with no new Security Advisor warning (S29).
+- **Ported tests:** when a function replaces a Dexie path, the existing
+  `src/lib/db/*.test.ts` scenarios for that behavior are ported to
+  `supabase/tests/` and serve as the answer key. The Dexie tests stay until
+  Phase 46.
+- **Checkpoints:** a user-visible task is checked in the running app on local
+  Supabase (from Phase 45) in `griddo`, `retro-mac` and `neumorphism` (S40),
+  with the plain-Korean "what to look at" list.
+- **Production:** by the CLAUDE.md Production rule: before launch, migrations
+  may be applied whenever a task needs them, after the user's approval (S36);
+  from launch on, only at phase close in the dump, migrations, merge order.
+
+## Phase 42 — Database Foundation, End-To-End Slice And Early Production
+
+Proves the riskiest unknowns first: the write role (S14), the snapshot (S31)
+and the envelope with the pending-write layer (S32) on one real write, and the
+hosted plan (D1).
+
+### Task 213: [ ] Add local Supabase and the `pnpm test:db` gate
+
+**Files and actions:**
+- `package.json`: the Supabase CLI as a pinned dev dependency;
+  `@supabase/supabase-js` as a dependency; scripts `test:db`
+  (`supabase db reset`, then `vitest run --config vitest.db.config.ts`) and
+  `db:types` (`supabase gen types typescript --local --schema app --schema public`).
+- `supabase/config.toml` via `supabase init`: anonymous sign-ins on; email
+  sign-in with password on and confirmations off, locally only (S20);
+  `site_url` the local dev URL.
+- `vitest.db.config.ts`: includes `supabase/tests/**/*.db.test.ts` only;
+  the existing Vitest config excludes `supabase/`.
+- `supabase/tests/helpers/`: create and sign in local test users through the
+  local admin API, a supabase-js client per user, and a direct database
+  connection that can act as a given role and user for table-level checks.
+- `.env.local.example` with the public variable names; `.gitignore` covers
+  `.env.local` and `supabase/.temp/`.
+- `supabase/tests/smoke.db.test.ts`: two test users exist and sign in.
+
+**Dependencies:** Phase 35 Final Close and `main` sync; this phase's lifecycle
+gate; Docker Desktop installed by the user (S20).
+
+**Authority:** S20, S21; CLAUDE.md Gates and Local Supabase.
+
+**Observable acceptance:**
+- `pnpm test:db` resets the local database and passes the smoke suite; with
+  Docker stopped it fails with a clear message, not a hang.
+- `pnpm test` runs no database suite and still passes.
+- No secret is committed; `.env.local.example` holds names only.
+
+**Verification:** full gate including `pnpm test:db`; `git status` shows no
+env file.
+
+**Commit message:** `chore(db): add local Supabase and the test:db gate`.
+
+### Task 214: [ ] Add the account tables, constraints and RLS
+
+**Files and actions:**
+- `supabase/migrations/<timestamp>_account_schema.sql`: schemas `app`, `public`
+  (client functions only) and `internal`; the five tables and `app.accounts`
+  exactly as SCHEMA §Postgres Target (columns, CHECK, `unique (user_id, id)`,
+  composite foreign keys with `NO ACTION`, `user_id` cascade from
+  `auth.users`, the unique source and the partial unique system-role index,
+  the listed indexes); RLS and grants; revoke default `EXECUTE` from `public`,
+  `anon` and `authenticated`.
+- `src/lib/db/database.types.ts`: generated with `pnpm db:types`.
+- `src/lib/db/row-mapping.ts` and test: typed snake_case ↔ camelCase
+  converters for every table, typed by the generated types.
+- `src/lib/db/schema.ts` and `schema.test.ts`: `icon` maximum 64 (D9).
+- `src/lib/db/boundary-cases.ts`: one table of boundary values per field rule;
+  `schema.test.ts` runs it against Zod and
+  `supabase/tests/constraints.db.test.ts` against the constraints (S33).
+- `supabase/tests/tables.db.test.ts`: table-level isolation.
+
+**Dependencies:** Task 213.
+
+**Authority:** S11, S12, S14, S29 (3)–(5), S30, S33; SCHEMA §Postgres Target.
+
+**Observable acceptance:**
+- As `authenticated`, account A cannot select, insert, update or delete
+  account B's rows in any table, and cannot insert, update or delete its own
+  rows (no grant); `anon` reaches nothing; no table is reachable through the
+  API.
+- A composite foreign key refuses a row whose parent belongs to another account.
+- Deleting a staged source row is refused (S18); deleting the auth user of an
+  account that has a staged candidate removes every row of that account (S29).
+- A second Inbox or Archive for one account is refused by the partial index.
+- Every boundary case gives the same verdict in Zod and in the database; a
+  column rename breaks `pnpm typecheck` through the converter.
+
+**Verification:** full gate; `expert` review with the SQL checklist.
+
+**Commit message:** `feat(db): add the account tables, constraints and RLS`.
+
+### Task 215: [ ] Add the write role and `ensure_account()`
+
+**Files and actions:**
+- Migration: role `griddo_writer` (`NOLOGIN`, no `BYPASSRLS`, not the table
+  owner) with its table grants and RLS policies; `internal` helpers for the
+  transaction timestamp, the envelope and L0 cell search; `public.ensure_account()`
+  (`security definer`, owner `griddo_writer`, empty `search_path`) per SCHEMA
+  §Account preparation steps 1–2; its lock (S30). The seed copy (step 3) comes
+  in Task 237.
+- `supabase/tests/write-role.db.test.ts`: acting as `griddo_writer` with user
+  A's claims, an insert or update of a user B row fails under RLS;
+  `auth.uid()` resolves inside the function; no client role can execute an
+  `internal` function.
+- `supabase/tests/ensure-account.db.test.ts`: ported `system-nodes.test.ts`
+  scenarios (missing, trashed, archived, hidden, occupied cell, full L0);
+  idempotence; two concurrent calls on a new account create one Inbox and one
+  Archive; `last_visit_at` advances.
+
+**Dependencies:** Task 214.
+
+**Authority:** S13, S14, S29 (1)(2), S30, S42 (5); SCHEMA §Schemas and roles,
+§Account preparation, §Locks.
+
+**Observable acceptance:**
+- The write-role proof passes locally. If it does not hold, the task records
+  that in the ledger, tells the user, and switches to the recorded fallback
+  (explicit per-function ownership checks, S14) before any further function.
+- `ensure_account()` matches today's `ensureSystemNodes()` outcomes, except
+  that with L0 full the Node is skipped and the rest applies (the ported test
+  changes from "throws" to "skips"); a caller whose auth user is gone gets
+  `rejected` with `account_missing`.
+
+**Verification:** full gate; `expert` review with the SQL checklist.
+
+**Commit message:** `feat(db): add the write role and ensure_account`.
+
+### Task 216: [ ] Add the account snapshot and the function coverage suites
+
+**Files and actions:**
+- Migration: `public.get_snapshot()` (`security invoker`), one SQL statement
+  returning one JSON value with all five tables of the caller's account,
+  trashed and archived rows included (SCHEMA §Snapshot).
+- `supabase/tests/snapshot.db.test.ts`: only the caller's rows; more than
+  1,000 rows arrive intact; a staged candidate never arrives without its
+  source while a concurrent transaction inserts both.
+- `supabase/tests/coverage.db.test.ts`: lists every function in `public` from
+  the catalog and fails when one has no registered cross-account case or no
+  change-set case (write functions); lists every function in `internal` and
+  checks that `anon` and `authenticated` cannot execute it.
+- `supabase/tests/helpers/change-set.ts`: snapshot before + envelope
+  `changes` = snapshot after (S31).
+- `supabase/tests/fixtures/limit-sized-account.ts`: builds an account at the
+  account limits and one at a tenth of them, for D8.
+
+**Dependencies:** Task 215.
+
+**Authority:** S17, S31, S14, S29; SCHEMA §Snapshot, §Database tests; D8.
+
+**Observable acceptance:**
+- The suites above pass; adding an exposed function without its cases makes
+  `coverage.db.test.ts` fail.
+- The local snapshot time and size for both fixture accounts are recorded in
+  the ledger (the production measurement is Task 218).
+
+**Verification:** full gate; `expert` review with the SQL checklist.
+
+**Commit message:** `feat(db): add the account snapshot and the coverage suites`.
+
+### Task 217: [ ] Build the end-to-end slice behind a development switch
+
+**Files and actions:**
+- `src/lib/db/supabase-client.ts`: browser client from the public env vars,
+  session persisted by supabase-js.
+- Migration: `public.update_node()` with the full ordinary-write contract
+  (fields, Hook 1, Hook 2, Hook 8 with the Grid and lifecycle locks, Hook 12,
+  `rejected` codes, envelope); its cross-account, concurrency and change-set
+  cases.
+- `src/lib/db/snapshot-store.ts` and test: base plus the ordered pending-write
+  list; view = base with pending applied; envelope `changes` applied to the
+  base through `row-mapping.ts`; writes to one record sent in order; a pending
+  write leaves on settle (applied or rolled back); a refetch sent before a
+  write settled is discarded and sent again; subscriptions (SPEC Architecture
+  Decision 19).
+- `src/lib/constants.ts`: `DISPLAY_DELAY_MS`, `REQUEST_TIMEOUT_MS` and the
+  connection probe interval (D7), unless the feedback lane has added the first.
+- A development-only page, `src/app/dev/supabase-slice/page.tsx`, rendered
+  only when `NODE_ENV` is `development` and `NEXT_PUBLIC_GRIDDO_SUPABASE_SLICE=1`
+  (otherwise `notFound()`; the variable is added to `.env.local.example`):
+  signs in anonymously on local Supabase, calls
+  `ensure_account()`, loads the snapshot and lists the L0 Nodes with controls
+  that move one Node through the pending layer, showing pending, applied and
+  rolled-back states.
+
+**Dependencies:** Task 216.
+
+**Authority:** S07, S31, S32, S36; SCHEMA §Result envelope; SPEC Architecture
+Decision 19, §Environments And Hosting (development switch).
+
+**Observable acceptance:**
+- Snapshot-store tests: one Node moved twice quickly ends in the second cell
+  without jumping back; a focus refetch during a pending write does not hide
+  it; a stale refetch that started before a settled write is discarded; a
+  `rejected` result rolls the view back to the base.
+- With the switch on, the slice page shows the account's L0 Nodes and a move
+  reaches the database (a reload shows it); with the switch off, or in a
+  production build, the route returns 404.
+- The envelope (with `rejection.limit`, SCHEMA §Result envelope) and the
+  pending-layer shapes are fixed here; Phases 43–44 reuse them unchanged.
+
+**Verification:** full gate; `expert` review (SQL checklist and the
+pending-layer logic); browser check of the slice page.
+
+**Commit message:** `feat(db): add the end-to-end Supabase slice`.
+
+### Task 218: [ ] Set up production early and verify the hosted plan
+
+**Files and actions:**
+- The user creates the production Supabase project (Seoul, free plan) and the
+  Vercel Hobby project linked to `main`, and sets the public env vars in
+  Vercel. Production anonymous sign-in stays off except for the measurement
+  below; there is no production OAuth or Turnstile yet (S36).
+- Apply the migrations to production after the user's approval
+  (`supabase db push`, before launch).
+- `scripts/verify/hosted-roles.sql`: run against production with the
+  connection string kept outside Git; repeats the write-role proof and the
+  internal-function checks on hosted Supabase, then removes its rows.
+- `hosted-roles.sql` also checks the account-deletion role: whether hosted
+  Supabase allows a dedicated role that may delete only the caller's auth
+  user (S42 (1)).
+- Check `pg_cron`: enable it; schedule a job that deletes one temporary
+  anonymous auth user created for the check (the guest-cleanup path), confirm
+  the cascade, then remove the job.
+- Check the Security Advisor while anonymous sign-in is on; record lint 0012
+  (`auth_allow_anonymous_sign_ins`) as an accepted warning if it fires, since
+  guests are anonymous by design (S10).
+- D8 measurement: with anonymous sign-in on for the measurement only, load
+  the snapshot of a limit-sized and a one-tenth account from the owner's
+  network, record time and size, delete both accounts, and turn anonymous
+  sign-in off again. The project is unannounced and holds no real data.
+- Ledger: record every result.
+
+**Dependencies:** Task 217.
+
+**Authority:** S14, S21, S22, S36, S37; D1, D8; SPEC §Environments And Hosting.
+
+**Observable acceptance:**
+- Production runs every migration; the hosted write-role proof passes, or the
+  S14 fallback is recorded and the user is told before Phase 43.
+- `pg_cron` is available and its job can delete an anonymous auth user, or
+  the S22 fallback (a scheduled GitHub Actions call) is recorded for Task 238.
+- The account-deletion branch is recorded in the ledger before Phase 43: the
+  dedicated role, or the SCHEMA fallback. Task 235 implements only that
+  branch.
+- Vercel deploys `main` (still the IndexedDB app) at an unannounced URL.
+- The limit-sized snapshot loads in 3 seconds or less and the one-tenth one in
+  1 second or less; otherwise the task proposes lower limits, and a SCHEMA
+  amendment follows the user's approval before Phase 43.
+- Anonymous sign-in is off again in production; no secret is in Git.
+
+**Verification:** full gate; the verification script's output in the ledger;
+the user confirms the dashboard settings.
+
+**Commit message:** `docs(db): record the early production setup`.
+
+## Phase 43 — Ordinary Write Functions
+
+### Task 219: [ ] Port the Node, Bit and Chunk write functions
+
+**Files and actions:**
+- Migrations: `create_node`, `update_node` (extended from Task 217 where
+  needed, including system-Node `hiddenFromGrid` with first-free-cell
+  placement on show), `create_bit`, `update_bit` (with the parent deadline
+  extension, Hook 2), `create_chunk`, `update_chunk` (with the parent Bit
+  extension for the Calendar answer, Hook 2), `delete_chunk`, `reorder_chunks`
+  (one call for a Chunk reorder); Hooks
+  1, 2, 3, 8 and 12; lifecycle and Grid locks; account limits with
+  `account_limit` and `rejection.limit` (S37); parent-change moves take the
+  client's cell and refuse
+  a taken one (S43 (3)); system-managed fields stay unsettable from create
+  paths.
+- `supabase/tests/`: ported scenarios from `mtime-cascade`,
+  `deadline-hierarchy`, `auto-completion`, `grid-uniqueness`, `revision` and
+  the create/update parts of `indexeddb.test.ts`; limits per table, real and
+  guest; two creates into one cell.
+
+**Dependencies:** Phase 42 Final Close and `main` sync; this phase's lifecycle
+gate; production limits confirmed by Task 218.
+
+**Authority:** S08, S12, S15 (last write wins), S30, S37, S43 (3); SCHEMA
+Hooks 1–3, 8, 12, §Database Functions.
+
+**Observable acceptance:** every ported scenario passes against the functions;
+every function passes its cross-account, concurrency and change-set cases;
+`coverage.db.test.ts` passes.
+
+**Verification:** full gate; `expert` review with the SQL checklist.
+
+**Commit message:** `feat(db): port the node, bit and chunk write functions`.
+
+### Task 220: [ ] Port the lifecycle write functions
+
+**Files and actions:**
+- Migrations: `soft_delete_node`, `soft_delete_bit`, `restore_node`,
+  `restore_bit` (Hooks 4–5, the Inbox sentinel rule), `archive_node`,
+  `archive_bit`, `unarchive_node`, `unarchive_bit` (Hooks 10–11),
+  `hard_delete_node`, `hard_delete_bit` (Hook 6, candidates before sources),
+  `empty_trash()` (one transaction), `cleanup_expired_trash()` (Hook 7, and it
+  records the visit), `promote_bit_to_node` (Hook 9, with the Node and Bit
+  account limits); closure `for update` and
+  parent `for share` locks.
+- `supabase/tests/`: ported scenarios from `cascade-delete`, `cascade-restore`,
+  `cascade-hard-delete`, `auto-cleanup`, `archive`, `archive-sweep`,
+  `promotion` and `scratch-aggregate-hard-delete`; trashing a Node while a Bit
+  is created in a descendant Grid; Empty Trash failure deletes nothing.
+
+**Dependencies:** Task 219.
+
+**Authority:** S08, S15, S18, S30; SCHEMA Hooks 4–11, §Locks; user additions
+(2026-10-22).
+
+**Observable acceptance:** as Task 219, plus: no live item ever ends under a
+trashed, archived or deleted Node in the concurrency case;
+`cleanup_expired_trash()` advances `last_visit_at`.
+
+**Verification:** full gate; `expert` review with the SQL checklist; no new
+Security Advisor warning at phase close.
+
+**Commit message:** `feat(db): port the lifecycle write functions`.
+
+## Phase 44 — Inbox/Triage Command Functions
+
+Each command keeps the SCHEMA command/result contract. The confirmed-orphan
+command and its audit store are not ported (S18).
+
+### Task 221: [ ] Port the Breakdown and Scratch title commands
+
+**Files and actions:** migrations for `add_breakdown`, `save_scratch_title`,
+`save_breakdown`, `delete_breakdown` and their read-only reconcile functions
+(`reconcile_add_breakdown` and the like), with the Scratch row lock, exact
+`expectedVersion`, the Scratch aggregate version and account limits on Add;
+ported scenarios from `scratch-breakdowns`, `revision` and the Breakdown parts
+of `inbox-operations.test.ts`, including "ambiguous Add, then confirmed Delete,
+reconciles as conflict".
+
+**Dependencies:** Phase 43 Final Close and `main` sync; this phase's lifecycle
+gate.
+
+**Authority:** S08, S30, S37; SCHEMA §Atomic command matrix (Add, Save Scratch
+title, Save, Delete), §Operation reconciliation.
+
+**Observable acceptance:** every ported scenario and conformance case passes;
+cross-account, concurrency and change-set cases pass; a guest at the Breakdown
+limit gets `rejected` with `account_limit`.
+
+**Verification:** full gate; `expert` review with the SQL checklist.
+
+**Commit message:** `feat(db): port the breakdown and scratch title commands`.
+
+### Task 222: [ ] Port the Stage and Unstage commands
+
+**Files and actions:** migrations for `stage_candidate`, `unstage_candidate`
+and their reconcile functions; ported `staged-candidates` and Stage/Unstage
+`inbox-operations` scenarios, including "ambiguous Stage, then confirmed
+Unstage, reconciles as conflict" and "a candidate recreated by Undo cannot
+satisfy the original Stage postcondition"; deleting a staged source is refused
+(S18).
+
+**Dependencies:** Task 221.
+
+**Authority:** SCHEMA §Atomic command matrix (Stage, Unstage), Hook 13.
+
+**Observable acceptance:** as Task 221.
+
+**Verification:** full gate; `expert` review with the SQL checklist.
+
+**Commit message:** `feat(db): port the stage and unstage commands`.
+
+### Task 223: [ ] Port the Placement and Undo commands
+
+**Files and actions:** migrations for `place_staged_candidate`,
+`place_direct_breakdown`, `undo_staged_placement`, `undo_direct_placement`
+and their reconcile functions, with target reachability, type, path, title
+limit, Grid lock and free-cell checks in the same transaction, the
+active-owning-Scratch Undo rule and account limits on the result; ported
+`triage-placement` and `triage-undo` scenarios.
+
+**Dependencies:** Task 222.
+
+**Authority:** SCHEMA §Atomic command matrix (placement, Undo), Hooks 8, 12,
+13.
+
+**Observable acceptance:** as Task 221; a placement into a full target or past
+a limit is `rejected` with no write.
+
+**Verification:** full gate; `expert` review with the SQL checklist.
+
+**Commit message:** `feat(db): port the placement and undo commands`.
+
+### Task 224: [ ] Port the Archive and Trash Scratch commands and close the conformance cases
+
+**Files and actions:** migrations for `archive_scratch`,
+`classify_archive_scratch_recovery`, `trash_scratch`, `reconcile_trash_scratch`
+(Hook 15 eligibility re-run inside the transaction; exact submitted candidate
+set); ported `archive-scratch-command`, `archive-scratch-recovery` and
+`trash-scratch-command` scenarios; every SCHEMA conformance case in
+`supabase/tests/conformance.db.test.ts`.
+
+**Dependencies:** Task 223.
+
+**Authority:** SCHEMA §Atomic command matrix (Archive, Trash Scratch), Hooks
+13–15, conformance cases.
+
+**Observable acceptance:** every conformance case passes, including "ambiguous
+Trash Scratch, then confirmed restore, reconciles as conflict" and "Undo whose
+owning Scratch is trashed or archived is rejected"; no new Security Advisor
+warning at phase close.
+
+**Verification:** full gate; `expert` review with the SQL checklist.
+
+**Commit message:** `feat(db): port the archive and trash scratch commands`.
+
+## Phase 45 — Client Switch
+
+The app moves to local Supabase: snapshot reads, RPC writes (all
+server-confirmed at first), automatic guest entry, the load-failure screen and
+the fixtures. Optimistic feel waits for Phase 47, so a regression in one cannot
+hide in the other. Fallback S43 (4): if feedback F26 has not shipped, the
+Supabase store implements `runBreadcrumbZoneMigration` as a no-op and the zone
+guards stay client-only.
+
+### Task 225: [ ] Record the SaaS surfaces decision `DP-SAAS-01`
+
+**Files and actions:** a served HTML option sheet in `griddo`, with
+`retro-mac` and `neumorphism` spot-checks and Korean explanations, rendering
+every surface of DESIGN_TOKENS `DP-SAAS-01` together, with shapes copied from
+the realized theme CSS; record the user's choice in DESIGN_TOKENS §SaaS
+App-State Surfaces. The sheet is scratch, not committed.
+
+**Dependencies:** Phase 44 Final Close and `main` sync; the feedback lane's
+Final Close or the user's S43 (4) choice; this phase's lifecycle gate.
+
+**Authority:** S27, S40; DESIGN_TOKENS `DP-SAAS-01`.
+
+**Observable acceptance:** the user's choice for each surface is recorded and
+committed; no implementation file changes.
+
+**Verification:** `git diff --check`; the user confirms the recorded text.
+
+**Commit message:** `docs(design): record DP-SAAS-01`.
+
+### Task 226: [ ] Move reads to the snapshot and replace the live queries
+
+**Files and actions:**
+- `DataStore.liveRead(read)` in `src/lib/db/datastore.ts`, with a `liveRead`
+  helper hooks import from there: an observable with Dexie `liveQuery`'s
+  subscribe shape that re-runs a DataStore read on every data change. The
+  Dexie implementation backs it with `liveQuery` inside `indexeddb.ts`, so no
+  hook imports `dexie` (PLANNING_STANDARD §6 DataStore facade); the Supabase
+  store backs it with snapshot subscriptions.
+- The 19 `liveQuery` call sites in the 17 hook files (`use-bit-detail`,
+  `use-breadcrumb-chain`, `use-calendar-data`, `use-can-archive-scratch`,
+  `use-explorer-remote-status`, `use-external-scratch-removal-data`,
+  `use-global-urgency`, `use-grid-data`, `use-grid-explorer-search`,
+  `use-inbox`, `use-node`, `use-node-urgency`, `use-scratch-breakdowns`,
+  `use-staged-candidates`, `use-trash-data`, `use-trash-scratch`,
+  `use-triage-newly-placed`) move to `liveRead`; return shapes unchanged;
+  every test that mocks `dexie` (13 files today: 12 hook tests and
+  `src/components/triage/hierarchy-explorer.test.tsx`) moves to mocking
+  `liveRead`.
+- `src/lib/db/supabase-store.ts`: every `DataStore` read method answered in
+  memory over the snapshot with SCHEMA Key Queries semantics, `searchAll()`
+  included (S19); unit tests without a database.
+
+**Dependencies:** Task 225.
+
+**Authority:** S07, S19; SPEC Architecture Decisions 2, 3, 19; SCHEMA Key
+Queries.
+
+**Observable acceptance:** hook tests against the mocked `DataStore` stay
+green; every read method gives the same result over a snapshot as the Dexie
+store over the same data (shared fixture); the app still runs on Dexie after
+this task.
+
+**Verification:** full gate; `expert` review (reactive boundary).
+
+**Commit message:** `refactor(hooks): move reads to liveRead and the snapshot`.
+
+### Task 227: [ ] Send every write as a database function call
+
+**Files and actions:**
+- `src/lib/db/supabase-store.ts`: every production `DataStore` write method
+  calls its function and applies the envelope to the snapshot base after the
+  answer (server-confirmed, no optimistic overlay yet); every call without an
+  answer within `REQUEST_TIMEOUT_MS` ends as an unknown outcome, so Inbox
+  commands reconcile through their reconcile functions; `rejected` codes reach
+  the callers' existing failure paths, keeping the thrown messages callers
+  match today (`GRID_FULL` in `trash-group.tsx`, `Node not found:` in
+  `use-trash-actions.ts`); an Inbox `account_limit` rejection shows as that
+  command's existing rejected state with the reason in
+  `src/lib/copy/inbox-triage.ts`; `ensureSystemNodes()` calls
+  `ensure_account()`; the confirmed-orphan command and its reconcile method
+  return `rejected` with no call, since an orphan cannot occur (S18); the five
+  test-only Breakdown writes throw "not supported" until Phase 46 removes them;
+  `runBreadcrumbZoneMigration` is a no-op only under the S43 (4) fallback.
+- One action, one call (SCHEMA §Exposed functions): `DataStore` gains
+  `emptyTrash()` and `reorderChunks()`, and the Bit and Chunk updates take the
+  parent extension; `use-trash-actions.ts`, `bit-detail-popup.tsx`
+  (`handleDeadlineConflictUpdateParent`), `chunk-pool.tsx` (reorder) and
+  `use-dnd.ts` (the Calendar Chunk-time answer) call them once. The Dexie
+  store implements them too, so the app keeps running on Dexie until Task
+  228.
+
+**Dependencies:** Task 226.
+
+**Authority:** S08, S16 (no resend), S31; SPEC §Write feel (group 4), SCHEMA
+§Database Functions.
+
+**Observable acceptance:** store tests in `supabase/tests/` (run by
+`pnpm test:db`) show every write method reaching its function, Inbox commands reconciling after a forced
+timeout, and each one-call action sending exactly one request; the app still
+runs on Dexie.
+
+**Verification:** full gate; `expert` review.
+
+**Commit message:** `feat(db): send every write as a database function call`.
+
+### Task 228: [ ] Add guest entry and the load-failure screen
+
+**Files and actions:**
+- `src/lib/auth/session.ts`: anonymous sign-in on local Supabase (no
+  Turnstile yet), `ensure_account()`, snapshot load; refresh-failure
+  classification (an auth-server rejection sets the session-expired marker; a
+  network failure goes to the connection path; the screen comes in Task 234);
+  the cross-tab rule of SPEC §Account entry (a user change in another tab drops
+  the snapshot and repeats entry; two first-visit tabs converge on one
+  session).
+- `src/components/layout/app-frame.tsx` and test: gates the app until the
+  snapshot is ready (no loading indicator yet); the load-failure and
+  guest-creation-failure screens with reason lines and `Retry`, and the
+  automatic retry on reconnect, in the `DP-SAAS-01` look with copy from
+  `src/lib/copy/feedback.ts` (created here if absent).
+- `src/app/providers.tsx`: mount the frame; `TrashAutoCleanup` calls
+  `cleanup_expired_trash()`; `SystemNodeSeeding` is replaced by
+  `ensure_account()`.
+- `src/lib/db/datastore.ts`: `getDataStore()` returns the Supabase store, once
+  the session and snapshot bootstrap above is in place.
+
+**Dependencies:** Task 227.
+
+**Authority:** S10, S13, S16, S23, S26; F19; SPEC §Account entry, §App-level
+screens; absorbs Phase 35 MI-23.
+
+**Observable acceptance:** a fresh browser becomes a guest with its system
+Nodes; the same browser returns to the same guest after reload; with local
+Supabase stopped the load-failure screen shows its reason and `Retry` works
+after a restart; an empty Grid never flashes before the data; two tabs opened
+on a first visit end on the same guest; Grid,
+Calendar, Bit detail, Trash, Archive View and Inbox flows work on local
+Supabase and a reload shows every change.
+
+**Verification:** full gate; `expert` review; browser checkpoint in the three
+themes.
+
+**Commit message:** `feat(auth): add guest entry and the load-failure screen`.
+
+### Task 229: [ ] Seed browser checks through the database and settle MI-19
+
+**Files and actions:**
+- `supabase/seed.sql` (runs on local `db reset` only, never a migration):
+  creates a `dev` schema with `dev.seed_fixture(user_id, scenario)`, granted
+  only to `service_role`; `supabase/config.toml` exposes `dev` locally. The
+  function first calls `ensure_account()` for that user, clears every row
+  except the `accounts` row and the system Nodes, then inserts the scenario
+  with times
+  relative to now (aged, past-deadline, created-order and old-Trash states)
+  and with the account's existing system Node ids in place of the fixture's.
+- `scripts/dev-fixtures/inbox-triage.js`: signs in as a local test user, calls
+  `dev.seed_fixture` with the local service key, refuses to run against a
+  non-local URL, and returns the scenario ids (`IDS`, `inboxRoute`) per run.
+  Fault injection (`armFault`) is replaced by the development state switch
+  (feedback F30) and by stopping local Supabase. `drag.js` unchanged.
+- `src/lib/db/inbox-triage-dev-fixture.test.ts` updated.
+- Phase 35 MI-19: read the Pool query and sort after
+  `await readTerminalSnapshot` in the lifecycle handoff, with a test, or show
+  in the ledger that the new read path makes it moot.
+
+**Dependencies:** Task 228.
+
+**Authority:** S20, S39; CLAUDE.md Test data.
+
+**Observable acceptance:** every scenario the fixture offered on IndexedDB is
+reachable on local Supabase; MI-19 is fixed or shown moot for the user to
+close.
+
+**Verification:** full gate; `expert` review (the `dev` function follows the
+SQL checklist); fixture run in the Playwright MCP browser.
+
+**Commit message:** `chore(fixtures): seed browser checks through the database`.
+
+## Phase 46 — Dexie Removal
+
+### Task 230: [ ] Remove Dexie and the client orphan path
+
+**Files and actions:** delete `src/lib/db/indexeddb.ts`, its test utilities
+and the Dexie-only tests whose scenarios now live in `supabase/tests/`; remove
+`dexie` and `fake-indexeddb` from `package.json`; remove the `settings` store
+and `runBreadcrumbZoneMigration` (if F26 left them), the confirmed-orphan
+command, its reconcile method, its hook dispatch and Workspace caller and its
+orphan state and copy, the test-only Breakdown write methods, the Dexie backing
+of `liveRead`, `use-system-node-seeding.ts`, and the development slice page
+`src/app/dev/supabase-slice/` with its env variable.
+
+**Dependencies:** Phase 45 Final Close and `main` sync; this phase's lifecycle
+gate.
+
+**Authority:** S11, S18, S25, S41; SCHEMA §Not ported.
+
+**Observable acceptance:** no `dexie` import remains; every gate passes; the
+running app behaves as at the end of Phase 45.
+
+**Verification:** full gate; browser smoke of every route on local Supabase;
+`expert` review.
+
+**Commit message:** `refactor(db): remove Dexie and the client orphan path`.
+
+## Phase 47 — Feel And Resilience
+
+### Task 231: [ ] Make ordinary writes immediate with rollback
+
+**Files and actions:** `src/lib/db/supabase-store.ts` and
+`snapshot-store.ts`: groups 1 and 2 of SPEC §Write feel through the pending
+layer; rollback on `rejected` or error; the unknown-outcome rule (refetch,
+keep or roll back, never resend); parent-change moves pick the nearest empty
+cell from the snapshot (S43 (3)); tests for each group and for the S32 cases
+across real calls.
+
+**Dependencies:** Phase 46 Final Close and `main` sync; the feedback lane's
+Final Close; this phase's lifecycle gate.
+
+**Authority:** S09, S15, S16, S32, S43 (3); SPEC §Write feel.
+
+**Observable acceptance:** drag moves, edits, completion toggles and creates
+show at once; Trash and Archive hide at once; a refused write rolls back.
+
+**Verification:** full gate; `expert` review; browser checkpoint with the
+development state switch (feedback F30), extended here to force a write
+rejection.
+
+**Commit message:** `feat(sync): make ordinary writes immediate with rollback`.
+
+### Task 232: [ ] Add the toast rules, server-confirmed pending and the request timeout
+
+**Files and actions:**
+- `src/lib/feedback/toast.ts` and test: kinds, counted bursts, at most three
+  kinds, 4s success and 6s failure or warning, pause on hover, focus and a
+  hidden tab, close button on failures and warnings (F13, F14).
+- `src/lib/copy/feedback.ts`: the SPEC §Feedback copy toast rows.
+- The 17 kept `toast(` calls move to the helper with their aligned copy (F16);
+  rolled-back writes and account limits use their kinds.
+- Group 3 controls show the feedback F03 loader (promotion ②) after
+  `DISPLAY_DELAY_MS` and a busy state (the request timeout itself is Task
+  227's).
+
+**Dependencies:** Task 231.
+
+**Authority:** S28; F02, F11, F13, F14, F16; SPEC §Toasts, §Feedback copy, §Write feel (group 3).
+
+**Observable acceptance:** three quick failures show one counted toast;
+different kinds stack to three; durations and pausing as specified; every
+kept call shows its new copy; a slow permanent delete shows its loader only
+after 300ms.
+
+**Verification:** full gate; browser checkpoint in the three themes.
+
+**Commit message:** `feat(feedback): add the toast rules and server-confirmed pending`.
+
+### Task 233: [ ] Add the connection states and the offline write gate
+
+**Files and actions:** `src/lib/db/connection-monitor.ts` and test (normal,
+unstable, offline from request results; 30-second probe while unstable or
+offline; recovery refetch); refetch on visibility, focus and reconnect (S17);
+a failed background refetch only sets unstable; every write path, the Inbox
+commands included, checks the state first and, while offline, changes nothing,
+keeps typed input and shows the offline toast (F18); the Inbox editor's offline
+source moves from `navigator.onLine` (`use-scratch-breakdowns.ts`) to the
+monitor, after feedback F05 (lane) removed the editor's own offline line; the
+development state switch gains the network states.
+
+**Dependencies:** Task 232.
+
+**Authority:** S16, S17, S26, S27; F18; SPEC §Connection states.
+
+**Observable acceptance:** Wi-Fi off makes the state offline and every write
+attempt shows only the toast; a server that stops answering makes it unstable
+and then offline after three failures; recovery refetches with no visible
+notice; a write in flight when the server stops ends in the server's state
+after recovery (unknown-outcome rule).
+
+**Verification:** full gate; `expert` review (state machine); browser
+checkpoint.
+
+**Commit message:** `feat(sync): add the connection states and the offline gate`.
+
+### Task 234: [ ] Add the account icon, the connection badge, the loading screen and the session-expired screen
+
+**Files and actions:** `src/components/layout/account-button.tsx` and test:
+top of the sidebar (below Home when F21 is present), guest and account icons,
+a focusable status element with the connection tooltip and no action until
+Task 235, the badge, and the polite announcements including the screen-reader
+`Back online.` (F17); `app-frame.tsx`: the delayed loading screen (busy) and
+the session-expired screen with `Continue as guest` only (S43 (2), F20),
+shown again after a reload while the session-expired marker is present; all in
+the `DP-SAAS-01` look. Check the Inbox status presentation under real
+server latency: network throttling in the browser, or production after
+launch (SPEC §Write feel).
+
+**Dependencies:** Task 233.
+
+**Authority:** S23, S26, S27, S43 (1)(2); F02, F17, F19, F20; DESIGN_TOKENS
+§SaaS App-State Surfaces.
+
+**Observable acceptance:** each connection state shows its badge and tooltip;
+the loading screen never appears for a load under 300ms; an expired session
+whose refresh the auth server rejects shows the screen with focus on its
+first action and creates no guest before the choice, even after a reload; a
+refresh that fails only because the network is down shows the offline state
+instead; the Inbox status shows no flicker the user
+objects to.
+
+**Verification:** full gate; browser checkpoint in the three themes, with the
+state switch.
+
+**Commit message:** `feat(account): add the account icon, badge and app screens`.
+
+## Phase 48 — Accounts And Launch
+
+### Task 235: [ ] Add the account modal, sign-out and account deletion
+
+**Files and actions:** `src/components/layout/account-modal.tsx` and test (the
+guest and account variants, copy and privacy note from SPEC §Feedback copy, the
+deletion confirmation); the account icon becomes its button; sign-out drops the
+snapshot and starts a new guest; migration for `delete_my_account()` under its
+own role, with its tests (S42 (1), S29), or the SCHEMA fallback if Task 218
+recorded it (the deletion request, `account_deleting` in `ensure_account()`,
+`get_snapshot()`, the reconcile and write functions, and the
+account-being-deleted screen); in either branch `account_missing` in
+`get_snapshot()`, the reconcile and write functions, and the account-deleted
+screen; sign-out from one tab followed by the other tabs.
+
+**Dependencies:** Phase 47 Final Close and `main` sync; this phase's lifecycle
+gate.
+
+**Authority:** S23, S29, S42 (1); SCHEMA §Account deletion; SPEC §Account icon
+and modal, §App-level screens.
+
+**Observable acceptance:** the modal shows the right variant; sign-out lands on
+a new guest; deletion removes every row of the account and shows the
+account-deleted toast; a second browser profile still signed in to the
+deleted account shows the account-deleted screen on its next read or write,
+never an empty Grid, while another tab in the same browser follows the new
+guest;
+signing out in one tab moves every tab to the same new guest; under the
+fallback, a sign-in before cleanup shows the account-being-deleted screen and
+the data never appears.
+
+**Verification:** full gate; `expert` review with the SQL checklist; browser
+checkpoint in the three themes.
+
+**Commit message:** `feat(account): add the account modal and deletion`.
+
+### Task 236: [ ] Add OAuth and Turnstile
+
+**Files and actions:**
+- Local: the user creates development GitHub and Google OAuth apps with the
+  local Supabase callback URL; their client secrets go only into the
+  git-ignored `.env.local`, which `supabase/config.toml` reads, and
+  `.env.local.example` lists the names. Local Turnstile uses Cloudflare's
+  public test keys (SPEC §Environments And Hosting).
+- Production: the user creates the production OAuth apps and Turnstile keys and
+  sets the provider secrets, the Turnstile secret, the Site URL and the
+  redirect URLs in the dashboard; nothing secret enters Git.
+- `session.ts`: OAuth sign-in returning to `/`; a cancel or provider error
+  keeps the guest session, cleans the URL and reopens the account modal with
+  its inline error; Turnstile on anonymous sign-in with the widget in the
+  security-check screen (S42 (3)); the guest-creation failure reasons; the
+  session-expired screen gains the two sign-in buttons (F20).
+
+**Dependencies:** Task 235.
+
+**Authority:** S10, S21, S23, S42 (3); F20; SPEC §Account entry.
+
+**Observable acceptance:** on local Supabase, GitHub and Google sign-in open an
+own empty account with its system Nodes; cancelling at the provider returns to
+the same guest with the modal and its inline error; a guest's anonymous
+sign-in passes the Turnstile test key; the test key that forces an
+interactive challenge shows the widget in the security-check screen; the test
+key that always fails shows the reason and `Retry`; `git grep` finds no OAuth secret.
+
+**Verification:** full gate; browser checkpoint with both providers on local
+Supabase.
+
+**Commit message:** `feat(auth): add OAuth and Turnstile`.
+
+### Task 237: [ ] Record the demo seed `DP-SAAS-02` and copy it into new guests
+
+**Decision prerequisite `DP-SAAS-02`:** owner the user; missing decision the
+demo seed content (S10); the task drafts it from the
+`scripts/dev-fixtures/inbox-triage.js` scenarios, within the guest limits, as a
+reviewable list and a rendered L0, and the user approves it; the code slice
+below waits for that approval, recorded in this task.
+
+**Files and actions:** migration: the seed as data in `internal` and
+`ensure_account()` step 3 (new ids, remapped references, deadlines and
+modification times relative to the copy time, references to Inbox and
+Archive mapped to the account's existing system Nodes and no seed item in their
+cells, `seeded_at`), with the copy-once
+concurrency test (S30, S42 (2)).
+
+**Dependencies:** Task 236.
+
+**Authority:** S10, S13, S30, S42 (2).
+
+**Observable acceptance:** a new guest opens on the approved demo with live
+urgency and aging; two concurrent first calls copy it once; a real account gets
+no seed.
+
+**Verification:** full gate; `expert` review with the SQL checklist; browser
+checkpoint.
+
+**Commit message:** `feat(db): copy the demo seed into new guests`.
+
+### Task 238: [ ] Add guest cleanup and the narrow-window notice
+
+**Files and actions:** migration: `internal.cleanup_guests()` scheduled daily
+with `pg_cron` (or the recorded fallback from Task 218: a scheduled GitHub
+Actions workflow that calls it over a database connection string kept in
+GitHub Actions secrets, never in Git),
+deleting guests 7 days after `last_visit_at`, and deletion requests under the
+account-deletion fallback; `app-frame.tsx`: the narrow-window notice over the
+mounted, `inert` app below 1024px, and no guest creation while narrow
+(S42 (4)).
+
+**Dependencies:** Task 237.
+
+**Authority:** S10, S22, S42 (4)(5); SCHEMA §Guest cleanup; SPEC §Account
+entry step 1.
+
+**Observable acceptance:** a guest idle for more than 7 days is deleted with
+all its rows, and one with an open tab is kept; narrowing the window shows the
+notice, and widening it returns to the same screen with drafts intact.
+
+**Verification:** full gate; `expert` review with the SQL checklist; browser
+checkpoint.
+
+**Commit message:** `feat(account): add guest cleanup and the narrow-window notice`.
+
+### Task 239: [ ] Name the product and add the backup job
+
+**Files and actions:** "grid" in `src/app/layout.tsx` metadata, the `sr-only`
+heading of `src/app/(grid)/page.tsx` and the account modal (S24);
+on Node pages the title keeps the format feedback F25 shipped, with "grid" in
+place of "GridDO"; `scripts/backup/weekly-dump.sh` and its `launchd` file
+(weekly `supabase db dump` as three files: roles, schema, and data including
+the `auth` schema rows; latest 8 kept outside Git; a Docker check and a
+failure notice; the connection secret read from outside Git); the user
+installs it and forces one run with `launchctl kickstart`; one restore test
+into local Supabase that brings back the account rows with their auth users.
+
+**Dependencies:** Task 238.
+
+**Authority:** S06, S24, S35; user answer Q2 (2026-10-22).
+
+**Observable acceptance:** the tab title and the L0 heading read "grid"; the
+forced run writes its three files; the restore test passes; a run with
+Docker stopped reports failure.
+
+**Verification:** full gate; the user confirms the scheduled job.
+
+**Commit message:** `chore(ops): name the product grid and add the backup job`.
+
+### Task 240: [ ] Prepare the launch
+
+**Files and actions:** production auth settings final (anonymous sign-in with
+Turnstile, both providers, rate limits), confirmed by the user in the
+dashboard; the Security Advisor on production shows no warning other than the
+accepted lint 0012; a written production smoke checklist in the ledger (guest
+entry, a write, OAuth sign-in with both providers, sign-out, account deletion,
+guest cleanup scheduled). The Phase 48 close then follows the CLAUDE.md
+Production order (dump, migrations, merge) and runs that smoke right after the
+merge, before the URL is announced; if it fails, the URL stays unannounced and
+the fix goes through a new phase.
+
+**Dependencies:** Task 239.
+
+**Authority:** S21, S34, S36; SPEC §Environments And Hosting.
+
+**Observable acceptance:** the production settings and the Advisor result are
+recorded and confirmed by the user; the smoke checklist exists; no secret in
+Git; the production schema equals the migrations applied so far.
+
+**Verification:** full gate; the user confirms the settings. The post-merge
+smoke result is recorded in the Phase 48 close.
+
+**Commit message:** `docs: prepare the grid launch`.
 
 ## Phase 36 — Terminal Regional Realization
 
@@ -3305,16 +4266,37 @@ This register covers every implementation/test path declared by two or more task
 | `completion-hook-test` | `src/hooks/use-can-archive-scratch.test.ts` | 101, 159, 160 |
 | `archive-coordinator` | `src/hooks/use-archive-scratch.ts`; `src/hooks/use-archive-scratch.test.ts` | 161, 162, 171A |
 | `runtime-fixture-test` | `src/components/layout/grid-runtime.test.tsx` | 101, 163; proposed P31-R01 only after Q03 repair approval |
+| `saas-db-tests` | `supabase/tests/helpers/*`; `supabase/tests/coverage.db.test.ts` | 213, 216, then every task that adds a database function |
+| `saas-zod` | `src/lib/db/schema.ts`; `src/lib/db/schema.test.ts`; `src/lib/db/boundary-cases.ts` | 214 |
+| `saas-snapshot` | `src/lib/db/snapshot-store.ts` and test | 217, 226, 227, 231, 233 |
+| `saas-store` | `src/lib/db/supabase-store.ts` and test | 226, 227, 231, 232, 233 |
+| `saas-datastore` | `src/lib/db/datastore.ts` | 226, 227, 228, 230; feedback lane (F26) |
+| `saas-dexie` | `src/lib/db/indexeddb.ts` | 226, 227, 230; feedback lane (F26) |
+| `saas-dnd` | `src/hooks/use-dnd.ts` | 227, 232; feedback lane (F24, F26) |
+| `saas-bit-detail` | `src/components/bit-detail/bit-detail-popup.tsx` | 227, 232 |
+| `saas-env-example` | `.env.local.example` | 213, 217, 236 |
+| `saas-session` | `src/lib/auth/session.ts` | 228, 235, 236, 238 |
+| `saas-frame` | `src/components/layout/app-frame.tsx` and test | 228, 234, 235, 236, 238 |
+| `saas-sidebar` | `src/components/layout/sidebar.tsx`; `src/components/layout/account-button.tsx` | 232 (kept toast in `sidebar.tsx`), 234, 235; feedback lane (F21) |
+| `saas-providers` | `src/app/providers.tsx` | 228, 232; feedback lane (F12, F15) |
+| `feedback-copy` | `src/lib/copy/feedback.ts` | 228, 232, 235, 236, 238; feedback lane |
+| `saas-db-types` | `src/lib/db/database.types.ts` (generated) | 214 and every task that adds a migration |
+| `saas-supabase-config` | `supabase/config.toml`; `supabase/seed.sql` | 213, 229, 236 |
+| `inbox-copy-saas` | `src/lib/copy/inbox-triage.ts` | 227; feedback lane |
+| `saas-hooks` | the 17 hook files of Task 226 | 226, 227; feedback lane, which may touch them only under the S43 (4) fallback |
+| `state-switch` | the development state switch (feedback F30) | feedback lane creates it; 231, 233 extend it |
+| `cross-lane` | `package.json`; `pnpm-lock.yaml`; `src/lib/constants.ts` | 213, 217, 230 and the feedback lane, which may run at the same time. Mutex rule 1 cannot serialize two worktrees; the lane that merges second resolves the conflict when it merges `main`. |
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** the Phases 36–40 re-plan through `/craft-docs` (Phase 35 MI-13), then Phase 36 / Task 180 as re-planned. Phases 32 and 33 remain reserved with no tasks.
-- **Next unallocated numbers after the Phase 41 amendment:** Phase 42 / Task 213.
-  Planned Phases 34–41 and Tasks 166–212 are already allocated; none may be
-  reused for another meaning.
+- **Next planned implementation phase/task:** Phase 42 / Task 213 (SaaS conversion). Promotion ② retires Phases 36–40 and adds the feedback lane. Phases 32 and 33 remain reserved with no tasks.
+- **Next unallocated numbers after the SaaS promotion:** Phase 49 / Task 241;
+  promotion ② uses them for the feedback lane. Planned Phases 34–48 and Tasks
+  166–240 are already allocated; none may be reused for another meaning.
 - Graph reconciliation: 85 accepted tasks (101–163 plus 105A, 166–172, 171A,
   173–179 plus 176A and 179A, and 209–212), twelve completed archives (Phases 23–31, 34, 35 and 41), two historical
   unaccepted transfer records (164/165), 29 unaccepted tasks (180–208) in
-  Phases 36–40, and two reserved phases (32–33).
+  Phases 36–40, 28 unaccepted tasks (213–240) in Phases 42–48, and two
+  reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.
