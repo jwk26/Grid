@@ -115,8 +115,7 @@ Brainstorming only: no production code and no canonical-document edits.
 
 In the suggested order. "Rec." is the advisory recommendation of 2026-10-21,
 not a decision. Answered: 1 (S07), 2 (S08), 3 (S10), 4 (S11–S13), 5 (S14),
-system Node seeding from 9 (S13), and the direction of 6 (S09; the exact list
-of optimistic writes is still open).
+6 (S09, S15), 7 (S16), 8 (S17), 9 (S13, S18), 10 (S19).
 
 1. **Client data architecture.**
    (a) Server-authoritative with a client query cache (for example TanStack
@@ -318,3 +317,36 @@ Questions 4 and 5 (S11–S14), same session:
   (Supabase's `postgres` role bypasses RLS, so functions must be owned by a
   separate role without BYPASSRLS that `auth.uid()` still resolves inside);
   the first SQL phase proves it.
+
+Questions 6–10 (S15–S19), same session:
+
+- Hook write call sites counted: `updateNode` 7, `updateBit` 7, `updateChunk`
+  5, `createBit` 2, `softDeleteBit` 2, `hardDeleteNode` 2, `hardDeleteBit` 2,
+  and one each of `createNode`, `createChunk`, `deleteChunk`,
+  `softDeleteNode`, `restoreNode`, `restoreBit`, `archiveNode`, `archiveBit`,
+  `unarchiveNode`, `unarchiveBit`, `promoteBitToNode`, `cleanupExpiredTrash`,
+  `runBreadcrumbZoneMigration` (outside `src/lib/db`, excluding tests).
+- S15: predicting trash/archive cascades in the client was rejected because it
+  duplicates the SQL cascade logic in TypeScript; hiding the target is enough,
+  since descendants are reached only through it. Permanent delete is never
+  optimistic because it cannot be undone; restore and promotion results
+  (cell, new Node) are chosen by the server. Ordering of rapid successive
+  writes to one record is a `/craft-docs` detail.
+- S16: automatic resend of an ordinary write after an unknown outcome was
+  rejected because a resend of a write that did commit increments `version`
+  twice (Architecture 9). Offline editing was rejected because it brings back
+  the sync engine rejected in S07. The status-feedback and toast topics run
+  after this conversion (S05), so only a minimal notice is in scope.
+- S17: Realtime was deferred (subscription management, de-duplicating the
+  client's own writes); single-tab enforcement was rejected for usability.
+  Reading the snapshot table by table was rejected because a write between
+  requests can show a candidate without its source.
+- S18: "tombstoned" in the orphan contract named a hypothetical remote store;
+  Postgres has no tombstones here, and a foreign key from
+  `staged_candidates.source_breakdown_id` refuses deletion of a staged source,
+  so neither `source_deleted` nor `source_tombstoned` can occur. All local data
+  is discarded (S04), so no legacy orphan exists. The defensive rule that an
+  unresolved source is never rendered as a valid card can stay. Server-side
+  Trash cleanup (`pg_cron`) was not chosen: Trash is only seen inside the app,
+  so client-triggered cleanup changes nothing for the user; the anonymous
+  account cleanup (S10) is the one server-scheduled job (question 12).
