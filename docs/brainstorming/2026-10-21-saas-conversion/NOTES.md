@@ -114,8 +114,9 @@ Brainstorming only: no production code and no canonical-document edits.
 ## Open questions
 
 In the suggested order. "Rec." is the advisory recommendation of 2026-10-21,
-not a decision. Answered: 1 (S07), 2 (S08), 3 (S10), and the direction of 6
-(S09; the exact list of optimistic writes is still open).
+not a decision. Answered: 1 (S07), 2 (S08), 3 (S10), 4 (S11–S13), 5 (S14),
+system Node seeding from 9 (S13), and the direction of 6 (S09; the exact list
+of optimistic writes is still open).
 
 1. **Client data architecture.**
    (a) Server-authoritative with a client query cache (for example TanStack
@@ -287,3 +288,33 @@ and email). Open details: the demo URL, a guest-mode banner, the cleanup age,
 where the seed is defined (the content of
 `scripts/dev-fixtures/inbox-triage.js` can serve as a source), and whether
 sign-up is open to anyone (question 13).
+
+Questions 4 and 5 (S11–S14), same session:
+
+- Naming (S11): quoted camelCase columns were rejected because Postgres folds
+  unquoted identifiers to lower case, so every SQL statement in the write
+  functions would need `"parentId"` quoting and a missed quote fails at run
+  time. snake_case with one conversion boundary was chosen.
+- `settings` (S11): the IndexedDB store holds only `bzMigration_<parent>`
+  markers for `runBreadcrumbZoneMigration` (called from `grid-runtime.tsx`;
+  blocked cells come from the measured breadcrumb). New accounts carry no
+  legacy data (S04); `/craft-docs` checks whether any new-data path (for
+  example Inbox placement) can still land in the blocked zone before removing
+  it.
+- Validation (S12): the explanation given was "client checks are for the
+  user's convenience, server checks are the gate", because client code can be
+  changed by anyone in the browser.
+- Account preparation (S13): an `auth.users` insert trigger was rejected
+  because a trigger error blocks sign-up itself and SCHEMA states "No database
+  triggers"; an idempotent function keeps today's `ensureSystemNodes()`
+  semantics and can be called again after a failure.
+- Security (S14): the anon key is public by design, so RLS is the only
+  barrier. Rejected: (A) security-definer functions with an explicit
+  `user_id = auth.uid()` check in each (one missed check opens another
+  account, and the user, a frontend developer, cannot reliably catch that in
+  SQL review), kept only as the fallback; (C) table write grants for the
+  client role with RLS only (bypasses the functions and their version rules,
+  contradicts S08). The dedicated-role design is unverified on Supabase
+  (Supabase's `postgres` role bypasses RLS, so functions must be owned by a
+  separate role without BYPASSRLS that `auth.uid()` still resolves inside);
+  the first SQL phase proves it.
