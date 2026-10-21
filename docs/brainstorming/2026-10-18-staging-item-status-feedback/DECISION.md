@@ -46,7 +46,9 @@ last Scratch) is settled here as well.
 On 2026-10-22 this topic became a lane of its own: it runs beside SaaS Phases
 42–44, closes before Phase 45, and opens with the theme-set reduction (F28).
 Its promotion follows the SaaS promotion (SaaS S41). The same review added
-F29–F30 and tightened F05, F08, F12, F18, F20, F21 and F23–F26.
+F29–F30 and tightened F05, F08, F12, F18, F20, F21 and F23–F26. F31–F32
+record two workflow items that running two lanes at once needs. F33 splits
+the lane in two at the promotion: Phase 49 before Phase 45, Phase 50 after it.
 
 `NOTES.md` holds the session log, the reasoning and every rejected option.
 
@@ -119,6 +121,9 @@ direction.
 | F28 | Theme-set reduction (Phase 35 MI-13; final set in SaaS S40). The lane's first task removes `tiny-desk`, `origami`, `terminal` and `graphite`: from the picker and `COLOR_THEMES`, from the no-flash script (fixing its duplicated list, ISSUE-20-01), and their CSS, the fonts only they use, the tests that enumerate them and the documents that list eight themes (CLAUDE.md Architecture 8, `docs/DESIGN_TOKENS.md`). A persisted removed id falls back to the default through the existing validation. `griddo` stays the default until Paper ships in the theme stage. Phases 36–40 (Tasks 180–208) are retired as superseded. Their deferred items are rebound: Phase 41 MI-2 (Terminal) is proposed Dropped for the user to close; P29-01 and Phase 34 MI-6 go to the theme stage (`2026-10-17-theme-scope-replan`). From this task on, no test or check covers the removed themes. (user, 2026-10-20/22) |
 | F29 | Theme scope of the lane. The new surfaces (status icon, emphasis and tooltip, toast status blend, Home button, breadcrumb reveal) are built on semantic tokens. Checkpoints check `griddo`, `retro-mac` and `neumorphism` for correct rendering and `claymorphism` only for not breaking. The per-theme finishing of these surfaces for `retro-mac` and `neumorphism`, and all of Paper and Claymorphism, belong to the theme stage (`2026-10-17-theme-scope-replan`). (user, 2026-10-22) |
 | F30 | A development-only state switch forces each status state (delayed pending, reconciling, unknown, not applied, rejected, conflict, integrity, offline), so every state can be judged in the running app without inserted markup; locally an Inbox command ends in about 50ms, so these states do not appear on their own. SaaS Phase 47 reuses the switch for its network states. It never ships enabled. (user, 2026-10-22) |
+| F31 | Browser isolation for two lanes. `.mcp.json` starts the Playwright MCP server with `--isolated`, so a session of each lane can open its own browser at the same time. The profile lives in memory and is gone when the session ends; checks seed again through `scripts/dev-fixtures/inbox-triage.js`. A worktree branched before promotion ② (Phase 42) keeps the shared profile, which is safe while only one session uses it. Promotion ② makes the change. (user, 2026-10-22; parallel-lanes note §8 item 4) |
+| F32 | Phase waits. `docs/WORKFLOW.md` and `CLAUDE.md` state that a phase waits only for the phases its plan entry lists; a phase that waits for none says so; a phase that states nothing waits for every phase before it in plan order. This matches the applied `/run-phase` and `/end-phase` change (claude-workflow `b2b7671`, `6044e30`). Promotion ② makes the change. (user, 2026-10-22; parallel-lanes note §8 item 5) |
+| F33 | Lane split (amends S41's "closes before Phase 45" and the order below). Phase 49 (Tasks 241–244) holds what the SaaS phases need first: the theme-set reduction (F28), the visual decision `DP-FB-01` together with SaaS `DP-SAAS-01`, the shared status primitives (F02 delay, F03 loader and icons, F09 tooltip, F15 status hues, F30 switch), and the toast position, colour and create-dialog change (F12, F15, F16). It waits for no phase and runs beside Phases 42–44. Phase 50 (Tasks 245–250) holds the Inbox status redesign (F01, F04–F10, MI-21), the Home button and breadcrumb reveal (F21–F25), the blocked-zone removal (F26, together with the reveal so the fixed breadcrumb never covers top-left cards) and MI-14 (F27). It waits for Phases 49 and 45, runs beside Phases 46–48, does not block launch and closes before the theme stage; after Phase 45 it uses local Supabase without reset or migrations. Phases 45 and 47 wait for Phase 49 only, and Phase 45 uses the S43 (4) fallback. Task 234 puts the account icon below Home if F21 has landed, otherwise at the top, and Phase 50 puts Home above it. Task 225 shrinks to confirming the recorded `DP-SAAS-01`. (user, 2026-10-22) |
 
 ## Feedback layer table
 
@@ -176,7 +181,7 @@ Order with the SaaS phases (S39, amended by S41):
 - F17's account icon slot is built in Phase 47; Phase 48 adds the modal
   (SaaS S43 (1)).
 - The feedback lane runs beside Phases 42–44 and closes before Phase 45
-  (S41). It carries the theme-set reduction (F28) first, then everything
+  (S41; split into Phases 49 and 50 by F33). It carries the theme-set reduction (F28) first, then everything
   else: the Inbox redesign (F03–F10, MI-21), the toast position and colour
   blend (F12, F15, one move as S28 asks), the create-dialog change (F16), the
   breadcrumb reveal with the Home button and the blocked-zone removal
@@ -214,8 +219,10 @@ Canonical documents to amend:
   removed lines or the breadcrumb.
 - `CLAUDE.md` Architecture 6: name the display delay (presentation only).
 - `docs/EXECUTION_PLAN.md`: the feedback lane phase, numbered after Phase 48
-  and run before Phase 45 (F28 first, then the rest); the retirement of
-  Phases 36–40 (F28). `docs/issues/Issues_Deferred.md`: bind MI-14 and MI-21
+  and run before Phase 45 (F28 first, then the rest), stating that it waits
+  for no phase (beside Phases 42–44); under F33, Phases 49 and 50 with their
+  waits; the retirement of Phases 36–40 (F28).
+- `.mcp.json` (F31); `docs/WORKFLOW.md` and `CLAUDE.md` §Workflow (F32). `docs/issues/Issues_Deferred.md`: bind MI-14 and MI-21
   to the lane, rebind MI-13, P29-01, Phase 34 MI-6 and Phase 41 MI-2 per F28.
 - `CLAUDE.md` Architecture 8 and `docs/DESIGN_TOKENS.md` §Color Theme System:
   four themes in the picker (F28).
