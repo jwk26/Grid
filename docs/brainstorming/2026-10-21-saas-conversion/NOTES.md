@@ -115,7 +115,8 @@ Brainstorming only: no production code and no canonical-document edits.
 
 In the suggested order. "Rec." is the advisory recommendation of 2026-10-21,
 not a decision. Answered: 1 (S07), 2 (S08), 3 (S10), 4 (S11–S13), 5 (S14),
-6 (S09, S15), 7 (S16), 8 (S17), 9 (S13, S18), 10 (S19).
+6 (S09, S15), 7 (S16), 8 (S17), 9 (S13, S18), 10 (S19), 11 (S20), 12 (S21,
+S22), 14 (S24). Open: 13 (S23 drafted, awaiting the user), 15.
 
 1. **Client data architecture.**
    (a) Server-authoritative with a client query cache (for example TanStack
@@ -350,3 +351,32 @@ Questions 6–10 (S15–S19), same session:
   Trash cleanup (`pg_cron`) was not chosen: Trash is only seen inside the app,
   so client-triggered cleanup changes nothing for the user; the anonymous
   account cleanup (S10) is the one server-scheduled job (question 12).
+
+Questions 11–14 (S20–S24), same session:
+
+- Facts: Free plan (pricing page, 2026-10-21): 2 active projects, 500 MB
+  database, paused after 1 week of inactivity, no automatic backups and no
+  point-in-time recovery (Pro from $25/month has daily backups kept 7 days),
+  50,000 MAU, 5 GB egress. The Cron docs do not state plan availability for
+  `pg_cron`. The repository `jwk26/griddo` is public. User-facing "GridDO"
+  appears only in `layout.tsx` metadata, the `sr-only` h1 of
+  `(grid)/page.tsx` and the theme picker label; there is no CI workflow.
+- The first explanation of 11–14 was too dense for the user (new services,
+  infrastructure terms); it was redone as "what you see / what you do" with a
+  service table. Only money and sign-up policy were left as the user's
+  decisions; the rest were set as technical defaults.
+- S20: pgTAP was not chosen, to keep one test tool the user knows (Vitest)
+  and to exercise the TypeScript boundary. OrbStack was first suggested, then
+  Docker Desktop was recommended as the standard with the most material; the
+  user corrected nothing there but asked whether OrbStack was Supabase-specific
+  (it is not: both run the same Docker containers).
+- S22: the pause is per project, not per account, so the owner's daily use is
+  enough; the user pointed this out and the keep-alive job was dropped. A
+  daily encrypted GitHub Actions backup was proposed (encryption needed because
+  the repository is public) and deferred by the user; the advisory flagged
+  that without a backup a function bug or a bad migration can destroy the
+  owner's data irreversibly, the same class of loss that started this topic,
+  and the manual pre-migration dump was accepted as the minimum. Pro was not
+  chosen (cost).
+- S21: a Vercel preview environment was not chosen because it would need a
+  second Supabase project or would point at production.
