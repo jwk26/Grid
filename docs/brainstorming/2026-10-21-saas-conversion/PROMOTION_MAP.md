@@ -110,13 +110,15 @@ Phase 48). ① marks Phases 36–40 only as awaiting ②.
 
 ## Local Supabase across lanes (user, 2026-10-22)
 
-The machine runs one local Supabase. Only the SaaS lane manages it (start,
-reset, migrations). The feedback lane runs `pnpm test:db` only at its close,
-after merging `main`. Promotion ① writes this into the CLAUDE.md Test data line
-and PLANNING_STANDARD. Corollary: the feedback lane does not edit
-`supabase/`. If the local database then carries SaaS migrations that are not on
-`main` yet, a failure in the lane's close run is checked against the open SaaS
-phase before it counts as a lane failure.
+The machine runs one local Supabase. `pnpm test:db` first resets the local
+database to the current branch's migrations, then runs the suites. Only the
+SaaS lane manages the database (start, reset, migrations) and runs
+`pnpm test:db` in every task. The feedback lane does not edit `supabase/`,
+leaves `pnpm test:db` out of its task gates, and runs it only at its close,
+after merging `main`, at a time when the SaaS lane is not doing database work;
+the SaaS lane's next run resets the database back to its own branch. Written
+into the CLAUDE.md Gates and Local Supabase lines; PLANNING_STANDARD repeats
+it.
 
 ## Superseded rules
 
@@ -148,7 +150,7 @@ Each document is approved by the user and committed before the next.
 - [x] `docs/SCHEMA.md` (approved 2026-10-22)
 - [x] `docs/SPEC.md` (approved 2026-10-22; the narrow-window notice overlays the mounted app, and Phase 47 only checks the Inbox status presentation under real latency)
 - [x] `docs/DESIGN_TOKENS.md` (approved 2026-10-22)
-- [ ] `CLAUDE.md` and the `docs/prd.md` note
+- [x] `CLAUDE.md` and the `docs/prd.md` note (approved 2026-10-22)
 - [ ] `docs/EXECUTION_PLAN.md` (Phases 42–48, expected Tasks 213–239) and `docs/PLANNING_STANDARD.md`
 - [ ] Flow review (`expert`) in `docs/reviews/`
 - [ ] `docs/issues/Issues_Deferred.md` (MI-19, MI-23)
