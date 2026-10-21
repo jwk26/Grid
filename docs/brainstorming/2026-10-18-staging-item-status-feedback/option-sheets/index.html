@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback Option Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  /* ---------- page chrome (neutral, not themed) ---------- */
+  :root {
+    --ink: #1d1d1f; --ink-2: #55565b; --line: #e3e3e6; --paper: #fafaf9; --chip: #f1f1f3;
+    --rec: #0a7a3d; --rec-bg: #e8f6ee;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+    font: 15px/1.6 -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif; }
+  header.top { position: sticky; top: 0; z-index: 50; background: rgba(250,250,249,.94);
+    backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); padding: 12px 24px;
+    display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+  header.top h1 { font-size: 17px; margin: 0; }
+  .switch { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .switch span { color: var(--ink-2); font-size: 13px; margin-right: 4px; }
+  .switch button { border: 1px solid var(--line); background: #fff; border-radius: 999px;
+    padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .switch button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  main { max-width: 1120px; margin: 0 auto; padding: 8px 24px 80px; }
+  section.q { border-top: 1px solid var(--line); padding: 28px 0 8px; }
+  section.q > h2 { font-size: 20px; margin: 0 0 4px; }
+  .qid { display: inline-block; background: var(--ink); color: #fff; border-radius: 6px;
+    font-size: 12px; padding: 1px 8px; margin-right: 8px; vertical-align: 2px; }
+  .lead { color: var(--ink-2); margin: 0 0 16px; max-width: 760px; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .opt { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .opt.rec { border-color: var(--rec); box-shadow: 0 0 0 1px var(--rec) inset; }
+  .opt h3 { margin: 0 0 10px; font-size: 16px; }
+  .badge-rec { background: var(--rec-bg); color: var(--rec); font-size: 12px; border-radius: 999px;
+    padding: 1px 8px; margin-left: 6px; font-weight: 600; }
+  .opt ul { margin: 12px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; }
+  .opt li { margin: 2px 0; }
+  .look { background: var(--chip); border-radius: 10px; padding: 12px 14px; margin: 0 0 16px;
+    font-size: 14px; max-width: 860px; }
+  .look b { color: var(--ink); }
+  .look ol { margin: 6px 0 0; padding-left: 20px; }
+  .demo-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+  .demo-controls button { border: 1px solid var(--line); background: #fff; border-radius: 8px;
+    padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  .demo-controls button:hover { background: var(--chip); }
+  .caption { font-size: 12px; color: var(--ink-2); margin: 6px 0 0; }
+  .row-pair { display: grid; gap: 14px; }
+  .label-sm { font-size: 12px; color: var(--ink-2); margin: 0 0 4px; font-weight: 600; }
+  table.map { border-collapse: collapse; width: 100%; font-size: 14px; background: #fff; }
+  table.map th, table.map td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+  table.map th { background: var(--chip); }
+
+  /* ---------- themed stage ---------- */
+  .stage { background: var(--t-page); color: var(--t-fg); font-family: var(--t-font);
+    border-radius: 10px; padding: 18px; border: 1px solid var(--line); overflow: visible; }
+  [data-theme="griddo"] {
+    --t-page: hsl(38 28% 91%); --t-card: hsl(0 0% 100%); --t-fg: hsl(240 10% 3.9%);
+    --t-muted: hsl(240 5% 96%); --t-muted-fg: hsl(240 4% 46%); --t-border: hsl(240 6% 90%);
+    --t-primary: hsl(221 83% 53%); --t-primary-fg: hsl(210 40% 98%);
+    --t-font: "Geist", -apple-system, system-ui, sans-serif;
+    --t-radius: 10px; --t-card-radius: 14px; --t-bw: 1px; --t-border-c: hsl(240 6% 90%);
+    --t-shadow: 0 4px 14px rgba(15,23,42,.1); --t-well: hsl(240 5% 96% / .6); --t-well-shadow: none;
+    --t-emph-offset: 1px; --t-tip-bg: hsl(240 10% 3.9%); --t-tip-fg: #fff; --t-tip-radius: 7px;
+  }
+  [data-theme="retro-mac"] {
+    --t-page: hsl(0 0% 90%); --t-card: #fff; --t-fg: #000; --t-muted: #fff; --t-muted-fg: #333;
+    --t-border: #000; --t-primary: #000; --t-primary-fg: #fff;
+    --t-font: "Space Mono", ui-monospace, monospace;
+    --t-radius: 0px; --t-card-radius: 0px; --t-bw: 2px; --t-border-c: #000;
+    --t-shadow: 2px 2px 0 #000; --t-well: #fff; --t-well-shadow: none;
+    --t-emph-offset: 3px; --t-tip-bg: #fff; --t-tip-fg: #000; --t-tip-radius: 0px;
+  }
+  [data-theme="neumorphism"] {
+    --t-page: hsl(210 20% 90%); --t-card: hsl(210 20% 90%); --t-fg: hsl(0 0% 20%);
+    --t-muted: hsl(210 20% 90%); --t-muted-fg: hsl(0 0% 38%); --t-border: transparent;
+    --t-primary: hsl(0 0% 20%); --t-primary-fg: #fff;
+    --t-font: "Inter", -apple-system, system-ui, sans-serif;
+    --t-radius: 14px; --t-card-radius: 18px; --t-bw: 0px; --t-border-c: transparent;
+    --t-shadow: 5px 5px 10px #c5c9d1, -5px -5px 10px #ffffff;
+    --t-well: hsl(210 20% 90%); --t-well-shadow: inset 6px 6px 12px #c5c9d1, inset -6px -6px 12px #ffffff;
+    --t-emph-offset: 3px; --t-tip-bg: hsl(0 0% 20%); --t-tip-fg: #fff; --t-tip-radius: 10px;
+  }
+  [data-theme="retro-mac"] .tip { border: 2px solid #000; box-shadow: 2px 2px 0 #000; }
+
+  .icon { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round; display: block; }
+  .icon.lg { width: 22px; height: 22px; }
+  .spin { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  body.reduce .spin { animation: none; }
+  @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+
+  /* emphasis: ring + icon; shape carries the state, not colour alone */
+  .emph { outline: 2px solid var(--t-primary); outline-offset: var(--t-emph-offset); }
+  .status { color: var(--t-primary); display: inline-flex; }
+  .status.loader { color: var(--t-muted-fg); }
+
+  /* tooltip: hover or keyboard focus of the item */
+  .has-tip { position: relative; }
+  .tip { display: none; position: absolute; z-index: 40; left: 50%; bottom: calc(100% + 8px);
+    transform: translateX(-50%); width: max-content; max-width: 240px; background: var(--t-tip-bg);
+    color: var(--t-tip-fg); border-radius: var(--t-tip-radius); padding: 6px 9px; font-size: 12px;
+    line-height: 1.4; pointer-events: none; text-align: left; white-space: normal; }
+  .tip b { font-weight: 600; }
+  .has-tip:hover > .tip, .has-tip:focus-within > .tip { display: block; }
+  .tip.right { left: auto; right: -4px; transform: none; }
+  .has-tip:has(.slot-br:hover) > .tip, .has-tip:has(.slot-br:focus-within) > .tip { display: none; }
+
+  /* Breakdown row (shared grid: grip | title | slot | actions) */
+  .plate { background: var(--t-card); border: var(--t-bw) solid var(--t-border-c); border-radius: var(--t-card-radius);
+    box-shadow: var(--t-shadow); padding: 10px; }
+  .plate-h { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--t-muted-fg);
+    margin: 0 0 8px; font-weight: 600; }
+  .brow { display: grid; align-items: center; height: 40px; gap: 0; border-radius: var(--t-radius);
+    background: var(--t-card); border: var(--t-bw) solid var(--t-border-c); padding: 0 4px; margin: 6px 0; }
+  [data-theme="neumorphism"] .brow { box-shadow: 2px 2px 4px #c5c9d1, -2px -2px 4px #fff; }
+  [data-theme="griddo"] .brow { border-color: hsl(240 6% 90%); }
+  .brow.old { grid-template-columns: 28px minmax(0, 1fr) 160px 152px; }
+  .brow.new { grid-template-columns: 28px minmax(0, 1fr) 22px 152px; }
+  .brow .grip { display: flex; justify-content: center; color: var(--t-muted-fg); background: none;
+    border: 0; padding: 0; cursor: grab; height: 28px; align-items: center; border-radius: 6px; }
+  .brow .grip:focus-visible { outline: 2px solid var(--t-primary); }
+  .brow .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; padding: 0 6px; min-width: 0; }
+  .brow .slot { display: flex; justify-content: center; align-items: center; height: 100%; }
+  .brow .slot.reserved { background: repeating-linear-gradient(45deg, transparent 0 6px, hsl(0 80% 60% / .14) 6px 12px);
+    font-size: 11px; color: hsl(0 70% 45%); justify-content: center; }
+  .brow .acts { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
+  .btn { font: inherit; font-size: 12px; border: var(--t-bw) solid var(--t-border-c); background: transparent;
+    color: var(--t-fg); border-radius: calc(var(--t-radius) - 4px); padding: 3px 8px; cursor: pointer; white-space: nowrap; }
+  [data-theme="griddo"] .btn { border-color: transparent; }
+  [data-theme="griddo"] .btn.outline { border-color: hsl(240 6% 85%); }
+  [data-theme="neumorphism"] .btn.outline { box-shadow: 2px 2px 4px #c5c9d1, -2px -2px 4px #fff; }
+  .btn[disabled], .btn[aria-disabled="true"] { opacity: .45; cursor: default; }
+  .brow.dim .title, .brow.dim .grip { opacity: .45; }
+  .brow.gone { display: none; }
+  .ruler { display: grid; font-size: 10px; color: var(--ink-2); font-family: ui-monospace, monospace; margin-top: 2px; }
+  .ruler > span { border-left: 1px solid #c8c8cc; padding-left: 3px; overflow: hidden; white-space: nowrap; }
+
+  /* Add field */
+  .addrow { display: flex; gap: 6px; align-items: center; margin-top: 10px; }
+  .field { flex: 1; display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 8px;
+    background: var(--t-card); border: var(--t-bw) solid var(--t-border-c); border-radius: var(--t-radius); min-width: 0; }
+  [data-theme="griddo"] .field { border-color: hsl(240 6% 85%); }
+  [data-theme="neumorphism"] .field { box-shadow: inset 3px 3px 6px #c5c9d1, inset -3px -3px 6px #fff; }
+  .field input { flex: 1; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px; color: var(--t-fg); min-width: 0; }
+
+  /* Staging */
+  .staging { background: var(--t-card); border: var(--t-bw) solid var(--t-border-c); border-radius: var(--t-card-radius);
+    box-shadow: var(--t-shadow); padding: 8px; }
+  .staging-h { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--t-muted-fg); margin: 0 0 6px; }
+  .sub-h { font-size: 11px; color: var(--t-muted-fg); margin: 0 0 4px; font-weight: 600; }
+  .well { background: var(--t-well); box-shadow: var(--t-well-shadow); border-radius: var(--t-radius); padding: 6px; min-height: 120px; }
+  [data-theme="retro-mac"] .well { border: 2px solid #000; }
+  [data-theme="griddo"] .well { border: 1px dashed hsl(240 6% 85%); }
+  .ncard { background: var(--t-card); border: var(--t-bw) solid var(--t-border-c); border-radius: calc(var(--t-card-radius) - 4px);
+    box-shadow: var(--t-shadow); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; padding: 6px 4px; min-width: 0; height: 64px; }
+  [data-theme="griddo"] .ncard { border-color: hsl(240 6% 88%); }
+  .ncard .t { font-size: 11px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .corner { position: absolute; top: 3px; right: 3px; }
+  .bitrow { display: flex; align-items: center; gap: 6px; background: var(--t-card); border: var(--t-bw) solid var(--t-border-c);
+    border-radius: calc(var(--t-radius) - 2px); box-shadow: var(--t-shadow); padding: 0 8px; margin-bottom: 6px; min-height: 34px; min-width: 0; }
+  [data-theme="griddo"] .bitrow { border-color: hsl(240 6% 88%); }
+  .bitrow .t { flex: 1; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bitrow.two { flex-wrap: wrap; padding: 4px 8px; }
+  .bitrow .line { flex-basis: 100%; display: flex; gap: 4px; align-items: center; font-size: 11px; color: var(--t-muted-fg);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Explorer node card (~84px) */
+  .xcard-wrap { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-end; padding-top: 70px; }
+  .xcard { position: relative; width: 84px; height: 84px; background: var(--t-card); border: var(--t-bw) solid var(--t-border-c);
+    border-radius: var(--t-card-radius); box-shadow: var(--t-shadow); display: grid; grid-template-rows: 1fr 22px;
+    justify-items: center; padding: 8px 6px 6px; }
+  [data-theme="griddo"] .xcard { border-color: hsl(240 6% 88%); }
+  .xcard .ic { align-self: center; }
+  .xcard .t { font-size: 11px; width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .xcard .t.pad { padding-right: 0; }
+  .newmark { position: absolute; top: 4px; left: 5px; font-size: 9px; font-weight: 700; letter-spacing: .05em;
+    color: var(--t-primary); }
+  .slot-br { position: absolute; bottom: 3px; right: 3px; z-index: 5; }
+  .slot-br .btn { font-size: 10px; padding: 1px 5px; background: var(--t-card); }
+  .iconbtn { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px;
+    border: 0; background: transparent; color: var(--t-primary); padding: 0; cursor: pointer; }
+  .iconbtn:focus-visible, .xcard:focus-visible, .ncard:focus-visible, .bitrow:focus-visible { outline: 2px solid var(--t-primary); outline-offset: 2px; }
+  .iconbtn.act { background: var(--t-card); border: var(--t-bw) solid var(--t-border-c); }
+  [data-theme="griddo"] .iconbtn.act { border: 1px solid hsl(240 6% 85%); }
+
+
+  /* ---------- Explorer rows (actual inbox-explorer row form) ---------- */
+  .xcols { display: flex; gap: 18px; flex-direction: column; align-items: flex-start; padding-top: 64px; }
+  .xcol { container-type: inline-size; display: flex; flex-direction: column; gap: 8px; }
+  .xcol.w200 { width: 240px; } .xcol.w150 { width: 150px; }
+  .xcol-label { font: 600 11px/1.3 -apple-system, system-ui, sans-serif; color: var(--ink-2); margin: 0 0 2px; }
+  .xshell { position: relative; width: 100%; min-width: 0; }
+  .xnode, .xbit { position: relative; display: flex; align-items: center; width: 100%; min-width: 0;
+    color: var(--t-fg); font-family: var(--t-font); cursor: pointer; }
+  .xnode:focus-visible, .xbit:focus-visible { outline: 2px solid var(--t-primary); outline-offset: 2px; }
+  .xtitle { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .xicon { flex: none; display: inline-flex; align-items: center; justify-content: center; }
+  .xchev { flex: none; display: inline-flex; color: var(--t-muted-fg); }
+  .xmark { flex: none; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; white-space: nowrap; }
+  .xmark::before { content: ""; width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+  .xstatus { flex: none; display: inline-flex; color: var(--t-primary); }
+  .xslot { position: absolute; top: 50%; transform: translateY(-50%); z-index: 5; display: inline-flex; }
+  .xbit .xslot { position: static; transform: none; margin-inline-start: auto; }
+  .xbtn { display: inline-flex; align-items: center; justify-content: center; font-family: var(--t-font);
+    cursor: pointer; padding: 0; color: var(--t-primary); white-space: nowrap; }
+  .xbtn .icon { width: 14px; height: 14px; }
+  .xbtn.text { padding: 0 10px; }
+  .xshell.has-tip:has(.xslot:hover) > .tip, .xshell.has-tip:has(.xslot:focus-within) > .tip,
+  .xbit.has-tip:has(.xslot:hover) > .tip, .xbit.has-tip:has(.xslot:focus-within) > .tip { display: none; }
+  .xslot.has-tip > .tip { left: auto; right: -4px; transform: none; }
+
+  /* griddo: rows drawn with griddo tokens (the current griddo Explorer still uses the square Grid card) */
+  [data-theme="griddo"] .xnode, [data-theme="griddo"] .xbit { background: #fff; border: 1px solid hsl(240 6% 88%);
+    border-radius: 10px; box-shadow: 0 1px 3px rgba(15,23,42,.08); gap: 8px; }
+  [data-theme="griddo"] .xnode { padding: 8px var(--reserve, 10px) 8px 8px; min-height: 40px; }
+  [data-theme="griddo"] .xbit { padding: 6px 8px; min-height: 34px; }
+  [data-theme="griddo"] .xtitle { font-size: 13px; font-weight: 500; }
+  [data-theme="griddo"] .xbit .xtitle { font-size: 12px; font-weight: 400; }
+  [data-theme="griddo"] .xmark { background: var(--t-primary); color: var(--t-primary-fg); border-radius: 999px;
+    font-size: 10px; letter-spacing: .06em; line-height: 16px; padding: 0 5px; }
+  [data-theme="griddo"] .xbtn { background: #fff; border: 1px solid var(--t-primary); border-radius: 4px; height: 24px; min-width: 24px; font-size: 10px; font-weight: 600; }
+  [data-theme="griddo"] .xnode + .xslot, [data-theme="griddo"] .xshell > .xslot { right: 8px; }
+  [data-theme="griddo"] .xshell { --undo-reserve: 40px; --text-reserve: 98px; }
+  @container (max-width: 160px) {
+    [data-theme="griddo"] .xmark { font-size: 0; gap: 0; letter-spacing: 0; padding: 3px 5px; }
+    [data-theme="griddo"] .xicon, [data-theme="griddo"] .xchev { display: none; }
+    [data-theme="griddo"] .xnode, [data-theme="griddo"] .xbit { gap: 6px; }
+  }
+
+  /* neumorphism (globals.css 7569-7690, 8329-8440) */
+  [data-theme="neumorphism"] .xnode, [data-theme="neumorphism"] .xbit { background: var(--t-page); border-radius: 18px;
+    box-shadow: 5px 5px 10px #c5c9d1, -5px -5px 10px #ffffff; color: hsl(0 0% 20% / .8); }
+  [data-theme="neumorphism"] .xnode { gap: 12px; padding: 10px var(--reserve, 14px) 10px 12px; }
+  [data-theme="neumorphism"] .xnode .xicon { width: 32px; height: 32px; border-radius: 999px;
+    box-shadow: inset 3px 3px 6px #c5c9d1, inset -3px -3px 6px #ffffff; }
+  [data-theme="neumorphism"] .xtitle { font-size: 13px; font-weight: 600; }
+  [data-theme="neumorphism"] .xbit { gap: 10px; padding: 9px 12px 9px 12px; }
+  [data-theme="neumorphism"] .xbit .xtitle { font-weight: 500; }
+  [data-theme="neumorphism"] .xbit .xicon { width: 24px; height: 24px; padding: 5px; border-radius: 999px;
+    box-shadow: inset 2px 2px 4px #c5c9d1, inset -2px -2px 4px #ffffff; color: hsl(0 0% 20% / .65); }
+  [data-theme="neumorphism"] .xmark { border-radius: 999px; box-shadow: inset 2px 2px 4px #c5c9d1, inset -2px -2px 4px #ffffff;
+    color: hsl(0 0% 25%); font-size: 10px; letter-spacing: .08em; line-height: 14px; padding: 3px 10px; gap: 5px; }
+  [data-theme="neumorphism"] .xmark::before { width: 6px; height: 6px; }
+  [data-theme="neumorphism"] .xnode .xmark { margin-inline-end: -4px; }
+  [data-theme="neumorphism"] .xbtn { background: var(--t-page); height: 28px; min-width: 28px; border-radius: 999px; border: 0;
+    box-shadow: 2px 2px 4px #c5c9d1, -2px -2px 4px #ffffff; color: hsl(0 0% 20% / .8); font-size: 11px; font-weight: 700; }
+  [data-theme="neumorphism"] .xbtn.text { padding: 0 14px; }
+  [data-theme="neumorphism"] .xshell > .xslot { right: 12px; }
+  [data-theme="neumorphism"] .xshell { --undo-reserve: 48px; --text-reserve: 112px; }
+  [data-theme="neumorphism"] .xchev { color: hsl(0 0% 20% / .6); }
+  /* narrow column compact form (Task 179 MI-17): marker as dot, no type icon, no chevron */
+  @container (max-width: 160px) {
+    [data-theme="neumorphism"] .xmark { font-size: 0; gap: 0; letter-spacing: 0; padding: 3px 6px; }
+    [data-theme="neumorphism"] .xbit .xmark { margin-inline-start: 0; }
+    [data-theme="neumorphism"] .xicon, [data-theme="neumorphism"] .xchev { display: none; }
+    [data-theme="neumorphism"] .xnode { gap: 6px; padding-inline-start: 8px; }
+    [data-theme="neumorphism"] .xbit { gap: 6px; padding-inline: 6px 4px; }
+    [data-theme="neumorphism"] .xshell > .xslot { right: 8px; }
+    [data-theme="neumorphism"] .xbit .xslot { margin-inline-end: 4px; }
+  }
+
+  /* retro-mac (globals.css 1943-2130, 5744-5830): folder-tab Node, single-outline Bit */
+  [data-theme="retro-mac"] .xnode { isolation: isolate; background: transparent; gap: 8px;
+    padding: 11px var(--reserve, 6px) 8px 6px; min-height: 47px; font-size: 10px; }
+  [data-theme="retro-mac"] .xnode::before, [data-theme="retro-mac"] .xnode::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+  [data-theme="retro-mac"] .xnode::before { background: #fff;
+    clip-path: polygon(0 0, 28% 0, calc(28% + 3px) 3px, 100% 3px, 100% 100%, 0 100%); }
+  [data-theme="retro-mac"] .xnode::after { background: #000; clip-path: polygon(evenodd,
+    0 100%, 0 0, 28% 0, calc(28% + 3px) 3px, 100% 3px, 100% 100%, 0 100%,
+    1px calc(100% - 1px), calc(100% - 1px) calc(100% - 1px), calc(100% - 1px) 4px, calc(28% + 2.5px) 4px, calc(28% - 0.5px) 1px, 1px 1px, 1px calc(100% - 1px), 0 100%,
+    3px calc(100% - 3px), 3px 3px, calc(28% - 1.5px) 3px, calc(28% + 1.5px) 6px, calc(100% - 3px) 6px, calc(100% - 3px) calc(100% - 3px), 3px calc(100% - 3px),
+    4px calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 7px, calc(28% + 1px) 7px, calc(28% - 2px) 4px, 4px 4px, 4px calc(100% - 4px), 3px calc(100% - 3px), 0 100%); }
+  [data-theme="retro-mac"] .xnode .xicon .icon { width: 14px; height: 14px; }
+  [data-theme="retro-mac"] .xtitle { font-size: 10px; font-weight: 700; text-transform: uppercase; line-height: 1.5; }
+  [data-theme="retro-mac"] .xchev .icon { width: 10px; height: 10px; }
+  [data-theme="retro-mac"] .xbit { border: 1px solid hsl(0 0% 0% / .4); background: hsl(0 0% 0% / .04); min-height: 34px; gap: 4px; padding: 4px; }
+  [data-theme="retro-mac"] .xbit .xtitle { font-size: 9px; font-style: italic; }
+  [data-theme="retro-mac"] .xbit .xicon .icon { width: 10px; height: 10px; }
+  [data-theme="retro-mac"] .xmark { background: #000; color: #fff; border: 1px solid #000; box-shadow: 1px 1px 0 #000;
+    font-size: 9px; letter-spacing: .06em; line-height: 14px; padding: 0 4px; }
+  [data-theme="retro-mac"] .xbtn { background: #fff; border: 1px solid #000; box-shadow: 1px 1px 0 #000; color: #000;
+    height: 22px; min-width: 24px; font-size: 9px; font-weight: 700; border-radius: 0; }
+  [data-theme="retro-mac"] .xbtn.text { padding: 0 5px; }
+  [data-theme="retro-mac"] .xshell > .xslot { right: 5px; top: calc(50% + 1.5px); }
+  [data-theme="retro-mac"] .xshell { --undo-reserve: 34px; --text-reserve: 100px; }
+  [data-theme="retro-mac"] .xstatus { color: #000; }
+  [data-theme="retro-mac"] .emph.xnode { outline: 2px solid #000; outline-offset: 3px; }
+
+  /* layout helpers */
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .cmp { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+  .w326 { width: 326px; max-width: 100%; }
+  .w250 { width: 250px; }
+  .w150 { width: 150px; }
+  .w300 { width: 300px; }
+  .bad { color: hsl(0 70% 45%); font-size: 12px; margin: 6px 0 0; }
+  .good { color: var(--rec); font-size: 12px; margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>피드백 옵션 시트 · 2라운드 (Inbox 아이템 상태)</h1>
+  <div class="switch" role="group" aria-label="테마">
+    <span>테마</span>
+    <button type="button" data-set-theme="griddo" aria-pressed="true">griddo (기본)</button>
+    <button type="button" data-set-theme="retro-mac" aria-pressed="false">retro-mac</button>
+    <button type="button" data-set-theme="neumorphism" aria-pressed="false">neumorphism</button>
+  </div>
+  <div class="switch" role="group" aria-label="움직임">
+    <span>움직임 줄이기</span>
+    <button type="button" id="reduce" aria-pressed="false">끔</button>
+  </div>
+</header>
+
+<main>
+  <p class="lead" style="margin-top:18px">
+    아래 화면 조각은 실제 앱의 테마 값(색·테두리·그림자·글꼴)으로 그렸습니다. 위 버튼으로 테마를 바꿔 보세요.
+    색과 모양은 지금 기준일 뿐이고, 테마별 최종 마감은 나중의 테마 단계에서 합니다. 여기서 정하는 건 <b>어디에, 무엇을</b> 보여 주느냐입니다.
+  </p>
+
+  <!-- ===================== 0. Round-1 confirmation ===================== -->
+  <section class="q" id="r1">
+    <h2><span class="qid">확인</span>1라운드에서 정한 것 — 직접 눌러 보기</h2>
+    <p class="lead">Breakdown 행 하나로 "300ms 지연", "로더는 아이콘만", "`?`/`!`만 강조"를 재현했습니다. Breakdown 판의 너비는 1024px에서 Pool을 연 상태의 실제 폭(370px)입니다.</p>
+    <div class="look">
+      <b>이렇게 확인해 보세요</b>
+      <ol>
+        <li><b>빠르게 성공</b>을 누르세요. 행이 그냥 사라져야 합니다. 로더가 번쩍이면 잘못된 것입니다(깜빡임 없음 = 정답).</li>
+        <li><b>행 되살리기</b> → <b>느리게 성공</b>. 0.3초 뒤에 회색 로더가 나타나고, 테두리는 생기지 않아야 합니다.</li>
+        <li><b>행 되살리기</b> → <b>결과 모름</b>. 1초 뒤 <code>?</code>와 강조 테두리, <b>Check again</b> 버튼이 생깁니다. 행에 마우스를 올리거나 Tab으로 손잡이(⋮⋮)에 포커스하면 문장 툴팁이 뜹니다.</li>
+        <li>그 상태에서 <b>Check again</b>을 누르세요. 버튼은 바로 흐려지고, <code>?</code>는 0.3초 동안 그대로 있다가 로더로 바뀌어야 합니다.</li>
+        <li><b>행 되살리기</b> → <b>실패</b>. <code>!</code>와 테두리가 생기고, 행은 그대로 남습니다.</li>
+      </ol>
+    </div>
+    <div class="stage" data-theme="griddo">
+      <div class="plate" style="width:370px;max-width:100%">
+        <p class="plate-h">Breakdown</p>
+        <div class="brow new" id="demo-row">
+          <button class="grip" type="button" aria-label="Drag Draft the launch checklist" aria-describedby="demo-tip">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+          </button>
+          <span class="title">Draft the launch checklist</span>
+          <span class="slot has-tip" id="demo-slot"></span>
+          <span class="acts" id="demo-acts"></span>
+        </div>
+        <div class="brow new">
+          <button class="grip" type="button" aria-label="Drag">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+          </button>
+          <span class="title">Ask design review for icons</span>
+          <span class="slot"></span>
+          <span class="acts"><button class="btn" type="button">Edit</button><button class="btn" type="button">Delete</button></span>
+        </div>
+      </div>
+      <div class="demo-controls" style="font-family:-apple-system,system-ui,sans-serif">
+        <button type="button" data-demo="fast">Delete — 빠르게 성공 (0.05초)</button>
+        <button type="button" data-demo="slow">Delete — 느리게 성공 (2초)</button>
+        <button type="button" data-demo="unknown">Delete — 결과 모름 (1초 후)</button>
+        <button type="button" data-demo="fail">Delete — 실패 (1초 후)</button>
+        <button type="button" data-demo="reset">행 되살리기 (시트용)</button>
+      </div>
+      <p class="caption" id="demo-log" aria-live="polite" style="font-family:-apple-system,system-ui,sans-serif">상태: 평소</p>
+    </div>
+  </section>
+
+  <!-- ===================== 1. Defaults ===================== -->
+  <section class="q" id="defaults">
+    <h2><span class="qid">기본값</span>따로 묻지 않고 이렇게 하려는 것</h2>
+    <p class="lead">선택지가 사실상 하나라서 제가 정해 두려는 부분입니다. 이상해 보이는 게 있으면 말씀만 해 주세요.</p>
+
+    <div class="cmp">
+      <div class="opt">
+        <h3>① Breakdown 행: 성공 자리 160px → 상태 칸 22px (MI-21)</h3>
+        <div class="stage" data-theme="griddo">
+          <p class="label-sm" style="font-family:system-ui">지금 (1024px, Pool 열림)</p>
+          <div class="brow old w326" style="background:var(--t-card)">
+            <span class="grip"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg></span>
+            <span class="title">Archive old receipts</span>
+            <span class="slot reserved">성공 자리</span>
+            <span class="acts"><button class="btn" type="button">Edit</button><button class="btn" type="button">Delete</button></span>
+          </div>
+          <div class="ruler w326" style="grid-template-columns:28px minmax(0,1fr) 160px 152px"><span>28</span><span>제목 0</span><span>160</span><span>152</span></div>
+          <p class="label-sm" style="font-family:system-ui;margin-top:14px">바뀐 뒤</p>
+          <div class="brow new w326">
+            <span class="grip"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg></span>
+            <span class="title">Archive old receipts</span>
+            <span class="slot"></span>
+            <span class="acts"><button class="btn" type="button">Edit</button><button class="btn" type="button">Delete</button></span>
+          </div>
+          <div class="ruler w326" style="grid-template-columns:28px minmax(0,1fr) 22px 152px"><span>28</span><span>제목 ≈ 120</span><span>22</span><span>152</span></div>
+        </div>
+        <ul>
+          <li>지금은 성공 문구용 160px가 항상 비어 있어서, 좁은 화면에서 제목 폭이 0이 됩니다(MI-21).</li>
+          <li>성공 표시가 없어졌으니 그 자리를 없애고, 아이콘용 22px 칸만 남깁니다. 평소에는 비어 있습니다.</li>
+          <li>칸을 미리 잡아 두는 이유: 아이콘이 생길 때 제목이 밀려 흔들리지 않게 하려는 것입니다.</li>
+        </ul>
+      </div>
+
+      <div class="opt">
+        <h3>② Add 입력칸: 칸 안 오른쪽 끝에 아이콘</h3>
+        <div class="stage" data-theme="griddo">
+          <div class="plate w326">
+            <p class="plate-h">Breakdown</p>
+            <div class="addrow">
+              <div class="field has-tip emph" tabindex="-1">
+                <input type="text" value="Call the venue about dates" aria-label="New breakdown" aria-describedby="add-tip">
+                <span class="status"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></span>
+                <span class="tip" id="add-tip" role="tooltip">Not added. Your draft is still here.</span>
+              </div>
+              <button class="btn outline" type="button">Retry Add</button>
+            </div>
+          </div>
+        </div>
+        <ul>
+          <li>Add는 실패하면 새 행이 없으니, 아이콘과 테두리는 입력칸에 붙습니다.</li>
+          <li>입력칸에 포커스하거나 마우스를 올리면 문장이 보입니다.</li>
+          <li>기존 <b>Retry Add</b> 버튼은 지금처럼 Add 버튼 자리에 그대로 둡니다.</li>
+        </ul>
+      </div>
+
+      <div class="opt">
+        <h3>③ Staging Node 카드: 오른쪽 위 모서리 아이콘</h3>
+        <div class="stage" data-theme="griddo">
+          <div class="grid2" style="width:180px">
+            <div class="ncard has-tip emph" tabindex="0" style="position:relative" aria-describedby="nc-tip">
+              <span class="corner status"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>
+              <svg class="icon lg" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+              <span class="t">Venue options</span>
+              <span class="tip" id="nc-tip" role="tooltip">We couldn’t confirm whether “Venue options” was returned.</span>
+            </div>
+            <div class="ncard" style="position:relative">
+              <span class="corner status loader"><svg class="icon spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></span>
+              <svg class="icon lg" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+              <span class="t">Budget draft</span>
+            </div>
+          </div>
+        </div>
+        <ul>
+          <li>왼쪽 카드: 결과 모름(<code>?</code>)이고 테두리가 있습니다. 마우스를 올리면 문장이 보입니다.</li>
+          <li>오른쪽 카드: 0.3초 넘게 진행 중이라 로더만 보이고 테두리는 없습니다.</li>
+          <li>지금 카드 안에 들어가 잘리던 줄(<code>Retur…</code>, mi-14)이 없어집니다.</li>
+          <li>Staging에는 원래 복구 버튼이 없습니다. 실패해서 사라지는 항목은 기존 Staging 알림 띠에 그대로 표시됩니다.</li>
+        </ul>
+      </div>
+
+      <div class="opt">
+        <h3>④ 툴팁이 여러 개 겹칠 때의 우선순위</h3>
+        <div class="stage" data-theme="griddo">
+          <div class="xcols"><div class="xcol w200"><p class="xcol-label">Explorer 열 240px (질문 B 권장안 기준)</p>
+            <div class="xshell has-tip"><div class="xnode emph" tabindex="0" style="--reserve:var(--undo-reserve)"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span><span class="xtitle">Quarterly planning retrospective</span><span class="xstatus"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="xchev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></div><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Check again"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button><span class="tip" role="tooltip"><b>Quarterly planning retrospective</b><br>We couldn’t confirm whether it was undone.<br>Select to check again.</span></span><span class="tip" role="tooltip"><b>Quarterly planning retrospective</b><br>We couldn’t confirm whether it was undone.</span></div>
+          </div></div>
+        </div>
+        <ul>
+          <li>제목이 잘렸고, 문제가 있고, 버튼도 있는 카드입니다.</li>
+          <li>카드 몸통에 마우스를 올리면 <b>문제 툴팁 하나만</b> 뜨고, 첫 줄에 잘리지 않은 전체 제목이 나옵니다. 따로 있던 "잘린 제목 툴팁"(Task 179A)은 이때 뜨지 않습니다.</li>
+          <li>오른쪽 버튼에 올리면 같은 내용에 버튼 동작 한 줄이 더해진 버튼 툴팁만 뜹니다.</li>
+          <li>문장에 이미 제목이 들어 있는 경우(Staging 문구 등)에는 제목을 두 번 쓰지 않습니다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== Q-A: Bit rows ===================== -->
+  <section class="q" id="qa">
+    <h2><span class="qid">질문 A</span>Bit 행: 아이콘만 쓸까, 짧은 줄을 같이 쓸까</h2>
+    <p class="lead">Staging의 Bit 행은 Node 카드보다 가로 폭이 넓어서 짧은 글을 넣을 자리가 있습니다. 그 자리를 쓸지, Node 카드처럼 아이콘만 둘지를 정합니다. 아래 행들은 1024px·Pool 열림(150px)과 넓은 화면(300px) 폭입니다.</p>
+    <div class="options">
+      <div class="opt rec">
+        <h3>A. 아이콘만 (Node와 같은 규칙)<span class="badge-rec">권장</span></h3>
+        <div class="stage" data-theme="griddo">
+          <p class="label-sm" style="font-family:system-ui">150px</p>
+          <div class="w150">
+            <div class="bitrow has-tip emph" tabindex="0" aria-describedby="qa1">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+              <span class="t">Book the photographer</span>
+              <span class="status"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>
+              <span class="tip" id="qa1" role="tooltip">We couldn’t confirm whether “Book the photographer” was staged.</span>
+            </div>
+            <div class="bitrow">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+              <span class="t">Send invites</span>
+            </div>
+          </div>
+          <p class="label-sm" style="font-family:system-ui;margin-top:10px">300px</p>
+          <div class="w300">
+            <div class="bitrow has-tip emph" tabindex="0">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+              <span class="t">Book the photographer</span>
+              <span class="status"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>
+              <span class="tip" role="tooltip">We couldn’t confirm whether “Book the photographer” was staged.</span>
+            </div>
+          </div>
+        </div>
+        <ul>
+          <li>Node 카드, Bit 행, Breakdown 행, Explorer 카드 모두 규칙이 하나입니다: <b>아이콘 + 테두리 + 툴팁</b>.</li>
+          <li>행 높이가 변하지 않아서 목록이 출렁이지 않습니다.</li>
+          <li>단점: 무슨 문제인지 보려면 마우스를 올리거나 포커스해야 합니다. 다만 결과 모름이나 실패는 드물게 일어납니다.</li>
+        </ul>
+      </div>
+      <div class="opt">
+        <h3>B. 아이콘 + 짧은 줄</h3>
+        <div class="stage" data-theme="griddo">
+          <p class="label-sm" style="font-family:system-ui">150px</p>
+          <div class="w150">
+            <div class="bitrow two has-tip emph" tabindex="0">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+              <span class="t">Book the photographer</span>
+              <span class="line"><span class="status"><svg class="icon" style="width:12px;height:12px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>Not confirmed</span>
+              <span class="tip" role="tooltip">We couldn’t confirm whether “Book the photographer” was staged.</span>
+            </div>
+            <div class="bitrow">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+              <span class="t">Send invites</span>
+            </div>
+          </div>
+          <p class="label-sm" style="font-family:system-ui;margin-top:10px">300px</p>
+          <div class="w300">
+            <div class="bitrow two has-tip emph" tabindex="0">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+              <span class="t">Book the photographer</span>
+              <span class="line"><span class="status"><svg class="icon" style="width:12px;height:12px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>Not confirmed</span>
+              <span class="tip" role="tooltip">We couldn’t confirm whether “Book the photographer” was staged.</span>
+            </div>
+          </div>
+        </div>
+        <ul>
+          <li>무엇이 문제인지 행에서 바로 짐작할 수 있습니다.</li>
+          <li>문제가 생긴 행만 키가 커져서 아래 행들이 밀립니다(지금 Staging이 겪는 출렁임과 같은 종류).</li>
+          <li>새 짧은 문구(<code>Not confirmed</code>, <code>Checking…</code>, <code>Not staged</code>)를 따로 만들고 관리해야 하고, Node 카드와 규칙이 갈립니다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== Q-B: Explorer row action ===================== -->
+  <section class="q" id="qb">
+    <h2><span class="qid">질문 B</span>Explorer의 NEW 카드에서 복구 버튼(Check again / Retry)을 어디에 둘까</h2>
+    <p class="lead">Inbox Explorer에 방금 놓은 Node·Bit 카드는 열 폭을 꽉 채우는 <b>가로 행</b>입니다. 행 왼쪽에 NEW 표시가 있고, 오른쪽 끝에 Undo 버튼 칸(↶)이 고정되어 있습니다.
+      아래는 Undo 결과를 모를 때(Node, <code>?</code>)와 Undo가 실패했을 때(Bit, <code>!</code>)의 모습을 실제 열 폭 두 가지로 그린 것입니다.
+      <b>판단은 retro-mac과 neumorphism으로 해 주세요.</b> 이 두 테마는 앱 CSS 값을 그대로 옮긴 실제 모양입니다. griddo는 지금 Explorer에서도 정사각형 Grid 카드를 쓰는데, 최종 테마 4종(paper 포함)은 모두 가로 행이라 griddo 색으로 행을 <b>참고용으로</b> 그렸습니다.</p>
+    <div class="look"><b>이렇게 확인해 보세요</b>
+      <ol>
+        <li>먼저 테마를 <b>neumorphism</b>이나 <b>retro-mac</b>으로 바꾸세요.</li>
+        <li>맨 위 "평소" 줄과 비교해 보세요. 문제가 생겼을 때 행 모양이 얼마나 바뀌는지가 핵심입니다.</li>
+        <li><b>150px 열</b>에서 제목이 몇 글자나 남는지 보세요. 1024px 화면에서 Pool을 열면 실제로 이 폭입니다.</li>
+        <li>버튼과 행 몸통에 각각 마우스를 올리거나 Tab으로 이동해 툴팁을 보세요.</li>
+      </ol>
+    </div>
+    <div class="opt" style="margin-bottom:16px">
+      <h3>참고: 평소 (Undo 가능)</h3>
+      <div class="stage" data-theme="griddo"><div class="xcols"><div class="xcol w200"><p class="xcol-label">열 폭 240px (넓은 화면 예시)</p><div class="xshell"><div class="xnode" tabindex="0" style="--reserve:var(--undo-reserve)"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span><span class="xtitle">Venue options for the offsite</span><span class="xchev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></div><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Undo placement of Venue options for the offsite"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><span class="tip" role="tooltip">Undo this placement.</span></span></div><div class="xbit" tabindex="0"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></span><span class="xtitle">Book the photographer</span><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Undo placement of Book the photographer"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><span class="tip" role="tooltip">Undo this placement.</span></span></div></div><div class="xcol w150"><p class="xcol-label">열 폭 150px (1024px·Pool 열림, MI-17 압축 형태)</p><div class="xshell"><div class="xnode" tabindex="0" style="--reserve:var(--undo-reserve)"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span><span class="xtitle">Venue options for the offsite</span><span class="xchev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></div><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Undo placement of Venue options for the offsite"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><span class="tip" role="tooltip">Undo this placement.</span></span></div><div class="xbit" tabindex="0"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></span><span class="xtitle">Book the photographer</span><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Undo placement of Book the photographer"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></button><span class="tip" role="tooltip">Undo this placement.</span></span></div></div></div></div>
+    </div>
+    <div class="options">
+      <div class="opt">
+        <h3>A. 지금 방식: 오른쪽에 글자 버튼</h3>
+        <div class="stage" data-theme="griddo"><div class="xcols"><div class="xcol w200"><p class="xcol-label">열 폭 240px (넓은 화면 예시)</p><div class="xshell has-tip"><div class="xnode emph" tabindex="0" style="--reserve:var(--text-reserve)"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span><span class="xtitle">Venue options for the offsite</span><span class="xstatus"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="xchev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></div><span class="xslot has-tip"><button class="xbtn text" type="button">Check again</button><span class="tip" role="tooltip">Read the result again without changing anything.</span></span><span class="tip" role="tooltip"><b>Venue options for the offsite</b><br>We couldn’t confirm whether it was undone.</span></div><div class="xbit has-tip emph" tabindex="0"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></span><span class="xtitle">Book the photographer</span><span class="xstatus"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></span><span class="xslot"><button class="xbtn text" type="button">Retry</button></span><span class="tip" role="tooltip"><b>Book the photographer</b><br>“Book the photographer” wasn’t undone. Nothing changed.</span></div></div><div class="xcol w150"><p class="xcol-label">열 폭 150px (1024px·Pool 열림, MI-17 압축 형태)</p><div class="xshell has-tip"><div class="xnode emph" tabindex="0" style="--reserve:var(--text-reserve)"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span><span class="xtitle">Venue options for the offsite</span><span class="xstatus"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="xchev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></div><span class="xslot has-tip"><button class="xbtn text" type="button">Check again</button><span class="tip" role="tooltip">Read the result again without changing anything.</span></span><span class="tip" role="tooltip"><b>Venue options for the offsite</b><br>We couldn’t confirm whether it was undone.</span></div><div class="xbit has-tip emph" tabindex="0"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></span><span class="xtitle">Book the photographer</span><span class="xstatus"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></span><span class="xslot"><button class="xbtn text" type="button">Retry</button></span><span class="tip" role="tooltip"><b>Book the photographer</b><br>“Book the photographer” wasn’t undone. Nothing changed.</span></div></div></div></div>
+        <ul>
+          <li>지금 앱이 실제로 하는 방식입니다. 복구 상태가 되면 행 오른쪽을 100~112px 비우고 그 자리에 글자 버튼을 넣습니다.</li>
+          <li>글자라서 무엇을 하는 버튼인지 가장 분명합니다.</li>
+          <li>단점: 넓은 열에서도 제목이 크게 줄고, 150px 열에서는 거의 사라지거나 버튼에 가려집니다. Breakdown 행의 MI-21과 같은 종류의 문제입니다.</li>
+          <li>상태가 바뀔 때마다 행 안의 배치가 크게 바뀝니다(↶ 하나 → 아이콘 + 넓은 버튼).</li>
+        </ul>
+      </div>
+      <div class="opt rec">
+        <h3>B. Undo 칸 하나에 상태 아이콘 버튼<span class="badge-rec">권장</span></h3>
+        <div class="stage" data-theme="griddo"><div class="xcols"><div class="xcol w200"><p class="xcol-label">열 폭 240px (넓은 화면 예시)</p><div class="xshell"><div class="xnode emph" tabindex="0" style="--reserve:var(--undo-reserve)"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span><span class="xtitle">Venue options for the offsite</span><span class="xchev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></div><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Check again"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button><span class="tip" role="tooltip"><b>Venue options for the offsite</b><br>We couldn’t confirm whether it was undone.<br>Select to check again.</span></span></div><div class="xbit emph" tabindex="0"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></span><span class="xtitle">Book the photographer</span><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Retry"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></button><span class="tip" role="tooltip"><b>Book the photographer</b><br>“Book the photographer” wasn’t undone. Nothing changed.<br>Select to try again.</span></span></div></div><div class="xcol w150"><p class="xcol-label">열 폭 150px (1024px·Pool 열림, MI-17 압축 형태)</p><div class="xshell"><div class="xnode emph" tabindex="0" style="--reserve:var(--undo-reserve)"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span><span class="xtitle">Venue options for the offsite</span><span class="xchev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></div><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Check again"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button><span class="tip" role="tooltip"><b>Venue options for the offsite</b><br>We couldn’t confirm whether it was undone.<br>Select to check again.</span></span></div><div class="xbit emph" tabindex="0"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></span><span class="xtitle">Book the photographer</span><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Retry"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></button><span class="tip" role="tooltip"><b>Book the photographer</b><br>“Book the photographer” wasn’t undone. Nothing changed.<br>Select to try again.</span></span></div></div></div></div>
+        <ul>
+          <li>Undo 버튼이 있던 칸이 그대로 <b>"Undo 작업의 상태 칸"</b>이 됩니다. 평소 ↶ → 진행 중 로더 → 결과 모름 <code>?</code>(누르면 다시 확인) → 실패 <code>!</code>(누르면 다시 실행) 순서로 바뀝니다.</li>
+          <li>상태가 바뀌어도 행 모양과 제목 폭이 전혀 변하지 않습니다. 150px 열에서도 평소에 보이던 만큼 제목이 그대로 보입니다(A는 사라짐).</li>
+          <li>앱에 이미 있는 "사용할 수 없는 Undo" 방식(포커스 가능, 툴팁으로 이유 표시)과 같습니다. 그래서 할 일이 없는 <code>!</code>(충돌 등)도 같은 칸에서 툴팁만 보여 주면 됩니다.</li>
+          <li>단점: 누르면 무엇이 되는지는 툴팁(<code>Select to check again.</code>)을 봐야 압니다.</li>
+        </ul>
+      </div>
+      <div class="opt">
+        <h3>C. 상태 아이콘 + ↻ 버튼</h3>
+        <div class="stage" data-theme="griddo"><div class="xcols"><div class="xcol w200"><p class="xcol-label">열 폭 240px (넓은 화면 예시)</p><div class="xshell has-tip"><div class="xnode emph" tabindex="0" style="--reserve:var(--undo-reserve)"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span><span class="xtitle">Venue options for the offsite</span><span class="xstatus"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="xchev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></div><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Check again"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button><span class="tip" role="tooltip">Check again</span></span><span class="tip" role="tooltip"><b>Venue options for the offsite</b><br>We couldn’t confirm whether it was undone.</span></div><div class="xbit has-tip emph" tabindex="0"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></span><span class="xtitle">Book the photographer</span><span class="xstatus"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></span><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Retry"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button><span class="tip" role="tooltip">Retry</span></span><span class="tip" role="tooltip"><b>Book the photographer</b><br>“Book the photographer” wasn’t undone. Nothing changed.</span></div></div><div class="xcol w150"><p class="xcol-label">열 폭 150px (1024px·Pool 열림, MI-17 압축 형태)</p><div class="xshell has-tip"><div class="xnode emph" tabindex="0" style="--reserve:var(--undo-reserve)"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></span><span class="xtitle">Venue options for the offsite</span><span class="xstatus"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="xchev"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></div><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Check again"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button><span class="tip" role="tooltip">Check again</span></span><span class="tip" role="tooltip"><b>Venue options for the offsite</b><br>We couldn’t confirm whether it was undone.</span></div><div class="xbit has-tip emph" tabindex="0"><span class="xmark">NEW</span><span class="xicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></span><span class="xtitle">Book the photographer</span><span class="xstatus"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></span><span class="xslot has-tip"><button class="xbtn" type="button" aria-label="Retry"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button><span class="tip" role="tooltip">Retry</span></span><span class="tip" role="tooltip"><b>Book the photographer</b><br>“Book the photographer” wasn’t undone. Nothing changed.</span></div></div></div></div>
+        <ul>
+          <li>"무슨 상태인지"(아이콘)와 "할 수 있는 일"(↻)이 나뉩니다.</li>
+          <li>단점: 아이콘 두 개만큼 제목이 줄어듭니다.</li>
+          <li>↻만 보고는 "다시 확인(아무것도 안 바꿈)"과 "다시 실행(실제로 바꿈)"이 구분되지 않아서, 결국 툴팁을 봐야 합니다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== Q-C: Staging narrow ===================== -->
+  <section class="q" id="qc">
+    <h2><span class="qid">질문 C</span>Staging이 좁을 때 Nodes 칸 (MI-21)</h2>
+    <p class="lead">1024px 화면에서 Pool을 열면 Staging 전체가 약 250px입니다. 지금은 Nodes 칸과 Bits 칸이 7:13으로 나뉘고, Nodes 칸 안에 카드를 무조건 2열로 놓아서 카드가 14px까지 찌그러집니다.</p>
+    <div class="options">
+      <div class="opt">
+        <h3>지금</h3>
+        <div class="stage" data-theme="griddo">
+          <div class="staging w250">
+            <p class="staging-h">Staging</p>
+            <div style="display:grid;grid-template-columns:minmax(0,7fr) minmax(0,13fr);gap:6px">
+              <div><p class="sub-h">2 Nodes</p><div class="well"><div class="grid2" style="gap:4px">
+                <div class="ncard" style="height:56px;padding:2px"><svg class="icon" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span class="t">Venue options</span></div>
+                <div class="ncard" style="height:56px;padding:2px"><svg class="icon" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span class="t">Budget</span></div>
+              </div></div></div>
+              <div><p class="sub-h">2 Bits</p><div class="well">
+                <div class="bitrow"><span class="t">Send invites</span></div>
+                <div class="bitrow"><span class="t">Book the photographer</span></div>
+              </div></div>
+            </div>
+          </div>
+        </div>
+        <p class="bad">Node 카드의 제목이 보이지 않습니다.</p>
+      </div>
+      <div class="opt rec">
+        <h3>A. Nodes 칸 최소 폭 + 좁으면 1열<span class="badge-rec">권장</span></h3>
+        <div class="stage" data-theme="griddo">
+          <div class="staging w250">
+            <p class="staging-h">Staging</p>
+            <div style="display:grid;grid-template-columns:minmax(92px,7fr) minmax(0,13fr);gap:6px">
+              <div><p class="sub-h">2 Nodes</p><div class="well"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px">
+                <div class="ncard"><svg class="icon lg" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span class="t">Venue options</span></div>
+                <div class="ncard"><svg class="icon lg" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span class="t">Budget</span></div>
+              </div></div></div>
+              <div><p class="sub-h">2 Bits</p><div class="well">
+                <div class="bitrow"><span class="t">Send invites</span></div>
+                <div class="bitrow"><span class="t">Book the photographer</span></div>
+              </div></div>
+            </div>
+          </div>
+        </div>
+        <ul>
+          <li>Nodes 칸은 카드 한 장(약 72px)이 들어갈 폭 밑으로는 줄지 않습니다.</li>
+          <li>카드 두 장이 들어갈 폭이 안 되면 자동으로 1열이 됩니다. 넓은 화면에서는 지금처럼 2열입니다.</li>
+          <li>Bits 칸이 조금 좁아지지만, 행이라서 제목이 말줄임으로 보입니다.</li>
+          <li>CSS 몇 줄로 끝나는 작은 변경이고, 모든 테마에 공통으로 적용됩니다.</li>
+        </ul>
+      </div>
+      <div class="opt">
+        <h3>B. 좁으면 위아래로 쌓기</h3>
+        <div class="stage" data-theme="griddo">
+          <div class="staging w250">
+            <p class="staging-h">Staging</p>
+            <p class="sub-h">2 Nodes</p><div class="well" style="min-height:0"><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
+              <div class="ncard"><svg class="icon lg" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span class="t">Venue options</span></div>
+              <div class="ncard"><svg class="icon lg" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span class="t">Budget</span></div>
+            </div></div>
+            <p class="sub-h" style="margin-top:6px">2 Bits</p><div class="well" style="min-height:0">
+              <div class="bitrow"><span class="t">Send invites</span></div>
+              <div class="bitrow"><span class="t">Book the photographer</span></div>
+            </div>
+          </div>
+        </div>
+        <ul>
+          <li>둘 다 넓게 보입니다.</li>
+          <li>단점: 세로 공간이 반으로 나뉘어 각 칸에 보이는 항목 수가 줄고 스크롤이 늘어납니다.</li>
+          <li>드래그해서 놓을 칸의 위치가 화면 폭에 따라 바뀌어 손에 익은 위치가 달라집니다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== Q-D: scope map ===================== -->
+  <section class="q" id="qd">
+    <h2><span class="qid">질문 D</span>이 규칙을 어디까지 적용할까</h2>
+    <p class="lead">처음 메모에는 Staging, Breakdown 행, Add 입력칸, 인라인 편집기만 들어 있었습니다. 코드를 보니 Inbox의 상태 문장은 아래 곳에도 있습니다.</p>
+    <table class="map">
+      <thead><tr><th>위치</th><th>지금</th><th>권장</th><th>이유</th></tr></thead>
+      <tbody>
+        <tr><td>Staging 카드·행, Breakdown 행, Add 입력칸, 인라인 편집기</td><td>문장 줄</td><td>아이콘 규칙</td><td>원래 범위</td></tr>
+        <tr><td>Explorer의 NEW 행 Undo 상태 (질문 B의 행)</td><td>행 아래 문장 줄 + 글자 버튼</td><td><b>아이콘 규칙에 포함</b></td><td>목록 속 좁은 행에 붙는 상태라 Staging과 같은 상황</td></tr>
+        <tr><td>Placement 확인 판, Archive 완료 카드, Scratch Trash 대화상자, 편집 충돌 화면</td><td>문장 + 버튼</td><td><b>문장 그대로</b></td><td>사용자가 지금 그 안에서 결정하고 있는 "결정 화면"이고, 문장을 넣을 자리가 충분함</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+  // theme switch
+  const stages = () => document.querySelectorAll('.stage');
+  document.querySelectorAll('[data-set-theme]').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-set-theme]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    stages().forEach((s) => s.setAttribute('data-theme', b.dataset.setTheme));
+  }));
+  const reduce = document.getElementById('reduce');
+  reduce.addEventListener('click', () => {
+    const on = !document.body.classList.contains('reduce');
+    document.body.classList.toggle('reduce', on);
+    reduce.setAttribute('aria-pressed', String(on));
+    reduce.textContent = on ? '켬' : '끔';
+  });
+
+  // Round-1 demo: one Breakdown row, Delete with a 300ms display delay
+  const ICON = {
+    loader: '<svg class="icon spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>',
+    unknown: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>',
+    failed: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>',
+  };
+  const COPY = {
+    pending: 'Deleting…',
+    unknown: 'We couldn’t confirm whether it was deleted.',
+    reconciling: 'Checking whether it was deleted…',
+    failed: 'Not deleted. This breakdown is still here.',
+  };
+  const DELAY = 300;
+  const row = document.getElementById('demo-row');
+  const slot = document.getElementById('demo-slot');
+  const acts = document.getElementById('demo-acts');
+  const log = document.getElementById('demo-log');
+  let s = { phase: 'idle', loaderVisible: false, shown: null };
+  let timers = [];
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+
+  function render() {
+    const { phase, loaderVisible } = s;
+    // what the item shows: the loader only after the delay; until then the previous icon stays
+    let icon = null;
+    if ((phase === 'pending' || phase === 'reconciling') && loaderVisible) icon = 'loader';
+    else if (phase === 'reconciling') icon = s.shown;           // keep `?` during the delay
+    else if (phase === 'unknown') icon = 'unknown';
+    else if (phase === 'failed') icon = 'failed';
+    s.shown = icon;
+    slot.className = 'slot';
+    slot.innerHTML = icon
+      ? `<span class="status ${icon === 'loader' ? 'loader' : ''}">${ICON[icon]}</span>`
+      : '';
+    row.classList.toggle('emph', icon === 'unknown' || icon === 'failed');
+    row.classList.toggle('dim', phase === 'pending' || phase === 'reconciling');
+    row.classList.toggle('gone', phase === 'deleted');
+    // the hover/focus target is the whole row; mirror the tooltip there
+    row.classList.add('has-tip');
+    row.querySelectorAll(':scope > .tip').forEach((t) => t.remove());
+    if (icon) {
+      const t = document.createElement('span');
+      t.className = 'tip'; t.id = 'demo-tip'; t.setAttribute('role', 'tooltip');
+      t.textContent = COPY[phase === 'reconciling' ? 'reconciling' : phase];
+      row.appendChild(t);
+    }
+    if (phase === 'unknown' || phase === 'reconciling') {
+      acts.innerHTML = `<button class="btn outline" type="button" id="check" ${phase === 'reconciling' ? 'disabled' : ''}>Check again</button>`;
+      const c = document.getElementById('check');
+      if (phase === 'unknown') c.addEventListener('click', reconcile);
+    } else if (phase === 'pending') {
+      acts.innerHTML = '<button class="btn" type="button" disabled>Edit</button><button class="btn" type="button" disabled>Delete</button>';
+    } else {
+      acts.innerHTML = '<button class="btn" type="button">Edit</button><button class="btn" type="button">Delete</button>';
+    }
+    const words = { idle: '평소', pending: s.loaderVisible ? '진행 중 (로더 보임)' : '진행 중 (0.3초 전이라 아무것도 안 보임)',
+      unknown: '결과 모름 (?)', reconciling: s.loaderVisible ? '다시 확인 중 (로더 보임)' : '다시 확인 중 (0.3초 동안 ? 유지)',
+      failed: '실패 (!) — 행은 남아 있음', deleted: '성공 — 행이 사라진 것 자체가 결과' };
+    log.textContent = '상태: ' + words[phase];
+  }
+  function set(patch) { s = { ...s, ...patch }; render(); }
+  function start(durationMs, outcome) {
+    clearTimers();
+    set({ phase: 'pending', loaderVisible: false });
+    later(() => { if (s.phase === 'pending') set({ loaderVisible: true }); }, DELAY);
+    later(() => set({ phase: outcome, loaderVisible: false }), durationMs);
+  }
+  function reconcile() {
+    clearTimers();
+    set({ phase: 'reconciling', loaderVisible: false });
+    later(() => { if (s.phase === 'reconciling') set({ loaderVisible: true }); }, DELAY);
+    later(() => set({ phase: 'deleted', loaderVisible: false }), 1500);
+  }
+  document.querySelectorAll('[data-demo]').forEach((b) => b.addEventListener('click', () => {
+    const k = b.dataset.demo;
+    if (k === 'fast') start(50, 'deleted');
+    if (k === 'slow') start(2000, 'deleted');
+    if (k === 'unknown') start(1000, 'unknown');
+    if (k === 'fail') start(1000, 'failed');
+    if (k === 'reset') { clearTimers(); set({ phase: 'idle', loaderVisible: false, shown: null }); }
+  }));
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breadcrumb Reveal Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root { --ink: #1d1d1f; --ink-2: #55565b; --line: #e3e3e6; --paper: #fafaf9; --chip: #f1f1f3; --rec: #0a7a3d; --rec-bg: #e8f6ee; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.6 -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif; }
+  header.top { position: sticky; top: 0; z-index: 80; background: rgba(250,250,249,.94); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line); padding: 12px 24px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+  header.top h1 { font-size: 17px; margin: 0; }
+  header.top a { font-size: 13px; color: var(--ink-2); }
+  .switch { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .switch span { color: var(--ink-2); font-size: 13px; margin-right: 4px; }
+  .switch button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .switch button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  main { max-width: 1120px; margin: 0 auto; padding: 8px 24px 80px; }
+  section.q { border-top: 1px solid var(--line); padding: 28px 0 8px; }
+  section.q > h2 { font-size: 20px; margin: 0 0 4px; }
+  .qid { display: inline-block; background: var(--ink); color: #fff; border-radius: 6px; font-size: 12px; padding: 1px 8px; margin-right: 8px; vertical-align: 2px; }
+  .lead { color: var(--ink-2); margin: 0 0 16px; max-width: 840px; }
+  .look { background: var(--chip); border-radius: 10px; padding: 12px 14px; margin: 0 0 16px; font-size: 14px; max-width: 920px; }
+  .look ol, .look ul { margin: 6px 0 0; padding-left: 20px; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .opt { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .opt.rec { border-color: var(--rec); box-shadow: 0 0 0 1px var(--rec) inset; }
+  .opt h3 { margin: 0 0 8px; font-size: 16px; }
+  .opt ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; }
+  .badge-rec { background: var(--rec-bg); color: var(--rec); font-size: 12px; border-radius: 999px; padding: 1px 8px; margin-left: 6px; font-weight: 600; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; align-items: center; }
+  .controls button, .controls select { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  .controls button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .controls .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+  .controls .lbl { font-size: 13px; color: var(--ink-2); min-width: 168px; }
+  .controls .tag { font-size: 11px; font-weight: 700; background: #1d1d1f; color: #fff; border-radius: 5px; padding: 0 6px; }
+  .log { font-size: 13px; color: var(--ink-2); margin: 6px 0 0; min-height: 22px; }
+  table.map { border-collapse: collapse; width: 100%; font-size: 14px; background: #fff; }
+  table.map th, table.map td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+  table.map th { background: var(--chip); }
+
+  [data-theme="griddo"] { --t-page: hsl(38 28% 91%); --t-bg: #fff; --t-fg: hsl(240 10% 3.9%); --t-muted-fg: hsl(240 4% 46%);
+    --t-border: hsl(240 6% 90%); --t-primary: hsl(221 83% 53%); --t-accent: hsl(240 5% 96%); --t-font: "Geist", -apple-system, system-ui, sans-serif;
+    --t-radius: 10px; --t-shadow: 0 4px 14px rgba(15,23,42,.1); --t-card-b: 1px solid hsl(240 6% 88%); --t-card-r: 14px; --t-cell: 1px dashed hsl(240 6% 84%); }
+  [data-theme="retro-mac"] { --t-page: hsl(0 0% 90%); --t-bg: #fff; --t-fg: #000; --t-muted-fg: #333; --t-border: #000; --t-primary: #000; --t-accent: #000;
+    --t-font: "Space Mono", ui-monospace, monospace; --t-radius: 0px; --t-shadow: 2px 2px 0 #000; --t-card-b: 2px solid #000; --t-card-r: 4px; --t-cell: 1px dotted #888; }
+  [data-theme="neumorphism"] { --t-page: hsl(210 20% 90%); --t-bg: hsl(210 20% 90%); --t-fg: hsl(0 0% 20%); --t-muted-fg: hsl(0 0% 38%);
+    --t-border: transparent; --t-primary: hsl(0 0% 20%); --t-accent: hsl(210 20% 86%); --t-font: "Inter", -apple-system, system-ui, sans-serif; --t-radius: 14px;
+    --t-shadow: 5px 5px 10px #c5c9d1, -5px -5px 10px #ffffff; --t-card-b: 0; --t-card-r: 20px; --t-cell: 0; }
+
+  .icon { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; flex: none; }
+
+  .app { position: relative; display: flex; height: 540px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--t-page); color: var(--t-fg); font-family: var(--t-font); }
+  .rail { width: 48px; flex: none; background: var(--t-bg); border-right: 1px solid var(--t-border); display: flex; flex-direction: column;
+    align-items: center; gap: 4px; padding: 12px 0; color: var(--t-muted-fg); position: relative; z-index: 40; }
+  [data-theme="retro-mac"] .rail { border-right: 2px solid #000; }
+  [data-theme="neumorphism"] .rail { box-shadow: 3px 0 8px #c5c9d1; }
+  .rail .ri { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 0; background: transparent; color: inherit; padding: 0; transition: background-color 200ms, color 200ms; }
+  .rail button.ri { cursor: pointer; }
+  .rail button.ri:hover, .rail button.ri:focus-visible { background: var(--t-accent); color: var(--t-fg); outline: none; }
+  [data-theme="retro-mac"] .rail button.ri:hover, [data-theme="retro-mac"] .rail button.ri:focus-visible { background: #000; color: #fff; }
+  .rail .ri.current { color: var(--t-fg); background: var(--t-accent); }
+  [data-theme="retro-mac"] .rail .ri.current { background: #000; color: #fff; }
+  .rail .ri.absorb { background: color-mix(in srgb, var(--t-primary) 22%, transparent); color: var(--t-fg); }
+  [data-theme="retro-mac"] .rail .ri.absorb { background: #000; color: #fff; }
+  .rail .ri.acct { color: var(--t-fg); }
+  .rail .grow { flex: 1; }
+  .work { position: relative; flex: 1; min-width: 0; }
+  .grid { position: absolute; inset: 12px; display: grid; grid-template-columns: repeat(18, minmax(0, 1fr)); grid-template-rows: repeat(9, minmax(0, 1fr)); gap: 8px; }
+  .cell { border: var(--t-cell); border-radius: 8px; min-width: 0; min-height: 0; }
+  .grid.dragging .cell:hover { background: color-mix(in srgb, var(--t-primary) 18%, transparent); outline: 2px solid var(--t-primary); }
+  .card { border-radius: var(--t-card-r); background: var(--t-bg); border: var(--t-card-b); box-shadow: var(--t-shadow);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 9px; overflow: hidden; padding: 2px; cursor: pointer; }
+  .card .t { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card.bit { flex-direction: row; justify-content: flex-start; padding: 0 6px; border-radius: calc(var(--t-card-r) * .6); }
+  .card.new-ok { outline: 2px dashed #0a7a3d; outline-offset: 2px; }
+
+  /* breadcrumb overlay: one row, deadline inline; hides into / comes out of Home */
+  .crumbwrap { position: absolute; top: 12px; left: 12px; z-index: 30; transform-origin: left center;
+    opacity: 0; visibility: hidden; pointer-events: none; transform: translate(var(--dx, -36px), var(--dy, 0px)) scale(.08);
+    transition: opacity 300ms ease-out, transform 350ms cubic-bezier(.4, 0, .2, 1), visibility 0s linear 350ms; }
+  .crumbwrap.on { opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+    transition: opacity 150ms ease-out, transform 260ms cubic-bezier(.2, 0, 0, 1), visibility 0s; }
+  .crumbwrap.m-fade { transform: none !important; }
+  .crumbwrap.instant-in.on { transition: opacity 150ms ease-out, visibility 0s; }
+  body.reduce .crumbwrap { transition: none !important; transform: none !important; }
+  .crumb { display: flex; align-items: center; gap: 2px; height: 32px; padding: 0 6px 0 8px; border-radius: 8px; font-size: 12px;
+    background: color-mix(in srgb, var(--t-bg) 92%, transparent); border: 1px solid color-mix(in srgb, var(--t-border) 70%, transparent);
+    box-shadow: 0 4px 14px rgba(0,0,0,.10); backdrop-filter: blur(8px); white-space: nowrap; }
+  [data-theme="retro-mac"] .crumb { border: 2px solid #000; box-shadow: 2px 2px 0 #000; border-radius: 0; background: #fff; }
+  [data-theme="neumorphism"] .crumb { border: 0; border-radius: 14px; box-shadow: 5px 5px 10px #c5c9d1, -5px -5px 10px #fff; background: var(--t-bg); }
+  .crumb a { padding: 2px 6px; color: var(--t-muted-fg); font-weight: 500; text-decoration: none; border-radius: 6px; }
+  .crumb a:hover, .crumb a:focus-visible { background: var(--t-accent); color: var(--t-fg); outline: none; }
+  .crumb .cur { padding: 0 6px; font-weight: 600; }
+  .crumb .chev { width: 12px; height: 12px; color: var(--t-muted-fg); }
+  .crumb .due { margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 11px; color: var(--t-muted-fg); border: 1px solid color-mix(in srgb, var(--t-muted-fg) 35%, transparent); background: transparent; font-family: inherit; cursor: pointer; }
+  [data-theme="retro-mac"] .crumb .due { border-radius: 0; border-color: #000; color: #000; }
+  /* drag: every ancestor segment signals it accepts the drop */
+  .crumbwrap.dragging .crumb { background: color-mix(in srgb, var(--t-bg) 70%, transparent); }
+  .crumbwrap.dragging .crumb a { outline: 1.5px dashed var(--t-primary); outline-offset: 1px; color: var(--t-fg); background: color-mix(in srgb, var(--t-primary) 8%, transparent); }
+  .crumbwrap.dragging .crumb a.over { background: var(--t-primary); color: #fff; outline-style: solid; }
+  [data-theme="retro-mac"] .crumbwrap.dragging .crumb a.over { background: #000; }
+  .crumbwrap.dragging .due { display: none; }
+  /* pass-through: only the segment chips catch the pointer while dragging */
+  .crumbwrap.dragging.pass, .crumbwrap.dragging.pass .crumb { pointer-events: none; }
+  .crumbwrap.dragging.pass .crumb a { pointer-events: auto; }
+
+  /* toast: where the breadcrumb appears; below it while it is shown */
+  .toasts { position: absolute; z-index: 60; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 8px; width: 356px; transition: top 200ms ease-out; }
+  .toasts.below { top: 52px; }
+  body.reduce .toasts { transition: none; }
+  .toast { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; font-size: 13px; line-height: 1.4; border-radius: 10px;
+    font-family: var(--t-font); border: 1px solid; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  .toast .x { margin-left: auto; border: 0; background: transparent; cursor: pointer; padding: 0 0 0 6px; font-size: 14px; line-height: 1; color: inherit; opacity: .7; }
+  [data-theme="griddo"] .toast.err { background: hsl(359 100% 97%); border-color: hsl(359 100% 94%); color: hsl(360 100% 45%); }
+  [data-theme="griddo"] .toast.ok { background: hsl(143 85% 96%); border-color: hsl(145 92% 87%); color: hsl(140 100% 27%); }
+  [data-theme="griddo"] .toast.warn { background: hsl(49 100% 97%); border-color: hsl(49 91% 84%); color: hsl(31 92% 45%); }
+  [data-theme="retro-mac"] .toast { border: 2px solid #000; border-radius: 0; box-shadow: 3px 3px 0 #000; color: #000; }
+  [data-theme="retro-mac"] .toast.err { background: color-mix(in srgb, hsl(359 100% 60%) 12%, #fff); }
+  [data-theme="retro-mac"] .toast.err .ti { color: hsl(360 100% 42%); }
+  [data-theme="retro-mac"] .toast.ok { background: color-mix(in srgb, hsl(142 70% 45%) 12%, #fff); }
+  [data-theme="retro-mac"] .toast.ok .ti { color: hsl(140 100% 25%); }
+  [data-theme="retro-mac"] .toast.warn { background: color-mix(in srgb, hsl(45 100% 50%) 18%, #fff); }
+  [data-theme="retro-mac"] .toast.warn .ti { color: hsl(31 92% 38%); }
+  [data-theme="neumorphism"] .toast { border: 0; border-radius: 16px; box-shadow: 6px 6px 14px #c5c9d1, -6px -6px 14px #fff; }
+  [data-theme="neumorphism"] .toast.err { background: color-mix(in srgb, hsl(359 100% 60%) 10%, hsl(210 20% 90%)); color: hsl(0 62% 38%); }
+  [data-theme="neumorphism"] .toast.ok { background: color-mix(in srgb, hsl(142 70% 45%) 12%, hsl(210 20% 90%)); color: hsl(140 70% 24%); }
+  [data-theme="neumorphism"] .toast.warn { background: color-mix(in srgb, hsl(45 100% 50%) 16%, hsl(210 20% 90%)); color: hsl(31 80% 30%); }
+  .swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .swatch { padding: 14px; border-radius: 10px; background: var(--t-page); display: flex; flex-direction: column; gap: 10px; }
+  .swatch .toast { width: 100%; }
+  .swatch h4 { margin: 0; font: 600 12px system-ui; color: #55565b; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>breadcrumb 숨김 시트 · 2차</h1>
+  <div class="switch" role="group" aria-label="테마">
+    <span>테마</span>
+    <button type="button" data-set-theme="griddo" aria-pressed="true">griddo (기본)</button>
+    <button type="button" data-set-theme="retro-mac" aria-pressed="false">retro-mac</button>
+    <button type="button" data-set-theme="neumorphism" aria-pressed="false">neumorphism</button>
+  </div>
+  <div class="switch"><span>움직임 줄이기</span><button type="button" id="reduce" aria-pressed="false">끔</button></div>
+  <a href="toast.html">← 토스트 시트</a>
+</header>
+<main>
+  <section class="q" id="demo">
+    <h2><span class="qid">직접 써 보기</span>지금까지 정한 동작 + 남은 질문 3개</h2>
+    <p class="lead">이번 답을 반영했습니다. 드래그 중에는 경로가 항상 보이고, 경로가 사라질 때는 Home 버튼으로 들어가며, 토스트는 경로 자리에 뜨다가 경로가 보이면 그 아래로 내려갑니다.
+      남은 질문 A·B·C는 모형 위의 버튼으로 바꿔 가며 비교할 수 있습니다.</p>
+    <div class="look"><b>이렇게 확인해 보세요</b>
+      <ol>
+        <li><b>「Node 들어가기」</b>를 누르세요. 경로가 Home 버튼에서 튀어나와 3초 보이다가 <b>Home 버튼으로 빨려 들어가고</b>, Home 버튼이 잠깐 강조됩니다.</li>
+        <li><b>질문 A</b>: "시간 되면 사라짐"을 고른 뒤, Home에 올려 경로가 나오면 <b>Wedding 글자 위에 마우스를 올린 채로</b> 기다렸다가 사라지는 순간 눌러 보세요. 아래 기록에 "Flowers 카드가 눌렸습니다"가 뜨면, 그것이 제가 말씀드린 잘못 눌림입니다.</li>
+        <li><b>질문 B</b>: 「드래그 시작」을 누르면 경로가 나오고, Home·Wedding에 "놓을 수 있음" 점선이 생깁니다. 그 상태에서 <b>경로 밑의 왼쪽 위 칸</b>(Flowers 오른쪽 빈칸 등)에 마우스를 올려 보세요. "칩만 놓을 자리"에서는 칸이 파랗게 강조되고(넣을 수 있음), "경로 전체가 막음"에서는 강조되지 않습니다(넣을 수 없음).</li>
+        <li><b>질문 C</b>: 애니메이션 방식을 바꿔 가며 1번을 반복해 보세요.</li>
+        <li><b>토스트</b>: 경로가 숨어 있을 때 「토스트」를 누르면 경로 자리에 뜹니다. 그 상태에서 Home에 올리면 토스트가 경로 아래로 내려갑니다.</li>
+      </ol>
+    </div>
+    <div class="controls">
+      <button type="button" id="enter">Node 들어가기 (Wedding → Venue)</button>
+      <button type="button" id="drag" aria-pressed="false">드래그 시작</button>
+      <span class="sep"></span>
+      <button type="button" data-toast="err">토스트: 실패</button>
+      <button type="button" data-toast="ok">토스트: 성공</button>
+      <button type="button" data-toast="warn">토스트: 오프라인</button>
+    </div>
+    <div class="controls">
+      <span class="tag">A</span><span class="lbl">마우스를 올려 둔 동안</span>
+      <button type="button" data-hold="keep" aria-pressed="true">유지, 떠난 뒤 1초 · 권장</button>
+      <button type="button" data-hold="timed" aria-pressed="false">상관없이 나타난 뒤 3초에 사라짐</button>
+    </div>
+    <div class="controls">
+      <span class="tag">B</span><span class="lbl">드래그 중 경로 밑의 칸</span>
+      <button type="button" data-cover="pass" aria-pressed="true">칩만 놓을 자리, 나머지는 통과 · 권장</button>
+      <button type="button" data-cover="all" aria-pressed="false">경로 전체가 칸을 막음</button>
+    </div>
+    <div class="controls">
+      <span class="tag">C</span><span class="lbl">Home 애니메이션</span>
+      <button type="button" data-anim="both" aria-pressed="true">Home에서 나오고 Home으로 들어감 · 권장</button>
+      <button type="button" data-anim="out" aria-pressed="false">들어갈 때만</button>
+      <button type="button" data-anim="fade" aria-pressed="false">없음 (흐려지기만)</button>
+    </div>
+    <div class="app" id="app" data-theme="griddo">
+      <nav class="rail" id="rail" aria-label="Sidebar"></nav>
+      <div class="work" id="work">
+        <div class="grid" id="grid"></div>
+        <div class="crumbwrap pass" id="crumbwrap">
+          <nav class="crumb" id="crumb" aria-label="Breadcrumb"></nav>
+        </div>
+        <div class="toasts" id="toasts" aria-live="polite"></div>
+      </div>
+    </div>
+    <p class="log" id="log" aria-live="polite">&nbsp;</p>
+  </section>
+
+  <section class="q" id="qa">
+    <h2><span class="qid">질문 A</span>마우스를 올려 둔 동안에도 사라지게 할까</h2>
+    <p class="lead">답이 서로 맞지 않습니다. 보완 3에는 "접근성에 어긋나도 하자", 시간 질문에는 "권장대로(올려 둔 동안 유지)"라고 답하셨습니다. 그래서 다시 여쭙습니다.</p>
+    <div class="options">
+      <div class="opt rec"><h3>유지, 떠난 뒤 1초에 사라짐<span class="badge-rec">권장</span></h3><ul>
+        <li>경로를 누르려는 순간 사라지는 일이 없습니다.</li>
+        <li>접근성 규칙(WCAG 1.4.13)도 지킵니다.</li>
+        <li>Node에 들어간 직후의 3초 표시는 그대로입니다. 그사이 마우스를 올리면 그때부터 유지됩니다.</li></ul></div>
+      <div class="opt"><h3>상관없이 나타난 뒤 3초에 사라짐</h3><ul>
+        <li>규칙이 단순합니다(언제나 3초).</li>
+        <li>단점: "Wedding"을 누르려고 마우스를 옮기는 사이에 사라지면, 그 클릭이 밑에 있던 카드에 들어가 원하지 않은 카드가 열립니다. 이건 접근성 문제를 넘어 모든 사용자의 오작동입니다.</li>
+        <li>마감일 칩을 누르려 할 때도 같은 일이 생깁니다.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="q" id="qb">
+    <h2><span class="qid">질문 B</span>드래그 중에 경로가 그 밑의 칸을 막을까</h2>
+    <p class="lead">"드래그 중에는 항상 보여 주기"는 예측하기 쉬워서 좋습니다. 다만 경로가 덮은 칸에는 카드를 끌어다 놓을 수 없게 됩니다. 이 문제를 처음 꺼냈던 이유가 "왼쪽 위 칸을 쓰고 싶다"였으니, 해결해야 할 부분입니다.</p>
+    <div class="options">
+      <div class="opt rec"><h3>경로 글자(칩)만 놓을 자리, 나머지는 통과<span class="badge-rec">권장</span></h3><ul>
+        <li>Home·Wedding 글자 위에 놓으면 그 상위로 옮겨지고, 칩 사이나 아래의 빈 곳에 놓으면 그 밑의 칸에 들어갑니다.</li>
+        <li>드래그 중에는 경로 바탕을 반투명하게 해서 밑의 칸 강조가 보이게 합니다. 드래그 중에는 마감일 칩을 숨겨 경로를 짧게 합니다.</li>
+        <li>단점: 경로 칩이 덮은 칸 윗부분에는 놓을 수 없어서, 칸의 아랫부분을 노려야 합니다.</li></ul></div>
+      <div class="opt"><h3>경로 전체가 칸을 막음</h3><ul>
+        <li>가장 단순합니다.</li>
+        <li>단점: 경로 밑의 왼쪽 위 칸(경로 길이에 따라 4~6칸)은 새로 만들 수만 있고, 이미 있는 카드를 끌어서 넣을 수는 없습니다. 지금의 "막힌 칸" 문제가 드래그 때만 다시 생깁니다.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="q" id="qc">
+    <h2><span class="qid">질문 C</span>Home으로 들어가는 애니메이션의 범위</h2>
+    <p class="lead">사용자님 아이디어입니다. macOS에서 창을 최소화하면 Dock으로 빨려 들어가서 "어디로 갔는지"를 알려 주는 것과 같은 방식입니다. "경로는 Home 안에 들어 있다"는 공간 감각을 만들어서, 따로 설명하지 않아도 Home을 다시 찾게 됩니다.</p>
+    <div class="options">
+      <div class="opt rec"><h3>Home에서 나오고 Home으로 들어감<span class="badge-rec">권장</span></h3><ul>
+        <li>나타날 때도 Home에서 펼쳐져서 "경로 = Home 안의 것"이 양방향으로 맞습니다.</li>
+        <li>경로가 들어간 순간 Home 버튼이 잠깐 강조되어 "여기 있다"를 알려 줍니다.</li>
+        <li>나타날 때 0.26초, 들어갈 때 0.35초. 움직임 줄이기가 켜져 있으면 움직임 없이 바로 나타나고 사라집니다.</li></ul></div>
+      <div class="opt"><h3>들어갈 때만</h3><ul><li>나타날 때는 제자리에서 바로 보입니다. 조금 더 차분하지만, 나올 때의 연결은 약합니다.</li></ul></div>
+      <div class="opt"><h3>없음 (흐려지기만)</h3><ul><li>가장 조용하지만, "Home을 누르면 다시 나온다"를 알려 주는 장치가 없습니다.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="q" id="decided">
+    <h2><span class="qid">정리</span>breadcrumb에서 지금까지 정해진 것</h2>
+    <table class="map">
+      <tr><th>항목</th><th>결정</th></tr>
+      <tr><td>방향</td><td>평소에 숨김. 사이드바 Home에서 불러옴. 막힌 칸 장치(칸 계산, 칸 이동 작업, settings 저장소) 전부 삭제</td></tr>
+      <tr><td>나타나는 때</td><td>Home에 마우스/포커스, Node에 들어간 직후 3초, 드래그 중에는 항상(각 경로 칩에 "놓을 수 있음" 표시)</td></tr>
+      <tr><td>사라지는 때</td><td>떠난 뒤 1초, 0.3초 흐려짐 (질문 A에 따라 바뀜). Esc 즉시. 마감일 선택 창이 열려 있으면 유지</td></tr>
+      <tr><td>경로가 보이는 동안</td><td>그 밑의 카드는 누를 수 없음</td></tr>
+      <tr><td>마감일 칩</td><td>경로 줄 끝으로 합쳐 한 줄</td></tr>
+      <tr><td>지금 위치</td><td>들어간 직후 3초 표시 + 브라우저 탭 제목에 Node 이름</td></tr>
+      <tr><td>사이드바</td><td>Home 맨 위, 계정 아이콘 그 아래, 그 다음 + (S23 문구 수정)</td></tr>
+      <tr><td>Home(L0) 화면</td><td>보여 줄 경로가 없어서 나타나지 않음. Home 버튼은 "지금 여기" 표시</td></tr>
+      <tr><td>토스트</td><td>경로가 나타나는 자리에 뜸. 경로가 보이는 동안에는 그 아래로</td></tr>
+    </table>
+    <h3 style="font-size:16px;margin:18px 0 6px">토스트 색 (3라운드 결정: 지금 색을 테마에 섞음)</h3>
+    <div class="swatches">
+      <div class="swatch" data-theme="griddo"><h4>griddo (지금 색 그대로)</h4>
+        <div class="toast err"><span class="ti"></span><span>Couldn’t move “Venue”. It’s back where it was.</span></div>
+        <div class="toast ok"><span class="ti"></span><span>Node restored.</span></div>
+        <div class="toast warn"><span class="ti"></span><span>You’re offline. Changes can’t be saved right now.</span></div></div>
+      <div class="swatch" data-theme="retro-mac"><h4>retro-mac (섞음)</h4>
+        <div class="toast err"><span class="ti"></span><span>Couldn’t move “Venue”. It’s back where it was.</span></div>
+        <div class="toast ok"><span class="ti"></span><span>Node restored.</span></div>
+        <div class="toast warn"><span class="ti"></span><span>You’re offline. Changes can’t be saved right now.</span></div></div>
+      <div class="swatch" data-theme="neumorphism"><h4>neumorphism (섞음)</h4>
+        <div class="toast err"><span class="ti"></span><span>Couldn’t move “Venue”. It’s back where it was.</span></div>
+        <div class="toast ok"><span class="ti"></span><span>Node restored.</span></div>
+        <div class="toast warn"><span class="ti"></span><span>You’re offline. Changes can’t be saved right now.</span></div></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const I = {
+    home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    acct: '<path d="M2 21a8 8 0 0 1 13.292-6"/><circle cx="10" cy="8" r="5"/><path d="m16 19 2 2 4-4"/>',
+    plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+    pencil: '<path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/>',
+    search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    cal: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
+    trash: '<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+    palette: '<circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+    chev: '<path d="m9 18 6-6-6-6"/>',
+    folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+    file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>',
+    alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    ok: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    off: '<path d="M12 20h.01M8.5 16.43a5 5 0 0 1 7 0M5 12.86a10 10 0 0 1 5.17-2.69M19 12.86a10 10 0 0 0-2-1.39M2 8.82a15 15 0 0 1 4.18-2.65M22 8.82a15 15 0 0 0-11.29-3.76M2 2l20 20"/>',
+  };
+  const svg = (n, st = '') => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" ${st}>${I[n]}</svg>`;
+  const $ = (id) => document.getElementById(id);
+  const app = $('app'), rail = $('rail'), grid = $('grid'), wrap = $('crumbwrap'), crumb = $('crumb'), log = $('log'), toasts = $('toasts');
+  let level = 'venue', dragMode = false, hold = 'keep', cover = 'pass', anim = 'both';
+  let hoverHome = false, hoverCrumb = false, focusIn = false, pickerOpen = false;
+  let hideTimer = null, entryTimer = null;
+  const LEAVE = 1000, ENTRY = 3000;
+  const say = (t) => { log.textContent = t; };
+  const reduced = () => document.body.classList.contains('reduce');
+
+  // theme and motion
+  document.querySelectorAll('[data-set-theme]').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-set-theme]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    app.dataset.theme = b.dataset.setTheme;
+  }));
+  const reduce = $('reduce');
+  reduce.addEventListener('click', () => { const on = !reduced(); document.body.classList.toggle('reduce', on); reduce.setAttribute('aria-pressed', String(on)); reduce.textContent = on ? '켬' : '끔'; });
+
+  // grid: cards may sit in the top-left cells now
+  const CARDS = { '0,0': ['n', 'Flowers', true], '1,0': ['b', 'Call florist', true], '6,1': ['n', 'Venue'], '8,2': ['n', 'Budget'], '3,3': ['b', 'Send invites'],
+    '10,4': ['n', 'Guests'], '2,5': ['b', 'Book photographer'], '12,2': ['b', 'Order cake'], '5,6': ['n', 'Music'], '14,6': ['b', 'Print menus'] };
+  let cells = '';
+  for (let y = 0; y < 9; y++) for (let x = 0; x < 18; x++) {
+    const c = CARDS[`${x},${y}`];
+    if (!c) { cells += `<div class="cell" data-xy="${x},${y}"></div>`; continue; }
+    const cls = 'card' + (c[0] === 'b' ? ' bit' : '') + (c[2] ? ' new-ok' : '');
+    cells += c[0] === 'n'
+      ? `<div class="${cls}" data-title="${c[1]}">${svg('folder', 'style="width:14px;height:14px"')}<span class="t">${c[1]}</span></div>`
+      : `<div class="${cls}" data-title="${c[1]}">${svg('file', 'style="width:11px;height:11px"')}<span class="t" style="margin-left:4px">${c[1]}</span></div>`;
+  }
+  grid.innerHTML = cells;
+  grid.addEventListener('click', (e) => {
+    const c = e.target.closest('.card'), cell = e.target.closest('.cell');
+    if (dragMode && cell) { say(`드래그한 카드를 칸 (${cell.dataset.xy})에 놓았습니다.`); return; }
+    if (c) say(`“${c.dataset.title}” 카드가 눌렸습니다 (열림).`);
+  });
+
+  // sidebar: Home on top, account below it, then +
+  function renderRail() {
+    rail.innerHTML = `<button type="button" class="ri${level === 'home' ? ' current' : ''}" id="home" aria-label="Home"${level === 'home' ? ' aria-current="page"' : ''}>${svg('home')}</button>`
+      + `<span class="ri acct" title="Account">${svg('acct')}</span>`
+      + ['plus', 'pencil', 'search', 'cal', 'inbox', 'archive'].map((n) => `<span class="ri">${svg(n)}</span>`).join('')
+      + `<span class="grow"></span><span class="ri">${svg('trash')}</span><span class="ri">${svg('palette')}</span><span class="ri">${svg('sun')}</span>`;
+    wireHome();
+  }
+  function renderCrumb() {
+    crumb.innerHTML = level === 'wedding'
+      ? `<a href="#" data-seg="Home">Home</a>${svg('chev', 'class="icon chev"')}<span class="cur">Wedding</span>`
+      : `<a href="#" data-seg="Home">Home</a>${svg('chev', 'class="icon chev"')}<a href="#" data-seg="Wedding">Wedding</a>${svg('chev', 'class="icon chev"')}<span class="cur">Venue</span><button type="button" class="due" id="due">Due Nov 14</button>`;
+    crumb.querySelectorAll('a').forEach((a) => {
+      a.addEventListener('click', (e) => { e.preventDefault(); if (dragMode) { say(`드래그한 카드를 “${a.dataset.seg}”에 놓았습니다 → 상위 Grid로 이동.`); return; } go(a.dataset.seg === 'Home' ? 'home' : 'wedding'); });
+      a.addEventListener('mouseenter', () => { if (dragMode) a.classList.add('over'); });
+      a.addEventListener('mouseleave', () => a.classList.remove('over'));
+    });
+    const due = $('due');
+    if (due) due.addEventListener('click', () => { pickerOpen = !pickerOpen; say(pickerOpen ? '마감일 선택 창이 열려 있다고 가정: 열린 동안 경로가 사라지지 않습니다. 다시 누르면 닫힘.' : '마감일 선택 창 닫힘.'); if (!pickerOpen) scheduleHide(LEAVE); });
+  }
+
+  // the breadcrumb comes out of / goes into the Home button
+  function aimAtHome() {
+    const h = $('home').getBoundingClientRect(), w = $('work').getBoundingClientRect();
+    const left = w.left + 12, midY = w.top + 12 + 16;
+    wrap.style.setProperty('--dx', `${h.left + h.width / 2 - left}px`);
+    wrap.style.setProperty('--dy', `${h.top + h.height / 2 - midY}px`);
+  }
+  const isOn = () => wrap.classList.contains('on');
+  function show() {
+    if (level === 'home') return;
+    clearTimeout(hideTimer);
+    if (isOn()) return;
+    aimAtHome();
+    wrap.classList.toggle('m-fade', anim === 'fade');
+    wrap.classList.toggle('instant-in', anim === 'out');
+    wrap.classList.add('on');
+    toasts.classList.add('below');
+    if (hold === 'timed') { clearTimeout(entryTimer); entryTimer = setTimeout(hide, ENTRY); }
+  }
+  function hide() {
+    clearTimeout(hideTimer); clearTimeout(entryTimer);
+    if (!isOn()) return;
+    aimAtHome();
+    wrap.classList.toggle('m-fade', anim === 'fade');
+    wrap.classList.remove('instant-in');
+    wrap.classList.remove('on');
+    toasts.classList.remove('below');
+    if (anim !== 'fade' && !reduced()) {
+      setTimeout(() => { const h = $('home'); h.classList.add('absorb'); setTimeout(() => h.classList.remove('absorb'), 450); }, 300);
+    }
+  }
+  const held = () => hold === 'keep' && (hoverHome || hoverCrumb || focusIn || pickerOpen);
+  function scheduleHide(ms) {
+    if (dragMode) return;
+    if (hold === 'timed') return;            // timed mode hides on its own clock
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => { if (!held()) hide(); }, ms);
+  }
+  function wireHome() {
+    const home = $('home');
+    home.addEventListener('mouseenter', () => { hoverHome = true; show(); });
+    home.addEventListener('mouseleave', () => { hoverHome = false; scheduleHide(LEAVE); });
+    home.addEventListener('focus', () => { focusIn = true; show(); });
+    home.addEventListener('blur', () => { setTimeout(() => { focusIn = crumb.contains(document.activeElement); if (!focusIn) scheduleHide(LEAVE); }, 0); });
+    home.addEventListener('click', () => go('home'));
+  }
+  wrap.addEventListener('mouseenter', () => { hoverCrumb = true; if (hold === 'keep') { clearTimeout(hideTimer); clearTimeout(entryTimer); } });
+  wrap.addEventListener('mouseleave', () => { hoverCrumb = false; scheduleHide(LEAVE); });
+  wrap.addEventListener('focusin', () => { focusIn = true; show(); });
+  wrap.addEventListener('focusout', () => { setTimeout(() => { focusIn = crumb.contains(document.activeElement) || document.activeElement?.id === 'home'; if (!focusIn) scheduleHide(LEAVE); }, 0); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !dragMode) { pickerOpen = false; hide(); } });
+
+  function go(where) {
+    hide();
+    level = where;
+    setTimeout(() => {
+      renderRail(); renderCrumb();
+      if (where === 'home') { say('Home(L0)으로 이동했습니다. 여기서는 보여 줄 경로가 없어서 Home에 올려도 나타나지 않습니다.'); return; }
+      show();
+      clearTimeout(entryTimer);
+      entryTimer = setTimeout(() => { if (!held() && !dragMode) hide(); }, ENTRY);
+      say(`“${where === 'wedding' ? 'Wedding' : 'Venue'}” 안으로 들어왔습니다. 경로가 3초 보였다가 Home으로 들어갑니다.`);
+    }, isOn() ? 380 : 0);
+  }
+  $('enter').addEventListener('click', () => go('venue'));
+  $('drag').addEventListener('click', (e) => {
+    dragMode = !dragMode;
+    e.currentTarget.setAttribute('aria-pressed', String(dragMode));
+    e.currentTarget.textContent = dragMode ? '드래그 끝 (놓기 취소)' : '드래그 시작';
+    wrap.classList.toggle('dragging', dragMode);
+    grid.classList.toggle('dragging', dragMode);
+    if (dragMode) { if (level === 'home') go('venue'); show(); say('드래그 중: 경로가 항상 보이고, Home·Wedding 글자에 "놓을 수 있음" 표시가 생깁니다. 경로 밑의 칸에도 마우스를 올려 보세요.'); }
+    else { hide(); say('드래그 끝: 경로가 Home으로 들어갑니다.'); }
+  });
+  function bindGroup(attr, set) {
+    document.querySelectorAll(`[data-${attr}]`).forEach((b) => b.addEventListener('click', () => {
+      document.querySelectorAll(`[data-${attr}]`).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      set(b.dataset[attr]);
+    }));
+  }
+  bindGroup('hold', (v) => { hold = v; hide(); say(v === 'keep' ? 'A: 올려 둔 동안 유지, 떠난 뒤 1초에 사라짐.' : 'A: 올려 둔 것과 상관없이 나타난 뒤 3초에 사라짐. Wedding 위에 올린 채 기다렸다 눌러 보세요.'); });
+  bindGroup('cover', (v) => { cover = v; wrap.classList.toggle('pass', v === 'pass'); });
+  bindGroup('anim', (v) => { anim = v; });
+
+  // toasts
+  const T = { err: ['alert', 'Couldn’t move “Venue”. It’s back where it was.', 6000], ok: ['ok', 'Node restored.', 4000], warn: ['off', 'You’re offline. Changes can’t be saved right now.', 6000] };
+  document.querySelectorAll('[data-toast]').forEach((b) => b.addEventListener('click', () => {
+    const [icon, text, ms] = T[b.dataset.toast];
+    const el = document.createElement('div');
+    el.className = 'toast ' + b.dataset.toast; el.setAttribute('role', 'status');
+    el.innerHTML = `<span class="ti">${svg(icon)}</span><span>${text}</span>${b.dataset.toast !== 'ok' ? '<button class="x" type="button" aria-label="Close">×</button>' : ''}`;
+    const x = el.querySelector('.x'); if (x) x.addEventListener('click', () => el.remove());
+    toasts.appendChild(el); while (toasts.children.length > 3) toasts.firstChild.remove();
+    setTimeout(() => el.remove(), ms);
+  }));
+  document.querySelectorAll('.swatch .toast').forEach((t) => {
+    const k = t.classList.contains('err') ? 'alert' : t.classList.contains('ok') ? 'ok' : 'off';
+    t.querySelector('.ti').innerHTML = svg(k);
+  });
+
+  renderRail(); renderCrumb();
+</script>
+</body>
+</html>

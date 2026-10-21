@@ -336,9 +336,12 @@ the results:
   Staging cards have no actions.
 - Bit rows: round 2 Q-A (F06).
 
-Option sheets used in this session (scratch files, not kept in the repo):
-`index.html` (round 2), `toast.html` (round 3), `breadcrumb.html` (breadcrumb
-reveal, two versions), `saas.html` (round 4).
+Option sheets used in this session: `index.html` (round 2), `toast.html`
+(round 3), `breadcrumb.html` (breadcrumb reveal, second version; the first
+was superseded and not kept), `saas.html` (round 4). At the user's request a
+copy is kept in `option-sheets/` for the user's own reference only; it is not
+a design source and is not adopted, cited or compared at promotion or
+implementation.
 
 ## Discarded alternatives
 
