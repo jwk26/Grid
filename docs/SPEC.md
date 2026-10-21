@@ -850,8 +850,11 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   only the alert. It never auto-dismisses by timer. It clears on `X`, a new
   operation for that candidate, authoritative candidate disappearance, or a
   Scratch switch; a later failure replaces the earlier alert. Exact appearance,
-  wording, and placement remain with `VQ-06`; the band stays under feedback
-  F08.
+  wording, and placement remain with `VQ-06`. From Phase 50 (feedback F08) the
+  band keeps only failures whose item disappears, the Stage failures; an
+  Unstage failure, whose candidate remains, shows `!` with its tooltip on that
+  candidate instead, cleared by a new operation for that candidate, its
+  authoritative disappearance or a Scratch switch.
 - Pending/reconciling Stage or Unstage locks Scratch selection and internal
   route exit without queuing or auto-running a request. Unrelated same-Scratch
   row review, Pool use, and Grid exploration remain usable. Browser exit uses
@@ -1107,7 +1110,10 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   loader (pending, after the delay), `?` as a button that checks again
   (unknown), `!` as a button that retries (failure). A `!` without an action,
   such as a conflict, is an unavailable, focusable button with its tooltip, like
-  the existing unavailable Undo. The always-visible status rail and its text
+  the existing unavailable Undo. Both an unavailable `↶` and an action-less `!`
+  use `aria-disabled="true"`, never the `disabled` attribute, so they stay in
+  the Tab order and their reason tooltip shows on keyboard focus as well as on
+  hover. The always-visible status rail and its text
   recovery actions are removed; their sentences move into the slot tooltip,
   which adds `Select to check again.` or `Select to try again.` The row keeps
   its width. Replacement-search results import this Undo status treatment, as
