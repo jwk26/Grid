@@ -11,6 +11,12 @@
 > from the [approved current promotion map](brainstorming/2026-10-03-inbox_triage_theme_realization/PROMOTION_MAP.md),
 > [design receipt](receipts/Craft_Docs.inbox-triage-theme-realization-design.json)
 > and [execution-plan receipt](receipts/Craft_Docs.inbox-triage-theme-realization-execution.json).
+> **SaaS conversion amendment (promotion ①):** 2026-10-22, from the
+> [SaaS DECISION](brainstorming/2026-10-21-saas-conversion/DECISION.md) S12,
+> S14, S20, S29–S38. §5.3 names the local Supabase test data; §6 updates the
+> Core items for the account snapshot and adds
+> [Database, Accounts And Network](#database-accounts-and-network) with the SQL
+> function checklist.
 > **Workflow update — 2026-10-15:** §2 Enforcement, §3, §5.2–5.3 and §6 now name
 > the 3rd-generation skills and `CLAUDE.md` instead of the Codex adapter and
 > receipts. See [WORKFLOW](WORKFLOW.md#workflow-lineage).
@@ -410,7 +416,10 @@ capture do not establish it.
 
 ### 5.3 Visual checks and independent dispositions
 
-Check visual work in the running app with test data, never the user's own data.
+Check visual work in the running app with test data, never the user's own data
+or the production database. From Phase 45 the app runs on local Supabase,
+signed in as a local test user seeded by the fixture script (`CLAUDE.md` Test
+data).
 Screenshots and browser output are shown to the user in the conversation and
 are not committed. There is no per-task evidence report, assets directory or
 capture count. The task's ledger checkpoint states briefly what was compared
@@ -439,10 +448,10 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
 
 #### Core Project Architecture
 
-- [ ] **DataStore facade:** No component or hook imports `dexie` directly for data access. All data access goes through `DataStore` interface methods. Only `src/lib/db/indexeddb.ts` imports Dexie — exception: `src/hooks/*.ts` may import `liveQuery` from `dexie` for reactive subscriptions (this is the intended reactive-layer pattern).
-- [ ] **Reactive reads:** All data reads that feed UI use `liveQuery` for reactivity. No one-time fetches for data that should be live (parent nodes, breadcrumbs, calendar items).
+- [ ] **DataStore facade:** No component or hook imports `dexie` or `@supabase/supabase-js` directly for data access. All data access goes through `DataStore` interface methods. Only the store implementations import their libraries: `src/lib/db/indexeddb.ts` (Dexie, until Phase 46); `src/lib/db/supabase-client.ts`, `supabase-store.ts` and `snapshot-store.ts`; and `src/lib/auth/session.ts` for auth. Exception: `src/hooks/*.ts` may use `liveQuery` from `dexie` (until Phase 45) or `liveRead` for reactive subscriptions.
+- [ ] **Reactive reads:** All data reads that feed UI are live: `liveQuery` until Phase 45, then `liveRead` over the account snapshot. No one-time fetches for data that should be live (parent nodes, breadcrumbs, calendar items).
 - [ ] **URL-driven navigation:** Routes follow canonical pattern: `/` (L0), `/grid/[id]` (L1+), `?bit=[id]` (popup). No programmatic state-based routing that bypasses URL.
-- [ ] **Zod write-boundary:** Zod validation at write boundary only (`createNodeSchema.parse()`, `createBitSchema.parse()`, etc.). No read-path validation.
+- [ ] **Zod write-boundary:** Zod validation at write boundary only (`createNodeSchema.parse()`, `createBitSchema.parse()`, etc.). No read-path validation. The database constraints and the write functions' checks are the final gate (S12); client Zod gives immediate feedback.
 - [ ] **State ownership by lifetime:** Durable domain truth stays behind DataStore/repository APIs. `triage-store.ts` owns the app-session selection, Pool query/collapse/scroll, and Explorer path/open-column/column-scroll state enumerated by SPEC. It may also hold mounted-page coordination state only when all of these hold: the state must be shared across separate component trees or several mounted hook instances; it is listed in SPEC's Mounted Inbox page session row; it is never persisted; and it ends by the reset rule SPEC gives it. Page-mounted hooks own drafts, search requests/results, Placement, Archive presentation, and Newly Placed/Undo. Pure data-query hooks do not import Zustand; a page/workflow coordinator may read only the declared app-session selectors needed to coordinate these owners. Stores never import DataStore or duplicate durable candidates.
 - [ ] **Hook API boundary:** UI components import hooks, not DataStore. Hooks are the reactive data boundary.
 - [ ] **Lifecycle active-filter (archive sweep):** Every "active items" query filters `archivedAt = null` alongside `deletedAt = null` (L0 grid rendering also excludes `hiddenFromGrid = true`). Covers grid contents, node completion, calendar items, items pool, badge, global urgency, text search, grid occupancy, aging. Trash queries key off `deletedAt` only. (Added Batch 1 — SCHEMA.md Key Queries.)
@@ -466,8 +475,8 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   versions, and verification catches both missing and double increments across
   direct, breadcrumb, and Hook 1/3/10/11 cascade paths.
 - [ ] **Atomic complete postconditions:** Each canonical Add/Edit/Delete,
-  Stage/Unstage, staged/direct Placement, source-aware Undo, confirmed-orphan
-  cleanup, and Archive command validates and writes its complete postcondition
+  Stage/Unstage, staged/direct Placement, source-aware Undo, Archive and Trash
+  Scratch command validates and writes its complete postcondition
   in one repository transaction. Reconciliation classifies complete
   precondition, complete postcondition, or conflict; it never accepts one-sided
   success, compensates one side, selects another target, or retries from a
@@ -477,9 +486,9 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   manual retry with the same stable ID.
 - [ ] **No general operation-log shortcut:** A general operation log, journal,
   outbox, or offline mutation queue is not introduced without a later canonical
-  decision. Narrow `candidateOrphanAuditEvents` integrity evidence and
-  `PendingOperationRecovery` identity cannot be reused as general mutation
-  history; audit events are retained indefinitely in database-schema v4.
+  decision. `PendingOperationRecovery` identity cannot be reused as general
+  mutation history, and the in-memory pending-write layer is never persisted or
+  resent.
 - [ ] **Durable Staging authority:** Breakdown rows remain dedicated
   `scratchBreakdowns` records outside Chunks. Durable `stagedCandidates` own
   staged truth and join display content from the authoritative source row;
@@ -520,6 +529,43 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   recreates the durable candidate; a direct-source Undo creates no candidate.
   Non-reversible results remain ordinary records and lose only the temporary
   Undo affordance.
+
+#### Database, Accounts And Network
+
+- [ ] **SQL function checklist (S38):** every database function states and
+  satisfies: (1) its schema: `dev` only for local fixture code created by
+  `supabase/seed.sql`, `public` only if the client calls it, otherwise
+  `internal`; (2) its owner: `griddo_writer` for writes, the caller
+  (`security invoker`) for reads, the deletion role for `delete_my_account()`;
+  (3) an empty `search_path` and schema-qualified names; (4) `EXECUTE` revoked
+  from `public`, `anon` and `authenticated`, then granted to `authenticated`
+  only for an exposed function; (5) the locks of SCHEMA §Locks, taken before
+  its checks and in the fixed order; (6) the result envelope with complete
+  `changes`; (7) the account limits on every create path; (8) three tests:
+  cross-account, concurrency and change-set match. Every task that changes SQL
+  gets an `expert` review before acceptance.
+- [ ] **Account isolation (S14, S29):** RLS on every table with
+  `(select auth.uid())`; composite foreign keys inside an account; no table
+  write grant for a client role; `coverage.db.test.ts` passes; no client role
+  can execute an `internal` function. Cross-account tests are blocking for
+  every phase that adds a table or function.
+- [ ] **One action, one call (S08):** a user action is one function call;
+  components and hooks never sequence several writes for one action.
+- [ ] **Snapshot discipline (S07, S31, S32):** the snapshot base changes only
+  from envelopes and refetches; a refetch sent before a write settled is
+  discarded; a pending write is never persisted or resent; an unknown outcome
+  refetches and keeps or rolls back.
+- [ ] **Migrations and production (S21, S34):** the schema changes only
+  through `supabase/migrations/`; a phase that changes SQL closes with no new
+  Security Advisor warning and follows the CLAUDE.md Production order; no
+  secret key in Git or client code.
+- [ ] **Test gate and lanes (S20):** every SaaS-lane task runs
+  `pnpm test:db`; the feedback lane runs it only at its close, when the SaaS
+  lane is not doing database work, and never edits `supabase/`.
+- [ ] **Feedback rules (F02, F11, F13, F14):** toasts go through the shared
+  helper and only for SPEC's four uses; toast, app-state and blocking copy
+  lives in `src/lib/copy/feedback.ts`; `DISPLAY_DELAY_MS` postpones
+  presentation and never decides success.
 
 #### Theme, Decision-Prerequisite, And Evidence Conformance
 
@@ -581,8 +627,9 @@ Important issues that should be surfaced and recorded, but do not automatically 
 - [ ] **File organization:** New files follow `CLAUDE.md` Key Paths, SPEC Key
   File Paths, and the approved EXECUTION_PLAN. Utilities, hooks, stores,
   components, tests, and review artifacts stay with their declared owner.
-- [ ] **Local-first presentation:** Routine local reads do not invent loading
-  chrome. Genuine pending, transport-unknown, and reconciliation states
+- [ ] **Snapshot-first presentation:** Routine reads over the account snapshot
+  do not invent loading chrome; the only loading surface is the app-level
+  loading screen after `DISPLAY_DELAY_MS`. Genuine pending, transport-unknown, and reconciliation states
   preserve usable authoritative content rather than replacing whole surfaces
   with a generic spinner or skeleton; any waiting indicator corresponds to a
   real unresolved operation.

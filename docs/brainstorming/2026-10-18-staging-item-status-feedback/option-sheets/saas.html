@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SaaS States Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root { --ink: #1d1d1f; --ink-2: #55565b; --line: #e3e3e6; --paper: #fafaf9; --chip: #f1f1f3; --rec: #0a7a3d; --rec-bg: #e8f6ee; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.6 -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif; }
+  header.top { position: sticky; top: 0; z-index: 80; background: rgba(250,250,249,.94); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line); padding: 12px 24px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+  header.top h1 { font-size: 17px; margin: 0; }
+  header.top a { font-size: 13px; color: var(--ink-2); }
+  .switch { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .switch span { color: var(--ink-2); font-size: 13px; margin-right: 4px; }
+  .switch button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .switch button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  main { max-width: 1120px; margin: 0 auto; padding: 8px 24px 80px; }
+  section.q { border-top: 1px solid var(--line); padding: 28px 0 8px; }
+  section.q > h2 { font-size: 20px; margin: 0 0 4px; }
+  .qid { display: inline-block; background: var(--ink); color: #fff; border-radius: 6px; font-size: 12px; padding: 1px 8px; margin-right: 8px; vertical-align: 2px; }
+  .lead { color: var(--ink-2); margin: 0 0 16px; max-width: 840px; }
+  .look { background: var(--chip); border-radius: 10px; padding: 12px 14px; margin: 0 0 16px; font-size: 14px; max-width: 920px; }
+  .look ol, .look ul { margin: 6px 0 0; padding-left: 20px; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .opt { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .opt.rec { border-color: var(--rec); box-shadow: 0 0 0 1px var(--rec) inset; }
+  .opt h3 { margin: 0 0 8px; font-size: 16px; }
+  .opt ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; }
+  .badge-rec { background: var(--rec-bg); color: var(--rec); font-size: 12px; border-radius: 999px; padding: 1px 8px; margin-left: 6px; font-weight: 600; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; align-items: center; }
+  .controls button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  .controls button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .controls .lbl { font-size: 13px; color: var(--ink-2); min-width: 90px; }
+  .controls .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+  .log { font-size: 13px; color: var(--ink-2); margin: 6px 0 0; min-height: 22px; }
+
+  [data-theme="griddo"] { --t-page: hsl(38 28% 91%); --t-bg: #fff; --t-fg: hsl(240 10% 3.9%); --t-muted-fg: hsl(240 4% 46%);
+    --t-border: hsl(240 6% 90%); --t-primary: hsl(221 83% 53%); --t-accent: hsl(240 5% 96%); --t-font: "Geist", -apple-system, system-ui, sans-serif;
+    --t-radius: 10px; --t-shadow: 0 4px 14px rgba(15,23,42,.1); --t-card-b: 1px solid hsl(240 6% 88%); --t-card-r: 14px; --t-cell: 1px dashed hsl(240 6% 84%);
+    --warn: hsl(31 92% 45%); --warn-bg: hsl(49 100% 97%); --warn-b: hsl(49 91% 84%); --off: hsl(360 100% 45%); }
+  [data-theme="retro-mac"] { --t-page: hsl(0 0% 90%); --t-bg: #fff; --t-fg: #000; --t-muted-fg: #333; --t-border: #000; --t-primary: #000; --t-accent: #000;
+    --t-font: "Space Mono", ui-monospace, monospace; --t-radius: 0px; --t-shadow: 2px 2px 0 #000; --t-card-b: 2px solid #000; --t-card-r: 4px; --t-cell: 1px dotted #888;
+    --warn: hsl(31 92% 38%); --warn-bg: color-mix(in srgb, hsl(45 100% 50%) 18%, #fff); --warn-b: #000; --off: hsl(360 100% 42%); }
+  [data-theme="neumorphism"] { --t-page: hsl(210 20% 90%); --t-bg: hsl(210 20% 90%); --t-fg: hsl(0 0% 20%); --t-muted-fg: hsl(0 0% 38%);
+    --t-border: transparent; --t-primary: hsl(0 0% 20%); --t-accent: hsl(210 20% 86%); --t-font: "Inter", -apple-system, system-ui, sans-serif; --t-radius: 14px;
+    --t-shadow: 5px 5px 10px #c5c9d1, -5px -5px 10px #ffffff; --t-card-b: 0; --t-card-r: 20px; --t-cell: 0;
+    --warn: hsl(31 80% 30%); --warn-bg: color-mix(in srgb, hsl(45 100% 50%) 16%, hsl(210 20% 90%)); --warn-b: transparent; --off: hsl(0 62% 40%); }
+
+  .icon { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; flex: none; }
+  .app { position: relative; display: flex; height: 440px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--t-page); color: var(--t-fg); font-family: var(--t-font); }
+  .app.small { height: 300px; }
+  .rail { width: 48px; flex: none; background: var(--t-bg); border-right: 1px solid var(--t-border); display: flex; flex-direction: column;
+    align-items: center; gap: 4px; padding: 12px 0; color: var(--t-muted-fg); position: relative; z-index: 40; }
+  [data-theme="retro-mac"] .rail { border-right: 2px solid #000; }
+  [data-theme="neumorphism"] .rail { box-shadow: 3px 0 8px #c5c9d1; }
+  .rail .ri { position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 0; background: transparent; color: inherit; padding: 0; }
+  .rail .ri.acct { color: var(--t-fg); cursor: pointer; }
+  .rail .grow { flex: 1; }
+  .work { position: relative; flex: 1; min-width: 0; }
+  .grid { position: absolute; inset: 12px; display: grid; grid-template-columns: repeat(18, minmax(0, 1fr)); grid-template-rows: repeat(9, minmax(0, 1fr)); gap: 6px; }
+  .cell { border: var(--t-cell); border-radius: 6px; }
+  .card { border-radius: var(--t-card-r); background: var(--t-bg); border: var(--t-card-b); box-shadow: var(--t-shadow); display: flex; align-items: center; justify-content: center; font-size: 8px; overflow: hidden; }
+
+  /* connection indicator placements (provisional look; the look itself is chosen on the SaaS option sheet) */
+  .conn { display: none; }
+  .app[data-conn="unstable"] .conn, .app[data-conn="offline"] .conn { display: inline-flex; }
+  .conn-badge { position: absolute; right: 2px; bottom: 2px; width: 14px; height: 14px; border-radius: 999px; align-items: center; justify-content: center;
+    background: var(--t-bg); box-shadow: 0 0 0 2px var(--t-bg); }
+  .conn-badge .icon { width: 12px; height: 12px; }
+  .conn-rail { width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 8px; }
+  .conn-chip { position: absolute; top: 12px; right: 12px; z-index: 30; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; font-size: 12px;
+    background: var(--warn-bg); border: 1px solid var(--warn-b); }
+  [data-theme="retro-mac"] .conn-chip { border-radius: 0; border-width: 2px; box-shadow: 2px 2px 0 #000; }
+  .app[data-conn="unstable"] .conn { color: var(--warn); }
+  .app[data-conn="offline"] .conn { color: var(--off); }
+  .app[data-conn="offline"] .conn-chip { background: color-mix(in srgb, var(--off) 10%, var(--t-bg)); }
+  .has-tip { position: relative; }
+  .tip { display: none; position: absolute; z-index: 70; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); width: max-content; max-width: 240px;
+    background: #1d1d1f; color: #fff; border-radius: 7px; padding: 6px 9px; font: 12px/1.4 var(--t-font); pointer-events: none; }
+  .has-tip:hover > .tip, .has-tip:focus-visible > .tip { display: block; }
+  .conn-chip .tip { left: auto; right: 0; top: calc(100% + 8px); transform: none; }
+
+  .toasts { position: absolute; z-index: 60; top: 12px; left: 12px; width: 340px; display: flex; flex-direction: column; gap: 8px; }
+  .toast { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; font: 13px/1.4 var(--t-font); border-radius: 10px; border: 1px solid var(--warn-b);
+    background: var(--warn-bg); color: var(--warn); box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  [data-theme="retro-mac"] .toast { border: 2px solid #000; border-radius: 0; box-shadow: 3px 3px 0 #000; color: #000; }
+  [data-theme="neumorphism"] .toast { border: 0; border-radius: 16px; box-shadow: 6px 6px 14px #c5c9d1, -6px -6px 14px #fff; }
+
+  /* blocking screen (provisional look) */
+  .block { position: absolute; z-index: 50; display: flex; align-items: center; justify-content: center; background: var(--t-page); }
+  .block.window { inset: 0; }
+  .block.work-only { inset: 0; }
+  .panel { text-align: center; max-width: 330px; padding: 22px; border-radius: var(--t-radius); background: var(--t-bg); border: var(--t-card-b); box-shadow: var(--t-shadow); font-family: var(--t-font); }
+  .panel h4 { margin: 8px 0 4px; font-size: 15px; }
+  .panel p { margin: 0 0 12px; font-size: 12px; color: var(--t-muted-fg); }
+  .panel .btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .panel .b { font: 12px var(--t-font); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--t-border); background: var(--t-bg); color: var(--t-fg); }
+  .panel .b.primary { background: var(--t-fg); color: var(--t-bg); border-color: var(--t-fg); }
+  [data-theme="retro-mac"] .panel .b { border-radius: 0; border: 2px solid #000; }
+  .panel .spin { width: 22px; height: 22px; margin: 0 auto; animation: spin .9s linear infinite; color: var(--t-muted-fg); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .rail.ghost > * { visibility: hidden; }
+  .modal-back { position: absolute; inset: 0; z-index: 50; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>피드백 옵션 시트 · 4라운드 (SaaS 상태와 MI-14)</h1>
+  <div class="switch" role="group" aria-label="테마">
+    <span>테마</span>
+    <button type="button" data-set-theme="griddo" aria-pressed="true">griddo (기본)</button>
+    <button type="button" data-set-theme="retro-mac" aria-pressed="false">retro-mac</button>
+    <button type="button" data-set-theme="neumorphism" aria-pressed="false">neumorphism</button>
+  </div>
+  <a href="breadcrumb.html">← breadcrumb 시트</a>
+</header>
+<main>
+  <p class="lead" style="margin-top:18px">SaaS로 바뀌면 생기는 상태들(연결 불안정·오프라인, 첫 로딩, 로딩 실패, 로그인 만료)이 <b>화면 어디에</b> 나타날지 정합니다.
+    모양(색·아이콘·글꼴)은 SaaS 결정(S27·S40)에 따라 계정 모달과 함께 별도 옵션 시트에서 고르므로, 여기 그린 모양은 <b>임시</b>입니다. 위치만 보세요.</p>
+
+  <!-- ============ Q1 connection indicator ============ -->
+  <section class="q" id="q1">
+    <h2><span class="qid">질문 1</span>연결 표시를 어디에 둘까</h2>
+    <p class="lead">S27: 평소에는 아무것도 없고, 요청이 실패하면 "불안정"(저장은 됨), 브라우저가 오프라인이거나 세 번 연속 실패하면 "오프라인"(저장 막힘)입니다. 오프라인에서 저장을 시도하면 화면은 그대로이고 토스트가 뜹니다.</p>
+    <div class="look"><b>이렇게 확인해 보세요</b>
+      <ol>
+        <li>상태를 <b>불안정</b>, <b>오프라인</b>으로 바꿔 가며 세 위치를 비교하세요.</li>
+        <li>표시 위에 마우스를 올리면 설명이 나옵니다.</li>
+        <li>오프라인에서 <b>저장 시도</b>를 누르면 토스트가 경로 자리(왼쪽 위)에 뜹니다. 표시와 토스트가 서로 이어져 보이는지 보세요.</li>
+      </ol>
+    </div>
+    <div class="controls">
+      <span class="lbl">위치</span>
+      <button type="button" data-place="badge" aria-pressed="true">A. 계정 아이콘에 작은 배지 · 권장</button>
+      <button type="button" data-place="rail" aria-pressed="false">B. 사이드바 아래쪽 칸</button>
+      <button type="button" data-place="chip" aria-pressed="false">C. 작업 영역 오른쪽 위</button>
+    </div>
+    <div class="controls">
+      <span class="lbl">상태</span>
+      <button type="button" data-conn="normal" aria-pressed="false">평소</button>
+      <button type="button" data-conn="unstable" aria-pressed="true">불안정</button>
+      <button type="button" data-conn="offline" aria-pressed="false">오프라인</button>
+      <span class="sep"></span>
+      <button type="button" id="try-save">저장 시도</button>
+    </div>
+    <div class="app" id="app1" data-theme="griddo" data-conn="unstable">
+      <nav class="rail" id="rail1"></nav>
+      <div class="work"><div class="grid" id="grid1"></div><div class="toasts" id="toasts1" aria-live="polite"></div><span id="chip-slot"></span></div>
+    </div>
+    <div class="options" style="margin-top:16px">
+      <div class="opt rec"><h3>A. 계정 아이콘에 작은 배지<span class="badge-rec">권장</span></h3><ul>
+        <li>모든 화면에 늘 있는 자리이고, 배지라서 사이드바 아이콘들이 밀리지 않습니다.</li>
+        <li>왼쪽 위(Home·계정)는 눈이 먼저 가는 곳이고, 토스트가 뜨는 경로 자리와도 가깝습니다.</li>
+        <li>연결은 "내 계정이 서버와 이어져 있나"에 관한 것이라 계정 아이콘과 뜻이 맞습니다.</li>
+        <li>모양으로 구분합니다: 불안정은 <code>!</code> 배지, 오프라인은 끊긴 Wi-Fi 배지. 색은 토스트와 같은 노랑·빨강 계열입니다.</li></ul></div>
+      <div class="opt"><h3>B. 사이드바 아래쪽 칸</h3><ul><li>따로 칸이 있어 잘 보이지만, 생겼다 사라질 때 아래쪽 아이콘들이 움직이고 눈이 덜 갑니다.</li></ul></div>
+      <div class="opt"><h3>C. 작업 영역 오른쪽 위</h3><ul><li>가장 눈에 띄지만, Grid 위에 떠서 오른쪽 위 카드를 가립니다. 오프라인이 길어지면 계속 가립니다.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ============ Q2 loading / failure extent ============ -->
+  <section class="q" id="q2">
+    <h2><span class="qid">질문 2</span>첫 로딩·로딩 실패 화면의 범위</h2>
+    <p class="lead">S26: 데이터가 0.3초 안에 오면 아무것도 보이지 않고, 넘으면 로딩 화면이 나옵니다. 실패하면 이유 한 줄과 Retry가 나옵니다(게스트 생성 실패도 같은 화면). 정할 것은 이 화면이 창 전체를 덮느냐, 사이드바는 남기느냐입니다.</p>
+    <div class="options">
+      <div class="opt rec"><h3>A. 창 전체<span class="badge-rec">권장</span></h3>
+        <div class="app small" data-theme="griddo" data-mini>
+          <nav class="rail ghost"></nav><div class="work"></div>
+          <div class="block window"><div class="panel"><svg class="icon spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><h4>Loading your grid…</h4></div></div>
+        </div>
+        <div class="app small" data-theme="griddo" style="margin-top:10px" data-mini>
+          <nav class="rail ghost"></nav><div class="work"></div>
+          <div class="block window"><div class="panel"><h4>Couldn’t load your grid</h4><p>The server didn’t respond.</p><div class="btns"><span class="b primary">Retry</span></div></div></div>
+        </div>
+        <ul>
+          <li>사이드바의 Inbox·Archive 항목과 숫자 배지도 데이터가 있어야 그릴 수 있어서, 반쯤 비어 있는 사이드바가 보이지 않습니다.</li>
+          <li>"아직 준비 안 됨"이 한 장면으로 분명합니다. 빠르면(0.3초 이내) 어차피 보이지 않습니다.</li></ul></div>
+      <div class="opt"><h3>B. 사이드바는 두고 작업 영역만</h3>
+        <div class="app small" data-theme="griddo" data-mini>
+          <nav class="rail" data-mini-rail></nav><div class="work">
+          <div class="block work-only"><div class="panel"><svg class="icon spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><h4>Loading your grid…</h4></div></div></div>
+        </div>
+        <ul>
+          <li>앱 틀이 먼저 보여서 조금 더 빨라 보입니다.</li>
+          <li>단점: 사이드바 버튼을 눌러도 아직 아무 일도 안 일어나고, Inbox 숫자 배지 같은 것들이 비어 있다가 나중에 채워집니다.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ============ Q3 session expiry ============ -->
+  <section class="q" id="q3">
+    <h2><span class="qid">질문 3</span>로그인이 만료되면</h2>
+    <p class="lead">S16은 "세션 갱신에 실패하면 게스트 상태로 돌아가고, 계정 모달에서 다시 로그인한다"로 정했습니다. 그런데 게스트가 되는 순간 <b>새 게스트 계정이 만들어지고 데모 데이터가 복사되어</b>(S10·S23), 화면이 남의 Grid처럼 바뀝니다. 사용자는 "내 데이터가 사라졌다"고 느낍니다. 실제로는 드물게 일어나지만(정상적으로는 자동 갱신), 일어나면 가장 놀라운 순간입니다.</p>
+    <div class="options">
+      <div class="opt rec"><h3>A. 막는 화면: "로그인이 만료됐어요"<span class="badge-rec">권장</span></h3>
+        <div class="app small" data-theme="griddo" data-mini>
+          <nav class="rail ghost"></nav><div class="work"></div>
+          <div class="block window"><div class="panel"><h4>Your sign-in expired</h4><p>Sign in again to see your grid. Nothing was lost.</p><div class="btns"><span class="b primary">Sign in with GitHub</span><span class="b primary">Sign in with Google</span><span class="b">Continue as guest</span></div></div></div>
+        </div>
+        <ul>
+          <li>로딩 실패 화면과 같은 자리·같은 틀을 씁니다. 새 화면 종류가 늘지 않습니다.</li>
+          <li>사용자가 "게스트로 계속"을 고르기 전에는 게스트 계정을 만들지 않아서, 쓰레기 게스트 계정도 생기지 않습니다.</li>
+          <li>S16 문구를 고칩니다("게스트로 돌아감" → "만료 화면에서 고름").</li></ul></div>
+      <div class="opt"><h3>B. 게스트로 바꾸고 계정 모달을 자동으로 열기</h3>
+        <div class="app small" data-theme="griddo" data-mini>
+          <nav class="rail" data-mini-rail></nav><div class="work"><div class="grid" data-mini-grid></div></div>
+          <div class="modal-back"><div class="panel"><h4>Your sign-in expired</h4><p>You’re browsing as a guest. Sign in to return to your grid.</p><div class="btns"><span class="b primary">GitHub</span><span class="b primary">Google</span></div></div></div>
+        </div>
+        <ul><li>S16에 가깝습니다. 모달 뒤에 데모 데이터가 보여서 여전히 놀랄 수 있고, 매번 게스트 계정이 하나씩 생깁니다.</li></ul></div>
+      <div class="opt"><h3>C. S16 그대로 (조용히 게스트)</h3>
+        <div class="app small" data-theme="griddo" data-mini>
+          <nav class="rail" data-mini-rail></nav><div class="work"><div class="grid" data-mini-grid></div></div>
+        </div>
+        <ul><li>아무 안내 없이 데모 Grid가 보입니다. 데이터를 잃은 것처럼 보입니다.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ============ Q4 MI-14 ============ -->
+  <section class="q" id="q4">
+    <h2><span class="qid">질문 4</span>Phase 35 MI-14: 새로고침 후에도 마지막으로 고른 Scratch를 기억할까</h2>
+    <p class="lead">지금은 새로고침하면 Inbox가 항상 첫 번째 Scratch를 엽니다. 작업하던 Scratch로 돌아가려면 다시 골라야 합니다.</p>
+    <div class="options">
+      <div class="opt rec"><h3>A. 이 기기의 브라우저에 기억<span class="badge-rec">권장</span></h3><ul>
+        <li>이미 Inbox 정렬 설정을 저장하는 곳(<code>triage-preferences-store</code>)에 "마지막 Scratch id"를 하나 더 둡니다.</li>
+        <li>SaaS S11이 "기기별 설정은 브라우저 저장소"로 정한 것과 같은 분류입니다.</li>
+        <li>그 Scratch가 지워졌거나 다른 계정이면(id가 없음) 지금처럼 첫 Scratch를 엽니다.</li></ul></div>
+      <div class="opt"><h3>B. 서버에 계정별로 기억</h3><ul><li>다른 기기에서도 이어지지만, 여러 기기 사용은 요구사항이 아니고(S03) 서버에 칸과 쓰기 함수가 하나 더 필요합니다.</li></ul></div>
+      <div class="opt"><h3>C. 지금처럼 첫 Scratch</h3><ul><li>변경 없음. 불편이 남습니다.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="q" id="defaults">
+    <h2><span class="qid">기본값</span>따로 묻지 않고 같이 정하려는 것</h2>
+    <div class="look"><ol>
+      <li><b>스크린리더:</b> 불안정·오프라인이 되면 한 번 polite로 읽습니다. 복구되면 화면에는 아무것도 띄우지 않지만(S27), 스크린리더에만 "Back online."을 한 번 읽습니다. 그래야 오프라인이라고 들은 사용자가 계속 오프라인으로 믿지 않습니다.</li>
+      <li><b>오프라인 저장 시도 토스트:</b> 노랑 계열, 끊긴 Wi-Fi 아이콘, "You’re offline. Changes can’t be saved right now." 같은 종류는 하나로 묶습니다(3라운드 규칙).</li>
+      <li><b>로딩 화면:</b> 0.3초 뒤에 나타나고(S26), 화면이 바쁘다는 것을 스크린리더에 알립니다. 로딩 실패·만료 화면은 열릴 때 포커스를 첫 버튼으로 옮깁니다.</li>
+      <li><b>배경 새로고침 실패</b>(S26): 화면은 그대로 두고 연결 표시만 "불안정"으로 바꿉니다.</li>
+    </ol></div>
+  </section>
+</main>
+
+<script>
+  const I = {
+    home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    acct: '<path d="M2 21a8 8 0 0 1 13.292-6"/><circle cx="10" cy="8" r="5"/><path d="m16 19 2 2 4-4"/>',
+    plus: '<path d="M5 12h14"/><path d="M12 5v14"/>', pencil: '<path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/>',
+    search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>', cal: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
+    trash: '<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+    alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    off: '<path d="M12 20h.01M8.5 16.43a5 5 0 0 1 7 0M5 12.86a10 10 0 0 1 5.17-2.69M19 12.86a10 10 0 0 0-2-1.39M2 8.82a15 15 0 0 1 4.18-2.65M22 8.82a15 15 0 0 0-11.29-3.76M2 2l20 20"/>',
+  };
+  const svg = (n) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
+  const app1 = document.getElementById('app1');
+  let place = 'badge', conn = 'unstable';
+  const TIP = { unstable: 'Connection unstable. Changes may take longer to save.', offline: 'You’re offline. Changes can’t be saved until you reconnect.' };
+
+  document.querySelectorAll('[data-set-theme]').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-set-theme]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll('.app').forEach((a) => a.dataset.theme = b.dataset.setTheme);
+  }));
+
+  function railHtml(withConn) {
+    const icon = conn === 'offline' ? 'off' : 'alert';
+    const badge = withConn && place === 'badge' ? `<span class="conn conn-badge">${svg(icon)}</span>` : '';
+    const acct = `<span class="ri acct${withConn && place === 'badge' ? ' has-tip' : ''}" tabindex="0">${svg('acct')}${badge}${withConn && place === 'badge' ? `<span class="tip">${TIP[conn] || ''}</span>` : ''}</span>`;
+    const railSlot = withConn && place === 'rail' ? `<span class="conn conn-rail has-tip" tabindex="0">${svg(icon)}<span class="tip">${TIP[conn] || ''}</span></span>` : '';
+    return `<span class="ri">${svg('home')}</span>${acct}` + ['plus', 'pencil', 'search', 'cal', 'inbox', 'archive'].map((n) => `<span class="ri">${svg(n)}</span>`).join('')
+      + `<span class="grow"></span>${railSlot}<span class="ri">${svg('trash')}</span><span class="ri">${svg('sun')}</span>`;
+  }
+  const CARDS = new Set(['0,0', '1,0', '6,1', '8,2', '3,3', '10,4', '2,5', '12,2', '5,6', '14,6', '16,0', '17,1']);
+  function gridHtml() { let s = ''; for (let y = 0; y < 9; y++) for (let x = 0; x < 18; x++) s += CARDS.has(`${x},${y}`) ? '<div class="card">▪</div>' : '<div class="cell"></div>'; return s; }
+  function render() {
+    app1.dataset.conn = conn;
+    document.getElementById('rail1').innerHTML = railHtml(true);
+    const icon = conn === 'offline' ? 'off' : 'alert';
+    document.getElementById('chip-slot').innerHTML = place === 'chip'
+      ? `<span class="conn conn-chip has-tip" tabindex="0">${svg(icon)}<span>${conn === 'offline' ? 'Offline' : 'Unstable'}</span><span class="tip">${TIP[conn] || ''}</span></span>` : '';
+  }
+  document.getElementById('grid1').innerHTML = gridHtml();
+  document.querySelectorAll('[data-mini-grid]').forEach((g) => g.innerHTML = gridHtml());
+  document.querySelectorAll('[data-mini-rail]').forEach((r) => r.innerHTML = `<span class="ri">${svg('home')}</span><span class="ri acct">${svg('acct')}</span>` + ['plus', 'pencil', 'search', 'cal', 'inbox'].map((n) => `<span class="ri">${svg(n)}</span>`).join(''));
+  document.querySelectorAll('[data-place]').forEach((b) => b.addEventListener('click', () => {
+    place = b.dataset.place; document.querySelectorAll('[data-place]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render();
+  }));
+  document.querySelectorAll('button[data-conn]').forEach((b) => b.addEventListener('click', () => {
+    conn = b.dataset.conn; document.querySelectorAll('button[data-conn]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render();
+  }));
+  document.getElementById('try-save').addEventListener('click', () => {
+    const box = document.getElementById('toasts1');
+    if (conn !== 'offline') return;            // unstable still saves: no toast
+    let el = box.querySelector('.toast');
+    if (el) { const n = Number(el.dataset.n || 1) + 1; el.dataset.n = n; el.querySelector('.m').textContent = `You’re offline. ${n} changes couldn’t be saved.`; return; }
+    el = document.createElement('div'); el.className = 'toast'; el.dataset.n = 1; el.setAttribute('role', 'status');
+    el.innerHTML = `${svg('off')}<span class="m">You’re offline. Changes can’t be saved right now.</span>`;
+    box.appendChild(el); setTimeout(() => el.remove(), 6000);
+  });
+  render();
+</script>
+</body>
+</html>

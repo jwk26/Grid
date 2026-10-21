@@ -32,6 +32,22 @@ Context `[X]`, the Undo active-Scratch condition, and selection of a Scratch
 captured while the Inbox is mounted. The DP-VQ03 departure-sheet behavior is
 unchanged; only its Retro Mac realization changes in the recipe.
 
+## SaaS Conversion Amendment — 2026-10-22
+
+From [`DECISION.md`](brainstorming/2026-10-21-saas-conversion/DECISION.md)
+S01–S43 (promotion ①, [`PROMOTION_MAP.md`](brainstorming/2026-10-21-saas-conversion/PROMOTION_MAP.md))
+and, within its S41 boundary, the feedback topic's
+[`DECISION.md`](brainstorming/2026-10-18-staging-item-status-feedback/DECISION.md)
+F02, F11, F13, F14, F16 (copy alignment) and F17–F20. GridDO becomes a SaaS
+with Supabase as the per-account source of truth. Amends Architecture
+Decisions 1–3, 7, 9, 11 and 15 and adds 19–21; replaces the "No auth" routing
+rule; adds [Account Entry And App States](#account-entry-and-app-states),
+[Feedback And Network States](#feedback-and-network-states) and
+[Environments And Hosting](#environments-and-hosting). The user-facing product
+name is "grid"; inside the project the name stays GridDO (S06). Multi-device
+use gets no extra work (S03). The rest of the feedback topic (Inbox item
+status, toast position and colour, the breadcrumb reveal) is promotion ②.
+
 ## Inbox/Triage SPEC Approval Receipt
 
 - **Gate:** the complete production-adapted Inbox/Triage amendment in this
@@ -66,6 +82,9 @@ unchanged; only its Retro Mac realization changes in the recipe.
 - [Routes](#routes)
 - [File Organization Conventions](#file-organization-conventions)
 - [Page Layouts](#page-layouts)
+- [Account Entry And App States](#account-entry-and-app-states)
+- [Feedback And Network States](#feedback-and-network-states)
+- [Environments And Hosting](#environments-and-hosting)
 - [Inbox/Triage State Ownership](#inboxtriage-state-ownership)
 - [Copy and Localization](#copy-and-localization)
 - [Inbox/Triage Visual Decision Prerequisites](#inboxtriage-visual-decision-prerequisites)
@@ -85,7 +104,11 @@ unchanged; only its Retro Mac realization changes in the recipe.
 | Component Library | shadcn/ui (Radix primitives) | latest | Accessible, composable UI primitives |
 | Icons | Lucide React | latest | Icon library for Nodes, Bits, sidebar, and UI elements |
 | Validation | Zod | 3.x | Runtime schema validation at data boundaries |
-| Storage | Dexie.js (IndexedDB) | Dexie library 4.x; DB schema v3 → v4 | Type-safe IndexedDB wrapper with reactive queries (`useLiveQuery`); the database-schema v4 Inbox/Triage migration is specified in SCHEMA and is not yet production reality |
+| Backend | Supabase (Postgres, Auth) via `@supabase/supabase-js` | latest | Per-account source of truth; RLS; every write is a Postgres function called over RPC (SCHEMA §Database Functions) |
+| Local database tooling | Supabase CLI (pinned dev dependency) + Docker Desktop | pinned | `supabase start`, migrations, generated types, `pnpm test:db` |
+| Bot protection | Cloudflare Turnstile | — | Guards anonymous sign-in in production |
+| Hosting | Vercel Hobby | — | Static/client app from `main`; no Next.js server code |
+| Storage (until Phase 46) | Dexie.js (IndexedDB) | Dexie library 4.x; DB schema v4 | The running store until Phase 45 switches to Supabase; Phase 46 removes it (SCHEMA §Dexie Migration Target) |
 | Theming | next-themes | latest | Dark/Light mode with system preference detection |
 | Dates | date-fns | 4.x | Date arithmetic — aging, urgency, calendar rendering |
 | State Management | Zustand | 5.x | Lightweight client state — edit mode, sidebar, drag state, calendar view |
@@ -97,11 +120,11 @@ unchanged; only its Retro Mac realization changes in the recipe.
 
 ## Architecture Decisions
 
-1. **Client Components by default** — GridDO is local-first. All data lives in IndexedDB, accessed from the browser. Server Components are used only for static layout shells (root layout, page skeletons). Any component that reads data or handles interaction is a Client Component.
+1. **Client Components by default** — GridDO runs entirely in the browser, with no Next.js server code (S21). The account's data lives in Supabase Postgres and is read and written from the client (S02, S08); until Phase 45 it lives in IndexedDB. Server Components are used only for static layout shells (root layout, page skeletons). Any component that reads data or handles interaction is a Client Component.
 
-2. **DataStore abstraction (two-layer)** — Data access has two independent abstraction boundaries. **Command/repository layer:** All writes, including the approved Inbox/Triage CAS and atomic commands, go through `DataStore` (`src/lib/db/datastore.ts`) and its Dexie implementation (`src/lib/db/indexeddb.ts`). Components never sequence repository writes. **Reactive layer:** All read subscriptions go through custom hooks (`src/hooks/use-*.ts`), which internally use Dexie `useLiveQuery` in v1. Components import hooks rather than Dexie. Both layers remain independently replaceable for future cloud sync, but a replacement must preserve the approved conditional-write, version, postcondition, and reconciliation semantics in SCHEMA.
+2. **DataStore abstraction (two-layer)** — Data access has two independent abstraction boundaries. **Command/repository layer:** All writes, including the approved Inbox/Triage CAS and atomic commands, go through `DataStore` (`src/lib/db/datastore.ts`). From Phase 45 its implementation is the Supabase store (`src/lib/db/supabase-store.ts`), which sends every write as one database function call (SCHEMA §Database Functions) and answers reads from the account snapshot; until then it is the Dexie implementation (`src/lib/db/indexeddb.ts`). Components never sequence repository writes. **Reactive layer:** All read subscriptions go through custom hooks (`src/hooks/use-*.ts`). From Phase 45 they subscribe to the account snapshot store instead of Dexie `liveQuery`, and their return shapes stay (S07). Components import hooks rather than the store. The Supabase store preserves the approved conditional-write, version, postcondition, and reconciliation semantics in SCHEMA.
 
-3. **Reactive data via custom hooks** — Components subscribe through custom hooks (`useGridData`, `useBitDetail`, `useCalendarData`, and the global `useSearch`). The Inbox target adds `useStagedCandidates` and `useGridExplorerSearch` under the exact target paths in [Key File Paths](#key-file-paths). Reactive delivery does not prove that a mutation committed, that a source is orphaned, or that a cached value is authoritative. Inbox commands converge only through the typed repository result and command-specific reconciliation contract in SCHEMA. The global `useSearch()` / `searchAll()` pair remains separate and is never extended or reused as Grid Explorer search.
+3. **Reactive data via custom hooks** — Components subscribe through custom hooks (`useGridData`, `useBitDetail`, `useCalendarData`, and the global `useSearch`). The Inbox target adds `useStagedCandidates` and `useGridExplorerSearch` under the exact target paths in [Key File Paths](#key-file-paths). Hooks read the in-memory account snapshot (Decision 19); a snapshot change re-renders its subscribers. Reactive delivery does not prove that a mutation committed, that a source is orphaned, or that a cached value is authoritative. Inbox commands converge only through the typed repository result and command-specific reconciliation contract in SCHEMA. The global `useSearch()` / `searchAll()` pair remains separate and is never extended or reused as Grid Explorer search.
 
 4. **URL-driven grid navigation** — The current grid position is encoded in the URL (`/` for Level 0, `/grid/[nodeId]` for deeper levels). This enables browser back/forward navigation through the grid hierarchy. Breadcrumbs and URL stay in sync.
 
@@ -109,15 +132,15 @@ unchanged; only its Retro Mac realization changes in the recipe.
 
 6. **Computed values at render time** — Aging state, Node completion, badge urgency, and Bit progress are computed during rendering from stored data (see SCHEMA.md). Never stored. This avoids stale derived state and simplifies the write path.
 
-7. **Zod validation at write boundary** — Data is validated with Zod schemas (SCHEMA.md) when entering the DataStore (create/update operations). Data read from the store is trusted — no runtime validation on reads. This keeps read paths fast.
+7. **Zod validation at write boundary; the database is the final gate** — Data is validated with Zod schemas (SCHEMA.md) when entering the DataStore (create/update operations), for immediate feedback. The database is the final gate: CHECK, unique and foreign-key constraints and the checks inside the write functions, because client code can be changed in the browser (S12; SCHEMA §Validation layers). Data read from the snapshot is trusted — no runtime validation on reads. This keeps read paths fast.
 
 8. **Domain-grouped shared components** — Shared components are organized by domain (`grid/`, `calendar/`, `bit-detail/`, `layout/`, `trash/`, `quick-capture/`, `triage/`, `archive/`) under `src/components/`. Page-specific components live in `_components/` within their route folder.
 
-9. **Client state is split by lifetime, not by convenience** — Zustand remains appropriate for cross-cutting application/session UI state, but it is never a second domain database. Durable Nodes, Bits, Breakdown rows, `StagedCandidate` records, versions, archive state, and narrow orphan-integrity evidence live behind the Dexie/repository boundary defined by SCHEMA. The Inbox target removes candidates and duplicated candidate labels from `triage-store.ts`; candidate display joins the authoritative source Breakdown row. Page-mounted workflow hooks own drafts, placement, archive presentation, and Newly Placed/Undo projections. Only the two Inbox sort directions use a device-local persisted preference store. See [Inbox/Triage State Ownership](#inboxtriage-state-ownership).
+9. **Client state is split by lifetime, not by convenience** — Zustand remains appropriate for cross-cutting application/session UI state, but it is never a second domain database. Durable Nodes, Bits, Breakdown rows, `StagedCandidate` records, versions and archive state live behind the DataStore boundary defined by SCHEMA, in Postgres (S02). The account snapshot (Decision 19) is a disposable app-session cache, never a source of truth. The Inbox target removes candidates and duplicated candidate labels from `triage-store.ts`; candidate display joins the authoritative source Breakdown row. Page-mounted workflow hooks own drafts, placement, archive presentation, and Newly Placed/Undo projections. Only the two Inbox sort directions use a device-local persisted preference store. See [Inbox/Triage State Ownership](#inboxtriage-state-ownership).
 
 10. **next-themes for dark/light theming** — Dark/Light mode via `next-themes` provider in root layout. Theme token switching is handled through CSS custom properties in `globals.css`, referenced by Tailwind classes. No conditional class logic in components.
 
-11. **Authoritative Inbox/Triage commands; no universal optimistic guarantee** — Existing ordinary local-first paths may still reflect successful Dexie writes reactively, but Inbox/Triage Add, Save, Delete, Stage, Unstage, placement, Undo, confirmed-orphan cleanup, Scratch Archive, and Trash Scratch follow SCHEMA's atomic command/result contract. Pending source truth remains visible and locked until `applied`/`already_applied`, `not_applied`, `rejected`, or `conflict` is authoritative. An unknown transport outcome retains the same operation ID and reconciles; it is never treated as success, blindly resent, or compensated one side at a time. These flows require meaningful pending, failure, conflict, and recovery states. No general operation log, journal, outbox, or offline mutation queue is introduced.
+11. **Authoritative Inbox/Triage commands; write feel by group** — Ordinary writes follow the four groups in [Write feel](#write-feel) (S15): optimistic with rollback, immediate hide, or server-confirmed, last-write-wins, never resent after an unknown outcome. Inbox/Triage Add, Save, Delete, Stage, Unstage, placement, Undo, Scratch Archive, and Trash Scratch follow SCHEMA's atomic command/result contract. Pending source truth remains visible and locked until `applied`/`already_applied`, `not_applied`, `rejected`, or `conflict` is authoritative. An unknown transport outcome retains the same operation ID and reconciles; it is never treated as success, blindly resent, or compensated one side at a time. These flows require meaningful pending, failure, conflict, and recovery states. No general operation log, journal, outbox, or offline mutation queue is introduced; the pending-write layer (Decision 19) lives only in memory, and a pending write is never persisted or resent.
 
 12. **@dnd-kit with domain-specific input contracts** — Grid, calendar, timeline, and Inbox/Triage use the shared library while preserving domain-specific rules. General Grid DnD retains its existing keyboard support. Inbox placement entry is deliberately Mouse/Touch pointer DnD only in this promotion: Mouse starts after 8px; Touch uses 250ms delay with 5px tolerance. Breakdown rows remain grip-only, while a staged candidate's whole card/row is the activator and uses the pointer-centered `TriageDragToken`. No placement button, keyboard drag mode, destination picker, hidden shortcut, or unfinished alternative is added; keyboard/drag-alternative placement remains deferred.
 
@@ -125,13 +148,19 @@ unchanged; only its Retro Mac realization changes in the recipe.
 
 14. **Pure utility functions for algorithms** — BFS auto-placement, aging state computation, urgency level computation, and Node completion check are pure functions in `src/lib/utils/`. No side effects, independently testable.
 
-15. **System Nodes retain route identity and lifecycle** — Two system Nodes (`systemRole: 'inbox' | 'archive_view'`) are seeded at first launch / migration (defaults in SCHEMA § Default System Nodes). They use `/grid/[nodeId]`; `GridRuntime` dispatches Inbox to the Triage workspace and Archive View to its existing surface. The Inbox amendment adds no route and does not replace this owner. System Nodes cannot be archived or trashed; `hiddenFromGrid` controls L0 visibility and the sidebar still exposes them. Direct Archive and Archive View restore remain separate from Scratch completion. Completion never auto-archives.
+15. **System Nodes retain route identity and lifecycle** — Every account has two system Nodes (`systemRole: 'inbox' | 'archive_view'`), created and normalized by `ensure_account()` at session start (S13; SCHEMA §Account preparation; defaults in SCHEMA § Default System Nodes). They use `/grid/[nodeId]`; `GridRuntime` dispatches Inbox to the Triage workspace and Archive View to its existing surface. The Inbox amendment adds no route and does not replace this owner. System Nodes cannot be archived or trashed; `hiddenFromGrid` controls L0 visibility and the sidebar still exposes them. Direct Archive and Archive View restore remain separate from Scratch completion. Completion never auto-archives.
 
 16. **Inbox/Triage DnD opens a guarded placement state machine** — Drag targets distinguish valid, invalid, and pending-confirmation semantics before any write. Release-time hit testing chooses the actual pointer-under target after edge auto-scroll. Direct placement, optional staged Result Title, target-column confirmation, pending/reconciling, failure, and rollback are distinct states owned by the proposed `useTriagePlacement` hook; `useTriageDnd` remains the pointer/drop-intent coordinator. `TriageWorkspace` composes these owners but owns neither persistence nor sequential writes. Full/stale targets disable or end the current flow without alternate-target selection, partial compensation, or silent retry.
 
 17. **Color themes share semantics; presentation changes preserve work** — Color theme remains a second visual axis over dark/light, with the canonical eight-theme set and `<html data-color-theme="...">`. Product components consume semantic variables, state attributes, and theme realization components; they do not duplicate routes or branch on theme ID. A theme or future locale change is presentation only: it preserves selected Scratch, Pool state/query, Add/Edit drafts, Explorer path/search/reveal, open Placement/Archive state, operation IDs and pending/reconciling flows, and Newly Placed/Undo. It neither saves, cancels, refetches, navigates, starts a duplicate mutation, nor translates user-authored text. Moving focus to the toggle is an explicit exception to inline-editor valid-blur save; the draft remains open and focus stays on the toggle.
 
 18. **Selected Inbox/Triage promotion supersedes the Phase 22 surface assumptions only in its declared scope** — The four-area ratios, system-node route dispatch, global Search Overlay, Archive View, Direct Archive, Calendar behavior, current card foundations, and unrelated responsive scope are retained. The selected topic supersedes invisible developer-only section labels, compact Selected Scratch Context, UI-only candidates, active-column Explorer search, the combined generic placement dialog, the simple archive bar/global confirmation, consumed-row strike-through, Add-on-blur creation, and the claim that Inbox mutations need no pending/error states. The Pool still auto-collapses only on the first printable Breakdown key and honors the per-Scratch manual-reopen exception. Visual behavior is constrained by [Inbox/Triage Visual Decision Prerequisites](#inboxtriage-visual-decision-prerequisites); source absence never deletes selected behavior or authorizes a nearby fallback.
+
+19. **Account snapshot with a pending-write layer** — At session start the client loads the whole account with `get_snapshot()` into an in-memory snapshot; views, search and render-time compute run over it as today (S07, S19). The snapshot has two layers: the server-confirmed base and an ordered list of pending writes. The view is the base with the pending writes applied on top. Function results (SCHEMA §Result envelope) and refetches change only the base; a pending write leaves the list when it settles, applied or rolled back; writes to one record are sent in order (S31, S32). A refetch sent before a write settled is discarded and sent again, so an older read never overwrites a newer result. The snapshot is refetched when a tab becomes visible or focused and after reconnecting (S17), and dropped on reload and sign-out. It is not a per-query cache and not a sync engine; Realtime is deferred.
+
+20. **Account entry without auth routes** — A visit without a session becomes an isolated guest through Supabase anonymous sign-in; GitHub or Google sign-in from the account modal gives an own account (S10, S23). There is no sign-in page and no new route. Tabs share the session: when another tab changes the signed-in user, this tab drops its snapshot and repeats entry behind the loading frame (user, 2026-10-22). See [Account Entry And App States](#account-entry-and-app-states).
+
+21. **Network failure is a visible state, not an offline mode** — v1 has no offline editing. Loading, load failure, connection states, unknown outcomes and session expiry follow [Feedback And Network States](#feedback-and-network-states) (S16, S26–S28). The display delay `DISPLAY_DELAY_MS` (300ms) only postpones presentation and never decides success (F02).
 
 ---
 
@@ -147,7 +176,7 @@ unchanged; only its Retro Mac realization changes in the recipe.
 
 **Route-group layout:** Grid routes (`/` and `/grid/[nodeId]`) share a `(grid)` route group with a common layout at `src/app/(grid)/layout.tsx`. This layout renders `GridRuntime`, a client wrapper that owns sidebar, breadcrumb, shared DnD boundary, and add-flow orchestration. Page components are thin grid-content renderers — they do not manage shell chrome.
 
-**No auth.** All routes are public. No middleware for route protection. No login/callback routes.
+**Auth without auth routes (S23).** There is no sign-in page, callback route or middleware. Every route needs a session, and a visit without one gets a guest session first ([Account entry](#account-entry)). OAuth returns to `/`, where supabase-js completes the sign-in in the browser.
 
 **Bit detail popup:** Not a route. Triggered by `?bit=[bitId]` query parameter on any grid or calendar page. The popup component reads the query param and renders accordingly.
 
@@ -172,7 +201,8 @@ unchanged; only its Retro Mac realization changes in the recipe.
 | UI Primitives (shadcn) | `src/components/ui/{name}.tsx` | `src/components/ui/button.tsx` |
 | Hooks | `src/hooks/use-{name}.ts` | `src/hooks/use-grid-data.ts` |
 | DataStore Interface | `src/lib/db/datastore.ts` | — |
-| DataStore Implementation | `src/lib/db/indexeddb.ts` | — |
+| DataStore Implementation | `src/lib/db/supabase-store.ts` (from Phase 45); `src/lib/db/indexeddb.ts` (until Phase 46) | — |
+| Database migrations and tests | `supabase/migrations/*.sql`; `supabase/tests/*.db.test.ts` | — |
 | Validation Schemas | `src/lib/db/schema.ts` | — |
 | Pure Utilities | `src/lib/utils/{name}.ts` | `src/lib/utils/bfs.ts` |
 | Pure Domain Queries / Ranking | `src/lib/utils/{domain}-{purpose}.ts` | proposed `src/lib/utils/grid-explorer-search.ts` |
@@ -207,7 +237,7 @@ unchanged; only its Retro Mac realization changes in the recipe.
 
 - **Structure:** Full-width 18x9 grid occupying the main content area. Fixed icon-rail sidebar (always visible, `w-12`). Breadcrumb shows "Home" root-only state.
 - **Content:** Nodes only. No Bits at Level 0.
-- **Sidebar:** Permanent narrow icon rail, always visible, identical across all levels. Icons: + (add), Pencil (edit toggle), Search, Calendar (top); Trash, dark/light Theme toggle, Color Theme toggle (bottom). No fold/unfold mechanism.
+- **Sidebar:** Permanent narrow icon rail, always visible, identical across all levels. Icons: account icon (top-most, S23; [Account icon and modal](#account-icon-and-modal-sidebar-not-a-route)), + (add), Pencil (edit toggle), Search, Calendar (top); Trash, dark/light Theme toggle, Color Theme toggle (bottom). No fold/unfold mechanism.
 - **Onboarding:** On first visit (no Nodes exist), show ghost placeholder Nodes with dashed outlines and hint labels ("Try: Work, Personal, Hobbies"). Disappear after first Node creation.
 - **Interactions:** Click Node → navigate to `/grid/[nodeId]`. Dark/light Theme toggle, Color Theme toggle, search overlay, edit mode. DnD enabled (repositioning works outside edit mode).
 - **Visual:** Level 0 background color (`--grid-bg-l0`). Standard grid line density. No depth effects at Level 0.
@@ -350,7 +380,7 @@ files already exist:
 |------|--------------------------|-----------------------|
 | Route/body composition | `GridRuntime` dispatches to `TriageWorkspace`; `TriageWorkspace` composes the four areas and a nested DnD context | Retain both coordinators. `TriageWorkspace` coordinates locks, transitions, and owner composition; it never stores candidates or sequences repository writes |
 | Scratch/Pool UI session | `src/stores/triage-store.ts` holds selection, Pool expansion/manual exception, and UI-only candidates; Pool query/sort are component-local | `triage-store.ts` owns only app-session state; proposed `triage-preferences-store.ts` persists only Pool and Breakdown sort directions |
-| Candidate truth | `triage-store.ts` stores candidate arrays and duplicated `label` values | SCHEMA `StagedCandidate` commands/queries in the existing DataStore/Dexie repository boundary; proposed `use-staged-candidates.ts` owns the reactive candidate/source join and dispatches Stage, Unstage, and confirmed-orphan commands without sequencing repository writes in the component |
+| Candidate truth | `triage-store.ts` stores candidate arrays and duplicated `label` values | SCHEMA `StagedCandidate` commands/queries in the DataStore boundary; proposed `use-staged-candidates.ts` owns the reactive candidate/source join and dispatches Stage and Unstage commands without sequencing repository writes in the component (the confirmed-orphan command is removed, S18) |
 | Breakdown writes | `use-scratch-breakdowns.ts` computes order from a render snapshot and calls ordinary create/delete methods | The hook projects SCHEMA Add/Save/Delete command results and CAS; `BreakdownPanel` owns interaction/focus, not transaction sequencing |
 | Placement | `useTriageDnd` in `use-dnd.ts` owns DnD, a combined Dialog state, and sequential create → consume → candidate removal | `useTriageDnd` owns pointer/drop intent only; proposed `use-triage-placement.ts` owns the direct/result-title/confirm/pending/reconcile/failure state machine and calls one atomic repository command |
 | Explorer path/search | `HierarchyExplorer` owns component-local path and active-column title filtering | `HierarchyExplorer` coordinates path, mode, reveal, and scroll; proposed `grid-explorer-search.ts`, `use-grid-explorer-search.ts`, and `grid-explorer-search-results.tsx` own the Inbox-only full-hierarchy query, request lifecycle, and result body |
@@ -487,7 +517,7 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   selected Scratch; other themes keep that strip hidden. Both are disabled,
   with a visible reason, while any Inbox operation is pending, while a
   placement flow is open, and while that Scratch has a staged candidate whose
-  source cannot be resolved (confirmed-orphan cleanup resolves it first).
+  source cannot be resolved (in the Postgres target this cannot occur: the foreign key keeps every source, S18).
   `[X]` is also unavailable while the completion overlay makes the Breakdown
   inert; the Pool entry stays available then. While the `VQ-03` sheet is up,
   the Pool and Breakdown are inert, so neither entry is available.
@@ -634,12 +664,11 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   not collapse SCHEMA result semantics: the same proved postcondition may be
   `already_applied`, while a different duplicate/revision is
   `rejected` or `conflict` and never creates or changes a candidate.
-- A query cache miss, offline state, or delayed subscription never proves an
-  orphan and never renders a broken candidate as normal. Only authoritative
-  deletion/tombstone proof permits the SCHEMA confirmed-orphan command, which
-  atomically removes candidate, appends narrow integrity evidence, recomputes
-  counts/archive eligibility, and exposes the `VQ-06` Staging status. There is
-  no general operation history.
+- A snapshot miss, offline state, or delayed refetch never proves an orphan
+  and never renders a broken candidate as normal. In the Postgres target the
+  foreign key from a candidate to its source makes an orphan impossible, so the
+  confirmed-orphan command and its `VQ-06` orphan status are removed (S18; the
+  Dexie path stays until Phase 46). There is no general operation history.
 - Candidate existence blocks staged-source Save/Delete in the repository as
   well as UI. Rejection never auto-unstages, propagates an edit, or cascades a
   candidate. Staging does not consume the source row.
@@ -1041,6 +1070,340 @@ change repository Archive/cascade/restore behavior or Scratch Archive.
 
 ---
 
+## Account Entry And App States
+
+SaaS conversion (DECISION S07–S43; feedback F02, F11, F13, F14, F16 copy
+alignment and F17–F20 within SaaS S41). Exact copy is in
+[Feedback copy](#feedback-copy). Surface looks are a Decision prerequisite
+(`DP-SAAS-01`, `DESIGN_TOKENS.md` §SaaS App-State Surfaces); semantic tokens
+only (S40).
+
+### Account entry
+
+1. **Narrow window.** While the viewport is narrower than 1024px the
+   narrow-window notice covers the app (S42 (4); Phase 48). The app stays
+   mounted and `inert` beneath it, so widening the window again brings back the
+   same screen with its drafts and Inbox state. A visit without a session
+   creates no guest while the window is narrow; entry continues once it is wide
+   enough.
+2. **Session.** A visit without a session signs in anonymously and becomes a
+   per-visitor guest (S10, S23). In production Cloudflare Turnstile guards that
+   sign-in; when it needs an interactive check, its widget appears inside the
+   app-level frame, since there is no sign-in page (S42 (3)). The session lives
+   in that browser, so the same browser returns to the same guest until the
+   guest is cleaned up 7 days after its last visit (S42 (5)).
+3. **Account preparation.** `ensure_account()` (SCHEMA §Account preparation)
+   records the visit, creates or normalizes the system Nodes and, for a new
+   guest, copies the demo seed.
+4. **Snapshot.** `get_snapshot()` loads the whole account
+   ([Architecture Decision 19](#architecture-decisions)). Until it is ready the
+   app-level loading screen covers the window, shown only after
+   `DISPLAY_DELAY_MS` (300ms), so a fast load shows nothing and an empty Grid
+   never reads as lost data (S26, F02, F19).
+5. **Ready.** The app renders as today. `/` stays the L0 Grid.
+
+There is no sign-in page, no `/demo` route and no top banner (S23). Before
+Phase 48 there is no Turnstile and no OAuth; locally, browser checks sign in as
+a local test user with email and password (S20). From Phase 48 local Supabase
+also runs OAuth and Turnstile ([Environments And Hosting](#environments-and-hosting)).
+
+**Several tabs** (user, 2026-10-22). The session is shared by every tab of the
+browser. When another tab signs in, signs out or switches to a new guest, this
+tab drops its snapshot and repeats steps 3–5 for the new user behind the
+loading frame. Only the tab whose user pressed `Sign out` creates the new
+guest; the other tabs follow that session. Two tabs on a first visit may each
+create a guest; both converge on the session stored last, and the extra guest
+is never shown again and is cleaned up 7 days later.
+
+### Account icon and modal (sidebar, not a route)
+
+- One account icon at the very top of the sidebar, above `+`, on every route
+  (S23). Feedback F21 (promotion ②) places the Home button above it. Lucide
+  `user-round` for a guest, `user-round-check` for a signed-in OAuth account.
+- The connection badge (F17) sits on this icon ([Connection states](#connection-states)).
+- Phase 47 builds the icon and its badge with no modal: until Phase 48 the icon
+  is a focusable status element whose tooltip is the connection sentence, with
+  no action. Phase 48 makes it the button that opens the account modal
+  (S43 (1)).
+- **Guest modal:** that the visitor is browsing as a guest; that guest data is
+  deleted 7 days after the last visit (S42 (5)); `Sign in with GitHub` and
+  `Sign in with Google`; that signing in opens a new, empty account and does
+  not move the guest data into it (a guest is never converted, S23); and the
+  privacy note. No sign-out: a guest has nothing to sign out of.
+- **Account modal:** the account name, `Sign out` and `Delete account`.
+  Sign-out drops the snapshot and leaves the visitor as a new guest (S23).
+  `Delete account` asks for confirmation in the modal, since it cannot be
+  undone; on success the visitor becomes a new guest and a success toast
+  reports the deletion (F11 (3)). Profile settings are out of v1.
+- OAuth runs client-side: the provider returns to `/` and supabase-js
+  completes the sign-in in the browser; there is no server code (S21). Sign-up
+  is open to anyone, and a new real account starts with its system Nodes only
+  (S10).
+- If the visitor cancels at the provider or the provider returns an error, the
+  current guest session stays, the error parameters are removed from the URL,
+  and the account modal opens again with an inline error (a problem inside a
+  dialog, F11) (user, 2026-10-22). If the sign-in started from the
+  session-expired screen, there is no session to keep: the screen returns
+  instead ([Session expiry](#session-expiry)).
+
+### App-level screens
+
+One app-level frame covers the whole window, sidebar included, because the
+sidebar's system-Node items and badges need the snapshot too (F19). A screen
+that shows an action moves focus to its first action (F19).
+
+| Screen | When | Shows | Actions |
+|---|---|---|---|
+| Loading | The snapshot is not ready, after 300ms (F02) | Busy state exposed to screen readers | — |
+| Load failure | `ensure_account()` or `get_snapshot()` failed (absorbs Phase 35 MI-23) | A reason line | `Retry` |
+| Guest creation failure | Anonymous sign-in failed: Turnstile, rate limit, a paused or unreachable project (S26) | A reason line | `Retry`; also retries by itself on reconnect |
+| Security check | Turnstile needs an interactive check (S42 (3)) | The Turnstile widget | The widget's own |
+| Session expired | The auth server rejected the session refresh (F20, S16) | Real-account or guest variant (S43 (2)) | `Sign in with GitHub`, `Sign in with Google`, `Continue as guest`; before Phase 48 only `Continue as guest` |
+| Account being deleted | A function returned `account_deleting` (SCHEMA account-deletion fallback) | That the account is being deleted, that deletion finishes within 24 hours, and that the same account can sign up again afterwards | `Continue as guest` |
+| Account deleted | A function returned `account_missing`: the account was deleted from another device or browser (user, 2026-10-22). Tabs of the same browser follow the new guest instead (Several tabs) | That the account was deleted and its data is gone | `Continue as guest` |
+| Narrow window | Viewport narrower than 1024px (S42 (4)) | The larger-window notice, laid over the mounted, `inert` app | — |
+
+- The session-expired screen creates no guest account before the visitor
+  chooses (F20). `Continue as guest` on it, and on the account-being-deleted
+  and account-deleted screens, signs out and starts a new guest.
+- The narrow-window notice is the one screen laid over the app instead of
+  replacing it; the others replace the app until they are resolved.
+- A loading or failure screen never replaces a surface for an ordinary
+  in-session request; those use [Write feel](#write-feel) and
+  [Connection states](#connection-states).
+
+## Feedback And Network States
+
+### Write feel
+
+Everyday interactions feel as they do today (S09). Writes fall into four groups
+(S15):
+
+| Group | Writes | Behavior |
+|---|---|---|
+| 1. Immediate | Position moves (Grid drag, Calendar reschedule, Chunk order), parent-change moves (a drop on a Node, a breadcrumb drop), field edits (title, description, icon, color, deadline, priority), completion toggles, and creating Nodes, Bits and Chunks | Shown at once through the pending-write layer; on failure rolled back with a failure toast |
+| 2. Immediate hide | Trash and archive | The target hides at once and comes back on failure; the cascade is not predicted on the client, since descendants are reached only through the target |
+| 3. Server-confirmed | Permanent delete, Empty Trash, restore from Trash or Archive, Bit-to-Node promotion | The control or row that started it shows a loader after `DISPLAY_DELAY_MS` and a busy state; the result appears when the function answers. The loader is the feedback F03 loader (promotion ②), one loader app-wide (user, 2026-10-22) |
+| 4. Inbox/Triage commands | The SCHEMA atomic commands | Their pending/reconciling UI and reconcile contract, as built (S28) |
+
+- Ordinary writes stay last-write-wins: no expected version (S15).
+- A parent-change move picks its cell on the client from the snapshot,
+  nearest empty cell first as `findNearestEmptyCell` does today; the server
+  refuses a taken cell and the move rolls back (S43 (3)).
+- **Unknown outcome.** A request with no answer within `REQUEST_TIMEOUT_MS`
+  (15 seconds), or one that ends without an answer, is never resent, because a
+  resent write that did commit would increment `version` twice. The client
+  refetches the snapshot and keeps or rolls back the change to match the
+  server; a rollback shows the failure toast. The Inbox commands keep their own
+  reconcile contract (S16, S26).
+- An Inbox command that would pass an account limit (Breakdown Add, a
+  placement result) returns `rejected` with `account_limit`. The Inbox shows it
+  as that command's existing rejected state, never as a toast (F11), with the
+  reason `This account has reached its limit of {limit} {items}.` owned by
+  `src/lib/copy/inbox-triage.ts`.
+- The Inbox/Triage status presentation, with its F02 delay, is built by the
+  feedback lane (promotion ②), which closes before Phase 45 (S41). Phase 47
+  only checks that presentation under real server latency.
+
+### Connection states
+
+Judged from real request results, not from `navigator.onLine` alone (S27):
+
+| State | Entered when | Shows | Writes |
+|---|---|---|---|
+| Normal | Requests succeed | Nothing | Allowed |
+| Unstable | The browser reports online but a recent request failed or timed out, or a background refetch failed (S26) | `!` badge on the account icon, warning hue | Allowed |
+| Offline | The browser reports offline, or three requests in a row failed | Crossed Wi-Fi badge, error hue | Blocked |
+
+- Hover or focus on the account icon shows the state's sentence (F17). The
+  badge hues are the F15 warning and error status roles (promotion ②).
+- Each change to unstable or offline is announced once, politely. Recovery
+  clears the badge with no visible notice and announces `Back online.` to
+  screen readers only (F17).
+- While unstable or offline the client checks the server every 30 seconds with
+  a lightweight request. On recovery it refetches the snapshot and clears the
+  badge (S27).
+- **Write attempt while offline** (F18), on every surface, the Inbox included:
+  nothing changes on screen, what the user typed stays (an Add field, an editor
+  draft), and a warning toast with the crossed Wi-Fi icon appears, grouped by
+  kind.
+- The snapshot is refetched when a tab becomes visible or focused and after
+  reconnecting (S17). A failed background refetch keeps the current view and
+  only turns the state to unstable (S26). Realtime is deferred.
+- In-flight writes that end without an answer follow the unknown-outcome rule
+  above.
+- No offline editing in v1: while offline the app is view-only (S16).
+
+### Session expiry
+
+An expired session refreshes automatically. Only a refresh that the auth
+server rejects (a missing, invalid or revoked refresh token, or a user that no
+longer exists) shows the session-expired screen
+([App-level screens](#app-level-screens)). A refresh that fails on the network
+is a connection state ([Connection states](#connection-states)) and is retried
+after recovery (user, 2026-10-22). The visitor never falls back to a guest
+silently, because a silent new guest would show the demo seed in place of
+their own Grid and read as data loss (F20, amends S16).
+
+supabase-js clears its stored session when a refresh is rejected, so a reload
+would otherwise start a new guest without asking. The client therefore keeps a
+small session-expired marker in `localStorage` (whether the lost session was a
+guest or a real account; no domain data). It is cleared only when the chosen
+action completes: a finished OAuth sign-in or a started guest session. While it
+is present, entry shows the session-expired screen instead of creating a
+guest, so a cancelled OAuth sign-in returns to that screen (user,
+2026-10-22).
+
+### Toasts
+
+The existing `sonner` Toaster stays where it is (`bottom-right`, `richColors`)
+until feedback F12 and F15 (promotion ②) move and recolour it in one place
+(S28).
+
+- **Use** (F11): only for (1) a write that failed and was rolled back; (2) a
+  blocked action whose reason is not visible where it happened (a full target
+  Grid, a move into a descendant, an account limit); (3) a result out of view
+  (Trash restore, permanent delete, Empty Trash, account deletion); (4) a write
+  attempt while offline. Never for Inbox item states, visible successes,
+  problems inside a dialog (the dialog shows them and keeps the input),
+  connection state or recovery, cancels or ordinary drags. A successful write
+  adds no new notice; the existing success toasts stay (S09, S28).
+- **Bursts** (F13): one toast per kind. A repeat of the same kind while it is
+  visible updates its text to the counted form and restarts its time;
+  different kinds stack, at most three. There is no separate grouping window.
+- **Timing** (F14): success 4 seconds, failure and warning 6 seconds; paused on
+  hover, on focus and while the tab is hidden; failures and warnings have a
+  close button. Every toast is polite.
+- **Form** (F14): what did not happen, then what the screen shows now.
+- **Owner:** one shared toast helper (`src/lib/feedback/toast.ts`) owns kinds,
+  grouping and timing; every call site uses it. Toast, app-state and blocking
+  copy live in `src/lib/copy/feedback.ts`.
+- **Existing calls** (F16): of today's 20 `toast(` calls, 17 are kept with
+  their copy aligned to this form (below). The Node/Bit create-dialog change
+  (`grid-runtime.tsx` "Grid is full" at two sites) and the dropped
+  `Cell reserved by breadcrumb` toast belong to promotion ②.
+
+### Feedback copy
+
+Core English, owned by `src/lib/copy/feedback.ts`. `{title}` is the item's
+title; `{target}` the target Node's title; `{count}` the counted number;
+`{limit}` and `{items}` the account limit and its item word (`Nodes`, `Bits`,
+`steps`, `Breakdown rows`).
+
+**Toasts**
+
+| Kind | Single | Counted |
+|---|---|---|
+| Rolled-back move | `Couldn't move “{title}”. It's back where it was.` | `Couldn't save {count} changes. They were put back.` |
+| Rolled-back edit | `Couldn't save the change to “{title}”. The saved version is back.` | same |
+| Rolled-back deadline (kept call, `bit-detail-popup.tsx`) | `Couldn't change the deadline of “{title}”. The previous one is back.` | same |
+| Rolled-back deadline extension (kept call) | `Couldn't change the deadlines. The previous ones are back.` | same |
+| Rolled-back completion | `Couldn't update “{title}”. It's back as it was.` | same |
+| Rolled-back create | `Couldn't create “{title}”. It was removed.` | same |
+| Rolled-back trash | `Couldn't move “{title}” to Trash. It's back in place.` | same |
+| Rolled-back archive | `Couldn't archive “{title}”. It's back in place.` | same |
+| Account limit | `Couldn't create “{title}”. This account has reached its limit of {limit} {items}.` | `Couldn't create {count} items. This account has reached its limit.` |
+| Offline write attempt | `You're offline. Changes can't be saved right now.` | `You're offline. {count} changes weren't saved.` |
+| Target Grid full (kept, `use-dnd.ts`) | `Couldn't move “{title}”. “{target}” has no empty cell.` | `Couldn't move {count} items. Their target has no empty cell.` |
+| Move into descendant (kept, `use-dnd.ts`) | `Couldn't move “{title}” into a Node inside it.` | — |
+| Home full on Show on Grid (kept, `sidebar.tsx`) | `Couldn't show “{title}” on Home. Home has no empty cell.` | — |
+| Restore succeeded (kept, `trash-group.tsx`, Node and Bit) | `Restored “{title}”.` | `Restored {count} items.` |
+| Restore blocked, parent full (kept, Node and Bit) | `Couldn't restore “{title}”. Its Grid has no empty cell.` | — |
+| Restore failed (kept, Node and Bit) | `Couldn't restore “{title}”. It's still in Trash.` | — |
+| Permanent delete succeeded (kept, Node and Bit) | `Deleted “{title}” permanently.` | `Deleted {count} items permanently.` |
+| Permanent delete failed (kept, Node and Bit) | `Couldn't delete “{title}”. It's still in Trash.` | — |
+| Empty Trash succeeded (kept, `trash-list.tsx`) | `Trash emptied.` | — |
+| Empty Trash failed (kept) | `Couldn't empty Trash. Nothing was deleted.` | — |
+| Account deleted | `Your account and its data were deleted.` (fallback: `Your account will be deleted within 24 hours.`) | — |
+
+A counted form reuses the kind's single form when the count is one. The
+rolled-back kinds share one kind for grouping, so a burst of different failed
+writes shows one counted toast (S28).
+
+**Connection** (tooltip, and the polite announcement on entering the state)
+
+| State | Sentence |
+|---|---|
+| Unstable | `Connection is unstable. Changes may take longer to save.` |
+| Offline | `You're offline. You can look around, but changes can't be saved.` |
+| Recovered (screen readers only) | `Back online.` |
+
+**App-level screens**
+
+| Screen | Title | Reason or body | Actions |
+|---|---|---|---|
+| Loading | `Loading your grid…` | — | — |
+| Load failure | `Couldn't load your grid.` | Unreachable: `The server can't be reached. Check your connection and try again.` Other: `Something went wrong while loading.` | `Retry` |
+| Guest creation failure | `Couldn't start a guest session.` | Turnstile: `The security check didn't pass.` Rate limit: `Too many guest sessions were started from this network. Try again later.` Unreachable: as above | `Retry` |
+| Security check | `Confirm you're human to continue.` | — | Widget |
+| Session expired, real account | `Your sign-in expired.` | `Your saved data is safe. The last change may not have been saved.` | `Sign in with GitHub`, `Sign in with Google`, `Continue as guest` |
+| Session expired, guest | `Your guest session ended.` | `Guest data may have been deleted. You can start a new guest session or sign in.` | same |
+| Account being deleted | `This account is being deleted.` | `Deletion finishes within 24 hours. After that you can sign up again with the same account.` | `Continue as guest` |
+| Account deleted | `This account was deleted.` | `Its data is gone. You can continue as a guest.` | `Continue as guest` |
+| Narrow window | `Please use a larger window.` | `grid needs a window at least 1024 pixels wide, such as a desktop browser.` | — |
+
+**Account modal**
+
+| Element | Copy |
+|---|---|
+| Guest heading | `You're browsing as a guest` |
+| Guest retention | `Guest data is deleted 7 days after your last visit.` |
+| Guest sign-in note | `Signing in opens a new, empty account. Guest data isn't moved to it.` |
+| Sign-in did not complete (inline, in the modal) | `Sign-in didn't complete. You're still browsing as a guest.` |
+| Sign-in buttons | `Sign in with GitHub`, `Sign in with Google` |
+| Privacy note | `grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.` |
+| Account actions | `Sign out`, `Delete account` |
+| Delete confirmation | `Delete your account?` / `Your tasks and all other data are deleted permanently. This can't be undone.` / `Delete account`, `Cancel` |
+
+## Environments And Hosting
+
+- **Two environments** (S21): local (`supabase start`) and production
+  (Supabase, Seoul region, free plan). No preview environment; deploys from
+  `main` only.
+- **Hosting:** Vercel Hobby, with no Next.js server code; auth runs
+  client-side.
+- **Keys:** the project URL, the publishable key and the Turnstile site key are
+  public env vars (`NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`).
+  The secret key never enters client code or Git (the repository is public).
+  Production OAuth and Turnstile secrets live in the Supabase dashboard. Local
+  values live in a git-ignored `.env.local`; `.env.local.example` lists the
+  names.
+- **Local auth** (amends S20; user, 2026-10-22): anonymous sign-in and
+  email/password test users, and from Phase 48 OAuth through development GitHub
+  and Google OAuth apps whose client secrets live only in the git-ignored
+  `.env.local`, never in Git, since the repository is public. Turnstile runs
+  locally with Cloudflare's public test keys. The development OAuth apps and
+  test keys are separate from the production ones.
+- **Launch smoke:** Phase 48 is verified on local Supabase. The production smoke
+  runs right after the Phase 48 merge, before the URL is announced; if it
+  fails, the URL stays unannounced and the fix goes through a new phase.
+- **Migrations:** `supabase/migrations/` in Git. Before launch, production holds
+  no real data and migrations apply there freely after the user's approval
+  (S36). From launch on, a phase that changes SQL closes in this order: manual
+  dump, migrations applied to production (compatible with the code still
+  deployed), then the merge that deploys the new code (S34). The production
+  schema changes only through migrations, never in the dashboard.
+- **Early production** (S36, D1): production Supabase and the Vercel project are
+  set up in Phase 42, unannounced and with no real data. Production sign-in and
+  the public launch come in Phase 48.
+- **Free plan** (S22): no keep-alive job; the owner's daily use keeps the
+  project active, and a paused project is resumed from the dashboard. While it
+  is paused the app shows the load-failure or guest-creation-failure screen.
+- **Backup** (S35; user, 2026-10-22): a weekly `supabase db dump` of the
+  production database runs on the owner's Mac as a scheduled local job and
+  keeps the latest 8 dumps in a local folder outside Git; the connection secret
+  stays outside Git. The job checks that Docker is running and reports a failed
+  run. Phase 48 runs one restore test into local Supabase. The manual dump
+  before each production migration stays (S22, S34).
+- **Development switch** (S36): in Phase 42 the end-to-end slice is a
+  development-only page behind `NEXT_PUBLIC_GRIDDO_SUPABASE_SLICE`. It is not a
+  product route: outside development, or with the switch off, it returns 404,
+  and Phase 46 removes it. From Phase 45 the Supabase store is the only store
+  the app uses.
+
+---
+
 ## Inbox/Triage State Ownership
 
 This lifetime table is normative for the proposed Inbox target. The SCHEMA
@@ -1049,7 +1412,8 @@ is authoritative when a state might be mistaken for domain storage.
 
 | Lifetime | Owner and state | End/reset rule |
 |----------|-----------------|----------------|
-| Durable domain/integrity | Existing Node/Bit/Scratch Breakdown records and approved versions; `StagedCandidate`; archive/consumed lifecycle; narrow `CandidateOrphanAuditEvent` | Repository lifecycle only. Candidate display joins its source; cache miss is never orphan proof. No general operation log, journal, outbox, or offline queue |
+| Durable domain/integrity | Existing Node/Bit/Scratch Breakdown records and approved versions; `StagedCandidate`; archive/consumed lifecycle; the `accounts` row — in Postgres (SCHEMA §Postgres Target) | Repository lifecycle only. Candidate display joins its source; a snapshot miss is never orphan proof. No general operation log, journal, outbox, or offline queue |
+| App session (account) | `src/lib/db/snapshot-store.ts`: the account snapshot base and its in-memory pending writes (Decision 19); the Supabase session; `src/lib/db/connection-monitor.ts`: the connection state; the session-expired marker in `localStorage` ([Session expiry](#session-expiry)) | Snapshot and pending writes are dropped on reload and sign-out; the session persists in the browser through supabase-js; the marker lasts until the visitor chooses an action. Never persisted as domain data |
 | App session (survives same-session Inbox route leave/re-entry, not reload) | `src/stores/triage-store.ts`: last active selected Scratch, Pool expanded/collapsed and per-Scratch manual-reopen exception, Pool query/result/scroll context, Explorer hierarchy path/open columns and column scroll | Validate against current data on re-entry; full reload/new session applies the fallback below |
 | Mounted Inbox page session | Add/Edit base snapshots and drafts; one pending intent; deleting/pending/reconciling presentation and operation IDs; Explorer active/interrupted search, result scroll and reveal; placement/type/Result Title state; remote-arrival counts; external-removal transition; Scratch Trash dialog, pending/result state and this page's own-Trash marker; the new-capture selection request and its one-shot Pool reveal; completion overlay/Cancel/reopen presentation; proposed `use-triage-newly-placed.ts` markers/pinning/Undo/dependencies. The items shared across component trees or Inbox instances (Explorer remote presentation, the external-removal transition, own-Trash markers, the new-capture request and reveal, and the workspace-mounted flag) are held non-persisted in `src/stores/triage-store.ts` | Scratch changes preserve only the states explicitly named in the behavior sections. Inbox route exit clears Explorer search/reveal and Newly Placed/Undo; reload clears all except the Archive recovery identity below |
 | Forced-reload recovery identity | SCHEMA `PendingOperationRecovery` in current-tab `sessionStorage`, owned by the Archive operation coordinator | Archive only; written before dispatch, validated on read, cleared after terminal reconcile; no payload, draft, UI cache, mutation queue, or other workflow kind |
@@ -1092,6 +1456,11 @@ The core owner does not choose exact wording where a `VQ-*` prerequisite below
 reserves it for the user. It may define keys and approved semantic roles while
 the dependent value remains blocked. User-authored Scratch/row text and drafts
 are never resource strings and are never translated.
+
+Toast, app-state and blocking copy has one owner, `src/lib/copy/feedback.ts`
+(feedback F14; contents in [Feedback copy](#feedback-copy)). Whichever lane
+writes it first creates it under this name. Inbox item status copy stays in
+`src/lib/copy/inbox-triage.ts`.
 
 Shared locale state/provider, EN/KR resources and toggle, localized date/time,
 Korean accessibility/status copy, and Korean theme typography/text-fit QA are
@@ -1138,7 +1507,7 @@ Decision prerequisites before the dependent UI task.
 |----|-----------------------------|---------------------------------------------|---------------------------------|
 | `VQ-02` | Authoritative Add or Unstage success produces one non-repeating success state; reduced motion replaces movement/sparkle with static distinction | Add keeps input focus; Unstage restores source focus; both announce politely without focus theft | Exact effect, duration, wording, placement, and per-theme realization |
 | `VQ-05` | Add pending/failure/reconcile and Delete in-place deleting/failure/check-again remain distinct; success is shown only after authority | Pending locks only conflicting actions; draft/row remains; Delete success/failure/check-again uses the deterministic focus rules in Breakdown | Exact state treatment, copy, action placement, timing, and per-theme realization |
-| `VQ-06` | Pool hidden-selection; Staging pending/invalid/remote-arrival/orphan/stale/failure; and Explorer remote/path states retain their distinct triggers and allowed actions | Never steal focus for remote/status arrival; use polite live status or alert semantics as selected; vanished source/path uses named safe focus fallback | Exact treatments, wording, indicator/alert placement, duration/dismissal appearance, and per-theme realization for each family |
+| `VQ-06` | Pool hidden-selection; Staging pending/invalid/remote-arrival/orphan (removed in the Postgres target, S18)/stale/failure; and Explorer remote/path states retain their distinct triggers and allowed actions | Never steal focus for remote/status arrival; use polite live status or alert semantics as selected; vanished source/path uses named safe focus fallback | Exact treatments, wording, indicator/alert placement, duration/dismissal appearance, and per-theme realization for each family |
 | `VQ-08` | Placement pending, explicit failure, unknown/reconciling, stale source/target, authoritative success, and Retry/Cancel states preserve the same operation/source/affordance | Contain focus in the active step; failure focuses Retry, stale/validation retains current-step focus, success focuses actual card | Exact status effect, copy, control placement, layout, timing, and per-theme realization |
 | `VQ-10` | Selected+newly overlap, Undo available/ineligible/dependency-reenabled, undoing, failure, retry, and conflict remain separate from marker provenance | Accessible non-color reason is available without hover; pending keeps card; post-Undo Grid/search focus and restoration announcement follow the named rules; repeated motion is forbidden | Exact marker/overlap/control/reason/status treatment, copy, placement, timing, and per-theme realization |
 | `VQ-11` | Non-empty Add draft or title-editor lifecycle blocks completion presentation; eligibility loss withdraws overlay/complete/reopen and reports why | Blocker keeps draft/editor and logical focus; no auto-submit/save; restored work remains reachable | Exact blocker/withdrawal copy, effect, placement, layout, and per-theme realization |
@@ -1167,7 +1536,7 @@ Decision prerequisites before the dependent UI task.
 |-------|-------|----------|
 | `sm` | 640px | Not targeted for v1 |
 | `md` | 768px | Not targeted for v1 |
-| `lg` | 1024px | Minimum supported width. Full grid visible. Sidebar open by default |
+| `lg` | 1024px | Minimum supported width. Full grid visible. Sidebar open by default. Below it the narrow-window notice covers the mounted app and no guest is created (S42 (4), Phase 48); hover-only affordances (tooltips, the breadcrumb reveal) are desktop features |
 | `xl` | 1280px | Comfortable grid spacing. Default development target |
 | `2xl` | 1536px | Extra grid spacing, larger day columns in Calendar |
 
@@ -1189,10 +1558,25 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/components/layout/color-theme-toggle.tsx` | Color theme picker — 8 visual themes, swatches, selected check |
 | `src/components/calendar/calendar-view-header.tsx` | Shared Calendar weekly/monthly header — title/subtitle, view switch, previous/today/next controls |
 | `src/lib/db/datastore.ts` | `DataStore` interface — the abstraction boundary between app code and storage |
-| `src/lib/db/indexeddb.ts` | Dexie.js IndexedDB implementation of `DataStore` — current local storage backend |
+| `src/lib/db/indexeddb.ts` | Dexie.js IndexedDB implementation of `DataStore` — the running store until Phase 45; removed in Phase 46 |
+| `src/lib/db/supabase-client.ts` *(Phase 42)* | Browser Supabase client: project URL, publishable key, session persistence |
+| `src/lib/db/database.types.ts` *(Phase 42, generated)* | `supabase gen types typescript` output; types the row converter (S33) |
+| `src/lib/db/row-mapping.ts` *(Phase 42)* | snake_case database rows ↔ camelCase TypeScript types, at the snapshot loader and the function-result boundary only (S11) |
+| `src/lib/db/snapshot-store.ts` *(Phase 42)* | Account snapshot: base, pending-write layer, envelope application, refetch, subscriptions (Decision 19) |
+| `src/lib/db/supabase-store.ts` *(Phase 45)* | `DataStore` implementation: reads over the snapshot, one RPC per write |
+| `src/lib/db/connection-monitor.ts` *(Phase 47)* | Connection state from request results: normal, unstable, offline; recovery probe |
+| `src/lib/auth/session.ts` *(Phase 45)* | Guest entry (anonymous sign-in, later Turnstile), OAuth, sign-out, refresh-failure detection, `ensure_account()` call |
+| `src/components/layout/app-frame.tsx` *(Phase 45)* | The app-level frame: loading, failure, session-expired, account-being-deleted, security-check and narrow-window screens |
+| `src/components/layout/account-button.tsx` *(Phase 47)*, `account-modal.tsx` *(Phase 48)* | Sidebar account icon with the connection badge; the guest and account modal |
+| `src/lib/feedback/toast.ts` *(Phase 47)* | Shared toast helper: kinds, counted bursts, timing (F13, F14) |
+| `src/lib/copy/feedback.ts` | Toast, app-state and blocking copy (F14) |
+| `supabase/config.toml`, `supabase/migrations/`, `supabase/tests/` *(Phase 42)* | Local Supabase configuration, migrations in Git, `pnpm test:db` suites |
+| `vitest.db.config.ts` *(Phase 42)* | Vitest configuration for `pnpm test:db` (local Supabase), kept apart from `pnpm test` |
+| `.env.local.example` *(Phase 42)* | Names of the public env vars; values live in git-ignored `.env.local` |
+| `scripts/backup/` *(Phase 48)* | The weekly `supabase db dump` job and its scheduler file, with no secret |
 | `src/lib/db/schema.ts` | Zod validation schemas and TypeScript types (from SCHEMA.md) |
 | `src/lib/copy/inbox-triage.ts` *(proposed; absent today)* | `InboxTriageCopy` core-English resource keys/values for visible copy, statuses, reasons, live regions, and accessible names; exact `VQ-*`-reserved wording stays blocked |
-| `src/lib/constants.ts` | Grid dimensions (18×9), aging thresholds (5/11 days), urgency thresholds (3/2/1 days), trash retention (30 days) |
+| `src/lib/constants.ts` | Grid dimensions (18×9), aging thresholds (5/11 days), urgency thresholds (3/2/1 days), trash retention (30 days); from the SaaS phases `DISPLAY_DELAY_MS` (300), `REQUEST_TIMEOUT_MS` (15000) and the 30-second connection probe interval |
 | `src/lib/utils/bfs.ts` | BFS auto-placement algorithm — finds nearest empty cell from a starting position |
 | `src/lib/utils/aging.ts` | Aging state computation — Fresh/Stagnant/Neglected from mtime |
 | `src/lib/utils/urgency.ts` | Deadline urgency level computation — Level 1/2/3/Past from deadline |
@@ -1209,12 +1593,12 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/grid-dnd.ts` | Grid DnD utilities — `gridCollisionDetection` (prioritizes node-drop over cell) |
 | `src/lib/utils/grid-explorer-search.ts` *(proposed; absent today)* | Pure Inbox Grid Explorer hierarchy traversal, exclusions, AND-token matching, relevance, duplicate disambiguation inputs, and stable result ordering; never global `searchAll()` |
 | `src/lib/constants/color-palette.ts` | Curated 10-color palette for node creation randomization |
-| `src/hooks/use-grid-data.ts` | Reactive hook — subscribes to Nodes + Bits for a given parentId via `useLiveQuery` |
+| `src/hooks/use-grid-data.ts` | Reactive hook — subscribes to Nodes + Bits for a given parentId (Dexie `liveQuery` until Phase 45, then the account snapshot) |
 | `src/hooks/use-bit-detail.ts` | Bit detail popup state — reads `?bit` param, fetches Bit + Chunks |
 | `src/hooks/use-search.ts` | Search state — query string, filtered results across all stores |
 | `src/hooks/use-calendar-data.ts` | Calendar data — all items with deadlines, pool items, drill-down state |
 | `src/hooks/use-dnd.ts` | Current shared DnD plus combined triage placement/sequential writes. Proposed triage role: Mouse/Touch sensors, drag snapshot, release-time drop intent, and feedback coordination only; general Grid/Calendar behavior stays separate |
-| `src/hooks/use-staged-candidates.ts` *(proposed; absent today)* | Reactive `StagedCandidate` query and authoritative Breakdown-source join plus Stage, Unstage, and confirmed-orphan command dispatch/reconciliation; pending UI is a projection, and unresolved source miss is never a card/orphan proof |
+| `src/hooks/use-staged-candidates.ts` *(proposed; absent today)* | Reactive `StagedCandidate` query and authoritative Breakdown-source join plus Stage and Unstage command dispatch/reconciliation (confirmed-orphan dispatch until Phase 46); pending UI is a projection, and unresolved source miss is never a card/orphan proof |
 | `src/hooks/use-grid-explorer-search.ts` *(proposed; absent today)* | Inbox-only full-hierarchy search subscription/request identity, cancellation, loading/error/stale result lifecycle |
 | `src/components/triage/grid-explorer-search-results.tsx` *(proposed; absent today)* | Dedicated Explorer search-mode result body; presentation only, with no global Search Overlay reuse |
 | `src/hooks/use-triage-placement.ts` *(proposed; absent today)* | `Q-NAME-03` placement state machine: direct type, staged Result Title, target confirmation, pending/reconcile/failure, navigation locks, and atomic command dispatch |

@@ -36,6 +36,11 @@
 > [map receipt](receipts/Craft_Docs.inbox-triage-theme-realization-promotion-map.json).
 > That receipt approves drafting, not this document or a product change. Existing
 > values, role/state meanings, accepted DP outcomes and deferrals are retained.
+> **SaaS conversion amendment (promotion ①):** 2026-10-22, from
+> [`DECISION.md`](brainstorming/2026-10-21-saas-conversion/DECISION.md) S23,
+> S26–S28, S40 and feedback F02, F11, F13, F14, F17–F20. Adds
+> [SaaS App-State Surfaces](#saas-app-state-surfaces) with the `DP-SAAS-01`
+> Decision prerequisite and the display delay. No existing value changes.
 
 ---
 
@@ -81,6 +86,7 @@ Values that differ from `docs/design-system-preview.html` **on purpose**:
 - [Color Theme System](#color-theme-system)
 - [Calendar Visual Theme Contract](#calendar-visual-theme-contract)
 - [Inbox / Triage Surface Contract](#inbox--triage-surface-contract)
+- [SaaS App-State Surfaces](#saas-app-state-surfaces)
 - [Prototype-to-production realization and token ownership](#prototype-to-production-realization-and-token-ownership)
 - [Responsive Grid Node Tokens](#responsive-grid-node-tokens)
 - [Tailwind v4 Theme Bridge](#tailwind-v4-theme-bridge)
@@ -1426,6 +1432,66 @@ an observed literal into a canonical value without an approved adoption trace.
 
 ---
 
+## SaaS App-State Surfaces
+
+SaaS conversion promotion ① (DECISION S23, S26, S27, S28, S40; feedback F02,
+F11, F13, F14, F17–F20 within S41). Behavior, timing and copy live in SPEC
+[Account Entry And App States](SPEC.md#account-entry-and-app-states) and
+[Feedback And Network States](SPEC.md#feedback-and-network-states); this
+section owns the visual roles and their boundary.
+
+### Theme scope
+
+- The new surfaces use semantic tokens only: the core and theme variable
+  groups above (`--background`, `--foreground`, `--card`, `--primary`,
+  `--border`, `--muted-foreground`, `--theme-radius`, `--theme-shadow` and the
+  like). Components never branch on theme id (S40, CLAUDE.md Architecture 8).
+- The option sheet renders in the current default theme, `griddo`.
+  Checkpoints check `griddo`, `retro-mac` and `neumorphism`. Per-theme
+  finishing belongs to the theme stage (S40).
+
+### Roles
+
+Shared elements carry `data-app-role`:
+
+| Role | Element | Fixed facts |
+|---|---|---|
+| `account-button` | Sidebar account icon, top-most (S23) | Lucide `user-round` for a guest, `user-round-check` for an OAuth account; the sidebar icon-button size and focus ring of its neighbours |
+| `account-badge` | Badge on the account icon (F17) | `data-connection-state="unstable"`: `!` mark in the warning status hue; `"offline"`: Lucide `wifi-off` in the error status hue. The hues are the F15 status roles, which promotion ② defines; the shape carries the state, not colour alone (WCAG 1.4.1). No badge in the normal state |
+| `app-frame` | Whole-window frame, sidebar included (F19) | One frame for every app-level screen; replaces the app, except the narrow-window notice |
+| `app-frame-title`, `app-frame-reason`, `app-frame-action` | The frame's title, reason line and actions | Focus moves to the first action (F19) |
+| `app-frame-loading` | Loading indicator | Exposed as busy; appears only after `DISPLAY_DELAY_MS` (300ms, F02); reduced motion shows a static indicator |
+| `app-frame-security-check` | Turnstile widget slot (S42 (3)) | The widget's own rendering inside the frame |
+| `narrow-notice` | Narrow-window notice (S42 (4)) | Laid over the mounted, `inert` app |
+| `account-modal` | Guest and account modal (Phase 48) | Contents per SPEC |
+| (reused) server-confirmed pending loader | The loader on a control or row of a SPEC write-feel group 3 action | The feedback F03 loader role (promotion ②), one loader app-wide; shown after `DISPLAY_DELAY_MS`; static under reduced motion. Not part of `DP-SAAS-01` (user, 2026-10-22) |
+
+### Toast use
+
+The SaaS phases change what toasts say and how long they stay, not where they
+are or what colour they use (S28):
+
+- Success 4 seconds; failure and warning 6 seconds; paused on hover, focus and
+  a hidden tab; failures and warnings have a close button (F14).
+- A repeat of the same kind updates its text to the counted form and restarts
+  its time; at most three different kinds stack (F13).
+- The offline write-attempt toast is a warning with Lucide `wifi-off` (F18).
+- Position and colour (`bottom-right`, `richColors` today) are feedback F12 and
+  F15, promotion ②.
+
+### Decision prerequisite — `DP-SAAS-01`
+
+| Field | Value |
+|---|---|
+| Owner | User |
+| Missing decision | The look of the account icon and badge, the loading screen, the failure, guest-creation-failure, session-expired, account-being-deleted and security-check screens (one frame), the narrow-window notice, and the guest and account modal |
+| How it is decided | One rendered option sheet in `griddo`, with `retro-mac` and `neumorphism` spot-checks, all surfaces together (S27, S40); shapes copied from the realized theme CSS, not from base components |
+| Resume condition | The user's choice is recorded in this section and committed |
+| Blocks | The Phase 45 load-failure screens (Task 228), the Phase 47 icon, badge, loading and session-expired screens (Task 234), and the Phase 48 modal, account-being-deleted screen, security-check screen and narrow-window notice (Tasks 235, 236, 238); not the data, network-state or toast-helper work. It is decided in Task 225, at the start of Phase 45 |
+| No fallback | Until it is recorded, no size, spacing, layout, motion or per-theme value for these surfaces is chosen by implementation |
+
+---
+
 ## Prototype-to-production realization and token ownership
 
 > **Status:** **Draft — awaiting user approval, 2026-10-03.**
@@ -1739,6 +1805,7 @@ Runtime motion values live in `src/lib/animations/motion-language.ts`. Component
 | Item exit | `motionDuration.itemExit` | `0.2s` |
 | Completion exit | `motionDuration.completionExit` | `0.3s` |
 | Theme transition | `motionDuration.theme` / `--motion-duration-theme` | `0.3s` / `300ms` |
+| Display delay (presentation only, F02) | `DISPLAY_DELAY_MS` in `src/lib/constants.ts` | `300ms` before a loading screen, a server-confirmed pending state or an Inbox loader appears; never decides success |
 | Completion sink offset | `motionDistance.sink` | `8px` |
 | Item exit y-offset | `motionDistance.itemExitY` | `8px` |
 | Node hover scale | `motionScale.nodeHover` | `1.05` |
@@ -1933,6 +2000,7 @@ Two-row layout: top row has content, bottom row has progress (only when chunks e
 {/* Sidebar — fixed icon rail, always visible (Phase 9: was foldable) */}
 <nav className="fixed left-0 top-0 h-full w-sidebar bg-background border-r border-border flex flex-col items-center gap-1 py-4 px-1 z-40">
   {/* Top icons */}
+  <AccountButton />                                {/* SaaS S23: top-most; F21 (promotion ②) puts Home above it */}
   <SidebarButton icon={Plus} label="New" />        {/* triggers add-flow */}
   <SidebarButton icon={Pencil} label="Edit" />     {/* edit mode toggle */}
   <SidebarButton icon={Search} label="Search" />

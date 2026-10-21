@@ -4,6 +4,7 @@
 
 - Created: 2026-06-04
 - Readiness: draft
+- Status: superseded by 2026-10-21-saas-conversion (user, 2026-10-21)
 - Category: storage strategy idea
 - Source project: griddo2-claude
 - Source topic: user-reported IndexedDB data loss and origin fragmentation

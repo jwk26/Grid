@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toast Option Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root { --ink: #1d1d1f; --ink-2: #55565b; --line: #e3e3e6; --paper: #fafaf9; --chip: #f1f1f3; --rec: #0a7a3d; --rec-bg: #e8f6ee; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.6 -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif; }
+  header.top { position: sticky; top: 0; z-index: 80; background: rgba(250,250,249,.94); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line); padding: 12px 24px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+  header.top h1 { font-size: 17px; margin: 0; }
+  header.top a { font-size: 13px; color: var(--ink-2); }
+  .switch { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .switch span { color: var(--ink-2); font-size: 13px; margin-right: 4px; }
+  .switch button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .switch button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  main { max-width: 1120px; margin: 0 auto; padding: 8px 24px 80px; }
+  section.q { border-top: 1px solid var(--line); padding: 28px 0 8px; }
+  section.q > h2 { font-size: 20px; margin: 0 0 4px; }
+  .qid { display: inline-block; background: var(--ink); color: #fff; border-radius: 6px; font-size: 12px; padding: 1px 8px; margin-right: 8px; vertical-align: 2px; }
+  .lead { color: var(--ink-2); margin: 0 0 16px; max-width: 800px; }
+  .look { background: var(--chip); border-radius: 10px; padding: 12px 14px; margin: 0 0 16px; font-size: 14px; max-width: 880px; }
+  .look ol { margin: 6px 0 0; padding-left: 20px; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .opt { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .opt.rec { border-color: var(--rec); box-shadow: 0 0 0 1px var(--rec) inset; }
+  .opt h3 { margin: 0 0 8px; font-size: 16px; }
+  .opt ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; }
+  .badge-rec { background: var(--rec-bg); color: var(--rec); font-size: 12px; border-radius: 999px; padding: 1px 8px; margin-left: 6px; font-weight: 600; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; align-items: center; }
+  .controls button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  .controls button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .controls .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+  .controls .lbl { font-size: 13px; color: var(--ink-2); }
+  table.map { border-collapse: collapse; width: 100%; font-size: 14px; background: #fff; }
+  table.map th, table.map td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+  table.map th { background: var(--chip); }
+  table.map code { font-size: 12px; }
+  .k-keep { color: var(--ink-2); } .k-change { color: #a15c00; font-weight: 600; } .k-drop { color: #b42318; font-weight: 600; }
+
+  /* ---------- themes ---------- */
+  [data-theme="griddo"] { --t-page: hsl(38 28% 91%); --t-bg: #fff; --t-fg: hsl(240 10% 3.9%); --t-muted-fg: hsl(240 4% 46%);
+    --t-border: hsl(240 6% 90%); --t-primary: hsl(221 83% 53%); --t-font: "Geist", -apple-system, system-ui, sans-serif;
+    --t-radius: 10px; --t-shadow: 0 4px 14px rgba(15,23,42,.1); --t-card-b: 1px solid hsl(240 6% 88%); --t-card-r: 14px; --t-cell: 1px dashed hsl(240 6% 84%); }
+  [data-theme="retro-mac"] { --t-page: hsl(0 0% 90%); --t-bg: #fff; --t-fg: #000; --t-muted-fg: #333; --t-border: #000; --t-primary: #000;
+    --t-font: "Space Mono", ui-monospace, monospace; --t-radius: 0px; --t-shadow: 2px 2px 0 #000; --t-card-b: 2px solid #000; --t-card-r: 4px; --t-cell: 1px dotted #888; }
+  [data-theme="neumorphism"] { --t-page: hsl(210 20% 90%); --t-bg: hsl(210 20% 90%); --t-fg: hsl(0 0% 20%); --t-muted-fg: hsl(0 0% 38%);
+    --t-border: transparent; --t-primary: hsl(0 0% 20%); --t-font: "Inter", -apple-system, system-ui, sans-serif; --t-radius: 14px;
+    --t-shadow: 5px 5px 10px #c5c9d1, -5px -5px 10px #ffffff; --t-card-b: 0; --t-card-r: 20px; --t-cell: 0; }
+
+  .icon { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; flex: none; }
+
+  /* ---------- mock app ---------- */
+  .app { position: relative; display: flex; height: 540px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--t-page); color: var(--t-fg); font-family: var(--t-font); }
+  .rail { width: 48px; flex: none; background: var(--t-bg); border-right: 1px solid var(--t-border); display: flex; flex-direction: column;
+    align-items: center; gap: 4px; padding: 12px 0; color: var(--t-muted-fg); }
+  [data-theme="retro-mac"] .rail { border-right: 2px solid #000; }
+  [data-theme="neumorphism"] .rail { box-shadow: 3px 0 8px #c5c9d1; }
+  .rail .ri { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+  .rail .grow { flex: 1; }
+  .work { position: relative; flex: 1; min-width: 0; }
+  .cluster { position: absolute; top: 12px; left: 12px; z-index: 30; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .crumb { display: flex; align-items: center; gap: 2px; height: 32px; padding: 0 12px 0 8px; border-radius: 8px; font-size: 12px;
+    background: color-mix(in srgb, var(--t-bg) 80%, transparent); border: 1px solid color-mix(in srgb, var(--t-border) 40%, transparent);
+    box-shadow: 0 1px 2px rgba(0,0,0,.06); backdrop-filter: blur(8px); }
+  [data-theme="retro-mac"] .crumb { border: 2px solid #000; box-shadow: 2px 2px 0 #000; border-radius: 0; background: #fff; }
+  [data-theme="neumorphism"] .crumb { border: 0; border-radius: 14px; box-shadow: 4px 4px 8px #c5c9d1, -4px -4px 8px #fff; background: var(--t-bg); }
+  .crumb .seg { padding: 2px 6px; color: var(--t-muted-fg); font-weight: 500; }
+  .crumb .cur { padding: 0 6px; font-weight: 600; }
+  .crumb .chev { width: 12px; height: 12px; color: var(--t-muted-fg); }
+  .due { font-size: 11px; color: var(--t-muted-fg); padding: 0 4px; }
+  .grid { position: absolute; inset: 12px; display: grid; grid-template-columns: repeat(18, minmax(0, 1fr)); grid-template-rows: repeat(9, minmax(0, 1fr)); gap: 8px; }
+  .cell { border: var(--t-cell); border-radius: 8px; min-width: 0; min-height: 0; }
+  .cell.blocked { border: 1px dashed rgba(180,35,24,.5); background: rgba(180,35,24,.05); }
+  .card { border-radius: var(--t-card-r); background: var(--t-bg); border: var(--t-card-b); box-shadow: var(--t-shadow);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 9px; overflow: hidden; padding: 2px; }
+  .card .t { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card.bit { flex-direction: row; justify-content: flex-start; padding: 0 6px; border-radius: calc(var(--t-card-r) * .6); }
+  .badge-zone { position: absolute; z-index: 31; font: 600 11px/1.3 -apple-system, system-ui, sans-serif; color: #b42318;
+    background: rgba(255,255,255,.85); border: 1px dashed #b42318; padding: 2px 6px; border-radius: 6px; pointer-events: none; }
+
+  /* inbox mock */
+  .inbox { position: absolute; inset: 0; display: grid; grid-template-columns: 220px 1fr; }
+  .pool { background: var(--t-bg); border-right: 1px solid var(--t-border); padding: 12px; font-size: 12px; }
+  [data-theme="retro-mac"] .pool { border-right: 2px solid #000; }
+  .pool h4, .pane h4 { margin: 0 0 8px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--t-muted-fg); }
+  .pool .s { padding: 6px 8px; border-radius: 8px; margin-bottom: 6px; background: color-mix(in srgb, var(--t-fg) 4%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .imain { display: grid; grid-template-rows: 44px 3fr 2fr; gap: 10px; padding: 12px; min-width: 0; }
+  .ctx { background: var(--t-bg); border-radius: var(--t-radius); border: var(--t-card-b); box-shadow: var(--t-shadow); padding: 0 12px; display: flex; align-items: center; font-size: 13px; font-weight: 600; }
+  .itop { display: grid; grid-template-columns: 3fr 2fr; gap: 10px; min-height: 0; }
+  .pane { background: var(--t-bg); border-radius: var(--t-radius); border: var(--t-card-b); box-shadow: var(--t-shadow); padding: 10px; min-height: 0; overflow: hidden; }
+  .pane .row { height: 26px; border-radius: 6px; margin-bottom: 6px; background: color-mix(in srgb, var(--t-fg) 5%, transparent); }
+
+  /* calendar-ish / trash-ish mock */
+  .simple { position: absolute; inset: 0; padding: 16px 20px; }
+  .simple h2 { margin: 0 0 12px; font-size: 18px; }
+  .simple .row { height: 34px; border-radius: 8px; margin-bottom: 8px; background: var(--t-bg); border: var(--t-card-b); box-shadow: var(--t-shadow); }
+
+  /* ---------- toast ---------- */
+  .toasts { position: absolute; z-index: 60; display: flex; flex-direction: column; gap: 8px; width: 356px; pointer-events: none; }
+  .toasts.pos-a { left: 60px; }
+  .toasts.pos-b { right: 12px; top: 12px; }
+  .toasts.pos-c { right: 16px; bottom: 16px; flex-direction: column-reverse; }
+  .toast { pointer-events: auto; display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; font-size: 13px; line-height: 1.4;
+    background: var(--t-bg); color: var(--t-fg); border: 1px solid var(--t-border); border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.12);
+    font-family: var(--t-font); position: relative; }
+  [data-theme="retro-mac"] .toast { border: 2px solid #000; border-radius: 0; box-shadow: 3px 3px 0 #000; }
+  [data-theme="neumorphism"] .toast { border: 0; border-radius: 16px; box-shadow: 6px 6px 14px #c5c9d1, -6px -6px 14px #fff; }
+  .toast .ti { color: var(--t-primary); margin-top: 1px; }
+  .toast .x { margin-left: auto; border: 0; background: transparent; color: var(--t-muted-fg); cursor: pointer; padding: 0 0 0 6px; font-size: 14px; line-height: 1; }
+  .toast.rich-error { background: hsl(359 100% 97%); border-color: hsl(359 100% 94%); color: hsl(360 100% 45%); }
+  .toast.rich-error .ti { color: hsl(360 100% 45%); }
+  .toast.rich-success { background: hsl(143 85% 96%); border-color: hsl(145 92% 87%); color: hsl(140 100% 27%); }
+  .toast.rich-success .ti { color: hsl(140 100% 27%); }
+  .toast .count { font-weight: 700; }
+  .toast-static { position: static; width: 356px; max-width: 100%; }
+  .static-pair { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 10px; background: var(--t-page); }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>피드백 옵션 시트 · 3라운드 (토스트)</h1>
+  <div class="switch" role="group" aria-label="테마">
+    <span>테마</span>
+    <button type="button" data-set-theme="griddo" aria-pressed="true">griddo (기본)</button>
+    <button type="button" data-set-theme="retro-mac" aria-pressed="false">retro-mac</button>
+    <button type="button" data-set-theme="neumorphism" aria-pressed="false">neumorphism</button>
+  </div>
+  <a href="index.html">← 2라운드 시트</a>
+</header>
+<main>
+  <p class="lead" style="margin-top:18px">토스트는 잠깐 떴다가 사라지는 작은 알림입니다. 지금 앱은 <code>sonner</code> 라이브러리로 <b>화면 오른쪽 아래</b>에 띄웁니다(<code>providers.tsx</code>). 이 시트에서는 위치, 언제 쓰는지, 여러 개가 한꺼번에 생길 때의 처리, 그리고 지금 있는 20곳의 사용처를 정합니다.
+    화면 모형은 앱 레이아웃(왼쪽 48px 사이드바, 작업 영역 왼쪽 위의 breadcrumb, 18×9 Grid)을 실제 비율로 그린 것입니다.</p>
+
+  <!-- ===================== T-A position ===================== -->
+  <section class="q" id="ta">
+    <h2><span class="qid">질문 1</span>토스트를 어디에 띄울까</h2>
+    <p class="lead">토스트가 뜨는 경우는 대부분 Grid 화면입니다(드래그 실패, Bit 상세 저장 실패, SaaS의 저장 실패). breadcrumb은 Grid 화면에만 있고, Inbox·Archive·Trash·Calendar에는 없습니다.
+      breadcrumb의 크기는 그 아래 Grid 칸을 막는 데 쓰이므로(모형의 빨간 점선 칸), 토스트는 breadcrumb 묶음 <b>바깥</b>에 따로 띄워야 합니다. 그래야 막히는 칸 수가 바뀌지 않습니다.</p>
+    <div class="look"><b>이렇게 확인해 보세요</b>
+      <ol>
+        <li>아래 버튼에서 <b>A / B / C</b> 위치를 바꿔 가며 <b>토스트 띄우기</b>를 눌러 보세요.</li>
+        <li>화면을 <b>Grid → Inbox → Trash</b>로 바꿔서 breadcrumb이 없는 화면에서는 어디에 뜨는지 보세요.</li>
+        <li>"방금 한 일과 이어져 보이는지", "카드를 가리는 게 거슬리는지"를 보시면 됩니다.</li>
+        <li>참고: Grid 화면은 실제 배치·비율(48px 사이드바, breadcrumb 묶음, 18×9 칸)로 그렸고, Inbox·Trash 화면은 <b>영역 배치만</b> 나타낸 단순 모형입니다. 토스트 크기는 sonner 기본 폭(356px)입니다.</li>
+      </ol>
+    </div>
+    <div class="controls" id="pos-controls">
+      <span class="lbl">위치</span>
+      <button type="button" data-pos="a" aria-pressed="true">A. 왼쪽 위 (breadcrumb 아래) · 권장</button>
+      <button type="button" data-pos="b" aria-pressed="false">B. 오른쪽 위</button>
+      <button type="button" data-pos="c" aria-pressed="false">C. 오른쪽 아래 (지금)</button>
+      <span class="sep"></span>
+      <span class="lbl">화면</span>
+      <button type="button" data-screen="grid" aria-pressed="true">Grid</button>
+      <button type="button" data-screen="inbox" aria-pressed="false">Inbox</button>
+      <button type="button" data-screen="trash" aria-pressed="false">Trash</button>
+      <span class="sep"></span>
+      <button type="button" id="fire-one">토스트 띄우기</button>
+    </div>
+    <div class="app" id="app" data-theme="griddo">
+      <nav class="rail" aria-hidden="true">
+        <span class="ri"><svg class="icon" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+        <span class="ri"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>
+        <span class="ri"><svg class="icon" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></svg></span>
+        <span class="ri"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+        <span class="ri"><svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+        <span class="ri"><svg class="icon" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
+        <span class="ri"><svg class="icon" viewBox="0 0 24 24"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/></svg></span>
+        <span class="grow"></span>
+        <span class="ri"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></span>
+      </nav>
+      <div class="work" id="work"></div>
+      <div class="toasts pos-a" id="toasts" aria-live="polite"></div>
+    </div>
+    <div class="options" style="margin-top:16px">
+      <div class="opt rec">
+        <h3>A. 작업 영역 왼쪽 위 (Grid에서는 breadcrumb 바로 아래)<span class="badge-rec">권장</span></h3>
+        <ul>
+          <li>"내가 지금 어디 있나"를 읽는 자리 바로 밑이라, 방금 한 일과 이어져 보입니다. 토스트 메모(2026-04-28)가 처음부터 원하던 방향입니다.</li>
+          <li>화면 왼쪽 위는 눈이 가장 먼저 가는 곳이라, 실패를 놓치기 어렵습니다.</li>
+          <li>breadcrumb이 없는 화면에서도 같은 왼쪽 위에 뜹니다. 규칙은 "작업 영역 왼쪽 위" 하나입니다.</li>
+          <li>단점: 그 아래 첫 몇 칸의 카드를 몇 초 가립니다(Inbox에서는 Pool 윗부분). 대신 Inbox는 대부분 아이템 위에 표시하므로 토스트가 거의 뜨지 않습니다.</li>
+          <li>구현: <code>sonner</code>의 <code>offset</code>을 breadcrumb 묶음의 실제 아래 끝에 맞춥니다. breadcrumb 크기는 이미 측정하고 있습니다.</li>
+        </ul>
+      </div>
+      <div class="opt">
+        <h3>B. 작업 영역 오른쪽 위</h3>
+        <ul>
+          <li>모든 화면에서 같은 자리이고, breadcrumb과 부딪히지 않습니다.</li>
+          <li>단점: Grid 오른쪽 위 카드를 가리고, 방금 한 일(대개 Grid 가운데나 왼쪽)과 떨어져 보입니다.</li>
+        </ul>
+      </div>
+      <div class="opt">
+        <h3>C. 오른쪽 아래 (지금 그대로)</h3>
+        <ul>
+          <li>변경할 게 없고, 많은 앱이 쓰는 익숙한 자리입니다.</li>
+          <li>단점: 작업 공간과 떨어져 있어서 놓치기 쉽습니다. 토스트 메모가 바꾸고 싶어 했던 바로 그 점입니다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== T-B criteria ===================== -->
+  <section class="q" id="tb">
+    <h2><span class="qid">질문 2</span>토스트는 언제 쓰나</h2>
+    <p class="lead">토스트 메모의 기준과 SaaS S28을 1·2라운드 결정에 맞춰 하나로 합쳤습니다. 핵심은 "결과가 눈앞에 보이면 쓰지 않는다"입니다.</p>
+    <table class="map">
+      <thead><tr><th>쓴다</th><th>GridDO 예</th></tr></thead>
+      <tbody>
+        <tr><td>① 저장이 실패해서 화면을 되돌렸을 때 (S28)</td><td>SaaS에서 드래그 이동이 서버에서 실패해 카드가 원래 칸으로 돌아감 → "Couldn't move “Venue”. It's back where it was."</td></tr>
+        <tr><td>② 막힌 이유가 놓은 자리에서 보이지 않을 때</td><td>Node 카드에 Bit를 놓았는데 그 Node 안의 Grid가 가득 참, Node를 자기 하위로 옮기려 함</td></tr>
+        <tr><td>③ 결과가 지금 화면 밖에 있을 때</td><td>휴지통에서 복원(복원된 Node는 원래 Grid에 있음), 영구 삭제·휴지통 비우기(확인 대화상자가 닫힌 뒤의 결과)</td></tr>
+        <tr><td>④ 오프라인일 때 저장을 시도했을 때 (S27)</td><td>"You're offline. Changes can't be saved right now."</td></tr>
+      </tbody>
+      <thead><tr><th>쓰지 않는다</th><th>대신</th></tr></thead>
+      <tbody>
+        <tr><td>Inbox 아이템의 진행·모름·실패</td><td>아이템 위의 아이콘 (1·2라운드)</td></tr>
+        <tr><td>항목이 사라지는 Staging 실패</td><td>기존 Staging 알림 띠</td></tr>
+        <tr><td>눈에 보이는 성공 (Add, 이동, 이름 바꾸기, 완료)</td><td>바뀐 화면 자체가 확인</td></tr>
+        <tr><td>대화상자 안에서 생긴 문제</td><td>대화상자 안의 오류 문장 (입력 내용 유지)</td></tr>
+        <tr><td>연결 상태와 복구</td><td>앱 연결 표시 (4라운드), 복구 알림 없음 (S27)</td></tr>
+        <tr><td>취소, 평범한 드래그 시작·끝</td><td>없음</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== T-C grouping ===================== -->
+  <section class="q" id="tc">
+    <h2><span class="qid">질문 3</span>여러 개가 한꺼번에 생길 때, 얼마나 보여 줄 때</h2>
+    <p class="lead">SaaS에서는 인터넷이 잠깐 끊기면 저장 실패가 연달아 생길 수 있습니다. 예를 들어 카드 세 개를 빠르게 옮겼는데 셋 다 실패하는 경우입니다(S28: "묶어서 하나로").</p>
+    <div class="controls">
+      <span class="lbl">묶는 방식</span>
+      <button type="button" data-group="merge" aria-pressed="true">A. 같은 종류는 하나로 + 개수 · 권장</button>
+      <button type="button" data-group="stack" aria-pressed="false">B. 쌓기 (최대 3개)</button>
+      <button type="button" data-group="replace" aria-pressed="false">C. 마지막 것만</button>
+      <span class="sep"></span>
+      <button type="button" id="fire-burst">실패 3번 연달아 (0.4초 간격)</button>
+      <button type="button" id="fire-mixed">다른 종류 2개</button>
+    </div>
+    <p class="lead" style="font-size:14px">위 Grid 모형에 뜹니다(질문 1에서 고른 위치). 토스트에 마우스를 올리면 시간이 멈춥니다.</p>
+    <div class="options">
+      <div class="opt rec">
+        <h3>A. 같은 종류는 하나로 합치고 개수 표시<span class="badge-rec">권장</span></h3>
+        <ul>
+          <li>토스트가 떠 있는 동안 같은 종류가 또 생기면, 새로 띄우지 않고 그 토스트의 문장을 "Couldn't save 3 changes…"로 바꾸고 시간을 다시 잽니다.</li>
+          <li>다른 종류(예: 저장 실패 + 오프라인)는 따로 뜨고, 최대 3개까지 보입니다.</li>
+          <li>"얼마 동안 묶을지"를 정할 필요 없이, 토스트가 보이는 동안 묶습니다.</li>
+        </ul>
+      </div>
+      <div class="opt"><h3>B. 쌓기</h3><ul><li>정보는 다 보이지만, 같은 문장 세 개가 화면을 덮습니다. S28의 "묶어서 하나로"와 맞지 않습니다.</li></ul></div>
+      <div class="opt"><h3>C. 마지막 것만</h3><ul><li>가장 조용하지만, 몇 개가 실패했는지 알 수 없습니다.</li></ul></div>
+    </div>
+    <div class="look" style="margin-top:16px"><b>같이 정하려는 기본값</b> (따로 묻지 않습니다)
+      <ol>
+        <li><b>시간:</b> 성공 4초, 실패 6초. 마우스를 올리거나 키보드 포커스가 있거나 다른 탭에 가 있으면 멈춥니다(sonner 기본 동작). 실패 토스트에는 닫기(×) 버튼을 둡니다.</li>
+        <li><b>문장 형식:</b> "무엇이 안 됐나. 지금 화면이 어떤 상태인가." 예: <i>Couldn't move “Venue”. It's back where it was.</i> 문구는 Inbox처럼 한 곳의 copy 모듈에서 관리합니다.</li>
+        <li><b>스크린리더:</b> 성공·실패 모두 polite로 읽습니다(sonner 기본). 실패라고 끼어들어 읽지는 않습니다.</li>
+        <li><b>모양:</b> 지금의 <code>richColors</code>(고정된 빨강·초록 배경)를 빼고, 테마 색(배경·글자·테두리)을 따르게 합니다. 종류는 아이콘 모양(✓ / !)으로 구분합니다. 아래 비교를 테마를 바꿔 가며 보세요. 테마별 마감은 테마 단계에서 합니다.</li>
+      </ol>
+      <div class="static-pair" id="rich-compare" data-theme="griddo" style="margin-top:10px">
+        <div style="font:600 12px system-ui;color:#55565b">지금 (richColors)</div>
+        <div class="toast toast-static rich-error"><span class="ti"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></span><span>Unable to update deadline.</span></div>
+        <div class="toast toast-static rich-success"><span class="ti"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span><span>Node restored.</span></div>
+        <div style="font:600 12px system-ui;color:#55565b;margin-top:6px">바꾼 뒤 (테마 색 + 아이콘 모양)</div>
+        <div class="toast toast-static"><span class="ti"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg></span><span>Couldn't update the deadline. The old date is back.</span><button class="x" type="button" aria-label="Close">×</button></div>
+        <div class="toast toast-static"><span class="ti"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span><span>Node restored.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== T-D audit ===================== -->
+  <section class="q" id="td">
+    <h2><span class="qid">질문 4</span>지금 있는 토스트 20곳 정리</h2>
+    <p class="lead">코드에 있는 <code>toast(</code> 호출 20곳을 상황별로 묶었습니다. 문구는 질문 3의 형식에 맞춰 <code>/craft-docs</code>에서 확정합니다.</p>
+    <table class="map">
+      <thead><tr><th>상황 (코드 위치)</th><th>지금</th><th>권장</th><th>이유</th></tr></thead>
+      <tbody>
+        <tr><td>Node·Bit 만들기 대화상자에서 제출했는데 빈칸이 없음<br><code>grid-runtime.tsx:240, :314</code></td><td>대화상자를 닫고 "Grid is full…" 토스트. 단, Home(L0)에서 Node를 만들 때만 대화상자 안에 오류 표시</td><td class="k-change">변경: 항상 대화상자 안에 오류, 입력한 제목 유지</td><td>지금은 대화상자가 닫히면서 입력한 제목이 사라집니다. Home과 하위 Grid의 규칙도 다릅니다.</td></tr>
+        <tr><td>사이드바에서 Inbox/Archive를 Grid에 다시 보이게 했는데 Home이 가득 참<br><code>sidebar.tsx:227</code></td><td>"Grid is full…" 토스트</td><td class="k-keep">유지</td><td>Home Grid가 지금 화면에 없을 수 있습니다(기준 ②).</td></tr>
+        <tr><td>Node 카드나 breadcrumb에 놓았는데 그 안의 Grid가 가득 참<br><code>use-dnd.ts:966</code></td><td>"Target grid is full."</td><td class="k-keep">유지</td><td>그 Node 안은 지금 보이지 않습니다(기준 ②).</td></tr>
+        <tr><td>breadcrumb이 차지한 칸에 놓음<br><code>use-dnd.ts:1022</code></td><td>"Cell reserved by breadcrumb"</td><td class="k-drop">삭제</td><td>그 칸은 드롭 대상 자체가 꺼져 있어서(<code>grid-view.tsx:65</code>) 드래그 중에 강조가 생기지 않습니다. 놓으면 그냥 취소이고, 거의 닿지 않는 방어 코드입니다.</td></tr>
+        <tr><td>Node를 자기 하위 Node 안으로 옮기려 함<br><code>use-dnd.ts:1059</code></td><td>"Cannot move a node into its own descendant."</td><td class="k-keep">유지</td><td>왜 안 되는지가 화면에 보이지 않습니다(기준 ②).</td></tr>
+        <tr><td>Bit 상세에서 마감일 저장 실패<br><code>bit-detail-popup.tsx:157, :210</code></td><td>"Unable to update deadline(s)."</td><td class="k-keep">유지 (문장 형식만 맞춤)</td><td>일반 저장 실패입니다(기준 ①, S28).</td></tr>
+        <tr><td>휴지통에서 복원 성공<br><code>trash-group.tsx:125, :244</code></td><td>"Node/Bit restored."</td><td class="k-keep">유지</td><td>복원된 항목은 다른 화면에 있습니다(기준 ③). S28도 유지로 정했습니다.</td></tr>
+        <tr><td>휴지통에서 복원 실패 (부모 Grid 가득 / 그 외)<br><code>trash-group.tsx:128, :132, :247, :251</code></td><td>"Parent grid is full…", "Unable to restore…"</td><td class="k-keep">유지</td><td>기준 ①·②.</td></tr>
+        <tr><td>영구 삭제 성공·실패<br><code>trash-group.tsx:139, :141, :258, :260</code></td><td>"… permanently deleted." / "Unable to …"</td><td class="k-keep">유지</td><td>확인 대화상자가 닫힌 뒤의 되돌릴 수 없는 결과입니다(기준 ③).</td></tr>
+        <tr><td>휴지통 비우기 성공·실패<br><code>trash-list.tsx:61, :63</code></td><td>"Trash emptied." / "Unable to empty trash."</td><td class="k-keep">유지</td><td>위와 같음.</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+  const ICON = {
+    alert: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>',
+    ok: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+    off: '<svg class="icon" viewBox="0 0 24 24"><path d="M12 20h.01M8.5 16.43a5 5 0 0 1 7 0M5 12.86a10 10 0 0 1 5.17-2.69M19 12.86a10 10 0 0 0-2-1.39M2 8.82a15 15 0 0 1 4.18-2.65M22 8.82a15 15 0 0 0-11.29-3.76M2 2l20 20"/></svg>',
+    chev: '<svg class="icon chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>',
+    folder: '<svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
+    file: '<svg class="icon" viewBox="0 0 24 24" style="width:11px;height:11px"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/></svg>',
+  };
+  const app = document.getElementById('app');
+  const work = document.getElementById('work');
+  const toastsEl = document.getElementById('toasts');
+  let pos = 'a', screen = 'grid', group = 'merge';
+
+  // theme
+  document.querySelectorAll('[data-set-theme]').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-set-theme]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    app.dataset.theme = b.dataset.setTheme;
+    document.getElementById('rich-compare').dataset.theme = b.dataset.setTheme;
+    placeToasts();
+  }));
+
+  // screens
+  const BLOCKED = new Set(['0,0','1,0','2,0','3,0','0,1','1,1']);
+  const CARDS = { '6,1': ['n','Venue'], '8,2': ['n','Budget'], '3,3': ['b','Send invites'], '10,4': ['n','Guests'],
+    '2,5': ['b','Book photographer'], '12,2': ['b','Order cake'], '5,6': ['n','Music'], '14,6': ['b','Print menus'], '0,3': ['n','Flowers'], '1,2': ['b','Call florist'] };
+  function renderGrid() {
+    let cells = '';
+    for (let y = 0; y < 9; y++) for (let x = 0; x < 18; x++) {
+      const k = `${x},${y}`, c = CARDS[k];
+      if (c) cells += c[0] === 'n'
+        ? `<div class="card">${ICON.folder}<span class="t">${c[1]}</span></div>`
+        : `<div class="card bit">${ICON.file}<span class="t" style="margin-left:4px">${c[1]}</span></div>`;
+      else cells += `<div class="cell${BLOCKED.has(k) ? ' blocked' : ''}"></div>`;
+    }
+    work.innerHTML = `<div class="grid">${cells}</div>
+      <div class="cluster" id="cluster"><nav class="crumb"><span class="seg">Home</span>${ICON.chev}<span class="seg">Wedding</span>${ICON.chev}<span class="cur">Venue</span></nav><span class="due">Due Nov 14</span></div>
+`;
+  }
+  function renderInbox() {
+    work.innerHTML = `<div class="inbox"><div class="pool"><h4>Scratches</h4>
+      <div class="s">Wedding planning notes</div><div class="s">Q4 roadmap dump</div><div class="s">Trip ideas</div><div class="s">Reading list</div></div>
+      <div class="imain"><div class="ctx">Wedding planning notes</div>
+      <div class="itop"><div class="pane"><h4>Breakdown</h4><div class="row"></div><div class="row"></div><div class="row"></div></div>
+      <div class="pane"><h4>Staging</h4><div class="row" style="width:60%"></div><div class="row" style="width:80%"></div></div></div>
+      <div class="pane"><h4>Explorer</h4><div class="row" style="width:40%"></div><div class="row" style="width:40%"></div></div></div></div>`;
+  }
+  function renderTrash() {
+    work.innerHTML = `<div class="simple"><h2>Trash</h2><div class="row"></div><div class="row"></div><div class="row"></div><div class="row"></div></div>`;
+  }
+  function renderScreen() {
+    if (screen === 'grid') renderGrid(); else if (screen === 'inbox') renderInbox(); else renderTrash();
+    placeToasts();
+  }
+  function placeToasts() {
+    toastsEl.className = 'toasts pos-' + pos;
+    toastsEl.style.top = ''; toastsEl.style.left = '';
+    if (pos === 'a') {
+      const cl = document.getElementById('cluster');
+      const top = (screen === 'grid' && cl) ? (cl.getBoundingClientRect().bottom - app.getBoundingClientRect().top + 8) : 12;
+      toastsEl.style.top = top + 'px';
+      toastsEl.style.left = '60px';
+    }
+  }
+
+  // toasts
+  let live = []; // {key, count, el, timer, remaining, started}
+  function makeToast(kind, text) {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.setAttribute('role', 'status');
+    el.innerHTML = `<span class="ti">${ICON[kind]}</span><span class="msg">${text}</span>${kind !== 'ok' ? '<button class="x" type="button" aria-label="Close">×</button>' : ''}`;
+    return el;
+  }
+  function arm(t, ms) {
+    clearTimeout(t.timer);
+    t.remaining = ms; t.started = Date.now();
+    t.timer = setTimeout(() => dismiss(t), ms);
+  }
+  function dismiss(t) { clearTimeout(t.timer); t.el.remove(); live = live.filter((x) => x !== t); }
+  function show(key, kind, textFor) {
+    const dur = kind === 'ok' ? 4000 : 6000;
+    const existing = live.find((t) => t.key === key);
+    if (group === 'merge' && existing) {
+      existing.count += 1;
+      existing.el.querySelector('.msg').innerHTML = textFor(existing.count);
+      arm(existing, dur);
+      return;
+    }
+    if (group === 'replace') live.slice().forEach(dismiss);
+    const t = { key, count: 1, el: makeToast(kind, textFor(1)) };
+    t.el.addEventListener('mouseenter', () => { clearTimeout(t.timer); t.remaining -= Date.now() - t.started; });
+    t.el.addEventListener('mouseleave', () => arm(t, Math.max(t.remaining, 1200)));
+    const x = t.el.querySelector('.x'); if (x) x.addEventListener('click', () => dismiss(t));
+    toastsEl.appendChild(t.el);
+    live.push(t);
+    while (live.length > 3) dismiss(live[0]);
+    arm(t, dur);
+  }
+  const saveFail = (n) => n === 1 ? 'Couldn’t move “Venue”. It’s back where it was.' : `Couldn’t save <span class="count">${n}</span> changes. They were put back.`;
+  document.getElementById('fire-one').addEventListener('click', () => {
+    if (screen === 'trash') show('restore', 'ok', () => 'Node restored.');
+    else if (screen === 'inbox') show('offline', 'off', () => 'You’re offline. Changes can’t be saved right now.');
+    else show('save', 'alert', saveFail);
+  });
+  document.getElementById('fire-burst').addEventListener('click', () => {
+    if (screen !== 'grid') { screen = 'grid'; syncPressed('[data-screen]', 'grid'); renderScreen(); }
+    [0, 400, 800].forEach((d) => setTimeout(() => show('save', 'alert', saveFail), d));
+  });
+  document.getElementById('fire-mixed').addEventListener('click', () => {
+    show('save', 'alert', saveFail);
+    setTimeout(() => show('offline', 'off', () => 'You’re offline. Changes can’t be saved right now.'), 300);
+  });
+  function syncPressed(sel, val) { document.querySelectorAll(sel).forEach((b) => b.setAttribute('aria-pressed', String(Object.values(b.dataset)[0] === val))); }
+  document.querySelectorAll('[data-pos]').forEach((b) => b.addEventListener('click', () => { pos = b.dataset.pos; syncPressed('[data-pos]', pos); placeToasts(); }));
+  document.querySelectorAll('[data-screen]').forEach((b) => b.addEventListener('click', () => { screen = b.dataset.screen; syncPressed('[data-screen]', screen); renderScreen(); }));
+  document.querySelectorAll('[data-group]').forEach((b) => b.addEventListener('click', () => { group = b.dataset.group; syncPressed('[data-group]', group); live.slice().forEach(dismiss); }));
+  renderScreen();
+</script>
+</body>
+</html>

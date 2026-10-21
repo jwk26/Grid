@@ -43,6 +43,14 @@ The system provides a sense of "exploring an ocean of information" as clicking a
 
 ### Storage Strategy
 
+> **Superseded (2026-10-22).** GridDO became a SaaS: Supabase Postgres is the
+> per-account source of truth and auth gates access, with an automatic guest
+> account for visitors (SaaS conversion S01–S04, S10, S23). Local IndexedDB
+> data is discarded; export, import and migration are out of scope. Current
+> authority: `SPEC.md` Architecture Decisions 1, 19–21 and
+> §Environments And Hosting, and `SCHEMA.md` §Postgres Target. The text below
+> is kept as history.
+
 **v1: Local-first (IndexedDB).** No server, no database, no auth. User data lives entirely in the browser.
 
 **Rationale:**
