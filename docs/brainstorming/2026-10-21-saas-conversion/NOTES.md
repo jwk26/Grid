@@ -116,7 +116,7 @@ Brainstorming only: no production code and no canonical-document edits.
 In the suggested order. "Rec." is the advisory recommendation of 2026-10-21,
 not a decision. Answered: 1 (S07), 2 (S08), 3 (S10), 4 (S11–S13), 5 (S14),
 6 (S09, S15), 7 (S16), 8 (S17), 9 (S13, S18), 10 (S19), 11 (S20), 12 (S21,
-S22), 14 (S24). Open: 13 (S23 drafted, awaiting the user), 15.
+S22), 13 (S23), 14 (S24). Open: 15.
 
 1. **Client data architecture.**
    (a) Server-authoritative with a client query cache (for example TanStack
@@ -380,3 +380,29 @@ Questions 11–14 (S20–S24), same session:
   chosen (cost).
 - S21: a Vercel preview environment was not chosen because it would need a
   second Supabase project or would point at production.
+
+Question 13 (S23), same session:
+
+- First draft (rejected by the user's own design): `/` without a session
+  shows a sign-in page (GitHub, Google, Browse), the portfolio link is
+  `/demo`, and a top guest banner. The user's design (auto guest on `/`, one
+  sidebar account slot) was adopted because it needs no new route and shows
+  the product on the first click.
+- The user asked for a single sidebar icon (the sidebar is narrow):
+  `user-round` when signed out, `user-round-check` when signed in, with the
+  guest shown as signed in. The advisory pointed out that, with the
+  auto-guest rule, signing out immediately creates a new guest, so
+  `user-round` would never appear and a guest's sign-out would change nothing
+  visible. Option A (adopted): the guest shows `user-round` and its modal has
+  sign-in but no sign-out; the check icon means "your own account", which
+  also keeps the owner from writing real tasks into a guest account on a new
+  browser. Option B (rejected): keep the guest as signed in and add a true
+  signed-out app state with no data and no writes, plus a rule for reloads in
+  that state; more work for the same visitor outcome.
+- The visitor path is now: link, guest browsing, icon, OAuth sign-in, own
+  empty account, sign-out back to a new guest. The user's "sign out, then sign
+  in with OAuth" becomes one step shorter.
+- Guest count: one per browser that opens the app (the session persists in
+  that browser), plus one per sign-out; a seed of tens of KB keeps a week of
+  guests in the low MB against the 500 MB limit. Lucide `user-round` and
+  `user-round-check` exist in the installed `lucide-react`.
