@@ -2,6 +2,7 @@
 
 ## Metadata
 
+- Status: merged into 2026-10-18-staging-item-status-feedback
 - Created: 2026-04-28
 - Readiness: draft
 - Category: interaction reference
@@ -12,6 +13,15 @@
 - Updated: 2026-10-21
 - Dependencies: none
 - Related: `2026-10-18-staging-item-status-feedback` (Inbox item status: icon and tooltip on the item; failures whose item disappears keep the Staging alert band, not toast); `2026-10-21-saas-conversion` (S26–S28: the SaaS conversion adds toasts for failed ordinary writes, grouped failure bursts and write attempts while offline through the existing Toaster; the connection indicator and loading screen are SaaS surfaces; the Toaster placement change stays with this topic)
+
+## Merged (2026-10-21)
+
+The feedback-system session folded this entry into
+`2026-10-18-staging-item-status-feedback`, which is now authoritative for toast
+use, position, grouping, duration, copy form, colour and the audit of the
+existing calls (its F11–F16). Its criteria absorb the list below, and its
+position (F12) keeps this entry's "near the breadcrumb" direction. What
+follows is kept as history; promote the merged entry, not this one.
 
 ## Summary
 
