@@ -147,7 +147,7 @@ Each document is approved by the user and committed before the next.
 
 - [x] `docs/SCHEMA.md` (approved 2026-10-22)
 - [x] `docs/SPEC.md` (approved 2026-10-22; the narrow-window notice overlays the mounted app, and Phase 47 only checks the Inbox status presentation under real latency)
-- [ ] `docs/DESIGN_TOKENS.md`
+- [x] `docs/DESIGN_TOKENS.md` (approved 2026-10-22)
 - [ ] `CLAUDE.md` and the `docs/prd.md` note
 - [ ] `docs/EXECUTION_PLAN.md` (Phases 42–48, expected Tasks 213–239) and `docs/PLANNING_STANDARD.md`
 - [ ] Flow review (`expert`) in `docs/reviews/`
