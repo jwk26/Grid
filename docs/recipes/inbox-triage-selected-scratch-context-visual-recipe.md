@@ -3,6 +3,7 @@
 > Status: **Proposed — recipe-package user gate pending**
 > Verification: **source-only except the exact-source `DP-VQ04` fixed-editor evidence recorded in `docs/verification/inbox-triage/task-138.md`**
 > Production owner: `BreakdownPanel` Context surface (`LAND-BREAKDOWN`, `LAND-THEME`)
+> Feedback lane amendment (promotion ②, 2026-10-22): from Phase 50 the inline editor's transient status text (`Unsaved changes.`, `Saving…`, `Checking whether your changes were saved…`, `Saving before continuing…`, `Not saved.`, `Offline. Your draft is still here.`) becomes the loader or `!` with a tooltip, or the offline toast; the conflict view stays. Canonical: [DESIGN_TOKENS](../DESIGN_TOKENS.md#feedback-status-surfaces) `DP-VQ04` amendment. Rows for Tiny Desk, Origami, Terminal and Graphite are history after Task 241 (feedback F28) and bind nothing.
 
 ## Authority And Source Regions
 

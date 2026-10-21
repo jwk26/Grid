@@ -3,6 +3,7 @@
 > Status: **Proposed — recipe-package user gate pending**
 > Verification: **source-only; no rendered route/state was checked**
 > Production owner: `TriageWorkspace` plus shared Inbox/Triage theme realization (`LAND-THEME`)
+> Feedback lane amendment (promotion ②, 2026-10-22): the theme set shrinks to `griddo`, `retro-mac`, `neumorphism` and `claymorphism` (Task 241); only Retro Mac keeps an alternate Explorer label (`Finder`). Rows for Tiny Desk, Origami, Terminal and Graphite are history after Task 241 (feedback F28) and bind nothing.
 
 ## Authority And Provenance
 

@@ -3,6 +3,7 @@
 > Status: **Proposed — recipe-package user gate pending**
 > Verification: **source-only; no rendered route/state was checked**
 > Production owner: page-session placement projection over actual `NodeCard`/`BitCard` (`LAND-NEWLY`)
+> Feedback lane amendment (promotion ②, 2026-10-22): from Phase 50 the always-visible status rail below is removed and the Undo slot carries the Undo operation's status (`↶`, loader, `?` = Check again, `!` = Retry), with the sentences in the slot tooltip, for ordinary Explorer rows and replacement-search results alike. Canonical: [DESIGN_TOKENS](../DESIGN_TOKENS.md#undo-slot-status-amendment--feedback-lane-phase-50). Rows for Tiny Desk, Origami, Terminal and Graphite are history after Task 241 (feedback F28) and bind nothing.
 
 ## Authority And Source Regions
 
