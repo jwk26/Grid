@@ -111,12 +111,17 @@ Brainstorming only: no production code and no canonical-document edits.
 | Phase 27 P27-08 | Confirmed-orphan proof has no remote-authority producer. A server source of truth may answer it or make it moot. |
 | Phase 3 Issue 6 | "Hooks still use direct `indexedDBStore` imports." Hooks now go through `getDataStore()`, so the row looks stale; verify and close it at promotion. |
 
+Dispositions (2026-10-21): MI-23 is absorbed by S16 (Phases 45 and 47);
+P27-08 becomes moot under S18; Phase 3 Issue 6 stays a promotion-time check.
+Only the user closes ledger rows.
+
 ## Open questions
 
 In the suggested order. "Rec." is the advisory recommendation of 2026-10-21,
 not a decision. Answered: 1 (S07), 2 (S08), 3 (S10), 4 (S11–S13), 5 (S14),
 6 (S09, S15), 7 (S16), 8 (S17), 9 (S13, S18), 10 (S19), 11 (S20), 12 (S21,
-S22), 13 (S23), 14 (S24). Open: 15.
+S22), 13 (S23), 14 (S24), 15 (S25). All answered; `DECISION.md` is
+`code-ready` (2026-10-21).
 
 1. **Client data architecture.**
    (a) Server-authoritative with a client query cache (for example TanStack
@@ -406,3 +411,28 @@ Question 13 (S23), same session:
   that browser), plus one per sign-out; a seed of tens of KB keeps a week of
   guests in the low MB against the 500 MB limit. Lucide `user-round` and
   `user-round-check` exist in the installed `lucide-react`.
+
+Question 15 (S25), same session:
+
+- Phase order follows two rules explained to the user: every phase leaves
+  `main` working, and the riskiest unknown goes first (the dedicated write
+  role, S14, in Phase 42). Functions (43, 44) precede the client switch (45)
+  because they can be verified by `pnpm test:db` without UI. The switch phase
+  wires all writes as server-confirmed first and leaves the optimistic feel to
+  Phase 47, so a regression in one cannot hide in the other; the slower
+  intermediate feel is acceptable because the owner does not use the app
+  until the conversion ships (S04). Launch is last so strangers only meet a
+  finished, isolated app.
+- Brief's six-phase shape kept with one change: Dexie removal (46) moves right
+  after the switch, before the feel work, so later phases maintain one store;
+  auth and hosting move to the end (48), because anonymous sign-in in 45 is
+  enough for local work and OAuth redirects need the production URL.
+- Parallel lanes: only the default-theme lane is independent of the data
+  layer; status feedback and toast redesign the states Phase 47 builds, so
+  they wait (S05). The `/run-phase` change agreed on 2026-10-20 is a separate
+  fresh session; it is a precondition only for running the default-theme lane
+  in parallel. Running two lanes doubles the user's review load.
+
+Close of this session: Readiness set to `code-ready`. Next step: `/craft-docs`
+with this topic in a fresh Opus session (effort high), on branch
+`docs/saas-conversion` in `/Users/jwk/Documents/grid-saas`.
