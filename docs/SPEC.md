@@ -46,7 +46,27 @@ rule; adds [Account Entry And App States](#account-entry-and-app-states),
 [Environments And Hosting](#environments-and-hosting). The user-facing product
 name is "grid"; inside the project the name stays GridDO (S06). Multi-device
 use gets no extra work (S03). The rest of the feedback topic (Inbox item
-status, toast position and colour, the breadcrumb reveal) is promotion ②.
+status, toast position and colour, the breadcrumb reveal) is promotion ②
+([Feedback Lane Amendment](#feedback-lane-amendment--2026-10-22)).
+
+## Feedback Lane Amendment — 2026-10-22
+
+From [`DECISION.md`](brainstorming/2026-10-18-staging-item-status-feedback/DECISION.md)
+F01, F03–F10, F12, F15, the F16 create-dialog change and dropped breadcrumb
+toast, and F21–F33 (promotion ②,
+[`PROMOTION_MAP.md`](brainstorming/2026-10-18-staging-item-status-feedback/PROMOTION_MAP.md)).
+Inbox item status becomes an icon, emphasis and a tooltip on the item, and
+success shows nothing on screen ([Item status presentation](#item-status-presentation));
+toasts move to the top-left of the work area and keep their hues blended into
+each theme ([Toasts](#toasts)); the breadcrumb hides behind a sidebar Home
+button and reserves no Grid cell
+([Breadcrumb reveal and Home button](#breadcrumb-reveal-and-home-button)); the
+last selected Scratch persists per device; the theme set shrinks to four
+(`griddo`, `retro-mac`, `neumorphism`, `claymorphism`). The lane has two
+phases (F33): Phase 49 (the theme set, the shared status primitives, the
+toasts and the create dialogs) closes before Phase 45; Phase 50 (the Inbox
+surfaces, the breadcrumb reveal with the zone removal, the last Scratch)
+follows Phase 45. Until a task lands, the code keeps today's behavior.
 
 ## Inbox/Triage SPEC Approval Receipt
 
@@ -136,7 +156,7 @@ status, toast position and colour, the breadcrumb reveal) is promotion ②.
 
 8. **Domain-grouped shared components** — Shared components are organized by domain (`grid/`, `calendar/`, `bit-detail/`, `layout/`, `trash/`, `quick-capture/`, `triage/`, `archive/`) under `src/components/`. Page-specific components live in `_components/` within their route folder.
 
-9. **Client state is split by lifetime, not by convenience** — Zustand remains appropriate for cross-cutting application/session UI state, but it is never a second domain database. Durable Nodes, Bits, Breakdown rows, `StagedCandidate` records, versions and archive state live behind the DataStore boundary defined by SCHEMA, in Postgres (S02). The account snapshot (Decision 19) is a disposable app-session cache, never a source of truth. The Inbox target removes candidates and duplicated candidate labels from `triage-store.ts`; candidate display joins the authoritative source Breakdown row. Page-mounted workflow hooks own drafts, placement, archive presentation, and Newly Placed/Undo projections. Only the two Inbox sort directions use a device-local persisted preference store. See [Inbox/Triage State Ownership](#inboxtriage-state-ownership).
+9. **Client state is split by lifetime, not by convenience** — Zustand remains appropriate for cross-cutting application/session UI state, but it is never a second domain database. Durable Nodes, Bits, Breakdown rows, `StagedCandidate` records, versions and archive state live behind the DataStore boundary defined by SCHEMA, in Postgres (S02). The account snapshot (Decision 19) is a disposable app-session cache, never a source of truth. The Inbox target removes candidates and duplicated candidate labels from `triage-store.ts`; candidate display joins the authoritative source Breakdown row. Page-mounted workflow hooks own drafts, placement, archive presentation, and Newly Placed/Undo projections. Only the two Inbox sort directions and the last selected Scratch (feedback F27, Phase 50) use a device-local persisted preference store. See [Inbox/Triage State Ownership](#inboxtriage-state-ownership).
 
 10. **next-themes for dark/light theming** — Dark/Light mode via `next-themes` provider in root layout. Theme token switching is handled through CSS custom properties in `globals.css`, referenced by Tailwind classes. No conditional class logic in components.
 
@@ -152,7 +172,7 @@ status, toast position and colour, the breadcrumb reveal) is promotion ②.
 
 16. **Inbox/Triage DnD opens a guarded placement state machine** — Drag targets distinguish valid, invalid, and pending-confirmation semantics before any write. Release-time hit testing chooses the actual pointer-under target after edge auto-scroll. Direct placement, optional staged Result Title, target-column confirmation, pending/reconciling, failure, and rollback are distinct states owned by the proposed `useTriagePlacement` hook; `useTriageDnd` remains the pointer/drop-intent coordinator. `TriageWorkspace` composes these owners but owns neither persistence nor sequential writes. Full/stale targets disable or end the current flow without alternate-target selection, partial compensation, or silent retry.
 
-17. **Color themes share semantics; presentation changes preserve work** — Color theme remains a second visual axis over dark/light, with the canonical eight-theme set and `<html data-color-theme="...">`. Product components consume semantic variables, state attributes, and theme realization components; they do not duplicate routes or branch on theme ID. A theme or future locale change is presentation only: it preserves selected Scratch, Pool state/query, Add/Edit drafts, Explorer path/search/reveal, open Placement/Archive state, operation IDs and pending/reconciling flows, and Newly Placed/Undo. It neither saves, cancels, refetches, navigates, starts a duplicate mutation, nor translates user-authored text. Moving focus to the toggle is an explicit exception to inline-editor valid-blur save; the draft remains open and focus stays on the toggle.
+17. **Color themes share semantics; presentation changes preserve work** — Color theme remains a second visual axis over dark/light, with the four-theme set `griddo`, `retro-mac`, `neumorphism` and `claymorphism` (feedback F28; the code keeps the earlier eight until Task 241) and `<html data-color-theme="...">`. Product components consume semantic variables, state attributes, and theme realization components; they do not duplicate routes or branch on theme ID. A theme or future locale change is presentation only: it preserves selected Scratch, Pool state/query, Add/Edit drafts, Explorer path/search/reveal, open Placement/Archive state, operation IDs and pending/reconciling flows, and Newly Placed/Undo. It neither saves, cancels, refetches, navigates, starts a duplicate mutation, nor translates user-authored text. Moving focus to the toggle is an explicit exception to inline-editor valid-blur save; the draft remains open and focus stays on the toggle.
 
 18. **Selected Inbox/Triage promotion supersedes the Phase 22 surface assumptions only in its declared scope** — The four-area ratios, system-node route dispatch, global Search Overlay, Archive View, Direct Archive, Calendar behavior, current card foundations, and unrelated responsive scope are retained. The selected topic supersedes invisible developer-only section labels, compact Selected Scratch Context, UI-only candidates, active-column Explorer search, the combined generic placement dialog, the simple archive bar/global confirmation, consumed-row strike-through, Add-on-blur creation, and the claim that Inbox mutations need no pending/error states. The Pool still auto-collapses only on the first printable Breakdown key and honors the per-Scratch manual-reopen exception. Visual behavior is constrained by [Inbox/Triage Visual Decision Prerequisites](#inboxtriage-visual-decision-prerequisites); source absence never deletes selected behavior or authorizes a nearby fallback.
 
@@ -235,16 +255,16 @@ status, toast position and colour, the breadcrumb reveal) is promotion ②.
 
 ### Route: `/` (Level 0 Grid)
 
-- **Structure:** Full-width 18x9 grid occupying the main content area. Fixed icon-rail sidebar (always visible, `w-12`). Breadcrumb shows "Home" root-only state.
+- **Structure:** Full-width 18x9 grid occupying the main content area. Fixed icon-rail sidebar (always visible, `w-12`). The breadcrumb is not revealed on L0; the sidebar Home button shows the current page ([Breadcrumb reveal and Home button](#breadcrumb-reveal-and-home-button); until Phase 50 a fixed breadcrumb shows the "Home" root-only state).
 - **Content:** Nodes only. No Bits at Level 0.
-- **Sidebar:** Permanent narrow icon rail, always visible, identical across all levels. Icons: account icon (top-most, S23; [Account icon and modal](#account-icon-and-modal-sidebar-not-a-route)), + (add), Pencil (edit toggle), Search, Calendar (top); Trash, dark/light Theme toggle, Color Theme toggle (bottom). No fold/unfold mechanism.
+- **Sidebar:** Permanent narrow icon rail, always visible, identical across all levels. Icons: Home (top-most, on every route; feedback F21, Phase 50), account icon (right below Home, S23; [Account icon and modal](#account-icon-and-modal-sidebar-not-a-route)), + (add), Pencil (edit toggle), Search, Calendar (top); Trash, dark/light Theme toggle, Color Theme toggle (bottom). Phase 47 adds the account icon and Phase 50 the every-route Home button; whichever lands second keeps the order Home, account icon, `+` (F33). Until Phase 50, Home shows only on Calendar and system-Node routes, as today. No fold/unfold mechanism.
 - **Onboarding:** On first visit (no Nodes exist), show ghost placeholder Nodes with dashed outlines and hint labels ("Try: Work, Personal, Hobbies"). Disappear after first Node creation.
 - **Interactions:** Click Node → navigate to `/grid/[nodeId]`. Dark/light Theme toggle, Color Theme toggle, search overlay, edit mode. DnD enabled (repositioning works outside edit mode).
 - **Visual:** Level 0 background color (`--grid-bg-l0`). Standard grid line density. No depth effects at Level 0.
 
 ### Route: `/grid/[nodeId]` (Level 1-3 Grid)
 
-- **Structure:** 18x9 grid with breadcrumb bar at top. Fixed icon-rail sidebar (same as Level 0, no remount on navigation).
+- **Structure:** Full-bleed 18x9 grid. The breadcrumb is revealed over the grid's top-left from the sidebar Home button and reserves no cell ([Breadcrumb reveal and Home button](#breadcrumb-reveal-and-home-button); until Phase 50 a fixed breadcrumb sits at the top-left and the cells under it are blocked). Fixed icon-rail sidebar (same as Level 0, no remount on navigation).
 - **Level 1-2 content:** Nodes (left zone, ~5-6 columns) + Bits (right zone, ~6-7 columns). 2-way split is a soft guide — items can be placed anywhere.
 - **Level 3 content:** Bits only, full-width grid. No Node creation allowed.
 - **Onboarding (Level 1, first visit):** Ghost hints for 2-way split ("Nodes here" on left, "Bits here" on right). Disappear after first item creation.
@@ -252,9 +272,58 @@ status, toast position and colour, the breadcrumb reveal) is promotion ②.
 - **Depth visual effects:**
   - Grid line density increases with level (thinner, denser lines).
   - Background color changes per level (`--grid-bg-l1` through `--grid-bg-l3`) — progressively cooler/darker.
-- **DnD:** Grid repositioning and drag-to-child enabled outside edit mode. Breadcrumb drops remain edit-mode-only. Drag onto node shows confirmation dialog. Cycle prevention blocks moving a node into its own descendant.
+- **DnD:** Grid repositioning and drag-to-child enabled outside edit mode. Breadcrumb ancestor drops also work in any mode, as the code has since Phase 9 (`breadcrumbs.tsx`; a Bit cannot drop on Home); the earlier edit-mode-only wording was never implemented (corrected 2026-10-22). Drag onto node shows confirmation dialog. Cycle prevention blocks moving a node into its own descendant.
 - **Bit detail:** Click a Bit → URL updates to `?bit=[bitId]` → popup opens (see Bit Detail Popup below).
 - **Edit mode:** Toggle via sidebar Pencil → jiggle animation, dashed cell outlines, "+" on empty cells (square affordance, centered), drag-to-reposition, delete buttons with confirmation dialog.
+
+### Breadcrumb reveal and Home button
+
+Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
+§Feedback Status Surfaces (`DP-FB-01`).
+
+- **Home button.** At the very top of the sidebar on every route, above the
+  account icon and `+` (F21). It navigates to `/`. On L0 it shows as the
+  current page (`aria-current="page"`) and reveals nothing; on pages without a
+  breadcrumb (Inbox, Archive, Calendar, Trash) hovering it reveals nothing.
+- **Hidden by default.** On a Node's Grid the breadcrumb is hidden and is
+  revealed over the grid's top-left by: hover or keyboard focus on Home or on
+  the breadcrumb; entering a Node, for 3 seconds; and any Node or Bit drag, for
+  the whole drag (F22). There is no dwell-on-Home gesture.
+- **Hiding** (F23). 1 second after the pointer and focus have left both Home
+  and the breadcrumb's segments and deadline chip, with a 0.3 second fade. It
+  stays while hovered, focused or while its deadline picker is open. The entry
+  reveal ends after 3 seconds unless hovered or focused. `Esc` hides it at once
+  when nothing above it is open; `Esc` closes the top-most layer first: a
+  dialog, the Bit popup or the palette, then the deadline picker, then the
+  breadcrumb. During a drag `Esc` only cancels the drag.
+- **Motion** (F23). It unfolds out of the Home button (about 0.26 seconds) and
+  folds into it (about 0.35 seconds), and Home is briefly emphasized as it
+  lands, so the user learns where it went. Reduced motion: no movement, the
+  breadcrumb appears and disappears in place.
+- **Pointer** (F24). While shown, only its segments and the deadline chip take
+  the pointer; the rest of the bar lets it through, so a card under it stays
+  clickable, and "hovered" above means a segment or the chip. During a drag
+  each ancestor segment is a drop target with a visible "drop here" signal
+  (the ancestor-move confirmation and the no-Bit-on-Home rule stay); the rest
+  of the bar lets the pointer through to the cells beneath, its surface turns
+  translucent and the deadline chip hides, so the top-left cells stay
+  droppable.
+- **Layering.** The breadcrumb sits above grid cells and cards and below the
+  drag overlay, popovers, dialogs, the Bit popup and the palette. The toast
+  stack sits below it while it is shown ([Toasts](#toasts)).
+- **One row** (F25). The `Due …` deadline chip moves into the breadcrumb row;
+  the current Node's deadline is therefore visible only while the breadcrumb
+  is shown, which the user accepted (rechecked at the Phase 50 checkpoint). The
+  breadcrumb stays in the accessibility tree. In Tab order its segments come
+  right after the Home button, and focusing a segment reveals it. This order
+  comes from DOM placement (the breadcrumb follows the Home button in document
+  order), never from a positive `tabindex`. The tab title
+  carries the current Node's name ([Feedback copy](#feedback-copy)).
+- **No reserved cell** (F26). No Grid cell is reserved for the breadcrumb: Add,
+  placement and drops treat every cell alike. The zone measurement and store,
+  the `isCellBlocked` guards, `runBreadcrumbZoneMigration` (the Phase 45 no-op
+  included) and its `settings` markers are removed (SCHEMA §Not ported).
+- Below 1024px the reveal is a desktop feature (S42 (4)).
 
 ### Bit Detail Popup (Modal — not a route)
 
@@ -408,16 +477,15 @@ Four visible, semantically named internal areas retain the selected ratios:
 - Top area: Breakdown 60% / Staging 40%.
 - Staging: Nodes 35% / Bits 65%.
 - `Scratch Pool`, `Breakdown`, `Staging`, and the semantic/default
-  `Grid Explorer` identity are visible theme chrome. Tiny Desk may use
-  `Library Index`, Retro Mac `Finder`, and Terminal `GRID EXPLORER`; accessible
-  naming and internal ownership stay `Grid Explorer`.
+  `Grid Explorer` identity are visible theme chrome. Retro Mac may use
+  `Finder`; accessible naming and internal ownership stay `Grid Explorer`.
 - Explorer columns use the full labels `Home`, `Level 1`, `Level 2`, and
   `Level 3`. Do not expose `L1`, `L2`, `L3`, `Home-L3`, or similar abbreviations
   or repeat a selected title below every column heading.
 - The Pool list, Breakdown row list, Staging Node/Bit lists, and each Explorer
   column retain wheel, trackpad/touch, and keyboard scrolling while hiding
   visible scrollbar chrome. Hiding chrome never removes scrollability.
-- The eight themes share state meaning, interaction, and accessibility but do
+- The themes share state meaning, interaction, and accessibility but do
   not collapse into one generic panel/card realization. Exact visual values
   remain owned by `DESIGN_TOKENS.md` and approved recipes after their gates.
 
@@ -442,9 +510,12 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
 #### Scratch Pool
 
 - **Selection and re-entry:** On same-app-session Inbox route re-entry, restore
-  the last selected Scratch only if it is still active. On first entry, reload,
-  new app session, or invalid prior selection, choose the first active Scratch
-  in the current persisted Pool sort direction. With no active Scratch,
+  the last selected Scratch only if it is still active. On first entry, reload
+  or a new app session, restore the last selected Scratch saved on this device
+  (`triage-preferences-store`, feedback F27, Phase 50) if it still resolves to
+  an active Scratch of this account. Otherwise, or with an invalid prior
+  selection, choose the first active Scratch in the current persisted Pool
+  sort direction. With no active Scratch,
   selection is `null`. A search-hidden row is never chosen as a hidden
   fallback; automatic selection changes data context without stealing focus.
   Archive and Trash success use their own visible-order rule before this
@@ -567,6 +638,54 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   Pool row, else the search input. Restore from `/trash` returns the Scratch through the existing
   restore lifecycle with its rows active and no staged candidates.
 
+#### Item status presentation
+
+Feedback F01–F10 (Phase 50; until then each status keeps its current
+presentation). One rule covers every item-attached Inbox status: Staging Node
+cards and Bit rows, Breakdown rows, the Breakdown Add field, the inline
+editors and Explorer Newly rows. Looks: DESIGN_TOKENS §Feedback Status
+Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
+
+- **Success shows nothing on screen** (F01): no `Added.`,
+  `Returned to Breakdown.` or `Saved.` text, no check, no wash. Screen readers
+  hear a polite, visually hidden `Added.`, `Returned to Breakdown.` or
+  `Saved.` once (F04). No new modal or other surface is added for item status.
+- **States** (F02, F03):
+
+| State | Icon | Emphasis | When it shows |
+|---|---|---|---|
+| Pending | Loader | None; the existing dimming of a locked source row or candidate stays | After `DISPLAY_DELAY_MS` (300ms); a faster result shows nothing |
+| Unknown | `?` | Yes | At once |
+| Reconciling | Keeps `?`, then the loader | As unknown until the loader shows | The loader after 300ms; the pressed control (`Check again`) turns unavailable at once |
+| Not applied, rejected, conflict, integrity | `!` | Yes | At once |
+
+- The icon shape carries the state, not colour alone (WCAG 1.4.1); red stays
+  reserved for destructive actions. Under reduced motion the loader is static.
+- **Tooltip** (F09). The state's sentence shows in a tooltip on hover or
+  keyboard focus of the item (the Add field, a row's grip, a Staging card, the
+  Explorer status slot). It holds no controls, one shows at a time, and it is
+  the item's description (`aria-describedby`). On a Staging card body the
+  problem tooltip replaces the Task 179A truncated-title tooltip and leads with
+  the full title on its own line; when the sentence already contains the title,
+  the title line is left out. A control shows only its own tooltip. An item outside the Tab order gets a
+  focusable status element. Existing actions (`Retry Add`, `Check again`,
+  `Retry`) stay as compact controls; "drag again" guidance is tooltip text.
+- **Placement** (F07). Breakdown row: a 22px status slot before the actions,
+  always reserved so the title does not shift; it replaces the 160px success
+  slot (MI-21). Add field: the icon inside the field at its right end, the
+  emphasis on the field, `Retry Add` beside Add. Staging Node card: the
+  top-right corner. Staging Bit row: the row end. Explorer Newly row: the Undo
+  slot ([Actual-card Newly Placed and Undo](#actual-card-newly-placed-and-undo)).
+  Staging has no recovery controls.
+- **Decision surfaces keep their sentences** (F08): the Placement plate, the
+  Archive completion card, the Scratch Trash dialog and the inline-editor
+  conflict view. A Stage failure whose item disappears keeps the Staging
+  alert band. Inbox status never uses a toast; a write attempt while offline is
+  an app state ([Connection states](#connection-states)).
+- The existing one-time polite pending and problem announcements stay.
+- Every state can be forced in the running app with the
+  [development state switch](#development-state-switch) (F30).
+
 #### Breakdown and Selected Scratch Context
 
 - Selected Scratch Context is a standalone signature section above rows, not
@@ -584,7 +703,8 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   draft and one operation/record identity, locks duplicate submission, and
   never clears input or inserts an optimistic row. Confirmed success clears
   once, keeps input focus, scrolls only the row list to top under DESC or bottom
-  under ASC, emits the `VQ-02` success state, and announces politely. Failure
+  under ASC, shows no visible success and announces `Added.` politely
+  ([Item status presentation](#item-status-presentation)). Failure
   or known-offline non-execution retains draft/focus without success scroll/
   signal and offers manual Retry with the same snapshotted operation identity.
   An unknown outcome reconciles before Retry or success; no in-memory Add queue
@@ -604,6 +724,14 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   visible and conflicting Edit/Trash/DnD/Cancel actions lock. Failure or offline
   preserves draft and logical focus; reconnection enables manual Retry but does
   not auto-save or create an offline queue.
+- **Editor states** (F05, Phase 50): `Unsaved changes.` shows no text (the
+  enabled Save is the signal); `Saving…` and
+  `Checking whether your changes were saved…` become the loader, with Save and
+  Cancel unavailable at once; `Saving before continuing…` becomes the loader
+  plus the existing `Stay here`, the sentence in the tooltip; `Not saved.`
+  becomes `!` plus the tooltip; `Offline. Your draft is still here.` is
+  replaced by the offline write-attempt toast ([Toasts](#toasts)), and the
+  draft stays in the editor. The conflict view stays as built.
 - Editors capture `{record ID, base value, version, lifecycle}` in client memory
   and use SCHEMA CAS. A stale write never becomes last-write-wins. Text conflict
   offers inline use-mine/use-latest semantics against the acknowledged latest
@@ -636,7 +764,8 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   if neither exists, focus goes to Add for an ordinary empty state or the
   archive overlay heading when the deletion created completion. Failure returns
   to Trash and unresolved check-again retains focus. `VQ-05` owns unsupported
-  state realization details.
+  state realization details; from Phase 50 the row and Add field statuses
+  follow [Item status presentation](#item-status-presentation).
 - Never-used/all-deleted-without-consumption uses an idea-creation empty prompt.
   All-consumed completion is distinct and follows the archive flow below; an
   empty-array `every()` result is never completion evidence.
@@ -649,7 +778,11 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   no large or repeated placeholder card. Each independently scrollable list
   sorts `createdAt` DESC then stable ID, has no manual reorder or count cap, and
   preserves the 35/65 split and panel height.
-- A subsection label is just `Nodes` or `Bits` for zero or one presentation candidate. It receives a numeric prefix only at two or more (`2 Nodes`, `3 Bits`). For each type, this presentation total includes source-resolved durable candidates and visible non-draggable Stage projections in pending, unknown, or reconciling, counting an authoritative candidate and its operation projection with the same candidate ID once. Unstage adds no projection count and retains its durable candidate until authoritative disappearance. Unresolved-source integrity slots are not presentation candidates and are excluded from this total. Repository membership, authoritative counts, Archive eligibility and operation locks remain durable truth. The heading total is not a success claim. Authoritative `applied` and `already_applied` outcomes retain their SCHEMA semantics and, where applicable, accepted DP-VQ02 success-signal authority; the heading total still derives only from the current reactive candidate/projection inputs. Terminal projection removal follows the post-terminal presentation hold (amended 2026-10-18, MI-15). On `applied` or `already_applied`, a Stage projection whose candidate ID is already in the current snapshot is removed in the same commit; otherwise it stays as a post-terminal presentation hold: it keeps its current phase, copy and non-draggable shape, holds no lock or navigation guard, makes no new announcement, and keeps counting once with its candidate ID. The displayed phase is presentation only: the item is marked held, no lock, guard, live sentence or other consumer treats it as unresolved, and it keeps the interactivity it had while pending (a held candidate is not draggable; a held source row's grip, Edit and Delete stay disabled). The hold is checked when the result arrives and on every later snapshot. It ends when the snapshot contains the candidate ID (as a source-resolved candidate or an unresolved-source integrity slot), when a live-query read that started after the result returns without it, or when the subscription errors. `rejected`, `conflict`, `not_applied`, failure and orphan cleanup are never held. No timer or elapsed time decides removal, and membership is never inferred before the snapshot. Stage projections render at the top of their list, newest first, where the candidate lands under the `createdAt` DESC sort. A pending Stage projection, and one held from pending, shows the candidate's icon and title in its final card or row shape and no in-card status line; its pending sentence is announced only through the Staging live region (2026-10-18, mi-14). Unknown and reconciling keep the attached line. The subsection-local remote-arrival `new items` indicator remains separate and is never added to this total.
+- **Nodes zone width** (F10, MI-21, Phase 50): the `Nodes` zone is never
+  narrower than one Node card, even where that bends the 35/65 split, and lays
+  its cards in an auto-fill grid: one column when two cards do not fit, two as
+  today when they do. All themes share it.
+- A subsection label is just `Nodes` or `Bits` for zero or one presentation candidate. It receives a numeric prefix only at two or more (`2 Nodes`, `3 Bits`). For each type, this presentation total includes source-resolved durable candidates and visible non-draggable Stage projections in pending, unknown, or reconciling, counting an authoritative candidate and its operation projection with the same candidate ID once. Unstage adds no projection count and retains its durable candidate until authoritative disappearance. Unresolved-source integrity slots are not presentation candidates and are excluded from this total. Repository membership, authoritative counts, Archive eligibility and operation locks remain durable truth. The heading total is not a success claim. Authoritative `applied` and `already_applied` outcomes retain their SCHEMA semantics and show no visible success (feedback F01); the heading total still derives only from the current reactive candidate/projection inputs. Terminal projection removal follows the post-terminal presentation hold (amended 2026-10-18, MI-15). On `applied` or `already_applied`, a Stage projection whose candidate ID is already in the current snapshot is removed in the same commit; otherwise it stays as a post-terminal presentation hold: it keeps its current phase, copy and non-draggable shape, holds no lock or navigation guard, makes no new announcement, and keeps counting once with its candidate ID. The displayed phase is presentation only: the item is marked held, no lock, guard, live sentence or other consumer treats it as unresolved, and it keeps the interactivity it had while pending (a held candidate is not draggable; a held source row's grip, Edit and Delete stay disabled). The hold is checked when the result arrives and on every later snapshot. It ends when the snapshot contains the candidate ID (as a source-resolved candidate or an unresolved-source integrity slot), when a live-query read that started after the result returns without it, or when the subscription errors. `rejected`, `conflict`, `not_applied`, failure and orphan cleanup are never held. No timer or elapsed time decides removal, and membership is never inferred before the snapshot. Stage projections render at the top of their list, newest first, where the candidate lands under the `createdAt` DESC sort. A pending Stage projection, and one held from pending, shows the candidate's icon and title in its final card or row shape and no in-card status line; its pending sentence is announced only through the Staging live region (2026-10-18, mi-14). Unknown and reconciling keep the attached line until Phase 50, which replaces every in-card line with the item status icon and tooltip: the loader after the delay for pending, `?` for unknown and reconciling ([Item status presentation](#item-status-presentation)). The subsection-local remote-arrival `new items` indicator remains separate and is never added to this total.
 - The whole staged candidate root is the primary pointer/touch drag activator;
   it has no select/detail/menu behavior and no internal grip. Every grab point
   uses the same pointer-centered, type-specific compact `TriageDragToken` and
@@ -705,20 +838,20 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   resizes, or relabels existing Breakdown content. These transient signals clear
   on target exit or drag end and never blink, pulse, or trigger an automatic
   drop.
-- Unstage uses the same post-terminal presentation hold (2026-10-18, MI-15): after `applied` or `already_applied`, the retained candidate keeps its Unstage operation state until a snapshot no longer contains it, until a live-query read that started after the result still contains it, or until the subscription errors. While its Unstage is pending, the candidate card stays dimmed and shows no in-card status line (2026-10-18, mi-14); in unknown or reconciling the card is not dimmed and shows its attached line; a held Unstage keeps the dimming of the phase it was held from. On Stage, the Breakdown source row stays dimmed from drop until the Stage settles and its hold ends, and changes in the same commit as the Staging region. Dimming follows operation state, not the drag state. After a Scratch switch, no commit shows the previous Scratch's operation rows, counts, remote-arrival indicator or Staging alert.
+- Unstage uses the same post-terminal presentation hold (2026-10-18, MI-15): after `applied` or `already_applied`, the retained candidate keeps its Unstage operation state until a snapshot no longer contains it, until a live-query read that started after the result still contains it, or until the subscription errors. While its Unstage is pending, the candidate card stays dimmed and shows no in-card status line (2026-10-18, mi-14); in unknown or reconciling the card is not dimmed and shows its attached line (from Phase 50 its status icon); a held Unstage keeps the dimming of the phase it was held from. On Stage, the Breakdown source row stays dimmed from drop until the Stage settles and its hold ends, and changes in the same commit as the Staging region. Dimming follows operation state, not the drag state. After a Scratch switch, no commit shows the previous Scratch's operation rows, counts, remote-arrival indicator or Staging alert.
 - Unstage keeps candidate/source staged until success. Success removes the
   candidate, restores the source's original created-at sort position, scrolls
-  only the Breakdown list if needed, restores source focus, and reuses the
-  `VQ-02` one-shot success state. Failure retains candidate/source and is
-  retried through a new drag, not a separate Retry button. Routine success has
-  no toast; selected failure feedback is Staging-local until separately
-  approved toast work.
+  only the Breakdown list if needed, restores source focus, shows no visible
+  success and announces `Returned to Breakdown.` politely (feedback F01, F04).
+  Failure retains candidate/source and is retried through a new drag, not a
+  separate Retry button. Inbox status never uses a toast (F08).
 - Stage/Unstage failure feedback is a Staging-local alert that preserves focus,
   identifies the failed item and reason, and has an accessible `X` that closes
   only the alert. It never auto-dismisses by timer. It clears on `X`, a new
   operation for that candidate, authoritative candidate disappearance, or a
   Scratch switch; a later failure replaces the earlier alert. Exact appearance,
-  wording, and placement remain with `VQ-06`.
+  wording, and placement remain with `VQ-06`; the band stays under feedback
+  F08.
 - Pending/reconciling Stage or Unstage locks Scratch selection and internal
   route exit without queuing or auto-running a request. Unrelated same-Scratch
   row review, Pool use, and Grid exploration remain usable. Browser exit uses
@@ -969,6 +1102,17 @@ Preserve render-driven refresh: evaluate the existing clock when the consumer re
   next card, previous card, then column heading; in search it is next result,
   then input. `VQ-10` owns unsupported overlap/ineligible/reliability
   realization details.
+- **Undo slot status** (feedback F07, F09, Phase 50). On Explorer Newly rows the
+  Undo slot is also the Undo operation's status slot: `↶` (available), the
+  loader (pending, after the delay), `?` as a button that checks again
+  (unknown), `!` as a button that retries (failure). A `!` without an action,
+  such as a conflict, is an unavailable, focusable button with its tooltip, like
+  the existing unavailable Undo. The always-visible status rail and its text
+  recovery actions are removed; their sentences move into the slot tooltip,
+  which adds `Select to check again.` or `Select to try again.` The row keeps
+  its width. Replacement-search results import this Undo status treatment, as
+  they import Tasks 156–157 today, so a result's trailing Undo uses the same
+  slot rule (F06).
 
 #### Completion and Archive Scratch
 
@@ -1117,9 +1261,11 @@ is never shown again and is cleaned up 7 days later.
 
 ### Account icon and modal (sidebar, not a route)
 
-- One account icon at the very top of the sidebar, above `+`, on every route
-  (S23). Feedback F21 (promotion ②) places the Home button above it. Lucide
-  `user-round` for a guest, `user-round-check` for a signed-in OAuth account.
+- One account icon at the top of the sidebar, above `+`, on every route
+  (S23). The Home button (feedback F21, Phase 50) sits above it. Task 234
+  places the icon below Home if Home has landed, otherwise at the very top, and
+  Phase 50 then puts Home above it (F33). Lucide `user-round` for a guest,
+  `user-round-check` for a signed-in OAuth account.
 - The connection badge (F17) sits on this icon ([Connection states](#connection-states)).
 - Phase 47 builds the icon and its badge with no modal: until Phase 48 the icon
   is a focusable status element whose tooltip is the connection sentence, with
@@ -1183,7 +1329,7 @@ Everyday interactions feel as they do today (S09). Writes fall into four groups
 |---|---|---|
 | 1. Immediate | Position moves (Grid drag, Calendar reschedule, Chunk order), parent-change moves (a drop on a Node, a breadcrumb drop), field edits (title, description, icon, color, deadline, priority), completion toggles, and creating Nodes, Bits and Chunks | Shown at once through the pending-write layer; on failure rolled back with a failure toast |
 | 2. Immediate hide | Trash and archive | The target hides at once and comes back on failure; the cascade is not predicted on the client, since descendants are reached only through the target |
-| 3. Server-confirmed | Permanent delete, Empty Trash, restore from Trash or Archive, Bit-to-Node promotion | The control or row that started it shows a loader after `DISPLAY_DELAY_MS` and a busy state; the result appears when the function answers. The loader is the feedback F03 loader (promotion ②), one loader app-wide (user, 2026-10-22) |
+| 3. Server-confirmed | Permanent delete, Empty Trash, restore from Trash or Archive, Bit-to-Node promotion | The control or row that started it shows a loader after `DISPLAY_DELAY_MS` and a busy state; the result appears when the function answers. The loader is the feedback F03 loader (DESIGN_TOKENS §Feedback Status Surfaces, Task 243), one loader app-wide (user, 2026-10-22) |
 | 4. Inbox/Triage commands | The SCHEMA atomic commands | Their pending/reconciling UI and reconcile contract, as built (S28) |
 
 - Ordinary writes stay last-write-wins: no expected version (S15).
@@ -1201,9 +1347,11 @@ Everyday interactions feel as they do today (S09). Writes fall into four groups
   as that command's existing rejected state, never as a toast (F11), with the
   reason `This account has reached its limit of {limit} {items}.` owned by
   `src/lib/copy/inbox-triage.ts`.
-- The Inbox/Triage status presentation, with its F02 delay, is built by the
-  feedback lane (promotion ②), which closes before Phase 45 (S41). Phase 47
-  only checks that presentation under real server latency.
+- The Inbox/Triage status redesign, with its F02 delay, is Phase 50, which
+  follows Phase 45 (feedback F33). Phase 47 checks under real server latency the
+  Inbox presentation that is on `main` when it runs; Phase 50 checks its own
+  presentation on local Supabase with the
+  [development state switch](#development-state-switch).
 
 ### Connection states
 
@@ -1216,7 +1364,8 @@ Judged from real request results, not from `navigator.onLine` alone (S27):
 | Offline | The browser reports offline, or three requests in a row failed | Crossed Wi-Fi badge, error hue | Blocked |
 
 - Hover or focus on the account icon shows the state's sentence (F17). The
-  badge hues are the F15 warning and error status roles (promotion ②).
+  badge hues are the F15 warning and error status roles (DESIGN_TOKENS
+  §Feedback Status Surfaces, Task 243).
 - Each change to unstable or offline is announced once, politely. Recovery
   clears the badge with no visible notice and announces `Back online.` to
   screen readers only (F17).
@@ -1256,9 +1405,20 @@ guest, so a cancelled OAuth sign-in returns to that screen (user,
 
 ### Toasts
 
-The existing `sonner` Toaster stays where it is (`bottom-right`, `richColors`)
-until feedback F12 and F15 (promotion ②) move and recolour it in one place
-(S28).
+- **Position** (F12). The `sonner` Toaster sits at the top-left of the work
+  area, right of the sidebar, at the row where the breadcrumb appears. While
+  the breadcrumb is shown, the stack sits below it; the stack is rendered
+  outside the breadcrumb. Pages without a breadcrumb use the same top-left
+  anchor. During a Node or Bit drag the stack turns translucent and lets the
+  pointer through, so the top-left cells stay droppable.
+- **Colour** (F15). Toasts keep the error red, success green and warning amber
+  hues, blended into each theme through the semantic status tokens (DESIGN_TOKENS
+  §Feedback Status Surfaces), and the icon also differs by kind (✓, `!`,
+  crossed Wi-Fi), so colour is not the only signal. Per-theme blends belong to
+  the theme stage.
+- **When.** Task 244 (Phase 49) moves and recolours the Toaster in one place
+  (S28). Until Task 248 (Phase 50) hides the breadcrumb, the stack sits below
+  the fixed breadcrumb on Grid pages.
 
 - **Use** (F11): only for (1) a write that failed and was rolled back; (2) a
   blocked action whose reason is not visible where it happened (a full target
@@ -1279,9 +1439,16 @@ until feedback F12 and F15 (promotion ②) move and recolour it in one place
   grouping and timing; every call site uses it. Toast, app-state and blocking
   copy live in `src/lib/copy/feedback.ts`.
 - **Existing calls** (F16): of today's 20 `toast(` calls, 17 are kept with
-  their copy aligned to this form (below). The Node/Bit create-dialog change
-  (`grid-runtime.tsx` "Grid is full" at two sites) and the dropped
-  `Cell reserved by breadcrumb` toast belong to promotion ②.
+  their copy aligned to this form (below). The Node and Bit create dialogs no
+  longer toast (`grid-runtime.tsx`, two sites): when the target Grid has no
+  empty cell, the dialog stays open, keeps the typed title and shows the inline
+  error below, at every level, L0 included (Task 244).
+  `Cell reserved by breadcrumb` (`use-dnd.ts`) goes with the blocked zone (Task
+  249).
+- **Inline editor offline** (F05, Task 245): an editor save attempted while
+  offline shows the offline write-attempt toast instead of the editor's own
+  line. Whichever of Tasks 232–233 and Task 245 lands second puts that call on
+  the helper and the editor's offline source on the connection monitor.
 
 ### Feedback copy
 
@@ -1320,6 +1487,14 @@ A counted form reuses the kind's single form when the count is one. The
 rolled-back kinds share one kind for grouping, so a burst of different failed
 writes shows one counted toast (S28).
 
+**Dialogs and shell** (promotion ②)
+
+| Element | Copy |
+|---|---|
+| Create dialog, no empty cell (Node or Bit, every level; inline error, typed title kept) | `“{target}” has no empty cell. Move or delete an item to make room.` (`{target}` is the current Node's title, or `Home` at L0) |
+| Home button (label and tooltip) | `Home` |
+| Tab title on a Node's Grid | `{title} – {app name}` (`{app name}` is `GridDO` until Task 239 names the product `grid`); other pages keep the app name alone |
+
 **Connection** (tooltip, and the polite announcement on entering the state)
 
 | State | Sentence |
@@ -1354,6 +1529,16 @@ writes shows one counted toast (S28).
 | Privacy note | `grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.` |
 | Account actions | `Sign out`, `Delete account` |
 | Delete confirmation | `Delete your account?` / `Your tasks and all other data are deleted permanently. This can't be undone.` / `Delete account`, `Cancel` |
+
+### Development state switch
+
+Feedback F30 (Task 243; Tasks 231 and 233 extend it). A development-only
+switch forces each status state in the running app: delayed pending,
+reconciling, unknown, not applied, rejected, conflict, integrity and offline,
+and from Phase 47 the network states and a write rejection. It lets every
+state be judged without inserted markup, since a local command ends in about
+50ms and these states do not appear on their own. It is compiled only into
+development builds and never ships enabled.
 
 ## Environments And Hosting
 
@@ -1417,15 +1602,17 @@ is authoritative when a state might be mistaken for domain storage.
 | App session (survives same-session Inbox route leave/re-entry, not reload) | `src/stores/triage-store.ts`: last active selected Scratch, Pool expanded/collapsed and per-Scratch manual-reopen exception, Pool query/result/scroll context, Explorer hierarchy path/open columns and column scroll | Validate against current data on re-entry; full reload/new session applies the fallback below |
 | Mounted Inbox page session | Add/Edit base snapshots and drafts; one pending intent; deleting/pending/reconciling presentation and operation IDs; Explorer active/interrupted search, result scroll and reveal; placement/type/Result Title state; remote-arrival counts; external-removal transition; Scratch Trash dialog, pending/result state and this page's own-Trash marker; the new-capture selection request and its one-shot Pool reveal; completion overlay/Cancel/reopen presentation; proposed `use-triage-newly-placed.ts` markers/pinning/Undo/dependencies. The items shared across component trees or Inbox instances (Explorer remote presentation, the external-removal transition, own-Trash markers, the new-capture request and reveal, and the workspace-mounted flag) are held non-persisted in `src/stores/triage-store.ts` | Scratch changes preserve only the states explicitly named in the behavior sections. Inbox route exit clears Explorer search/reveal and Newly Placed/Undo; reload clears all except the Archive recovery identity below |
 | Forced-reload recovery identity | SCHEMA `PendingOperationRecovery` in current-tab `sessionStorage`, owned by the Archive operation coordinator | Archive only; written before dispatch, validated on read, cleared after terminal reconcile; no payload, draft, UI cache, mutation queue, or other workflow kind |
-| Device-local Inbox preference | Proposed `src/stores/triage-preferences-store.ts`, persisted and validated: Pool created-at sort and Breakdown created-at sort only | Survives route/reload/session; defaults independently to DESC when missing/invalid; never enters content records or future remote data |
+| Device-local Inbox preference | Proposed `src/stores/triage-preferences-store.ts`, persisted and validated: Pool created-at sort and Breakdown created-at sort, and from Phase 50 the last selected Scratch id (feedback F27) | Survives route/reload/session; sorts default independently to DESC when missing/invalid; a saved Scratch id that no longer resolves to an active Scratch of this account (deleted, archived, another account) falls back as below; never enters content records or remote data |
 
-Within Inbox/Triage work state, **only Pool sort and Breakdown sort are
-device-local persisted preferences**. Existing application-wide theme
+Within Inbox/Triage work state, **only Pool sort, Breakdown sort and, from
+Phase 50, the last selected Scratch are device-local persisted preferences**. Existing application-wide theme
 preference is not converted into Inbox workflow storage.
 
 Full reload/new app session has one deterministic reset contract:
 
-1. select the first active Scratch under current Pool sort, or `null` if none;
+1. select the saved last Scratch if it is still an active Scratch of this
+   account (from Phase 50), otherwise the first active Scratch under current
+   Pool sort, or `null` if none;
 2. start the Pool expanded with no manual-reopen exception;
 3. start Grid Explorer at Home with reset column scroll;
 4. clear Pool and Explorer current/interrupted queries and results;
@@ -1505,7 +1692,7 @@ Decision prerequisites before the dependent UI task.
 
 | ID | Trigger and semantic states | Allowed action/focus/accessibility contract | Remaining Decision prerequisite |
 |----|-----------------------------|---------------------------------------------|---------------------------------|
-| `VQ-02` | Authoritative Add or Unstage success produces one non-repeating success state; reduced motion replaces movement/sparkle with static distinction | Add keeps input focus; Unstage restores source focus; both announce politely without focus theft | Exact effect, duration, wording, placement, and per-theme realization |
+| `VQ-02` | Authoritative Add or Unstage success produces one non-repeating success state; reduced motion replaces movement/sparkle with static distinction. From Phase 50 retired by feedback F01: success shows nothing on screen | Add keeps input focus; Unstage restores source focus; both announce politely without focus theft (kept, F04) | Retired with `DP-VQ02` (promotion ②) |
 | `VQ-05` | Add pending/failure/reconcile and Delete in-place deleting/failure/check-again remain distinct; success is shown only after authority | Pending locks only conflicting actions; draft/row remains; Delete success/failure/check-again uses the deterministic focus rules in Breakdown | Exact state treatment, copy, action placement, timing, and per-theme realization |
 | `VQ-06` | Pool hidden-selection; Staging pending/invalid/remote-arrival/orphan (removed in the Postgres target, S18)/stale/failure; and Explorer remote/path states retain their distinct triggers and allowed actions | Never steal focus for remote/status arrival; use polite live status or alert semantics as selected; vanished source/path uses named safe focus fallback | Exact treatments, wording, indicator/alert placement, duration/dismissal appearance, and per-theme realization for each family |
 | `VQ-08` | Placement pending, explicit failure, unknown/reconciling, stale source/target, authoritative success, and Retry/Cancel states preserve the same operation/source/affordance | Contain focus in the active step; failure focuses Retry, stale/validation retains current-step focus, success focuses actual card | Exact status effect, copy, control placement, layout, timing, and per-theme realization |
@@ -1513,14 +1700,20 @@ Decision prerequisites before the dependent UI task.
 | `VQ-11` | Non-empty Add draft or title-editor lifecycle blocks completion presentation; eligibility loss withdraws overlay/complete/reopen and reports why | Blocker keeps draft/editor and logical focus; no auto-submit/save; restored work remains reachable | Exact blocker/withdrawal copy, effect, placement, layout, and per-theme realization |
 | `VQ-12` | Archive pending, explicit failure, unknown/reconciling, forced-reload recovery, check-again, Retry/Cancel, and authoritative success are distinct variants of the selected Breakdown-scoped flow | Pending/recovery keeps a stable focus target in the section; failure focuses Retry; success focuses the verified visible-order destination | Exact treatment, wording, control/status placement, layout, timing, and per-theme realization |
 
+From Phase 50 the realizations of `VQ-05`, the Staging part of `VQ-06` and
+`VQ-10` follow [Item status presentation](#item-status-presentation) (feedback
+F06–F09), and the realization of `VQ-04`'s transient states follows its editor
+states (F05); their looks are `DP-FB-01`. Their triggers, actions and focus
+rules above are unchanged.
+
 ### Preserved deferrals and exclusions
 
 - No prototype mock mutation, route duplication, review control, internal staged
   handle, Scratch-switch marker reset, or local completion latch is promoted.
 - No repeated pulse/blink/flicker, keyboard placement, hidden placement command,
   BitCard redesign, Korean UI, Neumorphism water-lens polish, cross-surface
-  text/IME design, or toast migration is included.
-- Common BitCard eight-theme redesign and later Staging/placed-card reuse remain
+  text/IME design is included; the toast changes are those in [Toasts](#toasts).
+- Common BitCard redesign and later Staging/placed-card reuse remain
   deferred; current cards are only the core actual-record foundation.
 - All approved recipe evidence remains source-only. SPEC claims no rendered
   verification, screenshot, contrast, depth, clipping, motion, responsive, or
@@ -1549,13 +1742,13 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | Path | Purpose |
 |------|---------|
 | `src/app/globals.css` | CSS custom properties, Tailwind v4 `@theme` bridge, dark mode variant — single source of truth for all design tokens |
-| `src/app/layout.tsx` | Root layout — font variables, color-theme no-flash init script, ThemeProvider/DataStore provider shell |
+| `src/app/layout.tsx` | Root layout — font variables, color-theme no-flash init script (from Task 241 built from the one shared theme id list), ThemeProvider/DataStore provider shell |
 | `src/app/(grid)/layout.tsx` | Route-group layout — renders GridRuntime for all grid pages |
 | `src/app/providers.tsx` | Client-side providers wrapper — ThemeProvider, ColorThemeProvider, DataStoreProvider. Zustand stores require no provider. |
 | `src/components/layout/grid-runtime.tsx` | Client wrapper: route state, sidebar, breadcrumb, shared DnD boundary, add-flow orchestration |
 | `src/components/layout/add-flow-context.tsx` | Minimal React context — pages call `useAddFlow().openAddAtCell(x, y)` to trigger add-flow |
 | `src/components/layout/color-theme-provider.tsx` | Applies the persisted color theme to `<html data-color-theme="...">` |
-| `src/components/layout/color-theme-toggle.tsx` | Color theme picker — 8 visual themes, swatches, selected check |
+| `src/components/layout/color-theme-toggle.tsx` | Color theme picker — the color themes (four from Task 241), swatches, selected check |
 | `src/components/calendar/calendar-view-header.tsx` | Shared Calendar weekly/monthly header — title/subtitle, view switch, previous/today/next controls |
 | `src/lib/db/datastore.ts` | `DataStore` interface — the abstraction boundary between app code and storage |
 | `src/lib/db/indexeddb.ts` | Dexie.js IndexedDB implementation of `DataStore` — the running store until Phase 45; removed in Phase 46 |
@@ -1569,6 +1762,11 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/components/layout/app-frame.tsx` *(Phase 45)* | The app-level frame: loading, failure, session-expired, account-being-deleted, security-check and narrow-window screens |
 | `src/components/layout/account-button.tsx` *(Phase 47)*, `account-modal.tsx` *(Phase 48)* | Sidebar account icon with the connection badge; the guest and account modal |
 | `src/lib/feedback/toast.ts` *(Phase 47)* | Shared toast helper: kinds, counted bursts, timing (F13, F14) |
+| `src/components/feedback/status-icon.tsx` *(Phase 49)* | Status icons and item emphasis: the delayed loader, `?`, `!` (F02, F03) |
+| `src/components/feedback/status-tooltip.tsx` *(Phase 49)* | Hover/focus status tooltip, one at a time, described-by wiring (F09) |
+| `src/hooks/use-display-delay.ts` *(Phase 49)* | Presentation-only `DISPLAY_DELAY_MS` delay; never decides success (F02) |
+| `src/lib/dev/state-switch.ts`, `src/components/dev/state-switch-panel.tsx` *(Phase 49, development only)* | [Development state switch](#development-state-switch) (F30) |
+| `src/components/layout/home-button.tsx`, `src/hooks/use-breadcrumb-reveal.ts` *(Phase 50)* | Sidebar Home button and the breadcrumb reveal state: triggers, hiding, `Esc`, drag (F21–F25) |
 | `src/lib/copy/feedback.ts` | Toast, app-state and blocking copy (F14) |
 | `supabase/config.toml`, `supabase/migrations/`, `supabase/tests/` *(Phase 42)* | Local Supabase configuration, migrations in Git, `pnpm test:db` suites |
 | `vitest.db.config.ts` *(Phase 42)* | Vitest configuration for `pnpm test:db` (local Supabase), kept apart from `pnpm test` |
@@ -1576,7 +1774,7 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `scripts/backup/` *(Phase 48)* | The weekly `supabase db dump` job and its scheduler file, with no secret |
 | `src/lib/db/schema.ts` | Zod validation schemas and TypeScript types (from SCHEMA.md) |
 | `src/lib/copy/inbox-triage.ts` *(proposed; absent today)* | `InboxTriageCopy` core-English resource keys/values for visible copy, statuses, reasons, live regions, and accessible names; exact `VQ-*`-reserved wording stays blocked |
-| `src/lib/constants.ts` | Grid dimensions (18×9), aging thresholds (5/11 days), urgency thresholds (3/2/1 days), trash retention (30 days); from the SaaS phases `DISPLAY_DELAY_MS` (300), `REQUEST_TIMEOUT_MS` (15000) and the 30-second connection probe interval |
+| `src/lib/constants.ts` | Grid dimensions (18×9), aging thresholds (5/11 days), urgency thresholds (3/2/1 days), trash retention (30 days); `DISPLAY_DELAY_MS` (300, from Task 243), and from the SaaS phases `REQUEST_TIMEOUT_MS` (15000) and the 30-second connection probe interval |
 | `src/lib/utils/bfs.ts` | BFS auto-placement algorithm — finds nearest empty cell from a starting position |
 | `src/lib/utils/aging.ts` | Aging state computation — Fresh/Stagnant/Neglected from mtime |
 | `src/lib/utils/urgency.ts` | Deadline urgency level computation — Level 1/2/3/Past from deadline |
@@ -1587,7 +1785,7 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/stores/calendar-store.ts` | Calendar drill-down navigation, pool state |
 | `src/stores/color-theme-store.ts` | Color theme id, validation, and persistence (`griddo-color-theme`) |
 | `src/stores/triage-store.ts` | Present: selection/Pool UI plus obsolete UI candidates. Proposed: app-session selection, Pool/query/scroll, and Explorer path/column state only, plus the shared mounted-page state named in the lifetime table; no durable candidates or Newly Placed records |
-| `src/stores/triage-preferences-store.ts` *(proposed; absent today)* | Validated device-local persistence for exactly Pool sort and Breakdown sort |
+| `src/stores/triage-preferences-store.ts` *(proposed; absent today)* | Validated device-local persistence for Pool sort and Breakdown sort, and from Phase 50 the last selected Scratch (F27) |
 | `src/lib/animations/grid.ts` | Grid animation variants — jiggle, sinking, creation/deletion, depth transitions |
 | `src/lib/animations/calendar.ts` | Calendar animation variants — vignette expand, magnet snap |
 | `src/lib/grid-dnd.ts` | Grid DnD utilities — `gridCollisionDetection` (prioritizes node-drop over cell) |
@@ -1618,6 +1816,6 @@ Intentional departures from the PRD introduced in Phase 9. Each is a deliberate 
 | # | PRD Rule | Phase 9 Change | Reason |
 |---|----------|----------------|--------|
 | 1 | Sidebar is foldable; when folded, no icon strip (Section 16) | Permanent narrow icon rail (`w-12`), always visible, no fold/unfold | Reduces cognitive overhead; all functions always one click away |
-| 2 | Drag-to-reposition and drag-onto-Node are edit-mode-only (Sections 17, 20) | Grid DnD enabled outside edit mode; breadcrumb drops remain edit-mode-only | Repositioning is a frequent action; gating behind edit mode adds friction |
+| 2 | Drag-to-reposition and drag-onto-Node are edit-mode-only (Sections 17, 20) | Grid DnD, breadcrumb ancestor drops included, enabled outside edit mode (corrected 2026-10-22: the Phase 9 code, `16ee48f`, removed the breadcrumb gate on purpose; the earlier "edit-mode-only" wording was never implemented) | Repositioning is a frequent action; gating behind edit mode adds friction |
 | 3 | Deeper levels apply vignette effect (Section 5) | Vignette removed; background color changes per level instead (`--grid-bg-l0` through `--grid-bg-l3`) | Background color is a stronger, more immediate depth signal |
 | 4 | Trash icon available on Level 0 only (Section 19) | Trash icon visible on all levels | Sidebar is identical across all levels for consistency |
