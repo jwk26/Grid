@@ -114,7 +114,8 @@ Brainstorming only: no production code and no canonical-document edits.
 ## Open questions
 
 In the suggested order. "Rec." is the advisory recommendation of 2026-10-21,
-not a decision.
+not a decision. Answered: 1 (S07), 2 (S08), 3 (S10), and the direction of 6
+(S09; the exact list of optimistic writes is still open).
 
 1. **Client data architecture.**
    (a) Server-authoritative with a client query cache (for example TanStack
@@ -203,3 +204,86 @@ not a decision.
   records), then chose to keep "griddo" inside the project and use "grid" only
   as the user-facing name, because "grid" is a general noun that collides with
   the Grid domain term (S06).
+
+### Brainstorming session, 2026-10-21
+
+Setup done as briefed (worktree `/Users/jwk/Documents/grid-saas`, branch
+`docs/saas-conversion`, commit `d387820`). The user is a frontend developer
+with little backend background; explanations start from GridDO examples.
+
+Further facts checked:
+
+- Three hooks already read the whole active dataset
+  (`use-global-urgency`, `use-grid-explorer-search`,
+  `use-explorer-remote-status` call `getAllActiveNodes()` and
+  `getAllActiveBits()`), and `use-calendar-data` walks the tree. There are 19
+  `liveQuery(` call sites in 17 hook files.
+- `supabase-js` (PostgREST) runs each request as its own transaction; a
+  multi-statement transaction needs a Postgres function or a direct database
+  connection. A service-role key bypasses RLS.
+- Supabase's built-in SMTP delivers only to the project's team members, at 2
+  messages per hour (docs, 2026-10-21); magic link for other users needs
+  custom SMTP.
+- Supabase anonymous sign-in: anonymous users get the `authenticated` role and
+  an `is_anonymous` JWT claim; the docs recommend CAPTCHA/Turnstile; the
+  default IP rate limit is 30 sign-ins per hour; there is no automatic cleanup
+  of anonymous users (a scheduled delete on `auth.users` is the documented
+  approach); linking an OAuth identity converts an anonymous user.
+- `indexeddb.ts` calls `Date.now()` 31 times: `mtime`/`createdAt` come from the
+  browser clock today.
+- Grid cell uniqueness (SCHEMA Hook 8) spans `nodes` and `bits`, so one unique
+  index cannot enforce it; it stays a check inside the write functions.
+- No Docker and no Supabase CLI on the machine; local Supabase needs a
+  container runtime first (question 11).
+
+Question 1 (S07). The account snapshot was chosen because the app's reads are
+already whole-dataset shaped and the hook bodies survive with only the
+subscription replaced. Rejected: (a) a per-query cache, because every cascading
+write (trash cascade, `mtime` cascade, placement) would need an exact
+invalidation map across 17 hooks, and a missed key shows stale data; (c) a
+sync engine, for its conflict-resolution cost. Cost accepted: the initial load
+grows with the data (measure it and set a bound), and writes must return or
+refetch the changed rows. Implementing the snapshot fetch with TanStack Query
+is allowed as a detail for `/craft-docs`.
+
+Question 2 (S08). Postgres functions give one transaction per call,
+`auth.uid()` and RLS without a server to run. Almost every GridDO write
+touches several rows (version increment plus Hook 1 `mtime` cascade), so the
+rule is "every write is a function". Rejected: Next.js Route Handlers or
+Server Actions with a direct Postgres connection (connection pooling, JWT
+verification, RLS bypass risk, an extra hop); Supabase Edge Functions (the same
+transaction problem plus another runtime); keeping the write logic in
+client TypeScript with a thin server-side version check (less SQL, but the
+server could not enforce cell, target and ancestry rules, against SCHEMA's
+"transaction/DB function plus constraints" direction). Cost accepted: most of
+the write logic in `indexeddb.ts` is rewritten in SQL; the SCHEMA command
+matrix is the spec and the existing DB test scenarios are the answer key. A
+throwaway spike (one command plus its reconcile, as SQL) stays available if
+the first SQL phase proves harder than expected.
+
+User concerns answered before the decisions:
+
+- The data model stays; no redesign. Changes: `user_id` on every row, a
+  naming convention (question 4), timestamps kept as epoch-ms numbers
+  (recommended, so the aging/urgency/calendar code is untouched) but set by the
+  server clock, constraints the database can hold, and system Nodes created at
+  sign-up.
+- "Only the storage changes" was half right: components and hook logic stay,
+  but the `DataStore` implementation is mostly rewritten, and auth, RLS,
+  network states and hosting are new. The conversion is the largest work item
+  so far; it is phased (question 15).
+- Perceived differences: sign-in, a short initial load, network-failure states
+  and (pending question 7) no offline editing; everyday interactions stay
+  immediate through optimistic updates (S09). Data survives browser clearing.
+  The free-tier pause risk to the portfolio link goes to question 12.
+
+Question 3 (S10). The user chose GitHub and Google OAuth and planned an
+auto-login into one shared seeded test account. Rejected in favour of
+per-visitor anonymous accounts: a shared account lets visitors change each
+other's data (and see conflict UI when two are active), hands every visitor
+the account's session, and needs resets that break active sessions. Also
+rejected: magic link (custom SMTP needed) and email plus password (reset flow
+and email). Open details: the demo URL, a guest-mode banner, the cleanup age,
+where the seed is defined (the content of
+`scripts/dev-fixtures/inbox-triage.js` can serve as a source), and whether
+sign-up is open to anyone (question 13).
