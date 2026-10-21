@@ -1,7 +1,10 @@
 # GridDO — Data Schema
 
 > **Scope:** This document specifies the data model. Architecture decisions live in SPEC.md.
-> **Storage:** IndexedDB (local-first, single-user, no auth/RLS).
+> **Storage:** Supabase Postgres, one dataset per account, isolated by RLS
+> ([Postgres Target](#postgres-target)). Until Phase 46 removes it, the Dexie
+> IndexedDB store ([Dexie Migration Target](#dexie-migration-target)) is the
+> running implementation.
 > **Validation:** Zod schemas with TypeScript type inference.
 > **Production derivation evidence:** Fresh reviewed SCHEMA SHA-256
 > `9338ecee14adb1f5d7b131391ad8a808db438e9b633c1cb3dfc2cb37a4a62a6b`
@@ -23,6 +26,15 @@
 > H05–H12. Adds the `Trash Scratch` command, its Hook 4/13/14 boundaries, and
 > the Undo active-Scratch precondition. No store, index, field or migration
 > changes.
+> **SaaS conversion amendment (promotion ①):** 2026-10-22, from
+> [`DECISION.md`](brainstorming/2026-10-21-saas-conversion/DECISION.md)
+> S07–S43 under its
+> [`PROMOTION_MAP.md`](brainstorming/2026-10-21-saas-conversion/PROMOTION_MAP.md).
+> Adds [Postgres Target](#postgres-target) and
+> [Database Functions](#database-functions); removes
+> `candidateOrphanAuditEvents`, the confirmed-orphan command (S18) and the
+> `settings` store (S11, S41) from the target. Entity fields, versions and the
+> command/result contract are kept.
 > **Promotion provenance:** selected topic
 > [`DECISION.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/DECISION.md),
 > approved [`PROMOTION_MAP.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/PROMOTION_MAP.md),
@@ -148,9 +160,11 @@
   - [chunks](#chunks)
   - [scratchBreakdowns](#scratchbreakdowns)
   - [stagedCandidates](#stagedcandidates)
-  - [candidateOrphanAuditEvents](#candidateorphanauditevents)
+  - [candidateOrphanAuditEvents (removed)](#candidateorphanauditevents-removed)
+- [Postgres Target](#postgres-target)
 - [Zod Validation Schemas](#zod-validation-schemas)
 - [Repository Operation Contract](#repository-operation-contract)
+- [Database Functions](#database-functions)
 - [Application Hooks](#application-hooks)
 - [Key Queries](#key-queries)
 - [Dexie Migration Target](#dexie-migration-target)
@@ -159,6 +173,10 @@
 ---
 
 ## Current Implementation And Canonical Target
+
+> **Historical (Dexie v3 → v4).** This section records the 2026-07-28
+> starting point. Phase 23 installed Dexie v4, which runs until Phase 46. The
+> SaaS target is [Postgres Target](#postgres-target).
 
 The current production source baseline is commit
 `a3c679cf7ca09559ecc5e1690fd2a3707d40916c`, with `src` tree
@@ -204,7 +222,7 @@ to use the Fresh canonical chain.
 | Scratch aggregate revision | Use the Scratch Bit's `version` for both title CAS and Breakdown-membership ABA protection. | An intervening Add/Delete conservatively conflicts an older title edit instead of allowing stale overwrite. A future split revision requires a new SCHEMA amendment. |
 | Forced-Archive reload recovery | Store only the narrow non-authoritative reload/check-again descriptor in `sessionStorage` and fail closed when it cannot be written. | The descriptor never proves success and is not a durable operation log; authoritative state is re-read after reload. |
 | Invalid legacy v4 row | Abort and roll back the v4 migration when required legacy values cannot be normalized safely. | No partial migration or guessed default is allowed; recovery UX is implementation-owned but may not weaken rollback. |
-| Orphan-audit retention | Retain `candidateOrphanAuditEvents` indefinitely in v4 unless a later approved retention contract replaces it. | No automatic expiry is inferred. The store remains narrow integrity evidence, never a general journal/outbox. |
+| Orphan-audit retention | Retain `candidateOrphanAuditEvents` indefinitely in v4 unless a later approved retention contract replaces it. | No automatic expiry is inferred. The store remains narrow integrity evidence, never a general journal/outbox. Superseded by SaaS S18: not ported to Postgres; Phase 46 removes the store. |
 
 ---
 
@@ -215,6 +233,14 @@ milliseconds (`Date.now()`). Optional lifecycle timestamps use explicit
 `null`, never `undefined`; monotonic versions are non-null integers beginning
 at `1`. Migration defaults follow the same representation.
 
+Each store below is one Postgres table ([Postgres Target](#postgres-target));
+the field tables remain the camelCase TypeScript contract. In the Postgres
+target a `Date.now()` default means the server clock: the write function sets
+every timestamp from its transaction time (S11), and ids stay client-generated
+UUIDs. The **Indexes** tables are the Dexie declarations in use until Phase 46;
+the Postgres indexes are listed in the target section, because reads run in
+memory over the account snapshot (S19).
+
 ### nodes
 
 Category/container items displayed as mobile app-style icons on the grid. Nodes can nest other Nodes and Bits.
@@ -224,7 +250,7 @@ Category/container items displayed as mobile app-style icons on the grid. Nodes 
 | `id` | `string` | PK, UUID | `crypto.randomUUID()` | Unique identifier |
 | `title` | `string` | NOT NULL, min 1 char | — | Node name. Nouns preferred (e.g., "Workout", "Finance") |
 | `color` | `string` | NOT NULL | — | HSL color string (e.g., `"hsl(210, 80%, 55%)"`) for icon/accent. Propagates to child Bits at low saturation |
-| `icon` | `string` | NOT NULL | — | Lucide icon name (e.g., `"dumbbell"`, `"briefcase"`) |
+| `icon` | `string` | NOT NULL, 1–64 chars | — | Lucide icon name (e.g., `"dumbbell"`, `"briefcase"`) |
 | `deadline` | `number \| null` | — | `null` | Unix timestamp (ms). Optional target date for the category |
 | `deadlineAllDay` | `boolean` | — | `false` | `true` = date-only ("on a day"), no specific time |
 | `mtime` | `number` | NOT NULL | `Date.now()` | Last modified timestamp (ms). Drives aging system |
@@ -236,11 +262,11 @@ Category/container items displayed as mobile app-style icons on the grid. Nodes 
 | `y` | `number` | NOT NULL, 0–8 | — | Row index on the production 9-row grid |
 | `deletedAt` | `number \| null` | — | `null` | Soft-delete timestamp. `null` = active. Non-null = trashed |
 | `archivedAt` | `number \| null` | — | `null` | Archive timestamp. `null` = active (on grid). Non-null = archived (hidden from grid, shown in Archive View). Mirrors `deletedAt` semantics |
-| `systemRole` | `string \| null` | enum: `"inbox"`, `"archive_view"` | `null` | System Node role. `null` = regular user Node. Immutable after creation; non-null uniqueness enforced at application level |
+| `systemRole` | `string \| null` | enum: `"inbox"`, `"archive_view"` | `null` | System Node role. `null` = regular user Node. Immutable after creation; non-null uniqueness per account enforced by a partial unique index (S30) |
 | `hiddenFromGrid` | `boolean` | — | `false` | When `true`, the (system) Node is not rendered on the L0 grid but remains in the sidebar. Only applicable to system nodes (`systemRole !== null`) |
 | `pastDeadlineDismissed` | `boolean` | — | `false` | When `true`, the past-deadline "Done?" overlay is permanently dismissed. Set when user clicks ✗ on the overlay. |
 
-> **Note:** Node `description` was removed in Phase 9 amendment. Existing IndexedDB rows may retain orphaned `description` fields that Dexie silently ignores on read. No migration is needed.
+> **Note:** Node `description` was removed in Phase 9 amendment. Existing IndexedDB rows may retain orphaned `description` fields that Dexie silently ignores on read. No migration is needed. The Postgres table has no `description` column.
 
 **Indexes:**
 
@@ -256,9 +282,9 @@ Category/container items displayed as mobile app-style icons on the grid. Nodes 
 
 **Completion:** Node completion is **purely computed** at render time by checking whether all child Bits (active, non-deleted) have `status === "complete"`. No completion field is stored. Level 0 Nodes never complete — they represent permanent life/work domains.
 
-**Unique constraint:** No two active items (Nodes or Bits) may occupy the same `(parentId, x, y)` cell. Enforced at application level before insert/move.
+**Unique constraint:** No two active items (Nodes or Bits) may occupy the same `(parentId, x, y)` cell. Enforced by the write functions under a lock before insert/move (Hook 8, S30); no index can hold it, because it spans two tables.
 
-**Default System Nodes:** On first launch / migration, two system Nodes are seeded (seeding behavior in SPEC.md § System Nodes):
+**Default System Nodes:** Every account has two system Nodes, created by `ensure_account()` ([Account preparation](#account-preparation), S13; until Phase 45, by `ensureSystemNodes()` at launch; SPEC.md § System Nodes):
 
 | Property | Inbox Node | Archive View Node |
 |----------|-----------|-------------------|
@@ -269,7 +295,7 @@ Category/container items displayed as mobile app-style icons on the grid. Nodes 
 | `parentId` | `null` | `null` |
 | `level` | `0` | `0` |
 
-`systemRole` is immutable after creation; `title` / `icon` / `color` remain user-customizable. Non-null `systemRole` uniqueness is enforced at the application level (Dexie cannot apply a unique constraint where many rows share `null`). If no Node with a required `systemRole` exists, the system offers to recreate it. Scratch Bits (Bits parented to the Inbox Node) default to the `"sparkles"` icon.
+`systemRole` is immutable after creation; `title` / `icon` / `color` remain user-customizable. Non-null `systemRole` is unique per account through a partial unique index on `(user_id, system_role)` (S30); the Dexie store enforces it in application code, since Dexie cannot apply a unique constraint where many rows share `null`. If no Node with a required `systemRole` exists, it is recreated (in the target by `ensure_account()`, S13). Scratch Bits (Bits parented to the Inbox Node) default to the `"sparkles"` icon.
 
 ---
 
@@ -282,7 +308,7 @@ Actionable tasks displayed as horizontal rectangles on the grid. Bits contain Ch
 | `id` | `string` | PK, UUID | `crypto.randomUUID()` | Unique identifier |
 | `title` | `string` | NOT NULL, min 1 char | — | Task name. Verbs/short sentences preferred (e.g., "Check pull requests") |
 | `description` | `string` | — | `""` | Shown in Bit detail popup |
-| `icon` | `string` | NOT NULL | — | Lucide icon name |
+| `icon` | `string` | NOT NULL, 1–64 chars | — | Lucide icon name |
 | `deadline` | `number \| null` | — | `null` | Unix timestamp (ms). Optional due date |
 | `deadlineAllDay` | `boolean` | — | `false` | `true` = date-only ("on a day") |
 | `priority` | `string \| null` | enum: `"high"`, `"mid"`, `"low"` | `null` | Optional priority level. Colors: high=red, mid=yellow, low=blue |
@@ -424,48 +450,211 @@ same `id`, `scratchBitId`, `sourceBreakdownId`, `resultType`, and `createdAt`,
 sets `updatedAt` to the Undo transaction timestamp, and sets `version` to the
 prior candidate version plus one.
 
-Candidate reads must resolve the source row. A local cache miss, offline read,
-or delayed subscription is not proof of an orphan. Only authoritative source
-deletion/tombstone confirmation permits cleanup. Cleanup must remove the
-candidate atomically and cause counts/archive eligibility to be recomputed,
-while appending the integrity event below in the same transaction. This does
-not create a general operation log.
+Candidate reads must resolve the source row; a candidate whose source the
+client cannot resolve is never rendered as a valid card. In the Postgres target
+the composite foreign key from a candidate to its source refuses deleting a
+staged source, so an orphan candidate cannot exist and there is no orphan
+cleanup (S18).
 
 ---
 
-### candidateOrphanAuditEvents
+### candidateOrphanAuditEvents (removed)
 
-Append-only integrity evidence for the exceptional case where an
-authoritative repository confirms that a staged candidate's source Breakdown
-row was already deleted or tombstoned outside the planned aggregate-delete
-transaction. The canonical TypeScript entity and Dexie store are named
-`CandidateOrphanAuditEvent` / `candidateOrphanAuditEvents`.
+Removed from the target by SaaS S18 (2026-10-22). The foreign key from a
+candidate to its source makes an orphan impossible, so the confirmed-orphan
+command and this append-only audit store are not ported to Postgres. The Dexie
+store and its client path remain until Phase 46 removes them. The former
+contract is in Git history (`af5aa13:docs/SCHEMA.md`).
 
-| Column | Type | Constraints | Default | Description |
-|--------|------|-------------|---------|-------------|
-| `id` | `string` | PK, UUID | Preallocated `crypto.randomUUID()` | Stable cleanup-event identity reused by retry/reconciliation |
-| `cause` | `string` | NOT NULL, enum: `"source_deleted"`, `"source_tombstoned"` | — | Authoritative orphan proof category; cache miss/offline/delay are never valid causes |
-| `candidateId` | `string` | NOT NULL, UNIQUE | — | Candidate removed by the same transaction; uniqueness makes cleanup/event append idempotent |
-| `sourceBreakdownId` | `string` | NOT NULL | — | Missing/tombstoned source identity recorded for diagnosis |
-| `scratchBitId` | `string` | NOT NULL | — | Owning Scratch identity retained after candidate removal |
-| `occurredAt` | `number` | NOT NULL | Transaction `Date.now()` | Durable cleanup time (Unix ms) |
+---
 
-**Indexes:**
+## Postgres Target
 
-| Index Name | Columns | Purpose |
-|------------|---------|---------|
-| `uq_candidateOrphanAuditEvents_candidateId` | `candidateId` (unique) | At most one orphan-cleanup event per candidate identity |
-| `idx_candidateOrphanAuditEvents_sourceBreakdownId` | `sourceBreakdownId` | Diagnose cleanup by missing source identity |
-| `idx_candidateOrphanAuditEvents_scratch_time` | `[scratchBitId, occurredAt]` | Repository-integrity history for one Scratch in chronological order |
+SaaS conversion target (DECISION S07–S43). Supabase Postgres is the source of
+truth for each account's data (S02). The entity fields in
+[Object Stores](#object-stores) are kept; this section maps them to tables and
+states the database rules. The exact SQL lives in `supabase/migrations/`.
 
-Only the repository-integrity layer writes or queries this store. Events are
-not user-visible activity history, operation status, an outbox, or an offline
-queue. Version 4 applies no automatic retention/deletion policy; a later
-canonical migration may add export/retention without reusing this store as a
-general journal. A planned Scratch hard-delete transaction that still owns
-both source rows and candidates deletes that aggregate atomically and is not
-an orphan-cleanup event. The event is required only when the source is already
-authoritatively absent/tombstoned before cleanup begins.
+### Schemas and roles
+
+| Schema | Exposed through the API | Holds |
+|---|---|---|
+| `public` | Yes | Only the functions the client calls ([Database Functions](#database-functions)) |
+| `app` | No | The tables below |
+| `internal` | No | Internal functions: shared helpers, the demo seed copy, guest cleanup |
+
+- Default `EXECUTE` is revoked from `public`, `anon` and `authenticated` on
+  every function, because Postgres grants it to everyone by default; each
+  client function is then granted to `authenticated` alone. No client role can
+  execute an internal function (S29 (1)).
+- Write functions are `security definer` and owned by `griddo_writer`, a
+  `NOLOGIN` role without `BYPASSRLS` that does not own the tables, so RLS still
+  applies inside them and a function bug cannot reach another account (S14).
+  Phase 42 proves this locally and on hosted Supabase; if it does not hold, the
+  recorded fallback is explicit per-function ownership checks (S14).
+- `delete_my_account()` is owned by its own role, which holds only the right to
+  delete the caller's auth user. It is the only exception to S29 (1) and S14
+  (S42 (1)). If hosted Supabase refuses that role or grant, the fallback in
+  [Account deletion](#account-deletion) applies (user, 2026-10-22).
+- Read functions (`get_snapshot()` and the reconcile functions) are
+  `security invoker`: they run as the caller, under RLS.
+- Every function sets `search_path` to an empty value and schema-qualifies
+  every name (S29 (2)).
+- A guest is a Supabase anonymous user: it has the `authenticated` role and the
+  `is_anonymous` JWT claim, which functions read through `auth.jwt()` where a
+  rule differs for guests ([Account limits](#account-limits)).
+
+### Tables
+
+| Store | Table | Notes |
+|---|---|---|
+| `nodes` | `app.nodes` | |
+| `bits` | `app.bits` | |
+| `chunks` | `app.chunks` | |
+| `scratchBreakdowns` | `app.scratch_breakdowns` | |
+| `stagedCandidates` | `app.staged_candidates` | |
+| — | `app.accounts` | New: one row per account, below |
+| `candidateOrphanAuditEvents` | — | Not ported (S18) |
+| `settings` | — | Not ported ([Not ported](#not-ported)) |
+
+Column rules (S11):
+
+- Every table has `user_id uuid not null` referencing `auth.users (id)` with
+  `on delete cascade`.
+- Column names are the snake_case form of the field names (`parentId` →
+  `parent_id`, `pastDeadlineDismissed` → `past_deadline_dismissed`).
+  Conversion to the camelCase TypeScript types happens only in the snapshot
+  loader and at the function-result boundary, typed by the generated database
+  types (S33).
+- Ids stay client-generated UUIDs (`uuid` primary keys), because the command
+  contract needs preallocated ids. Ids are unique across accounts.
+- Timestamps stay epoch-millisecond integers (`bigint`), set by the server
+  clock. Each write function derives one value from its transaction time and
+  uses it for every timestamp it writes, so one transaction shares one
+  timestamp, as Hook 10 requires. The client never supplies `mtime`,
+  `createdAt`, `updatedAt`, `deletedAt`, `archivedAt` or `consumedAt`.
+- `version` stays a non-null `integer` under Hook 12.
+- Enums are `text` with a CHECK; booleans and nullable fields keep their
+  meaning and defaults.
+
+`app.accounts` (new; S30, S42 (5)):
+
+| Column | Type | Description |
+|---|---|---|
+| `user_id` | `uuid` PK → `auth.users (id)` on delete cascade | The account |
+| `created_at` | `bigint` | First `ensure_account()` call |
+| `last_visit_at` | `bigint` | Set by every `ensure_account()` call and by every `cleanup_expired_trash()` call, which an open tab makes hourly. Guest cleanup deletes a guest 7 days after it |
+| `seeded_at` | `bigint \| null` | Set when the demo seed was copied; the copy runs at most once per account |
+| `deletion_requested_at` | `bigint \| null` | Used only by the account-deletion fallback: set by `delete_my_account()`; the daily cleanup deletes the account |
+
+The snapshot does not return `accounts`.
+
+### Constraints
+
+Value rules become CHECK constraints with the bounds of the
+[Zod schemas](#zod-validation-schemas) (S12):
+
+| Table | CHECK constraints |
+|---|---|
+| `nodes` | `title` 1–100 characters; `color` matches the Zod `hsl(...)` pattern; `icon` 1–64; `level` 0–2; `x` 0–17 and `y` 0–8 (`GRID_COLS − 1`, `GRID_ROWS − 1`); `system_role` in `inbox`, `archive_view` or null; `version` ≥ 1; timestamps > 0 |
+| `bits` | `title` 1–200; `description` ≤ 1000; `icon` 1–64; `priority` in `high`, `mid`, `low` or null; `status` in `active`, `complete`; `x`, `y` as for nodes; `version` ≥ 1; timestamps > 0 |
+| `chunks` | `title` 1–200; `description` ≤ 500; `status` in `complete`, `incomplete`; `order` ≥ 0 |
+| `scratch_breakdowns` | `content` 1–1000; `order` ≥ 0; `version` ≥ 1; timestamps > 0 |
+| `staged_candidates` | `result_type` in `node`, `bit`; `lifecycle` = `staged`; `version` ≥ 1; timestamps > 0 |
+
+The grid bounds come from `GRID_COLS` and `GRID_ROWS`; one boundary-case table
+checks the Zod schemas and these constraints against the same values (S33).
+Parity: the bounds above were checked against `src/lib/db/schema.ts` and
+`src/lib/constants.ts` (`GRID_COLS = 18`, `GRID_ROWS = 9`) at `af5aa13` on
+2026-10-22; only the `icon` maximum is new.
+
+Relations (S29 (3), (4)):
+
+- Each table has `unique (user_id, id)` beside its primary key, and every
+  reference inside an account is a composite foreign key:
+  `nodes (user_id, parent_id)` → `nodes (user_id, id)`;
+  `bits (user_id, parent_id)` → `nodes`; `chunks (user_id, parent_id)` →
+  `bits`; `scratch_breakdowns (user_id, scratch_bit_id)` → `bits`;
+  `staged_candidates (user_id, scratch_bit_id)` → `bits`; and
+  `staged_candidates (user_id, scratch_bit_id, source_breakdown_id)` →
+  `scratch_breakdowns (user_id, scratch_bit_id, id)`, which also holds Hook 13
+  rule 1. Foreign-key checks bypass RLS and ids appear in URLs, so the composite
+  key is what stops a function that skipped a parent check from attaching a row
+  to another account's Node.
+- Foreign keys between user tables use `NO ACTION`, never `RESTRICT`, so the
+  `user_id` cascade of account deletion and guest cleanup removes a whole
+  account in one statement. Planned deletes (Hook 6, Scratch permanent deletion)
+  delete children explicitly, in the same transaction, and delete staged
+  candidates before their source rows, since a candidate's foreign key refuses
+  the other order.
+- `unique (source_breakdown_id)` on `staged_candidates`: one candidate per
+  source row. Deleting a staged source row is refused by its foreign key, so a
+  candidate can never lose its source (S18).
+- A partial unique index on `nodes (user_id, system_role) where system_role is
+  not null`: one Inbox and one Archive per account (S30).
+- Grid cell uniqueness spans `nodes` and `bits`, so no index can hold it; the
+  write functions check it under a lock (Hook 8, S30).
+
+### Indexes
+
+Reads run in memory over the snapshot (S19), so the database indexes serve
+the write functions and RLS: the `unique (user_id, id)` indexes, which also
+serve every `user_id` filter (S29 (5)); `nodes (user_id, parent_id)`,
+`bits (user_id, parent_id)` and `chunks (user_id, parent_id)` for occupancy,
+cascades and the foreign keys; `scratch_breakdowns (user_id, scratch_bit_id)`
+and `staged_candidates (user_id, scratch_bit_id)`; and
+`nodes (user_id, deleted_at)` and `bits (user_id, deleted_at)` for Trash
+cleanup.
+
+### RLS and grants
+
+- RLS is enabled on every table, with policies for `authenticated` and
+  `griddo_writer` that test `user_id = (select auth.uid())` in `using` and
+  `with check`; the sub-select makes Postgres evaluate it once per statement
+  instead of once per row (S14, S29 (5)).
+- `authenticated` has `usage` on `app` and `select` on its tables, for the
+  `security invoker` read functions; it has no `insert`, `update` or `delete`
+  (S08). `anon` has no grant.
+- `griddo_writer` has `select`, `insert`, `update` and `delete` on the tables.
+- Because `app` is not exposed, no table is reachable through the API, even
+  for `select`.
+
+### Account limits
+
+Create paths enforce per-account row limits, stricter for guests (S37; user,
+2026-10-22). Counts include trashed and archived rows; system Nodes count as
+Nodes. A create that would pass a limit returns `rejected` with
+`rejection.code = "account_limit"` and the table. Staged candidates have no
+limit of their own (at most one per Breakdown row). The numbers live in one
+internal function; Phase 42 may lower them after measuring the initial load.
+
+| Table | Real account | Guest |
+|---|---|---|
+| `nodes` | 1,000 | 100 |
+| `bits` | 5,000 | 300 |
+| `chunks` | 10,000 | 1,000 |
+| `scratch_breakdowns` | 5,000 | 300 |
+
+The demo seed fits the guest limits.
+
+### Not ported
+
+- `settings`, which holds only breadcrumb-zone migration markers. No new data
+  can land in a blocked cell during the SaaS phases (the client still guards
+  the zone, and S04 discards local data), and feedback F26 (promotion ②)
+  removes the zone afterwards (S11, S41). If F26 has not shipped when Phase 45
+  starts, the Supabase store implements `runBreadcrumbZoneMigration` as a
+  no-op and the zone guards stay client-only until F26 (S43 (4)).
+- `candidateOrphanAuditEvents` and the confirmed-orphan command (S18).
+- Local IndexedDB data: discarded, with no export, import or migration (S04).
+- Device preferences (color theme, Inbox sorts) stay in browser storage per
+  device (S11).
+
+### Migrations
+
+Migrations live in `supabase/migrations/` in Git. The production schema
+changes only through them, never in the dashboard (S34). When they are applied
+to production is set in `CLAUDE.md` §Workflow (S21, S34, S36).
 
 ---
 
@@ -492,7 +681,7 @@ export const nodeSchema = z.object({
   id: idSchema,
   title: z.string().min(1).max(100),
   color: z.string().regex(/^hsl\(\d{1,3},\s*\d{1,3}%,\s*\d{1,3}%\)$/),
-  icon: z.string().min(1),
+  icon: z.string().min(1).max(64),
   deadline: timestampSchema.nullable().default(null),
   deadlineAllDay: z.boolean().default(false),
   mtime: timestampSchema,
@@ -532,7 +721,7 @@ export const bitSchema = z.object({
   id: idSchema,
   title: z.string().min(1).max(200),
   description: z.string().max(1000).default(""),
-  icon: z.string().min(1),
+  icon: z.string().min(1).max(64),
   deadline: timestampSchema.nullable().default(null),
   deadlineAllDay: z.boolean().default(false),
   priority: z.enum(["high", "mid", "low"]).nullable().default(null),
@@ -629,21 +818,6 @@ export const createStagedCandidateSchema = stagedCandidateSchema.omit({
 export type StagedCandidate = z.infer<typeof stagedCandidateSchema>;
 export type CreateStagedCandidate = z.infer<typeof createStagedCandidateSchema>;
 
-// --- CandidateOrphanAuditEvent ---
-
-export const candidateOrphanAuditEventSchema = z.object({
-  id: idSchema,
-  cause: z.enum(["source_deleted", "source_tombstoned"]),
-  candidateId: idSchema,
-  sourceBreakdownId: idSchema,
-  scratchBitId: idSchema,
-  occurredAt: timestampSchema,
-});
-
-export type CandidateOrphanAuditEvent = z.infer<
-  typeof candidateOrphanAuditEventSchema
->;
-
 // Non-domain, current-tab forced-reload identity. Parsed on session read.
 export const pendingOperationRecoverySchema = z.object({
   operationId: repositoryOperationIdSchema,
@@ -663,12 +837,22 @@ Each command request in the operation matrix composes
 `versionSchema`; result entities are parsed with their full schemas before
 return. The recovery descriptor is validated on every `sessionStorage` read;
 invalid descriptors are discarded and never used to issue a mutation.
-`version` has no general-schema default: repository create paths and the v4
-migration explicitly write `1`, and every later direct mutation writes the
+`version` has no general-schema default: repository create paths (in the
+target, the write functions) and the v4 migration explicitly write `1`, and every later direct mutation writes the
 next value. Public create/update payloads omit `version`; callers cannot reset
 or supply it through the current `Partial<Node>` / `Partial<Bit>` boundary.
 Implementation must replace those broad patch types with repository-owned
 update inputs that exclude IDs, creation metadata, and `version`.
+
+**Validation layers (S12, S33).** Zod at the client write boundary gives
+immediate feedback. The database is the final gate: CHECK, unique and
+foreign-key constraints, and the checks inside the write functions, because
+client code can be changed in the browser. `icon` gets a maximum length (64) on
+both sides so a scripted guest cannot store an unbounded string; `color` is
+already bounded by its pattern. The generated database types type the
+snake_case/camelCase converter, so a column change breaks the TypeScript build,
+and one boundary-case table runs against both these schemas and the database
+constraints. Reads stay trusted.
 
 ---
 
@@ -677,6 +861,11 @@ update inputs that exclude IDs, creation metadata, and `version`.
 Inbox/Triage mutations use one shared command/result contract through the
 DataStore/repository boundary. Components and reactive hooks project these
 results; they do not sequence store writes themselves.
+
+In the Postgres target each command is one database function and one
+transaction, and its result is the `status` of that function's
+[result envelope](#result-envelope). "Repository transaction" below means that
+function's transaction.
 
 ### Identity, compare-and-set, and results
 
@@ -728,7 +917,8 @@ The authoritative repository result is one of:
 | `rejected` | Commit-time lifecycle, uniqueness, target, capacity, title-limit, or blocker validation failed before any write; latest authoritative state is returned |
 | `conflict` | Current state is neither the expected precondition nor the complete postcondition; no automatic retry, overwrite, cascade, or compensation is permitted |
 
-Transport timeout, offline, or an unqueryable repository produces
+Transport timeout (no answer within 15 seconds, S26), offline, or an
+unqueryable repository produces
 `outcome: "unknown"`, which is not an authoritative mutation result. The
 caller retains the same operation identity and pending/reconciling
 presentation and invokes the command's reconciliation query. It must not infer
@@ -746,17 +936,16 @@ stores. Validation failure writes nothing.
 | Save Breakdown content/order | `operationId`, row ID, `expectedVersion`, intended fields. Require matching active (`consumedAt: null`) row and no candidate for its source ID. | Update allowed fields and increment row `version` once. Postcondition: intended values at the next version. | Intended values/next version = applied; base values/version and no candidate = not applied; otherwise conflict/lifecycle invalidation. |
 | Delete Breakdown | `operationId`, row ID/`expectedVersion`, and owner Scratch ID/`scratchExpectedVersion`. Require the exact active/unconsumed row, active Scratch, and no candidate; never auto-unstage or cascade a candidate. | Hard-delete only that row and increment the owning Scratch version once. Postcondition: row absent, candidate absent, and Scratch at `scratchExpectedVersion + 1`. | Exact absence plus next Scratch version = applied. Exact active row/source versions plus candidate absence = not applied. Any later row/candidate/Scratch revision or lifecycle = rejected/conflict. The in-place deleting projection remains until terminal. |
 | Stage | `operationId`, preallocated `candidateId`, `scratchBitId`, source row ID/`expectedVersion`, `resultType`. Require active Scratch, matching active source row, exact row version, candidate ID absent, and unique `sourceBreakdownId` absent. | Insert the exact `stagedCandidates` row at version 1 and increment the still-unconsumed source row version once. Postcondition: candidate ID/source/type/lifecycle/version 1 exists and source is unconsumed at `expectedVersion + 1`. | Exact candidate v1 plus source next version = applied. No candidate plus source at the exact original version/lifecycle = not applied. Candidate recreation at a later version, candidate absence after Unstage, or any other source/candidate revision = conflict/rejected; Retry cannot restage after a later Unstage. |
-| Unstage | `operationId`, candidate ID/`candidateExpectedVersion`, and source row ID/`sourceExpectedVersion`. Require the exact staged candidate and matching unconsumed source. | Delete only the candidate and increment the source row version once; content, `createdAt`, `order`, and `consumedAt` do not change. Postcondition: candidate absent and source unconsumed at `sourceExpectedVersion + 1`. | Candidate absent plus source next version = applied. Exact candidate/source base versions = not applied. A later Stage, placement, edit, deletion, or other revision = conflict. Orphan cleanup is not Unstage. |
+| Unstage | `operationId`, candidate ID/`candidateExpectedVersion`, and source row ID/`sourceExpectedVersion`. Require the exact staged candidate and matching unconsumed source. | Delete only the candidate and increment the source row version once; content, `createdAt`, `order`, and `consumedAt` do not change. Postcondition: candidate absent and source unconsumed at `sourceExpectedVersion + 1`. | Candidate absent plus source next version = applied. Exact candidate/source base versions = not applied. A later Stage, placement, edit, deletion, or other revision = conflict. |
 | Place staged candidate | `operationId`, preallocated result Node/Bit ID, candidate ID/version, source row ID/version, validated result title/type, target parent ID and expected ancestor chain. Revalidate Scratch/source/candidate identity, title limit, reachable active target/type/path, and an exact free cell immediately before write. | Create the result at the stable ID/cell, set source `consumedAt` to the shared transaction timestamp and increment source version, and delete the candidate. Postcondition requires all three: exact result exists, source is consumed at next version, candidate is absent. | All postconditions = applied; result absent + unchanged source/candidate = not applied; any partial/mismatched state = conflict and never compensation. |
 | Place direct row | Same as staged placement but no candidate: require source active/unconsumed, exact version, and candidate absence. Direct title limits are enforced before and again inside the command (`1–100`: Node/Bit, `101–200`: Bit only, `201–1000`: neither). | Create result and consume/increment source together. Postcondition requires exact result plus consumed source at next version. | Both = applied; neither with unchanged source = not applied; one-sided/mismatched state = conflict. No silent truncation or alternate target. |
 | Undo placement | `operationId`, original stable result/source/candidate IDs, placement post-state versions/timestamps, result creation snapshot, and staged/direct provenance held by the mounted page. Revalidate result lifecycle/direct-record version and creation fields, source consumed state/version, an active owning Scratch (`deletedAt == null` and `archivedAt == null`), candidate uniqueness, and zero surviving descendants/unknown result mutation. An inactive owning Scratch is `rejected` with no write, so Undo never restores a row or recreates a candidate under a trashed or archived Scratch. | Delete the result and restore source to `consumedAt: null` with one version increment. For staged provenance, recreate the original candidate identity/type/`createdAt` at prior candidate version + 1 and `updatedAt = now`; for direct provenance create no candidate. | Complete source restoration plus result absence (and correct staged candidate presence/absence) = applied; an inactive owning Scratch = rejected in both the command and its reconciliation; exact placement post-state with an active owning Scratch = not applied; any mutation/dependency/partial state = conflict. No cascade or best-effort source restore. |
-| Confirmed candidate orphan cleanup | `operationId`, preallocated audit-event ID, exact candidate ID/version/source/Scratch/type, and authoritative `source_deleted` or `source_tombstoned` proof. Cache miss, offline, or delayed subscription fails validation. Planned aggregate deletion is a different command. | In one transaction delete the candidate and append exactly one `candidateOrphanAuditEvents` row. Postcondition: candidate absent and the unique event contains the same candidate/source/Scratch/cause. | Exact event plus candidate absence = applied. Candidate/source precondition with no event = not applied. A different event, changed candidate, or unproven source state = conflict/rejected. Unique `candidateId` prevents duplicate audit append. |
 | Archive Scratch | `operationId`, Scratch ID/`expectedVersion`, and a caller assertion that the page-local Add draft and Scratch-title editor blockers are clear. Immediately before repository dispatch, the operation coordinator rechecks those transient blockers. Inside the transaction require an active Scratch, at least one consumed row, zero unconsumed rows, and zero staged candidates. | Set only the Scratch `archivedAt` to the transaction timestamp, update `mtime` under existing rules, and increment its version once. Rows/candidates are neither deleted nor rewritten. Postcondition: the exact Scratch is archived at the next version and Archive View restore remains available. | Archived Scratch at next version = applied; active Scratch at expected version with durable eligibility still true = not applied; changed lifecycle/version/eligibility = rejected/conflict. Pool removal/next selection waits for this terminal result. |
-| Trash Scratch | `operationId`, Scratch ID/`expectedVersion`, and the exact staged-candidate set the confirmation showed: each candidate ID/version with its source row ID/version (possibly empty). Immediately before dispatch the operation coordinator checks that no Inbox operation is pending and locks Scratch-switching actions; page-local drafts/editors for this Scratch were disclosed by the confirmation and are discarded only after success. Inside the transaction require an active Inbox-parented Scratch at the exact version and require the current `stagedCandidates` set for that Scratch to equal the submitted set, with every candidate and source row at its submitted version. A candidate whose source row cannot be resolved makes the command `rejected` with no write; the confirmed-orphan command resolves it first. | Set the Scratch `deletedAt` to the transaction timestamp and increment its version once; touch the Inbox Node `mtime` under Hook 1. For each submitted candidate, hard-delete it and increment its unconsumed source row version once (the Unstage effect; content, `order`, `createdAt` and `consumedAt` unchanged). No other row is deleted or rewritten, and no orphan-audit event is written. Postcondition: Scratch trashed at `expectedVersion + 1`, every submitted candidate absent, and each of their sources unconsumed at submitted version + 1. | Complete postcondition = applied/already applied. Active Scratch at the exact version with the exact submitted candidate set and source versions = not applied. Any other Scratch version/lifecycle, an added/removed/changed candidate, or a changed source = conflict; the user re-confirms against the latest state as a new operation. Reload needs no recovery descriptor: the Pool converges from durable Scratch state. |
+| Trash Scratch | `operationId`, Scratch ID/`expectedVersion`, and the exact staged-candidate set the confirmation showed: each candidate ID/version with its source row ID/version (possibly empty). Immediately before dispatch the operation coordinator checks that no Inbox operation is pending and locks Scratch-switching actions; page-local drafts/editors for this Scratch were disclosed by the confirmation and are discarded only after success. Inside the transaction require an active Inbox-parented Scratch at the exact version and require the current `stagedCandidates` set for that Scratch to equal the submitted set, with every candidate and source row at its submitted version. | Set the Scratch `deletedAt` to the transaction timestamp and increment its version once; touch the Inbox Node `mtime` under Hook 1. For each submitted candidate, hard-delete it and increment its unconsumed source row version once (the Unstage effect; content, `order`, `createdAt` and `consumedAt` unchanged). No other row is deleted or rewritten. Postcondition: Scratch trashed at `expectedVersion + 1`, every submitted candidate absent, and each of their sources unconsumed at submitted version + 1. | Complete postcondition = applied/already applied. Active Scratch at the exact version with the exact submitted candidate set and source versions = not applied. Any other Scratch version/lifecycle, an added/removed/changed candidate, or a changed source = conflict; the user re-confirms against the latest state as a new operation. Reload needs no recovery descriptor: the Pool converges from durable Scratch state. |
 
 Target reachability, type, path, and capacity checks for placement run in the
 same transaction as result/source/candidate writes. The page-local Archive
-blockers cannot be read by IndexedDB, so they are synchronously rechecked and
+blockers cannot be read by the repository (IndexedDB or the database), so they are synchronously rechecked and
 locked by the operation coordinator immediately before transaction dispatch;
 the durable eligibility predicates are then independently revalidated inside
 the transaction. Neither layer treats a stale UI snapshot as authority.
@@ -764,15 +953,14 @@ the transaction. Neither layer treats a stale UI snapshot as authority.
 ### Operation reconciliation without a journal
 
 No general operation-log, journal, outbox, or offline mutation queue is
-selected by this amendment. Current Dexie operation status is derived from
-stable target IDs, the surviving Scratch/row revisions that prevent inverse
-ABA, complete authoritative postconditions, and the transaction result above.
-`candidateOrphanAuditEvents` proves only its named integrity cleanup and may
-not answer arbitrary operation status. Future BaaS mutations must preserve the
-same conditional writes and monotonic evidence (for example, a transaction/DB
-function plus primary/unique constraints). If a future remote API cannot prove
-these pre/postconditions, it requires a later canonical durable idempotency
-receipt; this document does not preapprove a generic log.
+selected. Operation status is derived from stable target IDs, the surviving
+Scratch/row revisions that prevent inverse ABA, complete authoritative
+postconditions, and the transaction result above. In the Postgres target each
+command's reconcile method is a read-only database function that classifies the
+same precondition, postcondition or conflict in one statement, and the write
+functions keep the same conditional writes and monotonic evidence through one
+transaction plus primary, unique and foreign-key constraints (S08). There is no
+operation table.
 
 For a forced reload that must resume an unresolved Archive, the current tab
 stores one minimal `PendingOperationRecovery` descriptor in browser
@@ -795,7 +983,7 @@ validated and written successfully before Archive dispatch; unavailable,
 quota-failed, or rejected `sessionStorage` fails closed and does not start the
 Archive mutation. On reload it is read before the initial Inbox projection.
 The recovery call retains the same operation ID for correlation but, because
-Dexie has no operation-ID index, classifies the result from the target
+no operation-ID record exists, classifies the result from the target
 Scratch's exact `version`/`archivedAt` and the authoritative Breakdown/
 candidate eligibility postconditions. The UI then converges to archived/removed,
 not-applied completion/reopen, or unresolved recovery presentation. Other
@@ -819,14 +1007,198 @@ is code-ready:
 - an ambiguous Trash Scratch, followed by a confirmed Trash restore,
   reconciles as conflict (the restore advanced the Scratch version) and never
   re-trashes; a candidate staged after the confirmation was shown makes Trash
-  conflict instead of removing an undisclosed candidate; and
-- Undo whose owning Scratch was trashed or archived is rejected with no write.
+  conflict instead of removing an undisclosed candidate;
+- Undo whose owning Scratch was trashed or archived is rejected with no write;
+  and
+- in the Postgres target, deleting a Breakdown row that has a staged candidate
+  is refused by the foreign key (S18), and every command function passes the
+  [database tests](#database-tests).
+
+---
+
+## Database Functions
+
+SaaS conversion target. Every write, ordinary or Inbox command, is one
+function call and one transaction (S08). Reads go through one snapshot
+function (S31). Every function follows the SQL function checklist in
+[PLANNING_STANDARD §6](PLANNING_STANDARD.md#6-architecture-conformance-checklist)
+(S38).
+
+### Exposed functions
+
+| Group | Functions | Contract |
+|---|---|---|
+| Account | `ensure_account()`, `delete_my_account()` | [Account preparation](#account-preparation), [Account deletion](#account-deletion) |
+| Snapshot | `get_snapshot()` | [Snapshot](#snapshot) |
+| Ordinary writes | One function per `DataStore` write method that production code calls: Node and Bit create, update, soft delete, restore, hard delete, archive and unarchive; Chunk create, update and delete; Bit-to-Node promotion; `cleanup_expired_trash()`, which also records the visit (`accounts.last_visit_at`); `empty_trash()` | [Application Hooks](#application-hooks) 1–11 and Hook 12's version rules. Last write wins: no expected version (S15) |
+| Inbox/Triage commands | One function per row of the [atomic command matrix](#atomic-command-matrix), plus one read-only reconcile function for each command that has a reconcile method today | [Repository Operation Contract](#repository-operation-contract) |
+
+- Names are the snake_case form of the `DataStore` method (`updateNode` →
+  `update_node`).
+- Write methods that only tests call today (`createScratchBreakdown`,
+  `updateScratchBreakdown`, `markScratchBreakdownConsumed`,
+  `unconsumeScratchBreakdown`, `deleteScratchBreakdown`) are not ported;
+  Phase 46 removes them from the interface.
+- One user action is one call. An action that today calls several `DataStore`
+  writes in a row becomes one function: Empty Trash (today one `hardDelete*`
+  call per item) and the deadline-conflict answer that extends the parent
+  (today `updateNode`, then `updateBit`; Hook 2).
+
+### Internal functions
+
+The `internal` schema holds the shared helpers (cell check and occupancy,
+cascades, account limits, envelope building), the demo seed copy and guest
+cleanup. No client role can execute them, and a test proves it (S29 (1)).
+
+### Result envelope
+
+Every write function returns one JSON value (S31):
+
+```typescript
+type WriteEnvelope<Result> = {
+  status: "applied" | "already_applied" | "not_applied" | "rejected" | "conflict";
+  result: Result | null; // command-specific, for example the placed result id
+  changes: Partial<
+    Record<
+      "nodes" | "bits" | "chunks" | "scratch_breakdowns" | "staged_candidates",
+      { upserted: DatabaseRow[]; deleted: string[] }
+    >
+  >;
+  rejection?: { code: string; table?: string };
+};
+```
+
+- `changes` holds every row the client must apply to its snapshot: each row
+  the call wrote, including every row a cascade touched (Trash cascade,
+  ancestor `mtime`, placement), and for `rejected` or `conflict` the current
+  rows of the records involved. Rows are complete snake_case database rows;
+  the client converter maps them.
+- The client changes its snapshot base only from `changes` and from refetches
+  (S32).
+- Ordinary writes use the same envelope, with `applied` or `rejected`.
+- `rejection.code` names the rule: `account_limit`, `cell_taken`,
+  `grid_full`, `not_found`, `invalid_target` (a move into a descendant, a Bit
+  onto Home, a system-Node rule), `parent_inactive`, `deadline_exceeds_parent`,
+  `account_deleting` (deletion fallback only), and the existing Inbox command
+  reasons. A rule the function does not check, such as a CHECK
+  violation, ends the call with an error, which the client treats as a failed
+  write (S16).
+- Test (S31): for every function, the snapshot before the call plus the
+  returned `changes` equals a fresh snapshot after it.
+
+### Snapshot
+
+`get_snapshot()` (`security invoker`) returns one JSON value with every row of
+the caller's account in `nodes`, `bits`, `chunks`, `scratch_breakdowns` and
+`staged_candidates`, active, trashed and archived alike. It is built in a
+single SQL statement, so under `READ COMMITTED` it reads one consistent point
+in time and a candidate never arrives without its source (S17). It is one
+value, not a row set, because the API cuts a row set at its row limit (1,000
+by default) without an error (S31). Phase 42 measures its load time against
+the account limits. Under the account-deletion fallback it rejects an account
+with a pending deletion request (`account_deleting`) instead of returning rows.
+
+### Locks
+
+A function that checks and then writes takes its locks before the check, and
+checks the locked rows again after it holds them (S30; user, 2026-10-22):
+
+- **Lifecycle.** A function that trashes, archives or permanently deletes a
+  Node locks every Node of its cascade closure `for update` before it writes.
+  A function that creates an item in a Grid, or moves or restores an item into
+  one, locks that Grid's parent Node `for share` and then requires it to be
+  active. Whichever comes second waits and then sees the other's result, so a
+  live item can never end up under a trashed, archived or deleted Node. A
+  restore that brings back trashed ancestors locks that ancestor chain
+  `for update`.
+- **Cells.** Cell writes (create, move, restore with relocation, placement,
+  promotion, system-Node normalization) also take a transaction-scoped advisory
+  lock per target Grid: account plus parent, with L0 as its own key. Two
+  `for share` locks do not block each other, so this lock is what keeps two
+  creates out of one cell.
+- **Inbox.** Inbox commands lock their Scratch Bit row `for update`.
+- **Account.** `ensure_account()` locks the account row.
+- **Order.** A function that needs several locks takes the advisory lock first,
+  then row locks in a fixed order, so two functions cannot deadlock.
+- **Planned deletes** delete staged candidates before their source rows.
+- System Node inserts use `on conflict do nothing` on the partial unique index.
+- Tests fire concurrent calls: two creates into one cell (one is `rejected`);
+  trashing a Node while a Bit is created in a descendant Grid (the Bit is
+  either trashed with it or `rejected`); and two `ensure_account()` calls on a
+  new guest (one Inbox, one Archive and one seed copy result).
+
+### Account preparation
+
+`ensure_account()` runs right after each sign-in or session start, before the
+snapshot (S13). It is idempotent and there is no trigger, so a failed call can
+simply be repeated. In one transaction it:
+
+1. inserts or updates the `accounts` row, setting `last_visit_at` to now;
+2. creates a missing Inbox or Archive system Node with the
+   [default properties](#nodes) in the first free L0 cell, and returns a
+   trashed or archived system Node to active in place (in its own cell if that
+   is free, otherwise in the first free cell; a hidden one stays where it is),
+   as `ensureSystemNodes()` does today. When no L0 cell is free, that Node is
+   left as it is and the rest of the call still applies, as today;
+3. for a guest whose `seeded_at` is null and which holds no row besides its
+   system Nodes, copies the demo seed and sets `seeded_at` (Phase 48). Every
+   copied row gets a new id, parent and candidate-to-source references are
+   remapped, and deadlines and modification times are stored relative to the
+   copy time, so urgency and aging look alive whenever a visitor arrives
+   (S42 (2)).
+
+A real account gets no seed and starts with its system Nodes only (S10).
+
+### Account deletion
+
+`delete_my_account()` deletes the caller's own auth user, and the `user_id`
+cascade deletes every row (S23, S42 (1)). Tests: it cannot delete another
+account, and an account with a staged candidate can be deleted (S29).
+
+Fallback, if hosted Supabase refuses the dedicated role or its grant (user,
+2026-10-22): `delete_my_account()` runs as a write function, records
+`accounts.deletion_requested_at` for the caller only, and the client signs out
+at once. The daily cleanup job ([Guest cleanup](#guest-cleanup)) deletes the
+auth user, and the cascade every row, within 24 hours. A deletion request is
+final (user, 2026-10-22): until the cleanup runs, `ensure_account()`,
+`get_snapshot()`, the reconcile functions and every write function reject that
+account with `account_deleting`, so the data never reappears, not even in
+another tab that refetches. The client then shows the load-failure screen with
+the deletion-in-progress reason and `Continue as guest` (SPEC), and signs out
+to a new guest only from there.
+
+### Guest cleanup
+
+`internal.cleanup_guests()` runs daily through `pg_cron` and deletes anonymous
+auth users whose `last_visit_at` is more than 7 days old; the cascade removes
+their rows (S10, S22, S42 (5)). A guest with an open tab stays: the hourly
+`cleanup_expired_trash()` call records its visit. Under the account-deletion
+fallback the same job also deletes every account with a deletion request. If `pg_cron` is unavailable on the free plan,
+the recorded fallback is a scheduled GitHub Actions call (S22). Real accounts
+are never deleted automatically (S23).
+
+### Database tests
+
+`pnpm test:db` runs Vitest against local Supabase with signed-in test users
+(S20). Every phase that adds a table or function adds, for each one:
+
+- cross-account cases: account A cannot read, write or delete account B's rows
+  through any table or function (S14);
+- the concurrency cases above (S30);
+- the change-set match (S31);
+- the ported DB test scenarios for its behavior, which serve as the answer key.
+
+The suites also prove that no client role can call an internal function, that
+an account with a staged candidate can be deleted (S29), that deleting a staged
+source is refused (S18), and that the boundary-case table passes against both
+Zod and the constraints (S33). At the close of a phase that changes SQL, the
+Supabase database linter (Security Advisor) shows no new warning (S29).
 
 ---
 
 ## Application Hooks
 
-No database triggers — all side effects are handled at the application layer. These hooks **must** be enforced by the data access layer (repository/service), not by individual components.
+No database triggers (S13). Every side effect below runs inside the write function that causes it, in the same transaction, never in a component; until Phase 46 the Dexie repository enforces them. Where a hook says `Date.now()`, the Postgres target uses the function's transaction time (S11).
 
 ### 1. mtime Cascade
 
@@ -862,6 +1234,7 @@ Hard rule: **a child's deadline/time cannot exceed its parent's deadline.** Enfo
 1. **Child scheduled past parent deadline** → Block the action. Surface modal: "Child cannot exceed parent's deadline. Update parent's deadline too? Yes/No."
    - Yes → Extend parent deadline to accommodate child.
    - No → Cancel the action. Child retains previous value.
+   - In the Postgres target, Yes is one write: the child's update function takes the parent extension and writes both in one transaction.
 
 2. **Parent deadline shortened** → Find all children whose deadline/time exceeds the new parent deadline. Mark each as conflicting. Surface per-item: blur + "Modify timeline" overlay with check/x icon buttons.
    - Check → Open item for date editing.
@@ -920,16 +1293,13 @@ When a Node or Bit is permanently deleted from trash:
 2. **Bit:** Delete the Bit and all its Chunks.
 
 If a permanent-delete closure still owns Scratch Breakdown sources and their
-staged candidates, delete the sources and candidates together in the same
-planned aggregate transaction. This is not orphan cleanup because the source
-was present when the closure was computed; do not manufacture orphan-audit
-events for normal cascade deletion. If a candidate already lacks its source
-before that transaction, route it through the separately audited confirmed-
-orphan command instead of silently cascading it.
+staged candidates, delete the candidates and then the sources in the same
+planned aggregate transaction (the candidate's foreign key refuses the other
+order). A candidate cannot lack its source (S18).
 
 ### 7. Trash Auto-Cleanup
 
-Items with `deletedAt` older than 30 days are permanently deleted (Hook 6). Check on app startup and periodically during usage.
+Items with `deletedAt` older than 30 days are permanently deleted (Hook 6). Check on app startup and periodically during usage. The client triggers it at startup and hourly, as today; in the Postgres target it calls `cleanup_expired_trash()`, which deletes the caller's expired items in one transaction (S18) and records the visit in `accounts.last_visit_at`, so a guest with an open tab is not cleaned up.
 
 ### 8. Grid Cell Uniqueness
 
@@ -938,13 +1308,15 @@ Before inserting or moving a Node/Bit to `(parentId, x, y)`:
 2. If occupied → reject the operation (or trigger BFS auto-placement).
 3. **Exception:** Bits whose `parentId` is the Inbox system Node ("Scratch") are exempt — they use the `x = 0, y = 0` sentinel and are not subject to cell uniqueness. The Triage layout orders them by `createdAt`.
 
+In the Postgres target the write function runs this check after taking the Grid lock ([Locks](#locks), S30) and returns `rejected` with `cell_taken` for a taken cell. A parent-change move (a drop on a Node or a breadcrumb drop) picks its cell on the client from the snapshot, nearest empty cell first as `findNearestEmptyCell` does today, and the server refuses a taken one (S43 (3)).
+
 ### 9. Bit-to-Node Promotion
 
 This hook applies only to ordinary, non-Scratch Bits. A Bit whose parent Node
 has `systemRole: "inbox"` is a Scratch and **cannot** be promoted to a Node,
 regardless of whether it currently has Breakdown rows, staged candidates, or
 Chunks. The repository rejects that identity before allocating result IDs or
-writing any Node, Bit, Chunk, Breakdown, candidate, or audit store.
+writing any Node, Bit, Chunk, Breakdown or candidate record.
 
 Scratch uses the dedicated `scratchBreakdowns` store rather than Chunk reuse,
 so Hook 9's Chunk-to-child-Bit expansion has no defined Scratch meaning. The
@@ -991,10 +1363,8 @@ When a **Bit** is restored:
 ### Scratch Bit Permanent Deletion
 
 When a Scratch Bit is hard-deleted (after trash retention or explicit purge),
-all associated `scratchBreakdowns` rows and candidates are hard-deleted in the
-same planned aggregate transaction. This normal cascade creates no orphan-
-audit event. A candidate whose source is already authoritatively absent before
-the cascade uses the confirmed-orphan command and event instead. **Archiving**
+all associated candidates and then their `scratchBreakdowns` rows are
+hard-deleted in the same planned aggregate transaction. **Archiving**
 a Scratch Bit does not trigger either cleanup — archived Scratch retains its
 breakdown history for a potential restore.
 
@@ -1024,12 +1394,13 @@ breakdown history for a potential restore.
 
 ### 13. Staged Candidate Integrity
 
-Stage, Unstage, staged-source Save/Delete, placement, Undo, Trash Scratch, and
-orphan cleanup transact over `bits`, `scratchBreakdowns`, `stagedCandidates`, and (for a
-confirmed orphan only) `candidateOrphanAuditEvents` as their command requires.
+Stage, Unstage, staged-source Save/Delete, placement, Undo and Trash Scratch
+transact over `bits`, `scratchBreakdowns` and `stagedCandidates` as their
+command requires.
 The repository enforces:
 
-1. candidate `scratchBitId` equals the source row owner;
+1. candidate `scratchBitId` equals the source row owner (in the Postgres target
+   also held by the composite foreign key);
 2. source is unconsumed and its Scratch is active when Stage/placement needs
    it;
 3. unique `sourceBreakdownId` is checked by the database constraint and in
@@ -1037,17 +1408,16 @@ The repository enforces:
 4. staged-source Edit/Delete rejects without auto-unstage, edit propagation,
    or candidate cascade;
 5. source staged presentation is derived only from candidate existence; and
-6. authoritative orphan proof precedes atomic candidate cleanup and append-
-   only audit creation. A normal candidate query never renders an unresolved
-   source miss as a valid card; and
+6. a candidate cannot lose its source (the foreign key refuses deleting a
+   staged source, S18), and a normal candidate query never renders an
+   unresolved source miss as a valid card; and
 7. Trash Scratch removes exactly the confirmed candidate set as a planned
-   lifecycle cascade, not orphan cleanup, so it writes no audit event and
-   leaves no candidate owned by an inactive Scratch.
+   lifecycle cascade and leaves no candidate owned by an inactive Scratch.
 
 ### 14. Inbox/Triage Atomic Operations
 
-Add, Save, Delete, Stage, Unstage, staged/direct placement, Undo, confirmed
-orphan cleanup, Scratch Archive, and Trash Scratch use the
+Add, Save, Delete, Stage, Unstage, staged/direct placement, Undo, Scratch
+Archive, and Trash Scratch use the
 [Repository Operation Contract](#repository-operation-contract).
 Their transaction result is the only success authority. Components may show
 pending projections but may not optimistically clear/remove source truth,
@@ -1079,6 +1449,11 @@ before setting `archivedAt`.
 
 ## Key Queries
 
+In the Postgres target these queries run in memory over the account snapshot
+(S19); the patterns stay and the index hints apply to the Dexie store only.
+Trash auto-cleanup and the reconciliation queries run inside database
+functions.
+
 > **Lifecycle filter (archive sweep):** Every "active items" query below must filter `archivedAt = null` **in addition to** `deletedAt = null`. L0 grid rendering must also exclude `hiddenFromGrid = true`. Applies to: Active grid contents, Node completion check, All calendar items, Items pool, Badge computation, Global urgency, Text search, Grid occupancy, Aging state. Trash queries (Trashed items, Trash auto-cleanup) continue to key off `deletedAt` only.
 
 | Query | Used by | Stores | Pattern |
@@ -1094,18 +1469,22 @@ before setting `archivedAt`.
 | Text search | Search overlay | `nodes`, `bits`, `chunks` | Client-side filter: iterate all active items (`deletedAt = null` AND `archivedAt = null`; Chunks via non-deleted, non-archived parents), match `title` against search term (case-insensitive substring). Return with type, parent path, deadline |
 | Grid occupancy | BFS auto-placement | `nodes`, `bits` | Filter both stores by `parentId = X` AND `deletedAt = null` AND `archivedAt = null`. Collect all `(x, y)` pairs into an occupied-cells set |
 | Aging state | Grid rendering | `nodes`, `bits` | Operates on grid-visible items only (`deletedAt = null` AND `archivedAt = null`; L0 also `hiddenFromGrid = false`). Compute `daysSinceMtime = (Date.now() - item.mtime) / 86400000`. Apply: 0–5 = Fresh, 6–11 = Stagnant, 12+ = Neglected |
-| Trash auto-cleanup | App startup / periodic | `nodes`, `bits` | Filter `deletedAt != null` AND `deletedAt < Date.now() - (30 * 86400000)`. Permanently delete matches (Hook 6) |
+| Trash auto-cleanup | App startup / periodic | `nodes`, `bits` | Filter `deletedAt != null` AND `deletedAt < Date.now() - (30 * 86400000)`. Permanently delete matches (Hook 6); in the target, inside `cleanup_expired_trash()` |
 | Breakdown rows for Scratch | Breakdown, CAS, placement, Archive | `scratchBreakdowns` | Filter `scratchBitId = X`. Display sort: `createdAt` DESC/ASC, then `order`, then stable `id`; lifecycle projections filter/derive active, staged, or consumed. Use `[scratchBitId, createdAt]` or `scratchBitId` |
 | Staged candidates for Scratch/type | Staging and remote reconciliation | `stagedCandidates`, `scratchBreakdowns` | Filter `scratchBitId = X`, `lifecycle = "staged"`, optionally `resultType`; sort `createdAt` DESC then `id`; join `sourceBreakdownId` to the authoritative row and never use candidate-local display text |
 | Candidate by source | Stage uniqueness and staged-source guards | `stagedCandidates` | Unique lookup by `sourceBreakdownId`. Presence derives staged state and blocks source Edit/Delete; absence restores stage eligibility when the row remains active |
 | Archive eligibility | Completion and Archive transaction | `bits`, `scratchBreakdowns`, `stagedCandidates` | Read the active Scratch, require consumed count ≥ 1, unconsumed count = 0, and staged count = 0. Do not implement as `rows.every(...)` without the explicit consumed guard. Re-run inside Archive transaction |
 | CAS entity reload | Scratch/row/candidate reconcile | `bits`, `scratchBreakdowns`, `stagedCandidates` | Primary-key read returns value, lifecycle, and monotonic version. Compare exact expected precondition versus complete intended postcondition; never compare `mtime` |
-| Operation reconciliation | Add/Delete/Stage/Unstage/placement/Undo/orphan cleanup/Archive/Trash Scratch | Command-specific authoritative stores | Query the stable record/result/candidate/source IDs and the surviving Scratch/row expected/next versions listed in the command matrix. Classify complete precondition, complete postcondition, or conflict; inverse operations advance the surviving revision, so there is no ABA-based Retry and no general operation-log lookup |
-| Candidate orphan confirmation | Repository integrity | `stagedCandidates`, `scratchBreakdowns`, `candidateOrphanAuditEvents` plus future remote authority | Resolve source by stable ID. Cache miss/offline/delay returns unresolved, not orphan. Only authoritative deletion/tombstone permits atomic candidate deletion plus unique append-only audit creation |
+| Operation reconciliation | Add/Delete/Stage/Unstage/placement/Undo/Archive/Trash Scratch | Command-specific authoritative stores | Query the stable record/result/candidate/source IDs and the surviving Scratch/row expected/next versions listed in the command matrix. Classify complete precondition, complete postcondition, or conflict; inverse operations advance the surviving revision, so there is no ABA-based Retry and no general operation-log lookup |
 
 ---
 
 ## Dexie Migration Target
+
+> **Current store until Phase 46.** Phase 23 installed this v4 target. The
+> SaaS conversion does not migrate local IndexedDB data; it is discarded (S04).
+> Phase 46 removes this implementation together with `settings` and
+> `candidateOrphanAuditEvents`.
 
 The current database remains v3 until implementation work is separately
 approved. The canonical implementation target is **Dexie version 4**, declared
@@ -1168,17 +1547,20 @@ validated legacy rows and repository writes validate new rows.
 
 ## Durable / Non-Durable Ownership Boundary
 
-Durable product/integrity truth in this amendment is limited to the existing
-entities, their monotonic versions, `stagedCandidates`, and the narrowly scoped
-`candidateOrphanAuditEvents`. The audit store is not operation history. The
-following remain outside IndexedDB/domain truth: selected Scratch, Pool
+Durable product truth is limited to the existing entities, their monotonic
+versions and `stagedCandidates`, plus the `accounts` row (visit time and seed
+marker), all in Postgres in the target. The client's account snapshot is a
+disposable cache, never a source of truth (S07). The following remain outside
+the database and domain truth: selected Scratch, Pool
 expanded/collapsed and manual
 reopen exceptions, Pool/Explorer queries and scroll, Add/Edit base snapshots
 and drafts, pending/deleting/reconciling presentation, placement/type/result
 title drafts, remote-arrival counters, archive overlay open/Cancel state,
 newly-placed markers/pinning, and Undo availability/dependency projections.
 Only the minimal reload identity descriptor specified above may cross a forced
-reload, and it contains no product payload or queued mutation.
+reload, and it contains no product payload or queued mutation. Device
+preferences (color theme, Inbox sorts) stay in browser storage per device
+(S11).
 
 This document owns data and operation semantics only. It does not select copy,
 layout, color, animation, focus-surface appearance, or another visual fallback
@@ -1210,3 +1592,7 @@ aggregate deletion, and does not create an operation-log, journal, outbox, or
 offline queue. The remaining user action is approval or revision of the
 complete proposed SCHEMA amendment; SPEC derivation remains blocked until that
 document gate passes.
+
+**Superseded (SaaS S18, 2026-10-22):** the audit owner is removed together
+with the confirmed-orphan command; see
+[candidateOrphanAuditEvents (removed)](#candidateorphanauditevents-removed).

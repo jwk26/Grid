@@ -56,7 +56,7 @@ Phase 48). ① marks Phases 36–40 only as awaiting ②.
 | D6 | An `app.accounts` table holds the last visit time (S42 (5)) and the seed-copied marker (S30). | Both decisions need a stored value. |
 | D7 | Names: `DISPLAY_DELAY_MS = 300`, `REQUEST_TIMEOUT_MS = 15000` and a 30s connection probe interval in `src/lib/constants.ts`; the shared feedback copy module is `src/lib/copy/feedback.ts`. The first writer, in either lane, creates them under these names. | F02, F14, S26, S27; promotion ② and the feedback lane may run first. |
 | D8 | Initial load bound (S07): Phase 42 measures the snapshot on production (Seoul). Target: an account at the limits loads in 3s or less, an account at one tenth of the limits in 1s or less. If the target fails, the limits are lowered. | S07, S37. |
-| D9 | `icon` and `color` get a maximum length in the CHECK constraints and in Zod. | They have no maximum today, so a scripted guest could fill the database despite the row limits (S12, S33, S37). |
+| D9 | `icon` gets a maximum length (64) in the CHECK constraints and in Zod. | It has no maximum today, so a scripted guest could fill the database despite the row limits (S12, S33, S37). `color` is already bounded by its `hsl(...)` pattern. |
 
 ## User answers (2026-10-22)
 
@@ -72,6 +72,29 @@ Phase 48). ① marks Phases 36–40 only as awaiting ②.
   with their auth users.
 - **Q3.** The user closed Phase 27 P27-08 (moot under S18) and Phase 3 Issue 6
   (stale: no hook imports `indexedDBStore`; hooks use `getDataStore()`).
+
+## SCHEMA additions (user, 2026-10-22)
+
+- Lifecycle locks: create, move and restore into a Grid lock its parent Node
+  `for share`; trash, archive and permanent delete lock their whole cascade
+  closure `for update` (the closure, not only the top Node, so a create in a
+  descendant Grid is covered); planned deletes remove candidates before their
+  sources. The cell advisory lock stays, since two `for share` locks do not
+  block each other.
+- Account-deletion fallback if hosted Supabase refuses the dedicated role:
+  `delete_my_account()` records the request and the client signs out at once;
+  the daily cleanup job deletes the account within 24 hours. Until then
+  every function, `get_snapshot()` included, rejects the account
+  (`account_deleting`), so the data never reappears; the request is final
+  (user, 2026-10-22). For SPEC: the client shows the F19 load-failure screen
+  with the reason "this account is being deleted, deletion finishes within 24
+  hours, and after that you can sign up again with the same account", then
+  `Continue as guest`.
+- The hourly `cleanup_expired_trash()` call also records the visit, so a guest
+  with an open tab is not cleaned up.
+- Decisions 1 and 2 of the SCHEMA review agreed: one user action is one
+  function call (Empty Trash, the deadline extension); `ensure_account()` keeps
+  today's behavior when L0 is full.
 
 ## Phase waits (user, 2026-10-22)
 
@@ -122,7 +145,7 @@ phase before it counts as a lane failure.
 
 Each document is approved by the user and committed before the next.
 
-- [ ] `docs/SCHEMA.md`
+- [x] `docs/SCHEMA.md` (approved 2026-10-22)
 - [ ] `docs/SPEC.md`
 - [ ] `docs/DESIGN_TOKENS.md`
 - [ ] `CLAUDE.md` and the `docs/prd.md` note
