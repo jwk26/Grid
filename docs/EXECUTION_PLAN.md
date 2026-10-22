@@ -2270,7 +2270,8 @@ hosted plan (D1).
   local admin API, a supabase-js client per user, and a direct database
   connection that can act as a given role and user for table-level checks.
 - `.env.local.example` with the public variable names; `.gitignore` covers
-  `.env.local` and `supabase/.temp/`.
+  `.env.local` and `supabase/.temp/`, and adds `!.env.local.example`, since
+  its existing `.env*` pattern would otherwise ignore the example file.
 - `supabase/tests/smoke.db.test.ts`: two test users exist and sign in.
 
 **Dependencies:** Phase 35 Final Close and `main` sync; this phase's lifecycle
