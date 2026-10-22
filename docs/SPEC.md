@@ -293,9 +293,14 @@ Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
   and the breadcrumb's segments and deadline chip, with a 0.3 second fade. It
   stays while hovered, focused or while its deadline picker is open. The entry
   reveal ends after 3 seconds unless hovered or focused. `Esc` hides it at once
-  when nothing above it is open; `Esc` closes the top-most layer first: a
-  dialog, the Bit popup or the palette, then the deadline picker, then the
-  breadcrumb. During a drag `Esc` only cancels the drag.
+  when nothing above it is open. `Esc` closes one layer per press, top-most
+  first: the dialog layer (a dialog, the Bit popup, the palette, the Search
+  overlay, the `+` entry surface, the Scratch modal), then the deadline picker,
+  then the breadcrumb, then edit mode (user, 2026-10-22). During a drag `Esc`
+  only cancels the drag. After `Esc` hides it,
+  the hover and focus triggers stay suppressed until the pointer or focus
+  leaves Home and the breadcrumb and comes back; `Esc` pressed on a segment
+  moves focus to Home, so a focused element is never hidden.
 - **Motion** (F23). It unfolds out of the Home button (about 0.26 seconds) and
   folds into it (about 0.35 seconds), and Home is briefly emphasized as it
   lands, so the user learns where it went. Reduced motion: no movement, the
@@ -317,12 +322,19 @@ Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
   breadcrumb stays in the accessibility tree. In Tab order its segments come
   right after the Home button, and focusing a segment reveals it. This order
   comes from DOM placement (the breadcrumb follows the Home button in document
-  order), never from a positive `tabindex`. The tab title
-  carries the current Node's name ([Feedback copy](#feedback-copy)).
+  order), never from a positive `tabindex`. The tab title carries the current
+  Node's name, and the other pages carry their own name, so several open tabs
+  can be told apart ([Feedback copy](#feedback-copy)).
 - **No reserved cell** (F26). No Grid cell is reserved for the breadcrumb: Add,
   placement and drops treat every cell alike. The zone measurement and store,
   the `isCellBlocked` guards, `runBreadcrumbZoneMigration` (the Phase 45 no-op
   included) and its `settings` markers are removed (SCHEMA §Not ported).
+  Until Task 249 the cells under the bar's shown position stay reserved as
+  today, even while the bar is hidden, and the client passes the top-left 3×2
+  block as reserved cells to every server function that chooses a cell, so a
+  new account, a restore, an unhide or a promotion never lands under the fixed
+  breadcrumb (SCHEMA §Internal functions, feedback F34). Task 249 stops passing
+  it.
 - Below 1024px the reveal is a desktop feature (S42 (4)).
 
 ### Bit Detail Popup (Modal — not a route)
@@ -664,11 +676,14 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
 - **Tooltip** (F09). The state's sentence shows in a tooltip on hover or
   keyboard focus of the item (the Add field, a row's grip, a Staging card, the
   Explorer status slot). It holds no controls, one shows at a time, and it is
-  the item's description (`aria-describedby`). On a Staging card body the
-  problem tooltip replaces the Task 179A truncated-title tooltip and leads with
-  the full title on its own line; when the sentence already contains the title,
-  the title line is left out. A control shows only its own tooltip. An item outside the Tab order gets a
-  focusable status element. Existing actions (`Retry Add`, `Check again`,
+  the item's description (`aria-describedby`). On a Staging card or row the
+  problem tooltip leads with the full title on its own line, since the label
+  truncates; when the sentence already contains the title, the title line is
+  left out. On an Explorer card the body keeps its Task 179A truncated-title
+  tooltip and the Undo slot shows only its own: a control shows only its own
+  tooltip. Where the item's host is not in the Tab order (a Stage projection,
+  an integrity slot, a locked row), its status icon is the focusable status
+  element. Existing actions (`Retry Add`, `Check again`,
   `Retry`) stay as compact controls; "drag again" guidance is tooltip text.
 - **Placement** (F07). Breakdown row: a 22px status slot before the actions,
   always reserved so the title does not shift; it replaces the 160px success
@@ -705,8 +720,11 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   once, keeps input focus, scrolls only the row list to top under DESC or bottom
   under ASC, shows no visible success and announces `Added.` politely
   ([Item status presentation](#item-status-presentation)). Failure
-  or known-offline non-execution retains draft/focus without success scroll/
-  signal and offers manual Retry with the same snapshotted operation identity.
+  retains draft/focus without success scroll/signal and offers manual Retry
+  with the same snapshotted operation identity. A known-offline attempt keeps
+  the draft and focus; from Task 233 it changes nothing else and shows only the
+  offline write-attempt toast, with no Retry (F18); until then it behaves as
+  built.
   An unknown outcome reconciles before Retry or success; no in-memory Add queue
   or durable draft recovery is introduced.
 - Add draft and one Scratch/row Edit draft are independent page-session state
@@ -851,7 +869,9 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   operation for that candidate, authoritative candidate disappearance, or a
   Scratch switch; a later failure replaces the earlier alert. Exact appearance,
   wording, and placement remain with `VQ-06`. From Phase 50 (feedback F08) the
-  band keeps only failures whose item disappears, the Stage failures; an
+  band keeps only notices whose item has gone: the Stage failures and the
+  stale-invalidation notices (changed-elsewhere drop cancellation, placement
+  closed); an
   Unstage failure, whose candidate remains, shows `!` with its tooltip on that
   candidate instead, cleared by a new operation for that candidate, its
   authoritative disappearance or a Scratch switch.
@@ -1497,9 +1517,9 @@ writes shows one counted toast (S28).
 
 | Element | Copy |
 |---|---|
-| Create dialog, no empty cell (Node or Bit, every level; inline error, typed title kept) | `“{target}” has no empty cell. Move or delete an item to make room.` (`{target}` is the current Node's title, or `Home` at L0) |
+| Create dialog, no empty cell (Node or Bit, every level; inline error, typed title kept) | `“{target}” has no empty cell. Move or delete an item to make room.` (`{target}` is the Node whose Grid receives the item: the current Node, the chosen parent for a Bit created from L0, or `Home` for a Node at L0) |
 | Home button (label and tooltip) | `Home` |
-| Tab title on a Node's Grid | `{title} – {app name}` (`{app name}` is `GridDO` until Task 239 names the product `grid`); other pages keep the app name alone |
+| Tab title | A Node's Grid: `{title} – {app name}`. Inbox, Archive, Calendar (weekly and monthly) and Trash: `Inbox – {app name}`, `Archive – {app name}`, `Calendar – {app name}`, `Trash – {app name}`. L0: `{app name}` alone. `{app name}` is `APP_NAME`: `GridDO` until Task 239 names the product `grid`. Each page sets its title, so client navigation never leaves a stale one (user, 2026-10-22) |
 
 **Connection** (tooltip, and the polite announcement on entering the state)
 
@@ -1541,10 +1561,16 @@ writes shows one counted toast (S28).
 Feedback F30 (Task 243; Tasks 231 and 233 extend it). A development-only
 switch forces each status state in the running app: delayed pending,
 reconciling, unknown, not applied, rejected, conflict, integrity and offline,
-and from Phase 47 the network states and a write rejection. It lets every
-state be judged without inserted markup, since a local command ends in about
-50ms and these states do not appear on their own. It is compiled only into
-development builds and never ships enabled.
+and from Phase 47 the network states and a write rejection. It works at two
+levels: a presentation override for judging a look, and an injection at the
+`DataStore` boundary (a development-only wrapper that `getDataStore()` applies
+to whichever store it returns) that delays the next calls of a command kind or makes
+them return unknown, not applied, rejected or conflict, so the real recovery
+paths (`Check again`, `Retry`, `Retry Add`) run end to end without stopping the
+shared local Supabase. It lets every state be judged without inserted markup,
+since a local command ends in about 50ms and these states do not appear on
+their own. It is compiled only into development builds and never ships
+enabled.
 
 ## Environments And Hosting
 
@@ -1771,6 +1797,8 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/components/feedback/status-icon.tsx` *(Phase 49)* | Status icons and item emphasis: the delayed loader, `?`, `!` (F02, F03) |
 | `src/components/feedback/status-tooltip.tsx` *(Phase 49)* | Hover/focus status tooltip, one at a time, described-by wiring (F09) |
 | `src/hooks/use-display-delay.ts` *(Phase 49)* | Presentation-only `DISPLAY_DELAY_MS` delay; never decides success (F02) |
+| `src/lib/color-themes.ts` *(Phase 49)* | The one non-client list of color theme ids, the default and the storage key, read by the store and the no-flash script (F28, ISSUE-20-01) |
+| `src/hooks/use-toast-anchor.ts` *(Phase 49)* | The toast stack's offset from the breadcrumb and its drag translucency (F12) |
 | `src/lib/dev/state-switch.ts`, `src/components/dev/state-switch-panel.tsx` *(Phase 49, development only)* | [Development state switch](#development-state-switch) (F30) |
 | `src/components/layout/home-button.tsx`, `src/hooks/use-breadcrumb-reveal.ts` *(Phase 50)* | Sidebar Home button and the breadcrumb reveal state: triggers, hiding, `Esc`, drag (F21–F25) |
 | `src/lib/copy/feedback.ts` | Toast, app-state and blocking copy (F14) |

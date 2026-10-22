@@ -646,9 +646,12 @@ The demo seed fits the guest limits.
 
 ### Not ported
 
-- `settings`, which holds only breadcrumb-zone migration markers. No new data
-  can land in a blocked cell during the SaaS phases (the client still guards
-  the zone, and S04 discards local data) (S11, S41). Phase 45 implements
+- `settings`, which holds only breadcrumb-zone migration markers. Until Task
+  249 no write puts data in the top-left block: the client guards its measured
+  zone, every server-side cell choice skips the reserved cells the client
+  passes ([Internal functions](#internal-functions), feedback F34), the demo
+  seed and the development fixture keep the block free, and S04 discards local
+  data (S11, S41). Phase 45 implements
   `runBreadcrumbZoneMigration` in the Supabase store as a no-op, and the zone
   guards stay client-only (S43 (4), the plan under feedback F33). Feedback F26
   (Phase 50, Task 249) then removes the zone, the method from the `DataStore`
@@ -1063,6 +1066,24 @@ The `internal` schema holds the shared helpers (cell check and occupancy,
 cascades, account limits, envelope building), the demo seed copy and guest
 cleanup. No client role can execute them, and a test proves it (S29 (1)).
 
+**Cell picking** (feedback F34; user, 2026-10-22). Every function that chooses
+a cell on the server calls one helper, `internal.pick_free_cell`: the first
+free cell in row-major order for a system Node and for a new item without an
+original cell (a Bit made from a Chunk at promotion), otherwise the nearest
+free cell from the item's original cell (BFS, as `findNearestEmptyCell` does). It treats
+each reserved cell as taken, so an item whose original cell is reserved is
+relocated as if that cell were occupied. The callers are `ensure_account()`,
+`update_node()` when it shows a hidden system Node, `restore_node()`,
+`restore_bit()`, `unarchive_node()`, `unarchive_bit()` and
+`promote_bit_to_node()`. Each takes `p_reserved_cells jsonb default '[]'`: an
+array of at most six `{x, y}` cells inside the 18×9 grid, which the function
+only validates (otherwise `rejected` with `invalid_input`) and applies in every
+Grid it places in. Until Task 249 the client passes the top-left 3×2 block the
+fixed breadcrumb may cover (`x` 0–2, `y` 0–1); Task 249 stops passing it, and
+the parameter stays at its default with no SQL change. Writes that take the
+client's cell (create, move, placement) are not affected: the client avoids its
+own measured zone until Task 249.
+
 ### Result envelope
 
 Every write function returns one JSON value (S31):
@@ -1093,7 +1114,8 @@ type WriteEnvelope<Result> = {
   the numbers differ for guests and live only on the server.
 - `rejection.code` names the rule: `account_limit`, `cell_taken`,
   `grid_full`, `not_found`, `invalid_target` (a move into a descendant, a Bit
-  onto Home, a system-Node rule), `parent_inactive`, `deadline_exceeds_parent`,
+  onto Home, a system-Node rule), `invalid_input` (a malformed
+  `p_reserved_cells`), `parent_inactive`, `deadline_exceeds_parent`,
   `account_deleting` (deletion fallback only), `account_missing`, and the
   existing Inbox command reasons. A rule the function does not check, such as a CHECK
   violation, ends the call with an error, which the client treats as a failed
@@ -1150,7 +1172,9 @@ simply be repeated. In one transaction it:
 
 1. inserts or updates the `accounts` row, setting `last_visit_at` to now;
 2. creates a missing Inbox or Archive system Node with the
-   [default properties](#nodes) in the first free L0 cell, and returns a
+   [default properties](#nodes) in the first free L0 cell outside the reserved
+   cells (`internal.pick_free_cell`, [Internal functions](#internal-functions)),
+   and returns a
    trashed or archived system Node to active in place (in its own cell if that
    is free, otherwise in the first free cell; a hidden one stays where it is),
    as `ensureSystemNodes()` does today. When no L0 cell is free, that Node is
@@ -1220,7 +1244,11 @@ are never deleted automatically (S23).
 The suites also prove that no client role can call an internal function, that
 an account with a staged candidate can be deleted (S29), that deleting a staged
 source is refused (S18), and that the boundary-case table passes against both
-Zod and the constraints (S33). At the close of a phase that changes SQL, the
+Zod and the constraints (S33). The cell-picking cases (feedback F34): each
+function that chooses a cell skips the passed reserved cells, rejects a
+malformed list with `invalid_input`, and behaves as before with the default;
+the demo seed and the fixture occupy no cell with `x` < 3 and `y` < 2. At the
+close of a phase that changes SQL, the
 Supabase database linter (Security Advisor) shows no new warning (S29).
 
 ---

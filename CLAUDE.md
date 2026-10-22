@@ -41,7 +41,7 @@
 
 `/craft-docs` → `/run-phase` → `/run-task` → `/end-phase` own the procedure. This section overrides their defaults.
 
-- **Gates:** `git diff --check`, `pnpm test`, `pnpm test:db`, `pnpm lint`, `pnpm typecheck`, `pnpm build`. `pnpm test:db` first resets the local Supabase database to the current branch's migrations, then runs the database suites. Every SaaS-lane task (Phases 42–48) runs it; the feedback lane (Phases 49–50) leaves it out of its task gates and runs it only when it closes a phase.
+- **Gates:** `git diff --check`, `pnpm test`, `pnpm test:db`, `pnpm lint`, `pnpm typecheck`, `pnpm build`. `pnpm test:db` first resets the local Supabase database to the current branch's migrations, then runs the database suites. Every SaaS-lane task (Phases 42–48) runs it; the feedback lane (Phases 49–50) leaves it out of its task gates and runs it only when it closes a phase, once `main` has it (Task 213); before that the close ledger records it as not applicable.
 - **Ledger:** `docs/issues/Issues_Phase_N.md`, rules in `docs/WORKFLOW.md` §Phase Execution Record. Issue IDs run per phase, not per task: a new `MI-n` or `mi-n` takes the next number after the highest one of its kind in the phase ledger. Open, In Progress and Awaiting User Decision block phase close. Only the user closes or defers an item.
 - **Acceptance:** `[x]` in the plan means user-accepted, never just implemented or gate-green.
 - **Git:** `phase-N/<desc>` from `origin/main` → PR to `main`, regular merge commit (no squash).

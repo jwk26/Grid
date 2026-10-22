@@ -934,11 +934,14 @@ The attached family maps through Staging-native theme roles:
   new operation for that candidate, its authoritative disappearance or a
   Scratch switch. An unresolved-source integrity slot shows `!` with its
   type-only sentence as tooltip.
-- **Alert band.** `staging-local-alert` keeps only the failures whose item
-  disappears: Stage `not_applied`, rejected and conflict (F08).
-- **Tooltip** (F09). On a card body the problem tooltip replaces the Task 179A
-  truncated-title tooltip and leads with the full title on its own line,
-  unless the sentence already contains it.
+- **Alert band.** `staging-local-alert` keeps the notices whose item has
+  gone: Stage `not_applied`, rejected and conflict, and the stale-invalidation
+  notices (changed-elsewhere drop cancellation, placement closed), whose drag
+  or placement has ended (F08).
+- **Tooltip** (F09). On a card or row the problem tooltip leads with the full
+  title on its own line, since the label truncates, unless the sentence
+  already contains it. Where the host is not in the Tab order (a Stage
+  projection, an integrity slot), the status icon is focusable.
 - **Nodes zone** (F10, MI-21). The `Nodes` well is never narrower than one
   Node card and lays its cards in an auto-fill grid: one column when two do
   not fit, two as today when they do; every theme shares it.
@@ -1423,9 +1426,10 @@ user, 2026-10-22).
 An unavailable `↶` and an action-less `!` use `aria-disabled="true"`, never
 the `disabled` attribute: they stay in the Tab order and take focus, their
 activation is suppressed, and their reason tooltip shows on keyboard focus as
-well as on hover (F07, F09; user, 2026-10-22). The row keeps its width; NEW,
-selection, the separate slot control, the operation identity and the focus
-destinations stay. Only `?` and `!` add item
+well as on hover (F07, F09; user, 2026-10-22). The card body keeps its Task 179A truncated-title tooltip; the slot shows
+only its own tooltip, and one tooltip shows at a time. The row keeps its
+width; NEW, selection, the separate slot control, the operation identity and
+the focus destinations stay. Only `?` and `!` add item
 emphasis. The `newly-status-rail`, `newly-status-mark`, `newly-status-action`
 and `newly-status-reason` roles retire; the slot uses the
 [Feedback Status Surfaces](#feedback-status-surfaces) roles. Until Phase 50 the
@@ -1571,7 +1575,7 @@ Shared elements carry `data-app-role`:
 
 | Role | Element | Fixed facts |
 |---|---|---|
-| `account-button` | Sidebar account icon, top-most (S23) | Lucide `user-round` for a guest, `user-round-check` for an OAuth account; the sidebar icon-button size and focus ring of its neighbours |
+| `account-button` | Sidebar account icon, below the Home button (F21); top-most until Home lands (S23, F33) | Lucide `user-round` for a guest, `user-round-check` for an OAuth account; the sidebar icon-button size and focus ring of its neighbours |
 | `account-badge` | Badge on the account icon (F17) | `data-connection-state="unstable"`: `!` mark in the warning status hue; `"offline"`: Lucide `wifi-off` in the error status hue. The hues are the F15 status tokens of [Feedback Status Surfaces](#feedback-status-surfaces); the shape carries the state, not colour alone (WCAG 1.4.1). No badge in the normal state |
 | `app-frame` | Whole-window frame, sidebar included (F19) | One frame for every app-level screen; replaces the app, except the narrow-window notice |
 | `app-frame-title`, `app-frame-reason`, `app-frame-action` | The frame's title, reason line and actions | Focus moves to the first action (F19) |
@@ -1649,7 +1653,7 @@ Shared elements carry `data-feedback-role`:
 
 | Role | Element | Fixed facts |
 |---|---|---|
-| `status-icon` | The item status icon, `data-status="pending|unknown|reconciling|problem"` | Pending: the loader, shown only after `DISPLAY_DELAY_MS`, rotating, static under reduced motion. Unknown: `?`. Reconciling: keeps `?`, then the loader. Problem (not applied, rejected, conflict, integrity): `!`. Also the server-confirmed pending loader of SaaS group 3, one loader app-wide |
+| `status-icon` | The item status icon, `data-status="pending|unknown|reconciling|problem"` | Pending: the loader, shown only after `DISPLAY_DELAY_MS`, rotating, static under reduced motion. Unknown: `?`. Reconciling: keeps `?`, then the loader. Problem (not applied, rejected, conflict, integrity): `!`. Focusable where its host is not in the Tab order. Also the server-confirmed pending loader of SaaS group 3, one loader app-wide |
 | `status-emphasis` | `data-status-emphasis` on the item (card, row, Add field, editor, slot) | Only with `?` and `!`, never with the loader; the existing dimming of a locked source row or candidate stays |
 | `status-tooltip` | The hover/focus tooltip that holds the status sentence | No controls; one at a time; the item's description (`aria-describedby`); static display in both motion modes, like `explorer-title-tooltip` |
 | `status-slot` | Breakdown row status slot | 22px, before the action cluster, always reserved so the title never shifts; replaces the 160px success slot (MI-21) |
@@ -1666,7 +1670,7 @@ Shared elements carry `data-feedback-role`:
 | Field | Value |
 |---|---|
 | Owner | User |
-| Missing decision | The look of the status icons (loader, `?`, `!`), the item emphasis, the status tooltip, the Breakdown status slot and the Explorer slot buttons; the values of the status tokens and the toast surface; the Home button and its landing emphasis; the breadcrumb reveal surface, its drag translucency and the segment "drop here" signal |
+| Missing decision | The look of the status icons (loader, `?`, `!`), the item emphasis, the status tooltip, the Breakdown status slot, the Explorer slot buttons and the editor status positions (the Breakdown row editor and the Scratch-title editor in the Context); the values of the status tokens and the toast surface; the Home button and its landing emphasis; the breadcrumb reveal surface, its drag translucency and the segment "drop here" signal |
 | How it is decided | One rendered option sheet in `griddo`, with `retro-mac` and `neumorphism` spot-checks, shapes copied from the realized theme CSS, together with `DP-SAAS-01` (Task 242, feedback F33) |
 | Resume condition | The user's choice is recorded in this section and committed |
 | Blocks | The visual parts of Task 243 (primitives and tokens), Task 244 (toasts), Tasks 245–247 (Inbox surfaces) and Task 248 (Home and reveal); not the theme reduction (241), the zone removal (249) or the last-Scratch preference (250) |
@@ -2255,7 +2259,8 @@ Two-row layout: top row has content, bottom row has progress (only when chunks e
 
 From Phase 50 the breadcrumb is hidden by default, revealed from the sidebar
 Home button over the grid's top-left, with the deadline chip in the same row
-and no reserved cell; segments are the only pointer targets
+and no reserved cell; only the segments and the deadline chip take the
+pointer
 ([Feedback Status Surfaces](#feedback-status-surfaces), SPEC §Breadcrumb reveal
 and Home button). The markup below is the segment row inside that surface.
 
