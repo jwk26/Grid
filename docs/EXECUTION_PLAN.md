@@ -2254,7 +2254,7 @@ Proves the riskiest unknowns first: the write role (S14), the snapshot (S31)
 and the envelope with the pending-write layer (S32) on one real write, and the
 hosted plan (D1).
 
-### Task 213: [ ] Add local Supabase and the `pnpm test:db` gate
+### Task 213: [x] Add local Supabase and the `pnpm test:db` gate
 
 **Files and actions:**
 - `package.json`: the Supabase CLI as a pinned dev dependency;
