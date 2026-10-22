@@ -3,6 +3,7 @@
 > Status: **Proposed — recipe-package user gate pending**
 > Verification: **source-only; no rendered route/state was checked**
 > Production owner: `StagingZone`, candidate hook/repository, and `TriageDragToken` (`LAND-STAGING`)
+> Feedback lane amendment (promotion ②, 2026-10-22): from Phase 50 the in-card status line below becomes a status icon (Node card top-right corner, Bit row end) with emphasis and tooltip; an Unstage failure shows `!` on its candidate; the alert band keeps only Stage failures; the `Nodes` well keeps one card's minimum width with an auto-fill grid. Canonical: [DESIGN_TOKENS](../DESIGN_TOKENS.md#feedback-status-surfaces) `DP-VQ06-STAGING` amendment. Rows for Tiny Desk, Origami, Terminal and Graphite are history after Task 241 (feedback F28) and bind nothing.
 
 ## Authority And Source Regions
 

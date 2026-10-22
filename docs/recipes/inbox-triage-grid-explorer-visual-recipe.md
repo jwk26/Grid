@@ -3,6 +3,7 @@
 > Status: **Proposed — recipe-package user gate pending**
 > Verification: **source-only; no rendered route/state was checked**
 > Production owner: `HierarchyExplorer` plus dedicated future query/result owners (`LAND-EXPLORER`)
+> Feedback lane amendment (promotion ②, 2026-10-22): from Phase 50 a search result's trailing Undo imports the Undo slot status of the Newly/Undo amendment (`↶`, loader, `?` = Check again, `!` = Retry, sentences in the slot tooltip). Canonical: [DESIGN_TOKENS](../DESIGN_TOKENS.md#undo-slot-status-amendment--feedback-lane-phase-50). Rows for Tiny Desk, Origami, Terminal and Graphite are history after Task 241 (feedback F28) and bind nothing.
 
 ## Authority And Source Regions
 

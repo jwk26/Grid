@@ -3,6 +3,7 @@
 > Status: **Proposed — recipe-package user gate pending**
 > Verification: **source-only except the exact-source `DP-VQ04` fixed-editor evidence recorded in `docs/verification/inbox-triage/task-138.md`**
 > Production owner: `BreakdownPanel` row list and Add surface (`LAND-BREAKDOWN`, `LAND-THEME`)
+> Feedback lane amendment (promotion ②, 2026-10-22): from Phase 50 the `DP-VQ02` success signal below is retired (no visible success; the hidden polite announcement stays), and the `DP-VQ05` reliability second lines move onto the row's 22px status slot and into the Add field as icon, emphasis and tooltip. Canonical: [DESIGN_TOKENS](../DESIGN_TOKENS.md#feedback-status-surfaces) `DP-VQ02`, the `DP-VQ05` amendment and Feedback Status Surfaces. Rows for Tiny Desk, Origami, Terminal and Graphite are history after Task 241 (feedback F28) and bind nothing.
 
 ## Authority And Source Regions
 

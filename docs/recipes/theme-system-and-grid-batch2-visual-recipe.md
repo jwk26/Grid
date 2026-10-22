@@ -8,6 +8,8 @@
 > Status: Drafted in writing-documents Step 0.75
 >
 > Scope: visual/token/runtime recipe only. This does not implement the theme system and does not amend canonical docs by itself.
+>
+> Feedback lane amendment (promotion ②, 2026-10-22): the theme set shrinks to `griddo`, `retro-mac`, `neumorphism` and `claymorphism` (Task 241, feedback F28). The `tiny-desk`, `origami`, `terminal` and `graphite` values below are history and bind nothing after Task 241; canonical list: [DESIGN_TOKENS](../DESIGN_TOKENS.md#theme-ids).
 
 ## Extraction Method
 

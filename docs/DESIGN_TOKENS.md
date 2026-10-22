@@ -41,6 +41,15 @@
 > S26–S28, S40 and feedback F02, F11, F13, F14, F17–F20. Adds
 > [SaaS App-State Surfaces](#saas-app-state-surfaces) with the `DP-SAAS-01`
 > Decision prerequisite and the display delay. No existing value changes.
+> **Feedback lane amendment (promotion ②):** 2026-10-22, from
+> [`DECISION.md`](brainstorming/2026-10-18-staging-item-status-feedback/DECISION.md)
+> F01, F03–F10, F12, F15, F21–F30 and F33. Adds
+> [Feedback Status Surfaces](#feedback-status-surfaces) with the `DP-FB-01`
+> Decision prerequisite; retires `DP-VQ02`; amends `DP-VQ04`, `DP-VQ05`,
+> `DP-VQ06-STAGING`, `DP-VQ10` and the Ordinary Finder Newly/Undo amendment
+> through one item status rule (Phase 50); reduces the color themes to four
+> (Task 241); moves the `DP-SAAS-01` decision to Task 242. Until a task lands,
+> the contracts it amends stay in force as built.
 
 ---
 
@@ -87,6 +96,7 @@ Values that differ from `docs/design-system-preview.html` **on purpose**:
 - [Calendar Visual Theme Contract](#calendar-visual-theme-contract)
 - [Inbox / Triage Surface Contract](#inbox--triage-surface-contract)
 - [SaaS App-State Surfaces](#saas-app-state-surfaces)
+- [Feedback Status Surfaces](#feedback-status-surfaces)
 - [Prototype-to-production realization and token ownership](#prototype-to-production-realization-and-token-ownership)
 - [Responsive Grid Node Tokens](#responsive-grid-node-tokens)
 - [Tailwind v4 Theme Bridge](#tailwind-v4-theme-bridge)
@@ -293,26 +303,28 @@ Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens fi
 ```ts
 export const COLOR_THEMES = [
   "griddo",
-  "tiny-desk",
   "neumorphism",
   "claymorphism",
-  "origami",
-  "terminal",
   "retro-mac",
-  "graphite",
 ] as const;
 ```
+
+**Four themes (feedback F28, Task 241).** `tiny-desk`, `origami`, `terminal`
+and `graphite` leave the picker, `COLOR_THEMES`, the no-flash script, the CSS
+and the fonts only they use. Until Task 241 the code keeps all eight. `griddo`
+stays the default until Paper ships in the theme stage, whose final set is
+`paper`, `retro-mac`, `neumorphism` and `claymorphism` (SaaS S40). Rows for
+the removed themes in the theme-family tables of this document stay as
+history and bind nothing after Task 241; their per-theme work is not carried
+anywhere. The no-flash script reads the same id list as the store (one shared
+non-client module), so the two cannot drift (ISSUE-20-01).
 
 | Theme | Label | Character | Font | Shape / border | Depth |
 |---|---|---|---|---|---|
 | `griddo` | GridDO | warm default GridDO identity | `var(--font-geist-sans)` | `--theme-radius: 1.5rem`; `--theme-border-width: 1px` | soft app shadow |
-| `tiny-desk` | Tiny Desk | wooden planner / corkboard | `var(--font-playfair), serif` | `8px`; `3px` | natural offset shadow |
 | `neumorphism` | New Morphism | soft grey extrusion | `var(--font-inter), sans-serif` | `20px`; `0px` | paired light/dark extrusion shadow |
 | `claymorphism` | 3D Clay | glossy tactile clay | `var(--font-inter), sans-serif` | `32px`; `0px` | outer + inset clay shadow |
-| `origami` | Origami | folded/faceted paper | `var(--font-space-mono), monospace` | `2px 12px 2px 12px / 12px 2px 12px 2px`; `1px` | folded paper shadow |
-| `terminal` | Terminal | retro console | `var(--font-vt323), monospace` | `0px`; `2px` | no base shadow; hover glow |
 | `retro-mac` | Retro Mac | classic Mac OS | `var(--font-space-mono), monospace` | `4px`; `2px` | hard offset shadow |
-| `graphite` | Graphite | neutral architectural | `var(--font-inter), sans-serif` | `8px`; `2px` | restrained neutral shadow |
 
 ### Runtime Tokens
 
@@ -321,7 +333,7 @@ export const COLOR_THEMES = [
 | Runtime attribute | `<html data-color-theme="...">` |
 | Default theme | `griddo` |
 | Persistence key | `griddo-color-theme` |
-| Validation | persisted value must be one of `COLOR_THEMES`; otherwise fall back to `griddo` |
+| Validation | persisted value must be one of `COLOR_THEMES`; otherwise fall back to `griddo`, which also covers a persisted removed theme id after Task 241 |
 | No-flash init | root layout sets `data-color-theme` before hydration using the persisted value |
 | Theme picker | icon-only Palette trigger, `aria-label="Change color theme"`, swatch + label + selected check |
 
@@ -401,12 +413,12 @@ or to promotion-map §11.4's shared implication.
 | Scratch Pool | `pool-tools`, `pool-search-field`, `pool-total-count`, `pool-filtered-count`, `pool-selected-row`, `pool-compact-switcher`, `pool-compact-marker`, `pool-scroll-viewport`, `pool-status-band`, `pool-status-line`, `pool-status-action`, `pool-activity-marker` | `R-POOL`; status roles from `DP-VQ06-POOL` / Task 144 only |
 | External Scratch removal | `external-removal-scrim`, `external-removal-panel`, `external-removal-title`, `external-removal-destination`, `external-removal-countdown-track`, `external-removal-countdown-fill`, `external-removal-draft-card`, `external-removal-copy-status`, `external-removal-primary-action`, `external-removal-secondary-action` | `DP-VQ01`; Task 141 only |
 | Selected Context | `context-signature-plate`, `context-eyebrow-meta`, `context-title`, `context-action-cluster`, `context-complete-marker`, `context-completion-blocker`, `context-completion-blocker-mark` | `R-CONTEXT`; blocker roles from approved `DP-VQ11`, Task 160 only; retired by user decision in Task 178 (2026-10-19) |
-| Breakdown | `breakdown-active-row`, `breakdown-staged-row`, `breakdown-row-action`, `breakdown-add-field`, `breakdown-add-control`, `breakdown-ordinary-empty`, `breakdown-consumed-completion`, `breakdown-success-wash`, `breakdown-success-status`, `breakdown-success-check`, `breakdown-add-completion-blocker` | `R-BREAKDOWN`; success roles from `DP-VQ02` / Task 148 only; blocker role from approved `DP-VQ11`, Task 160 only, retired by user decision in Task 178 (2026-10-19) |
-| Staging | `staging-panel`, `staging-node-well`, `staging-node-card`, `staging-bit-well`, `staging-bit-row`, `staging-neutral`, `staging-unavailable`, `staging-invalid`, `staging-pending`, `staging-unstage-target`, `staging-operation-status`, `staging-arrival-count`, `staging-local-alert`, `staging-alert-action`, `staging-target-reason`, `staging-integrity-status` | `R-STAGING`; status roles from `DP-VQ06-STAGING` / Task 147 only |
+| Breakdown | `breakdown-active-row`, `breakdown-staged-row`, `breakdown-row-action`, `breakdown-add-field`, `breakdown-add-control`, `breakdown-ordinary-empty`, `breakdown-consumed-completion`, `breakdown-success-wash`, `breakdown-success-status`, `breakdown-success-check`, `breakdown-add-completion-blocker` | `R-BREAKDOWN`; success roles from `DP-VQ02` / Task 148 only, retired with `DP-VQ02` in Phase 50 (feedback F01); blocker role from approved `DP-VQ11`, Task 160 only, retired by user decision in Task 178 (2026-10-19) |
+| Staging | `staging-panel`, `staging-node-well`, `staging-node-card`, `staging-bit-well`, `staging-bit-row`, `staging-neutral`, `staging-unavailable`, `staging-invalid`, `staging-pending`, `staging-unstage-target`, `staging-operation-status`, `staging-arrival-count`, `staging-local-alert`, `staging-alert-action`, `staging-target-reason`, `staging-integrity-status` | `R-STAGING`; status roles from `DP-VQ06-STAGING` / Task 147 only; from Phase 50 `staging-operation-status` and `staging-integrity-status` render through the [Feedback Status Surfaces](#feedback-status-surfaces) roles (feedback F06) |
 | Grid Explorer base | `explorer-header`, `explorer-column`, `explorer-full-level-label`, `explorer-node-row`, `explorer-bit-row`, `explorer-eligible-target`, `explorer-hovered-target`, `explorer-invalid-target`, `explorer-unavailable-target`, `explorer-remote-count`, `explorer-path-status`, `explorer-status-action` | `R-EXPLORER`; status roles from `DP-VQ06-EXPLORER` / Task 150 only |
 | Grid Explorer search | `explorer-search-entry`, `explorer-search-body`, `explorer-search-field`, `explorer-search-close`, `explorer-search-status`, `explorer-search-results`, `explorer-search-result`, `explorer-search-type`, `explorer-search-breadcrumb`, `explorer-search-duplicate`, `explorer-search-retry`, `explorer-search-undo`, `explorer-reveal-status`, `explorer-revealed-row` | `DP-VQ07`; complete body Task 151 and search-result Undo composition Task 158 only |
 | Placement base | `placement-direct-shell`, `placement-staged-shell`, `placement-target-path`, `placement-confirm`, `placement-cancel`, `placement-full-target-warning`, `placement-confirm-disabled`, `placement-result-title-shell`, `placement-result-title-source`, `placement-result-title-input`, `placement-result-title-count`, `placement-result-title-error`, `placement-result-title-continue`, `placement-direct-type-option`, `placement-direct-type-reason`, `placement-direct-limit-summary` | `R-PLACEMENT`; reliability extends through approved `DP-VQ08`, and title/limit replacement surfaces extend through approved `DP-VQ09`; Task 153 and Task 154 remain separate edges |
-| Newly Placed / Undo | `newly-marker`, `newly-dot`, `newly-new-badge`, `newly-undo-action`, `newly-status-rail`, `newly-status-mark`, `newly-status-action`, `newly-status-reason` | `R-NEWLY`; exact overlap/reason/reliability roles from approved `DP-VQ10`, Task 157 only; composes around the actual Node/Bit card and never replaces or redesigns it |
+| Newly Placed / Undo | `newly-marker`, `newly-dot`, `newly-new-badge`, `newly-undo-action`, `newly-status-rail`, `newly-status-mark`, `newly-status-action`, `newly-status-reason` | `R-NEWLY`; exact overlap/reason/reliability roles from approved `DP-VQ10`, Task 157 only; composes around the actual Node/Bit card and never replaces or redesigns it; from Phase 50 the `newly-status-*` rail roles are retired and the Undo slot carries the status (feedback F07) |
 | Archive / completion | `archive-section-scrim`, `archive-card`, `archive-complete-context`, `archive-reopen`, `archive-action`, `archive-cancel`, `archive-withdrawal-status`, `archive-withdrawal-mark`, `archive-status`, `archive-status-mark`, `archive-current-action`, `archive-confirmation-detail` | `R-ARCHIVE`; `archive-confirmation-detail` is hidden by default and shown only by themes that adopt it (retro-mac, Task 171 user decision); blocker/withdrawal roles from approved `DP-VQ11`, Task 160 only; reliability/recovery roles from approved `DP-VQ12`, Task 162 only |
 
 The shared state binding is a whitespace-delimited
@@ -429,7 +441,7 @@ appropriate; the data attribute never replaces them.
 | `paused` | The `DP-VQ01` countdown is frozen at its exact remainder; destination changes update content without resuming it |
 | `draft-copy-ready` | One full source-labeled page-memory draft remains available for copying before the external-removal handoff |
 | `copied` | The matching full draft was copied once; preserve button focus and never infer persistence, countdown resume, or movement |
-| `success` | Authoritative, non-repeating Add/Unstage success; `DP-VQ02` binds the exact row wash/check/text, polite status, focus preservation, and static reduced-motion equivalent consumed only by Task 148 |
+| `success` | Authoritative, non-repeating Add/Unstage success; `DP-VQ02` binds the exact row wash/check/text, polite status, focus preservation, and static reduced-motion equivalent consumed only by Task 148. From Phase 50 retired as a visible state: only the polite hidden announcement remains (feedback F01, F04) |
 | `hidden-selection` | The selected Scratch remains active but its row does not match the current Pool query; retain selection/Context and expose the `DP-VQ06-POOL` search-context line without a proxy row |
 | `remote-arrival` | One or more active Scratches arrived remotely during the mounted Inbox page; expose the exact aggregate count without auto-selection or focus theft |
 | `lifecycle-update` | One or more non-selected Scratches were externally archived, deleted, or restored; keep lifecycle categories distinct in the exact Pool-local aggregate copy |
@@ -494,10 +506,11 @@ Batch 2 themes require these additional font variables in addition to Geist Sans
 
 | Font | CSS variable | Used by |
 |---|---|---|
-| Inter | `--font-inter` | `griddo` fallback-aligned variants, `neumorphism`, `claymorphism`, `graphite` |
-| Playfair Display | `--font-playfair` | `tiny-desk` |
-| Space Mono | `--font-space-mono` | `origami`, `retro-mac` |
-| VT323 | `--font-vt323` | `terminal` |
+| Inter | `--font-inter` | `griddo` fallback-aligned variants, `neumorphism`, `claymorphism` |
+| Space Mono | `--font-space-mono` | `retro-mac` |
+
+Playfair Display (`--font-playfair`, `tiny-desk` only) and VT323
+(`--font-vt323`, `terminal` only) are removed with their themes in Task 241.
 
 Do not silently collapse all themes to Geist. If a font cannot be loaded, document the fallback and the reason.
 
@@ -583,7 +596,7 @@ This does not alter DP contracts, Q02 Tagged or later-theme adoption boundaries.
 | Surface | Canonical visual contract | Trace |
 |---|---|---|
 | Layout | Preserve main work versus Explorer `60/40`, Breakdown versus Staging `60/40`, and Staging Nodes versus Bits `35/65`. These selected ratios are source-backed product geometry, not VQ realization. | `R-SHELL`, `R-STAGING` |
-| Visible identity | Theme chrome visibly identifies `Scratch Pool`, `Breakdown`, `Staging`, and semantic `Grid Explorer`. Only Tiny Desk `Library Index`, Retro Mac `Finder`, and Terminal `GRID EXPLORER` are approved alternate visible Explorer labels. Do not expose `L1`, `L2`, or `L3`; Explorer columns use full `Home`, `Level 1`, `Level 2`, and `Level 3` labels. | `R-SHELL`, `R-EXPLORER` |
+| Visible identity | Theme chrome visibly identifies `Scratch Pool`, `Breakdown`, `Staging`, and semantic `Grid Explorer`. Only Retro Mac `Finder` is an approved alternate visible Explorer label (the Tiny Desk and Terminal labels leave with their themes, feedback F28). Do not expose `L1`, `L2`, or `L3`; Explorer columns use full `Home`, `Level 1`, `Level 2`, and `Level 3` labels. | `R-SHELL`, `R-EXPLORER` |
 | Internal scrolling | Pool list, Breakdown list, both Staging subsections, and every Explorer column scroll internally with scrollbar chrome hidden while ordinary pointer, touch, and keyboard scrolling remains available. | `R-SHELL`, surface recipes |
 | Scratch Pool | Use the Pool role family for the tools/search region, total count, selected row, compact switcher/marker, and hidden-scroll viewport. Exact product behavior remains in SPEC. | `R-POOL` |
 | Selected Scratch Context | Use the standalone signature plate above ordinary rows, never a compact context strip or heading metadata. Working and complete presentations share the Context role family but remain semantically distinct. | `R-CONTEXT` |
@@ -648,6 +661,15 @@ theme branches or copied source literals:
 | Graphite | Dark/subtle editorial surface, fine rule, ruled block, and monochrome action roles |
 
 ### Approved Add/Unstage success realization — `DP-VQ02`
+
+**Retired in Phase 50 (feedback F01; user, 2026-10-19/21).** Success shows
+nothing on screen: the wash, the `✓`, the visible `Added.` /
+`Returned to Breakdown.` text, the `breakdown-success-*` roles, the
+`--triage-success-wash-*` and `--triage-success-status-duration` tokens and the
+reserved 160px status slot go. The polite, visually hidden announcement stays
+(F04), with the same trigger identity and focus rules below. The Breakdown row
+reserves the 22px status slot of [Feedback Status Surfaces](#feedback-status-surfaces)
+instead. Until Phase 50 the contract below stays in force as built.
 
 **User-approved 2026-08-09:** Choice A establishes one shared row-attached
 success signal for Add and Unstage. This removes `VQ-02` from the open
@@ -757,6 +779,23 @@ theme families:
 | Retro Mac | In-place 1-bit fields, hard status/comparison panes, and default-button hierarchy without new windows |
 | Graphite | Editorial fields, strengthened status rules, and labelled manuscript comparison/recovery blocks |
 
+**Feedback lane amendment (F05, Phase 50).** The transient editor states move
+to the item status rule ([Feedback Status Surfaces](#feedback-status-surfaces)):
+
+| State | From Phase 50 |
+|---|---|
+| `dirty` (`Unsaved changes.`) | No text; the enabled Save is the signal |
+| `saving`, `reconciling` | The loader in the status position after `DISPLAY_DELAY_MS`, with Save and Cancel unavailable at once; the sentence moves to the tooltip and the existing announcement |
+| Pending intent (`Saving before continuing…`) | The loader plus the existing `Stay here`; the sentence in the tooltip |
+| `not-applied` (`Not saved.`) | `!` with emphasis and the tooltip in place of the overlay line; its existing recovery control stays as a compact control |
+| `offline` (`Offline. Your draft is still here.`) | No overlay: the draft stays in the editor and the offline write-attempt toast appears (SPEC §Toasts) |
+| `conflict` | Unchanged: the source-bound conflict view stays (F08) |
+| `invalidated` | Unchanged: the recovery overlay is a decision surface F05 does not touch |
+| Applied (`Saved.`) | Only the polite hidden announcement (F04) |
+
+The fixed geometry, the `9.5rem` action region and the lock rules stay. The
+Motion row's "no spinner rotation" yields to the F03 loader only.
+
 ### Approved Add/Delete attached reliability realization — `DP-VQ05`
 
 **User-approved 2026-08-09:** Choice A binds Add reliability to the Add region
@@ -790,6 +829,25 @@ The same semantic tree consumes existing theme families:
 | Terminal | Variable-driven static status line and bracketed recovery action with no blink |
 | Retro Mac | In-place 1-bit status pane and hard recovery control with no new window |
 | Graphite | Editorial status caption, strengthened rule, monochrome action, and persistent focus cue |
+
+**Feedback lane amendment (F06, F07, Phase 50).** The reliability lines move
+onto the item ([Feedback Status Surfaces](#feedback-status-surfaces)):
+
+- **Add.** The reserved second line (`breakdown-add-reliability`) goes. The
+  status icon sits inside the Add field at its right end with the emphasis on
+  the field; `Check again` and `Retry Add` stay beside Add as compact
+  controls; the sentence is the field's tooltip and description.
+- **Delete.** The second line inside the row (`breakdown-delete-reliability`)
+  goes. The icon sits in the row's 22px status slot before the actions, and
+  `Check again` stays a compact control in the row's action cluster; the
+  sentence is the tooltip of the row's grip and status slot.
+- **Timing.** The lock still applies synchronously before the first async gap;
+  the pending loader shows only after `DISPLAY_DELAY_MS`. Unknown and failure
+  show at once and keep their lifetimes.
+- **Result.** Add success shows nothing on screen (`DP-VQ02` retired); the
+  focus and announcement rules are unchanged.
+- The copy stays exact; only where it shows changes. The Motion row's
+  "no spinner rotation" yields to the F03 loader only.
 
 ### Approved Pool fixed-status realization — `DP-VQ06-POOL`
 
@@ -860,6 +918,35 @@ The attached family maps through Staging-native theme roles:
 | Terminal | Variable-driven inline record status, text count command, and static framed alert with no fixed JSX color or blink |
 | Retro Mac | In-place 1-bit candidate footer, hard counter control, and full-width alert pane below the title with no new window |
 | Graphite | Candidate editorial caption, compact index count, and strengthened-rule alert band with restrained monochrome action |
+
+**Feedback lane amendment (F06–F10, Phase 50).**
+
+- **Operation status.** `staging-operation-status` stops being a line inside
+  the card or row. A Node card shows the status icon in its top-right corner,
+  a Bit row at its end: the loader after `DISPLAY_DELAY_MS` for pending
+  (including a hold from pending), `?` for unknown, `?` then the loader for
+  reconciling. The pending and unknown sentences are the item's tooltip; the
+  live-region announcements stay. The existing dimming of a candidate under a
+  pending Unstage stays.
+- **Problems on a remaining item.** An Unstage `not_applied`, rejected or
+  conflict result, whose candidate remains, shows `!` with emphasis and the
+  sentence as tooltip on that candidate instead of the alert; it clears on a
+  new operation for that candidate, its authoritative disappearance or a
+  Scratch switch. An unresolved-source integrity slot shows `!` with its
+  type-only sentence as tooltip.
+- **Alert band.** `staging-local-alert` keeps the notices whose item has
+  gone: Stage `not_applied`, rejected and conflict, and the stale-invalidation
+  notices (changed-elsewhere drop cancellation, placement closed), whose drag
+  or placement has ended (F08).
+- **Tooltip** (F09). On a card or row the problem tooltip leads with the full
+  title on its own line, since the label truncates, unless the sentence
+  already contains it. Where the host is not in the Tab order (a Stage
+  projection, an integrity slot), the status icon is focusable.
+- **Nodes zone** (F10, MI-21). The `Nodes` well is never narrower than one
+  Node card and lays its cards in an auto-fill grid: one column when two do
+  not fit, two as today when they do; every theme shares it.
+- Counts, arrival, neutral/invalid reasons and focus rules are unchanged. The
+  Motion row's "no spinner" yields to the F03 loader only.
 
 ### Approved Explorer affected-column status realization — `DP-VQ06-EXPLORER`
 
@@ -1316,6 +1403,38 @@ after exact committed adoption and matching audit. DP-VQ08/09 placement,
 DP-VQ10 transactions/locks/recovery/focus/lifetime and other accepted contracts
 are otherwise unchanged.
 
+### Undo slot status amendment — feedback lane, Phase 50
+
+Feedback F07 and F09 amend `DP-VQ10` and the Ordinary Finder amendment above:
+the Undo slot becomes the Undo operation's status slot, and the always-visible
+`newly-status-rail` with its text recovery actions goes. It applies to
+ordinary Explorer Newly rows and to replacement-search results, which import
+this treatment (superseding the "Preserved consumers" row for search results;
+user, 2026-10-22).
+
+| Undo state | Slot shows | Tooltip and announcement |
+|---|---|---|
+| Available, re-enabled | `↶` (the existing `Undo2` glyph) | `Undo this placement.` / `Undo is available again.`; re-enabled still announces once |
+| Checking, ineligible (result mutated, descendants, placement open, operation locked, edit blocked) | `↶`, unavailable and focusable (`aria-disabled`) | The exact current reason from the tables above |
+| Pending | The loader after `DISPLAY_DELAY_MS`, unavailable | `Undoing “{title}”…`; the existing announcement |
+| Unknown | `?` as a button that runs `Check again` | The unknown sentence plus `Select to check again.` |
+| Reconciling | Keeps `?`, then the loader after the delay; the button is unavailable at once | The checking sentence |
+| Not applied | `!` as a button that runs `Retry` | The not-applied sentence plus `Select to try again.` |
+| Rejected, conflict | `!`, unavailable and focusable (`aria-disabled`) | The narrow or canonical conflict reason |
+| Success | As today: the committed result is removed | `Restored “{source}”.` once |
+
+An unavailable `↶` and an action-less `!` use `aria-disabled="true"`, never
+the `disabled` attribute: they stay in the Tab order and take focus, their
+activation is suppressed, and their reason tooltip shows on keyboard focus as
+well as on hover (F07, F09; user, 2026-10-22). The card body keeps its Task 179A truncated-title tooltip; the slot shows
+only its own tooltip, and one tooltip shows at a time. The row keeps its
+width; NEW, selection, the separate slot control, the operation identity and
+the focus destinations stay. Only `?` and `!` add item
+emphasis. The `newly-status-rail`, `newly-status-mark`, `newly-status-action`
+and `newly-status-reason` roles retire; the slot uses the
+[Feedback Status Surfaces](#feedback-status-surfaces) roles. Until Phase 50 the
+contracts above stay in force as built.
+
 ### Approved Completion Blocker / Withdrawal realization — `DP-VQ11`
 
 **User-selected 2026-08-11:** Choice A keeps page-local blockers attached to
@@ -1456,15 +1575,15 @@ Shared elements carry `data-app-role`:
 
 | Role | Element | Fixed facts |
 |---|---|---|
-| `account-button` | Sidebar account icon, top-most (S23) | Lucide `user-round` for a guest, `user-round-check` for an OAuth account; the sidebar icon-button size and focus ring of its neighbours |
-| `account-badge` | Badge on the account icon (F17) | `data-connection-state="unstable"`: `!` mark in the warning status hue; `"offline"`: Lucide `wifi-off` in the error status hue. The hues are the F15 status roles, which promotion ② defines; the shape carries the state, not colour alone (WCAG 1.4.1). No badge in the normal state |
+| `account-button` | Sidebar account icon, below the Home button (F21); top-most until Home lands (S23, F33) | Lucide `user-round` for a guest, `user-round-check` for an OAuth account; the sidebar icon-button size and focus ring of its neighbours |
+| `account-badge` | Badge on the account icon (F17) | `data-connection-state="unstable"`: `!` mark in the warning status hue; `"offline"`: Lucide `wifi-off` in the error status hue. The hues are the F15 status tokens of [Feedback Status Surfaces](#feedback-status-surfaces); the shape carries the state, not colour alone (WCAG 1.4.1). No badge in the normal state |
 | `app-frame` | Whole-window frame, sidebar included (F19) | One frame for every app-level screen; replaces the app, except the narrow-window notice |
 | `app-frame-title`, `app-frame-reason`, `app-frame-action` | The frame's title, reason line and actions | Focus moves to the first action (F19) |
 | `app-frame-loading` | Loading indicator | Exposed as busy; appears only after `DISPLAY_DELAY_MS` (300ms, F02); reduced motion shows a static indicator |
 | `app-frame-security-check` | Turnstile widget slot (S42 (3)) | The widget's own rendering inside the frame |
 | `narrow-notice` | Narrow-window notice (S42 (4)) | Laid over the mounted, `inert` app |
 | `account-modal` | Guest and account modal (Phase 48) | Contents per SPEC |
-| (reused) server-confirmed pending loader | The loader on a control or row of a SPEC write-feel group 3 action | The feedback F03 loader role (promotion ②), one loader app-wide; shown after `DISPLAY_DELAY_MS`; static under reduced motion. Not part of `DP-SAAS-01` (user, 2026-10-22) |
+| (reused) server-confirmed pending loader | The loader on a control or row of a SPEC write-feel group 3 action | The feedback F03 loader role ([Feedback Status Surfaces](#feedback-status-surfaces), Task 243), one loader app-wide; shown after `DISPLAY_DELAY_MS`; static under reduced motion. Not part of `DP-SAAS-01` (user, 2026-10-22) |
 
 ### Toast use
 
@@ -1476,8 +1595,8 @@ are or what colour they use (S28):
 - A repeat of the same kind updates its text to the counted form and restarts
   its time; at most three different kinds stack (F13).
 - The offline write-attempt toast is a warning with Lucide `wifi-off` (F18).
-- Position and colour (`bottom-right`, `richColors` today) are feedback F12 and
-  F15, promotion ②.
+- Position and colour are feedback F12 and F15, applied by Task 244 (Phase 49)
+  before Phase 47 ([Feedback Status Surfaces](#feedback-status-surfaces)).
 
 ### Decision prerequisite — `DP-SAAS-01`
 
@@ -1487,8 +1606,75 @@ are or what colour they use (S28):
 | Missing decision | The look of the account icon and badge, the loading screen, the failure, guest-creation-failure, session-expired, account-being-deleted and security-check screens (one frame), the narrow-window notice, and the guest and account modal |
 | How it is decided | One rendered option sheet in `griddo`, with `retro-mac` and `neumorphism` spot-checks, all surfaces together (S27, S40); shapes copied from the realized theme CSS, not from base components |
 | Resume condition | The user's choice is recorded in this section and committed |
-| Blocks | The Phase 45 load-failure screens (Task 228), the Phase 47 icon, badge, loading and session-expired screens (Task 234), and the Phase 48 modal, account-being-deleted screen, security-check screen and narrow-window notice (Tasks 235, 236, 238); not the data, network-state or toast-helper work. It is decided in Task 225, at the start of Phase 45 |
+| Blocks | The Phase 45 load-failure screens (Task 228), the Phase 47 icon, badge, loading and session-expired screens (Task 234), and the Phase 48 modal, account-being-deleted screen, security-check screen and narrow-window notice (Tasks 235, 236, 238); not the data, network-state or toast-helper work. It is decided in Task 242 (Phase 49) on the same option sheet as `DP-FB-01` (feedback F33); Task 225, at the start of Phase 45, confirms the recorded choice against the current SPEC surfaces |
 | No fallback | Until it is recorded, no size, spacing, layout, motion or per-theme value for these surfaces is chosen by implementation |
+
+---
+
+## Feedback Status Surfaces
+
+Feedback lane, promotion ② (DECISION F02, F03, F06, F07, F09, F10, F12, F15,
+F21–F25, F29, F30, F33). Behavior, timing and copy live in SPEC
+[Item status presentation](SPEC.md#item-status-presentation),
+[Toasts](SPEC.md#toasts) and
+[Breadcrumb reveal and Home button](SPEC.md#breadcrumb-reveal-and-home-button);
+this section owns the visual roles, the status tokens and their boundary.
+
+### Theme scope
+
+- Every surface here uses semantic tokens only and never branches on theme id
+  (CLAUDE.md Architecture 8).
+- Checkpoints check `griddo`, `retro-mac` and `neumorphism` for correct
+  rendering and `claymorphism` only for not breaking (F29). The per-theme
+  finishing of these surfaces for `retro-mac` and `neumorphism`, and all of
+  Paper and Claymorphism, belong to the theme stage.
+
+### Status tokens
+
+Three status kinds carry the hues the toasts use today (`richColors`), blended
+into each theme (F15):
+
+| Token | Use |
+|---|---|
+| `--status-success`, `--status-success-surface`, `--status-success-foreground` | Success toasts |
+| `--status-warning`, `--status-warning-surface`, `--status-warning-foreground` | Warning toasts (offline write attempt), the unstable connection badge |
+| `--status-error`, `--status-error-surface`, `--status-error-foreground` | Failure toasts, the offline connection badge |
+
+- `DP-FB-01` sets their values on `:root` (light and dark), and every theme
+  inherits them; the theme stage may override them per theme.
+- Item status (`?`, `!`, emphasis) never uses the error hue: red stays reserved
+  for destructive actions (F03). Its colours are part of `DP-FB-01`.
+- The icon shape always carries the kind, so colour is never the only signal
+  (WCAG 1.4.1).
+
+### Roles
+
+Shared elements carry `data-feedback-role`:
+
+| Role | Element | Fixed facts |
+|---|---|---|
+| `status-icon` | The item status icon, `data-status="pending|unknown|reconciling|problem"` | Pending: the loader, shown only after `DISPLAY_DELAY_MS`, rotating, static under reduced motion. Unknown: `?`. Reconciling: keeps `?`, then the loader. Problem (not applied, rejected, conflict, integrity): `!`. Focusable where its host is not in the Tab order. Also the server-confirmed pending loader of SaaS group 3, one loader app-wide |
+| `status-emphasis` | `data-status-emphasis` on the item (card, row, Add field, editor, slot) | Only with `?` and `!`, never with the loader; the existing dimming of a locked source row or candidate stays |
+| `status-tooltip` | The hover/focus tooltip that holds the status sentence | No controls; one at a time; the item's description (`aria-describedby`); static display in both motion modes, like `explorer-title-tooltip` |
+| `status-slot` | Breakdown row status slot | 22px, before the action cluster, always reserved so the title never shifts; replaces the 160px success slot (MI-21) |
+| `status-slot-button` | Explorer Newly Undo slot in a `?` or `!` state | Keeps the Undo slot's width and focus target; an action-less `!` (like an unavailable `↶`) is an unavailable, focusable button with `aria-disabled="true"`, never `disabled`, so its reason tooltip shows on keyboard focus and hover |
+| `toast-stack` | The `sonner` stack | Top-left of the work area, right of the `3rem` sidebar, at the breadcrumb row; below the breadcrumb while it is shown; at most three toasts; translucent and pointer-transparent during a Node or Bit drag (F12) |
+| `toast` | One toast, `data-toast-kind="success|warning|error"` | The status tokens above; icon ✓, `!` or Lucide `wifi-off` (offline) |
+| `home-button` | Sidebar Home button (F21) | Sidebar icon-button size and focus ring of its neighbours, top-most; `aria-current="page"` on L0; briefly emphasized when the breadcrumb folds into it (F23) |
+| `breadcrumb-reveal` | The revealed breadcrumb surface over the grid's top-left (F22–F25) | Segments and the deadline chip in one row; only segments and the chip take the pointer; above cards, below the drag overlay, popovers, dialogs, the Bit popup and the palette; translucent during a drag with the chip hidden |
+| `breadcrumb-drop-target` | An ancestor segment during a drag (F24) | A visible "drop here" signal on the segment only |
+| `staging-node-grid` | The `Nodes` well's card grid (F10) | Minimum width of one Node card; auto-fill grid, one column when two cards do not fit, two when they do |
+
+### Decision prerequisite — `DP-FB-01`
+
+| Field | Value |
+|---|---|
+| Owner | User |
+| Missing decision | The look of the status icons (loader, `?`, `!`), the item emphasis, the status tooltip, the Breakdown status slot, the Explorer slot buttons and the editor status positions (the Breakdown row editor and the Scratch-title editor in the Context); the values of the status tokens and the toast surface; the Home button and its landing emphasis; the breadcrumb reveal surface, its drag translucency and the segment "drop here" signal |
+| How it is decided | One rendered option sheet in `griddo`, with `retro-mac` and `neumorphism` spot-checks, shapes copied from the realized theme CSS, together with `DP-SAAS-01` (Task 242, feedback F33) |
+| Resume condition | The user's choice is recorded in this section and committed |
+| Blocks | The visual parts of Task 243 (primitives and tokens), Task 244 (toasts), Tasks 245–247 (Inbox surfaces) and Task 248 (Home and reveal); not the theme reduction (241), the zone removal (249) or the last-Scratch preference (250) |
+| No fallback | Until it is recorded, no size, colour, spacing, motion or per-theme value for these surfaces is chosen by implementation |
 
 ---
 
@@ -1806,6 +1992,11 @@ Runtime motion values live in `src/lib/animations/motion-language.ts`. Component
 | Completion exit | `motionDuration.completionExit` | `0.3s` |
 | Theme transition | `motionDuration.theme` / `--motion-duration-theme` | `0.3s` / `300ms` |
 | Display delay (presentation only, F02) | `DISPLAY_DELAY_MS` in `src/lib/constants.ts` | `300ms` before a loading screen, a server-confirmed pending state or an Inbox loader appears; never decides success |
+| Breadcrumb unfold from Home (F23) | `motionDuration.breadcrumbUnfold` | about `0.26s` |
+| Breadcrumb fold into Home (F23) | `motionDuration.breadcrumbFold` | about `0.35s` |
+| Breadcrumb hide fade (F23) | `motionDuration.breadcrumbFade` | `0.3s` |
+| Breadcrumb hide delay (F23) | `BREADCRUMB_HIDE_DELAY_MS` | `1000ms` after pointer and focus leave Home and the breadcrumb |
+| Breadcrumb entry reveal (F22) | `BREADCRUMB_ENTRY_REVEAL_MS` | `3000ms` after entering a Node |
 | Completion sink offset | `motionDistance.sink` | `8px` |
 | Item exit y-offset | `motionDistance.itemExitY` | `8px` |
 | Node hover scale | `motionScale.nodeHover` | `1.05` |
@@ -1832,6 +2023,14 @@ lifetime; no repeating or one-shot animation token is adopted. `DP-VQ02` owns th
 `success` appearance, trigger, timing, placement, interruption, and theme
 mapping above; no other success or reliability surface inherits it.
 
+**Feedback lane amendment (Phase 50).** `DP-VQ02` and its wash and status
+tokens retire (feedback F01). The F03 loader is the one exception to the
+spin exclusion above: once shown after `DISPLAY_DELAY_MS` it rotates, and under
+reduced motion it is static (user, 2026-10-22). Status icons, emphasis and
+tooltips otherwise change immediately and statically, in both motion modes.
+The breadcrumb reveal motion (F23) is not Inbox motion; it is in the table
+above, with no movement under reduced motion.
+
 ---
 
 ## Font Loading
@@ -1841,9 +2040,7 @@ mapping above; no other success or reliability surface inherits it.
 | Geist Sans | `next/font/local` via `geist` package | `--font-geist-sans` | `font-sans` |
 | Geist Mono | `next/font/local` via `geist` package | `--font-geist-mono` | `font-mono` |
 | Inter | `next/font/google` | `--font-inter` | consumed through `--theme-font` |
-| Playfair Display | `next/font/google` | `--font-playfair` | consumed through `--theme-font` |
 | Space Mono | `next/font/google` | `--font-space-mono` | consumed through `--theme-font` |
-| VT323 | `next/font/google` | `--font-vt323` | consumed through `--theme-font` |
 
 **Wiring chain:**
 
@@ -1853,24 +2050,23 @@ Geist Mono: geist/font/mono (next/font) → --font-geist-mono (on <html>) → fo
 Batch 2 display fonts: next/font/google → --font-* variables (on <html>) → --theme-font → theme-aware surfaces
 ```
 
-**Root layout font loading:**
+**Root layout font loading** (after Task 241; Playfair Display and VT323 load
+until then):
 
 ```tsx
 // src/app/layout.tsx
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { Inter, Playfair_Display, Space_Mono, VT323 } from "next/font/google";
+import { Inter, Space_Mono } from "next/font/google";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const playfairDisplay = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
 const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-space-mono" });
-const vt323 = VT323({ subsets: ["latin"], weight: "400", variable: "--font-vt323" });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable} ${GeistMono.variable} ${inter.variable} ${playfairDisplay.variable} ${spaceMono.variable} ${vt323.variable}`}
+      className={`${GeistSans.variable} ${GeistMono.variable} ${inter.variable} ${spaceMono.variable}`}
     >
       <body className="font-sans">
         {children}
@@ -2000,7 +2196,8 @@ Two-row layout: top row has content, bottom row has progress (only when chunks e
 {/* Sidebar — fixed icon rail, always visible (Phase 9: was foldable) */}
 <nav className="fixed left-0 top-0 h-full w-sidebar bg-background border-r border-border flex flex-col items-center gap-1 py-4 px-1 z-40">
   {/* Top icons */}
-  <AccountButton />                                {/* SaaS S23: top-most; F21 (promotion ②) puts Home above it */}
+  <HomeButton />                                   {/* feedback F21 (Phase 50): top-most on every route; reveals the breadcrumb */}
+  <AccountButton />                                {/* SaaS S23 (Phase 47): below Home; top-most until Home lands */}
   <SidebarButton icon={Plus} label="New" />        {/* triggers add-flow */}
   <SidebarButton icon={Pencil} label="Edit" />     {/* edit mode toggle */}
   <SidebarButton icon={Search} label="Search" />
@@ -2059,6 +2256,13 @@ Two-row layout: top row has content, bottom row has progress (only when chunks e
 ```
 
 ### Breadcrumbs
+
+From Phase 50 the breadcrumb is hidden by default, revealed from the sidebar
+Home button over the grid's top-left, with the deadline chip in the same row
+and no reserved cell; only the segments and the deadline chip take the
+pointer
+([Feedback Status Surfaces](#feedback-status-surfaces), SPEC §Breadcrumb reveal
+and Home button). The markup below is the segment row inside that surface.
 
 ```tsx
 {/* Breadcrumb — top of grid */}

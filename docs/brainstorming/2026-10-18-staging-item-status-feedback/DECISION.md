@@ -43,10 +43,12 @@ from a Home button at the top of the sidebar, so no Grid cell is reserved for
 it any more, and the blocked-zone machinery is removed. MI-14 (remember the
 last Scratch) is settled here as well.
 
-On 2026-10-22 this topic became a lane of its own: it runs beside SaaS Phases
-42–44, closes before Phase 45, and opens with the theme-set reduction (F28).
-Its promotion follows the SaaS promotion (SaaS S41). The same review added
-F29–F30 and tightened F05, F08, F12, F18, F20, F21 and F23–F26.
+On 2026-10-22 this topic became a lane of its own beside the SaaS phases,
+opening with the theme-set reduction (F28); its promotion follows the SaaS
+promotion (SaaS S41). The same review added F29–F30 and tightened F05, F08,
+F12, F18, F20, F21 and F23–F26. F31–F32 record two workflow items that running
+two lanes at once needs. F33 splits the lane in two at the promotion: Phase 49
+beside Phases 42–44 and closed before Phase 45, Phase 50 after Phase 45.
 
 `NOTES.md` holds the session log, the reasoning and every rejected option.
 
@@ -101,9 +103,9 @@ direction.
 |---|---|
 | F21 | The breadcrumb is hidden by default and revealed from a Home button at the very top of the sidebar, on every route; the account icon sits right below Home, then `+` (amends the S23 wording "at the very top"). Home navigates to `/`; on L0 it shows as the current page and reveals nothing, and on pages without a breadcrumb (Inbox, Archive, Calendar, Trash) hovering it reveals nothing (2026-10-22). |
 | F22 | Reveal triggers: hover or keyboard focus on Home or on the breadcrumb; 3s after entering a Node; and always while a Node or Bit is dragged. There is no dwell-on-Home gesture (the user: hard to predict). |
-| F23 | Hiding: 1s after the pointer and focus leave both Home and the breadcrumb, with a 0.3s fade; it stays while hovered, focused or while its deadline picker is open; Esc hides it at once when nothing above it is open (Esc closes the top-most layer first: a dialog, the Bit popup or the palette, then the deadline picker, then the breadcrumb; during a drag Esc only cancels the drag; 2026-10-22); the entry reveal (F22) ends after 3s unless hovered. It unfolds out of the Home button (about 0.26s) and folds into it (about 0.35s), and Home is briefly emphasized as it lands, so the user learns where it went. Reduced motion: no movement. |
+| F23 | Hiding: 1s after the pointer and focus leave both Home and the breadcrumb, with a 0.3s fade; it stays while hovered, focused or while its deadline picker is open; Esc hides it at once when nothing above it is open (Esc closes the top-most layer first: a dialog, the Bit popup or the palette, then the deadline picker, then the breadcrumb; during a drag Esc only cancels the drag; 2026-10-22; at the flow review the dialog layer also covers the Search overlay, the `+` entry surface and the Scratch modal, and edit mode exits after the breadcrumb, one layer per press); the entry reveal (F22) ends after 3s unless hovered. It unfolds out of the Home button (about 0.26s) and folds into it (about 0.35s), and Home is briefly emphasized as it lands, so the user learns where it went. Reduced motion: no movement. |
 | F24 | While shown, only its segments and the deadline chip take the pointer; the rest of the bar lets the pointer through, so a card under it stays clickable, and "hovered" in F23 means a segment or the chip (amended 2026-10-22: a pointer moving from Home to a top-left card, and the 3s entry reveal, would otherwise block those cards). During a drag each ancestor segment is a drop target with a visible "drop here" signal (today's ancestor-move confirmation and the Home-for-Bits restriction stay); the rest of the breadcrumb lets the pointer through to the cells beneath, its surface turns translucent and the deadline chip hides, so the top-left cells stay droppable. |
-| F25 | One row: the `Due …` deadline chip moves into the breadcrumb row. The breadcrumb stays in the accessibility tree and focusing a segment reveals it. The tab title carries the current Node's name. The current Node's deadline is therefore visible only while the breadcrumb is shown (3s on entry, on hover or focus); accepted, and rechecked at the feedback lane's checkpoint (2026-10-22). |
+| F25 | One row: the `Due …` deadline chip moves into the breadcrumb row. The breadcrumb stays in the accessibility tree and focusing a segment reveals it. The tab title carries the current Node's name; the other pages carry their own (`Inbox`, `Archive`, `Calendar`, `Trash`, each `– {app name}`), and L0 shows the app name alone, so several tabs can be told apart (user, 2026-10-22, flow review). The current Node's deadline is therefore visible only while the breadcrumb is shown (3s on entry, on hover or focus); accepted, and rechecked at the feedback lane's checkpoint (2026-10-22). |
 | F26 | No Grid cell is reserved for the breadcrumb. The blocked-zone machinery is removed: the zone measurement and store, the `isCellBlocked` guards in Add, placement and drops, `runBreadcrumbZoneMigration` and its `settings` markers. The lane stops using `settings` without bumping the Dexie schema version; Dexie itself goes in SaaS Phase 46 (2026-10-22). |
 
 ### Inbox selection
@@ -119,6 +121,10 @@ direction.
 | F28 | Theme-set reduction (Phase 35 MI-13; final set in SaaS S40). The lane's first task removes `tiny-desk`, `origami`, `terminal` and `graphite`: from the picker and `COLOR_THEMES`, from the no-flash script (fixing its duplicated list, ISSUE-20-01), and their CSS, the fonts only they use, the tests that enumerate them and the documents that list eight themes (CLAUDE.md Architecture 8, `docs/DESIGN_TOKENS.md`). A persisted removed id falls back to the default through the existing validation. `griddo` stays the default until Paper ships in the theme stage. Phases 36–40 (Tasks 180–208) are retired as superseded. Their deferred items are rebound: Phase 41 MI-2 (Terminal) is proposed Dropped for the user to close; P29-01 and Phase 34 MI-6 go to the theme stage (`2026-10-17-theme-scope-replan`). From this task on, no test or check covers the removed themes. (user, 2026-10-20/22) |
 | F29 | Theme scope of the lane. The new surfaces (status icon, emphasis and tooltip, toast status blend, Home button, breadcrumb reveal) are built on semantic tokens. Checkpoints check `griddo`, `retro-mac` and `neumorphism` for correct rendering and `claymorphism` only for not breaking. The per-theme finishing of these surfaces for `retro-mac` and `neumorphism`, and all of Paper and Claymorphism, belong to the theme stage (`2026-10-17-theme-scope-replan`). (user, 2026-10-22) |
 | F30 | A development-only state switch forces each status state (delayed pending, reconciling, unknown, not applied, rejected, conflict, integrity, offline), so every state can be judged in the running app without inserted markup; locally an Inbox command ends in about 50ms, so these states do not appear on their own. SaaS Phase 47 reuses the switch for its network states. It never ships enabled. (user, 2026-10-22) |
+| F31 | Browser isolation for two lanes. `.mcp.json` starts the Playwright MCP server with `--isolated`, so a session of each lane can open its own browser at the same time. The profile lives in memory and is gone when the session ends; checks seed again through `scripts/dev-fixtures/inbox-triage.js`. A worktree branched before promotion ② (Phase 42) keeps the shared profile, which is safe while only one session uses it. Promotion ② makes the change. (user, 2026-10-22; parallel-lanes note §8 item 4) |
+| F32 | Phase waits. `docs/WORKFLOW.md` and `CLAUDE.md` state that a phase waits only for the phases its plan entry lists; a phase that waits for none says so; a phase that states nothing waits for every phase before it in plan order. This matches the applied `/run-phase` and `/end-phase` change (claude-workflow `b2b7671`, `6044e30`). Promotion ② makes the change. (user, 2026-10-22; parallel-lanes note §8 item 5) |
+| F33 | Lane split (amends S41's "closes before Phase 45" and the order below). Phase 49 (Tasks 241–244) holds what the SaaS phases need first: the theme-set reduction (F28), the visual decision `DP-FB-01` together with SaaS `DP-SAAS-01`, the shared status primitives (F02 delay, F03 loader and icons, F09 tooltip, F15 status hues, F30 switch), and the toast position, colour and create-dialog change (F12, F15, F16). It waits for no phase and runs beside Phases 42–44. Phase 50 (Tasks 245–250) holds the Inbox status redesign (F01, F04–F10, MI-21), the Home button and breadcrumb reveal (F21–F25), the blocked-zone removal (F26, together with the reveal so the fixed breadcrumb never covers top-left cards) and MI-14 (F27). It waits for Phases 49 and 45, runs beside Phases 46–48, does not block launch and closes before the theme stage; after Phase 45 it uses local Supabase without reset or migrations. Phases 45 and 47 wait for Phase 49 only, and Phase 45 uses the S43 (4) fallback. Task 234 puts the account icon below Home if F21 has landed, otherwise at the top, and Phase 50 puts Home above it. Task 225 shrinks to confirming the recorded `DP-SAAS-01`. (user, 2026-10-22) |
+| F34 | Top-left block until the zone goes (flow review, user, 2026-10-22). From Phase 45 the zone migration is a no-op, so rows written in SQL could land under the fixed breadcrumb, and launch may come before Phase 50. Until Task 249 every server function that chooses a cell (`ensure_account()`, the system-Node show path of `update_node()`, Trash and Archive restore, Bit-to-Node promotion) does so through one internal helper that skips the cells the client passes in `p_reserved_cells`; the server only validates the list (inside the 18×9 grid, at most six cells) and its default is empty. The client passes the top-left 3×2 block; the demo seed and the development fixture keep that block free. Task 249 stops passing it, with no SQL change. |
 
 ## Feedback layer table
 
@@ -176,7 +182,7 @@ Order with the SaaS phases (S39, amended by S41):
 - F17's account icon slot is built in Phase 47; Phase 48 adds the modal
   (SaaS S43 (1)).
 - The feedback lane runs beside Phases 42–44 and closes before Phase 45
-  (S41). It carries the theme-set reduction (F28) first, then everything
+  (S41; split into Phases 49 and 50 by F33). It carries the theme-set reduction (F28) first, then everything
   else: the Inbox redesign (F03–F10, MI-21), the toast position and colour
   blend (F12, F15, one move as S28 asks), the create-dialog change (F16), the
   breadcrumb reveal with the Home button and the blocked-zone removal
@@ -214,8 +220,10 @@ Canonical documents to amend:
   removed lines or the breadcrumb.
 - `CLAUDE.md` Architecture 6: name the display delay (presentation only).
 - `docs/EXECUTION_PLAN.md`: the feedback lane phase, numbered after Phase 48
-  and run before Phase 45 (F28 first, then the rest); the retirement of
-  Phases 36–40 (F28). `docs/issues/Issues_Deferred.md`: bind MI-14 and MI-21
+  and run before Phase 45 (F28 first, then the rest), stating that it waits
+  for no phase (beside Phases 42–44); under F33, Phases 49 and 50 with their
+  waits; the retirement of Phases 36–40 (F28).
+- `.mcp.json` (F31); `docs/WORKFLOW.md` and `CLAUDE.md` §Workflow (F32). `docs/issues/Issues_Deferred.md`: bind MI-14 and MI-21
   to the lane, rebind MI-13, P29-01, Phase 34 MI-6 and Phase 41 MI-2 per F28.
 - `CLAUDE.md` Architecture 8 and `docs/DESIGN_TOKENS.md` §Color Theme System:
   four themes in the picker (F28).

@@ -8,6 +8,15 @@
 documents and the selected topic decision; this index does not create behavior,
 token, layout, or implementation authority.
 
+**Feedback lane amendment (promotion ②, 2026-10-22):** the color themes
+shrink to `griddo`, `retro-mac`, `neumorphism` and `claymorphism` (Task 241);
+prototype rows and mappings for Tiny Desk, Origami, Terminal and Graphite in
+these recipes are history and bind nothing after it. From Phase 50 the
+Inbox item statuses follow one rule (icon, emphasis, tooltip; no visible
+success), amending the Breakdown, Context, Staging, Newly/Undo and Grid
+Explorer recipes as noted at their tops; canonical source:
+[DESIGN_TOKENS Feedback Status Surfaces](../DESIGN_TOKENS.md#feedback-status-surfaces).
+
 ## Recovery receipt and source boundary
 
 ### Production recipe-package approval receipt
