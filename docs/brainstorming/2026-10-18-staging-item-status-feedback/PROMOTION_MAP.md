@@ -25,6 +25,7 @@
 - [Phases 49 and 50](#phases-49-and-50)
 - [Changes to existing phases](#changes-to-existing-phases)
 - [Plan housekeeping](#plan-housekeeping)
+- [Flow review round 1](#flow-review-round-1-user-2026-10-22)
 - [Progress](#progress)
 
 ## Boundary
@@ -64,6 +65,7 @@ is decided in Task 225.
 | F31 | `.mcp.json` (`--isolated`); CLAUDE.md Test data line |
 | F32 | `docs/WORKFLOW.md` stages 6 and 8; CLAUDE.md §Workflow |
 | F33 | EXECUTION_PLAN lanes, Phase Index, Dependency Graph and Phases 45, 47, 49, 50; SPEC §Write feel (who checks the Inbox presentation under latency); CLAUDE.md Gates and Local Supabase lines; DESIGN_TOKENS `DP-SAAS-01` (decided in Task 242); SaaS DECISION S41 note |
+| F34 | SCHEMA §Internal functions (cell picking), §Account preparation, §Not ported, database tests; SPEC §Breadcrumb reveal; Tasks 215, 219, 220, 227, 228, 229, 237, 249; PLANNING_STANDARD §6; SaaS S43 (4) note |
 | MI-13, MI-14, MI-21, ISSUE-20-01 | `Issues_Deferred.md`: bound to Tasks 241 (MI-13, ISSUE-20-01), 250 (MI-14), 245 and 246 (MI-21) |
 | P29-01, Phase 34 MI-6 | `Issues_Deferred.md`: rebound to the theme stage (`2026-10-17-theme-scope-replan`) |
 | Phase 41 MI-2 | Closed as Dropped by the user (2026-10-22): the Terminal theme leaves |
@@ -192,12 +194,39 @@ User requests (2026-10-22) applied with the plan:
   body is 632 lines against an 87-line archive, so the two are compared and
   the anchor links checked first).
 
+## Flow review round 1 (user, 2026-10-22)
+
+The `expert` review found G1–G10 and W1–W7. User decisions:
+
+- **G1 → F34.** Until Task 249 every server function that chooses a cell goes
+  through `internal.pick_free_cell` and skips the cells the client passes in
+  `p_reserved_cells` (validated only: inside the grid, at most six; default
+  empty). The client passes the top-left 3×2 block; seed and fixture keep it
+  free; Task 249 stops passing it with no SQL change.
+- **G8 (2).** `Esc` closes one layer per press: the dialog layer (dialogs, the
+  Bit popup, the palette, the Search overlay, the `+` entry surface, the
+  Scratch modal), the deadline picker, the breadcrumb, then edit mode.
+- **Tab titles (W5).** A Node's Grid `{title} – {app}`; `Inbox`, `Archive`,
+  `Calendar`, `Trash` each `– {app}`; L0 the app name alone.
+
+Mechanical repairs: G2 (top-left drop acceptance moved to Task 249), G3
+(`triage-workspace.tsx` in Tasks 245–246; stale-invalidation notices stay in
+the band), G4 (no Task 179A tooltip in Staging; Explorer keeps it), G5
+(`pnpm test:db` at Phase 49 close only once `main` has it), G6 (`{target}` is
+the receiving Grid's Node), G7 (theme-scoped search in Task 241), G8 (1)
+(`Esc` suppresses re-reveal; focus to Home), G9 (retired-task references), G10
+(three cross-document wordings), W1 (switch injects outcomes at the `DataStore`
+boundary), W2 (one throttled-latency check in Task 247), W3 (second offline
+source and register writers), W4 (focusable status icons), W6 (Home keeps the
+departure guard), W7 (editor status positions in `DP-FB-01`); Key File Paths
+and the DECISION summary (advisory).
+
 ## Progress
 
 - [x] `DECISION.md` F31–F33 and this map (approved 2026-10-22)
-- [ ] `docs/SCHEMA.md`
-- [ ] `docs/SPEC.md`
-- [ ] `docs/DESIGN_TOKENS.md` and recipes
-- [ ] `CLAUDE.md`, `docs/WORKFLOW.md`, `.mcp.json`
+- [x] `docs/SCHEMA.md` (approved 2026-10-22; F34 added after flow review round 1)
+- [x] `docs/SPEC.md` (approved 2026-10-22; flow review round 1 repairs after)
+- [x] `docs/DESIGN_TOKENS.md` and recipes (approved 2026-10-22; flow review round 1 repairs after)
+- [x] `CLAUDE.md`, `docs/WORKFLOW.md`, `.mcp.json` (approved 2026-10-22)
 - [ ] `docs/EXECUTION_PLAN.md`, `docs/PLANNING_STANDARD.md`, `docs/issues/Issues_Deferred.md`, archive moves
-- [ ] Flow review (`expert`) in `docs/reviews/phase-49-50-flow-review.md`, including the cross-lane flows (offline write attempts in the Inbox, the connection badge, the account icon and Home order, the zone no-op)
+- [x] Flow review (`expert`) in `docs/reviews/phase-49-50-flow-review.md`, including the cross-lane flows: round 3 PASS (2026-10-22)

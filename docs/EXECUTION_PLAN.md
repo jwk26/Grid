@@ -1,5 +1,7 @@
 # GridDO Inbox/Triage Implementation Execution Plan
 
+Execution plan mode: scaled
+
 > **Current authority — 2026-10-03:** the targeted amendment and complete
 > document/flow chain are accepted under the six
 > `Craft_Docs.inbox-triage-theme-realization-*.json` receipts in
@@ -16,14 +18,18 @@
 > Tasks 166–172 and 171A are accepted `[x]` and Phase 34 is closed; Tasks
 > 209–212 are accepted `[x]` and Phase 41 is closed (2026-10-16); Tasks
 > 173–179 and repair Tasks 176A and 179A are accepted `[x]` and Phase 35 is
-> closed (2026-10-20); Tasks 180–208 are `[ ]`, awaiting retirement by
-> promotion ② (feedback F28).
+> closed (2026-10-20); Tasks 180–208 and Phases 36–40 are retired as
+> superseded (feedback F28, promotion ②), their text in
+> [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
 > Phases 32–33 remain reserved.
 > **SaaS conversion (2026-10-22):** Phases 42–48, Tasks 213–240, from the
 > [SaaS DECISION](brainstorming/2026-10-21-saas-conversion/DECISION.md)
-> (promotion ①). They run before Phases 36–40, which promotion ② (the feedback
-> topic) retires; ② also adds the feedback lane phase, numbered after Phase 48.
-> See [SaaS Conversion — Phases 42–48](#saas-conversion--phases-4248).
+> (promotion ①). See [SaaS Conversion — Phases 42–48](#saas-conversion--phases-4248).
+> **Feedback lane (2026-10-22):** Phases 49–50, Tasks 241–250, from the
+> [feedback DECISION](brainstorming/2026-10-18-staging-item-status-feedback/DECISION.md)
+> (promotion ②). Phase 49 runs beside Phases 42–44 and closes before Phase 45;
+> Phase 50 follows Phase 45 and runs beside Phases 46–48 (F33). See
+> [Feedback Lane — Phases 49–50](#feedback-lane--phases-4950).
 > **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
 > corrections, Tasks 209–212, from
 > [DECISION](brainstorming/2026-10-15-scratch-trash-hotfix/DECISION.md). It
@@ -34,7 +40,7 @@
 > Phase 30 and original Task 163 acceptance records are unchanged.
 ## Goal
 
-Implement the approved Inbox/Triage workspace as one production component tree with a validated Dexie v4 model, monotonic revisions, real all-or-nothing transactions, durable candidates, lifetime-correct UI state, dedicated Explorer search, pointer placement, source-aware Undo, guarded Archive recovery, and source-backed eight-theme presentation without inventing any unresolved visual or content decision.
+Implement the approved Inbox/Triage workspace as one production component tree with a validated Dexie v4 model, monotonic revisions, real all-or-nothing transactions, durable candidates, lifetime-correct UI state, dedicated Explorer search, pointer placement, source-aware Undo, guarded Archive recovery, and source-backed theme presentation (four themes since feedback F28) without inventing any unresolved visual or content decision.
 
 ## Historical Execution Plan Approval Receipt — 2026-07-28
 
@@ -116,7 +122,7 @@ do not rebuild eight isolated production trees. No new storage is required.
 - The 2026-07-28 approval replaced the former Phase 23–33 / Task 101–154 graph. Its retired meanings do not resume.
 - Phases 32 and 33 remain reserved with no tasks. Accepted Tasks 101–163, Phase 30 close and archives remain unchanged.
 - On approval of this amendment, 164/165 become historical unaccepted transfer records, not completion prerequisites or reusable task numbers.
-- New tasks are 166–208, allocated once across proposed Phases 34–40. The authoritative continuation and graph count are at [Next Numbers](#next-numbers).
+- New tasks are 166–208, allocated once across proposed Phases 34–40. Tasks 180–208 and Phases 36–40 are retired as superseded (feedback F28, 2026-10-22); their numbers are not reused. The authoritative continuation and graph count are at [Next Numbers](#next-numbers).
 
 ## Planning, Completion, And Evidence Rules
 
@@ -125,7 +131,7 @@ do not rebuild eight isolated production trees. No new storage is required.
 - **Verification matches risk:** data, state, persistence, async and drag-and-drop logic get a focused failing test first; observe the intended failure, implement the smallest slice, rerun focused tests, then run the broader checks. Layout, styling and copy are verified in the running app.
 - **Authoritative results:** pending or unknown transport outcome is not success. Source truth remains visible until a complete repository postcondition is proven.
 - **Narrow commits:** a task's commits contain only its implementation, tests, and plan/ledger updates. Shared-file writers obey the mutex register below.
-- **Running-app checks near the change:** every user-visible task is checked in the running app with test data. Screenshots are shown in the conversation and never committed; there is no per-task evidence report or assets directory. The ledger checkpoint records what was compared, retained differences, and the user's first judgment separately from the final disposition ([PLANNING_STANDARD §5.3](PLANNING_STANDARD.md#53-visual-checks-and-independent-dispositions)). Theme conformance Tasks 172/179/186/193/200/207 and final Task 208 aggregate rather than substitute for regional checks.
+- **Running-app checks near the change:** every user-visible task is checked in the running app with test data. Screenshots are shown in the conversation and never committed; there is no per-task evidence report or assets directory. The ledger checkpoint records what was compared, retained differences, and the user's first judgment separately from the final disposition ([PLANNING_STANDARD §5.3](PLANNING_STANDARD.md#53-visual-checks-and-independent-dispositions)). Theme conformance Tasks 172 and 179 aggregated rather than substituted for regional checks; Tasks 186–208 are retired (feedback F28).
 - **Source/render separation:** recipe declarations are source authority. A task checkpoint records rendered/interaction checks and never changes recipe authority.
 - **Preserve unrelated behavior:** ordinary Grid routing/DnD, Calendar, Trash, Quick Capture, global Search, Bit Detail, Direct Archive, Archive View restore, and system-node lifecycle change only where an explicit task names a compatibility assertion.
 
@@ -134,14 +140,15 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 35 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20). The SaaS conversion (Phases 42–48) runs next. Promotion ② retires Phases 36–40 and carries MI-13, MI-14 and MI-21; MI-19 is bound to Task 229 and MI-23 is absorbed by Tasks 228 and 234. |
-| SaaS conversion | `PLANNED / UNSTARTED` | Phase 42 waits only for closed phases; later phases follow [the phase waits](#lanes-and-phase-waits). Docker Desktop must be installed before Task 213. |
+| Execution lifecycle | Phase 35 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20). The SaaS lane (Phases 42–48) and the feedback lane (Phases 49–50) run next and may be open at the same time. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 are bound to Task 241, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 is bound to Task 229 and MI-23 is absorbed by Tasks 228 and 234. |
+| SaaS conversion | `PLANNED / UNSTARTED` | Phase 42 waits only for closed phases; later phases follow [the phase waits](#lanes-and-phase-waits). Docker Desktop must be installed before Task 213. Promotion ② merges before `/run-phase 42`, because Tasks 215, 219, 220, 227–229 and 235–237 carry its F34 cell-picking rule. |
+| Feedback lane | `PLANNED / UNSTARTED` | Phase 49 waits for no phase and runs beside Phases 42–44; Phase 50 waits for Phases 49 and 45 ([the phase waits](#lanes-and-phase-waits)). |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
 | Headless/base UI | Tasks 127–163 accepted | Task 163 integration and bounded R01/I01 corrections are included in the Phase 31 Final Close transaction. Original task evidence is retained; correction/candidate evidence is separate. |
-| Theme realization | `IN PROGRESS` | Retro Mac Tasks 166–172 and repair Task 171A accepted; Phase 34 closed and archived. Neumorphism Tasks 173–179, 176A and 179A accepted; Phase 35 closed and archived. Named regional owners below; Q01/Q02/Q05 gate only their affected slices. No old experiment is evidence of canonical conformance. |
+| Theme realization | `ENDED` | Retro Mac Tasks 166–172 and repair Task 171A accepted; Phase 34 closed and archived. Neumorphism Tasks 173–179, 176A and 179A accepted; Phase 35 closed and archived. Phases 36–40 are retired (feedback F28); the remaining theme work belongs to the theme stage (`2026-10-17-theme-scope-replan`). No old experiment is evidence of canonical conformance. |
 | Phase 31 close | `COMPLETED / ARCHIVED` | R01/C01/I01 corrections are recorded in the archive; fresh candidate/output/browser checks and publication guards must pass before the Final Close receipt is created. No eight-theme-completion claim. |
-| Campaign full gate | `PLANNED / UNSTARTED` | Task 208 consumes every accepted foundation and new theme task plus the retained complete matrices. |
+| Campaign full gate | `RETIRED` | Task 208 is retired with Phases 36–40 (user, 2026-10-22). Its data and command checks are superseded by the SaaS database suites, which port the existing scenarios as answer keys (Tasks 216, 219–224); its visual matrices go to the theme stage, which sets its own gate. |
 
 ## Unaccepted Task 164–165 Transfer Register
 
@@ -154,8 +161,8 @@ of a promised gate. Subsequent ledger/WORKFLOW records require their own scope.
 
 | Original ID / marker | Disposition | Retained responsibility / replacement owner |
 |---|---|---|
-| Task 164 `[ ]` | `Transferred / Superseded`, unaccepted | Nine-surface/eight-theme semantic fidelity, motion, accessibility and theme-state preservation: regional Tasks 166–171, 173–178, 180–185, 187–192, 194–199, 201–206; per-theme/mode completion Tasks 172/179/186/193/200/207; final full 16 theme/mode × 1024/1920 evidence in Task 208. The old CSS-only owner restriction is not inherited by the new explicitly named component owners. |
-| Task 165 `[ ]` | `Transferred / Superseded`, unaccepted | Complete implementation/preservation all-nodes sink: Task 208, retaining 29 UF, 10 AF, 21 NEG, nine recipes, 14 DP/12 VQ, schema grid correction, migration/rollback/real transactions/three ABA sequences/aggregate retention/Archive recovery and unrelated-surface evidence. |
+| Task 164 `[ ]` | `Transferred / Superseded`, unaccepted | Nine-surface/eight-theme semantic fidelity, motion, accessibility and theme-state preservation: regional Tasks 166–171, 173–178, 180–185, 187–192, 194–199, 201–206; per-theme/mode completion Tasks 172/179/186/193/200/207; final full 16 theme/mode × 1024/1920 evidence in Task 208. The old CSS-only owner restriction is not inherited by the new explicitly named component owners. Tasks 180–208 are retired (feedback F28, 2026-10-22): the remaining semantic fidelity goes to the theme stage. |
+| Task 165 `[ ]` | `Transferred / Superseded`, unaccepted | Complete implementation/preservation all-nodes sink: Task 208, retaining 29 UF, 10 AF, 21 NEG, nine recipes, 14 DP/12 VQ, schema grid correction, migration/rollback/real transactions/three ABA sequences/aggregate retention/Archive recovery and unrelated-surface evidence. Task 208 is retired (2026-10-22): data and command checks pass to the SaaS database suites (Tasks 216, 219–224), visual matrices to the theme stage. |
 
 The former post-163/pre-164 visual-audit checkpoint is not retroactively
 accepted. New tasks use their own approved source/element intake and region
@@ -193,23 +200,23 @@ boundaries. No canonical Task 164 receipt or experiment fingerprint is reused.
                                           └→173→174→175→176→177→178→179  Neumorphism
                                                         └176A┘ (repair; gates 177)
                                                                     └179A (repair; after 179, gates Phase 35 close)
-                          →180→181→182→183→184→185→186  Terminal
-                          →187→188→189→190→191→192→193  Claymorphism + Origami
-                          →194→195→196→197→198→199→200  GridDO + Tiny Desk
-                          →201→202→203→204→205→206→207  Graphite
-                          →208 full implementation/preservation gate
+                          ⨯180–208  retired (feedback F28): Terminal, Claymorphism + Origami,
+                                    GridDO + Tiny Desk, Graphite, Task 208 gate
 
-SaaS lane (runs before 36–40; promotion ② retires 36–40 and adds the feedback lane):
+SaaS lane:
   213→214→215→216→217→218  Phase 42 (waits only for closed phases)
   →219→220  Phase 43
   →221→222→223→224  Phase 44
-  →[feedback lane Final Close, or the S43 (4) fallback]→225→226→227→228→229  Phase 45
+  →[Phase 49 Final Close]→225→226→227→228→229  Phase 45 (S43 (4): zone migration no-op)
   →230  Phase 46
-  →[feedback lane Final Close]→231→232→233→234  Phase 47
+  →[Phase 49 Final Close]→231→232→233→234  Phase 47
   →235→236→237→238→239→240  Phase 48
 
-Every accepted foundation, including 105/105A and every DP edge, plus all
-Tasks 166–207 and 209–212 feeds Task 208. Retired 164/165 are not dependency nodes.
+Feedback lane:
+  241→242→243→244  Phase 49 (waits for none; beside Phases 42–44)
+  [Phase 49 + Phase 45 Final Close]→245→246→247→248→249; 250  Phase 50 (beside Phases 46–48)
+
+Retired Tasks 164/165 and 180–208 are not dependency nodes.
 Cross-phase arrows also require the preceding phase's actual Final Close/main
 sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 ```
@@ -230,80 +237,87 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 32 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 33 | Reserved | Retired-number reservation | none | No tasks may be assigned. |
 | Phase 34 | Completed | [Retro Mac regional realization](execution-plan/archive/phase-34.md) | 166–172 + 171A | Accepted and archived; MI-5/6/9 and close Advisory A2 carried in `Issues_Deferred.md`, MI-9 and A2 bound to Task 178. |
-| Phase 41 | Completed | [Scratch Trash and post-Phase-34 Inbox corrections](execution-plan/archive/phase-41.md) (ran before Phase 35) | 209–212 | Accepted and archived; MI-2 carried in `Issues_Deferred.md` and bound to Task 180. |
-| Phase 35 | Completed | [Neumorphism regional realization](execution-plan/archive/phase-35.md) | 173–179 + 176A + 179A | Accepted and archived; MI-19 bound to Task 229, MI-23 absorbed by Tasks 228 and 234, MI-13/14/21 to promotion ②. |
-| Phase 42 | Planned / unstarted | [Database foundation, end-to-end slice and early production](#phase-42--database-foundation-end-to-end-slice-and-early-production) | 213–218 | Only closed phases; Docker Desktop installed by the user. |
+| Phase 41 | Completed | [Scratch Trash and post-Phase-34 Inbox corrections](execution-plan/archive/phase-41.md) (ran before Phase 35) | 209–212 | Accepted and archived; MI-2 closed as Dropped (user, 2026-10-22; the Terminal theme leaves). |
+| Phase 35 | Completed | [Neumorphism regional realization](execution-plan/archive/phase-35.md) | 173–179 + 176A + 179A | Accepted and archived; MI-19 bound to Task 229, MI-23 absorbed by Tasks 228 and 234, MI-13 to Task 241, MI-14 to Task 250, MI-21 to Tasks 245–246. |
+| Phase 42 | Planned / unstarted | [Database foundation, end-to-end slice and early production](#phase-42--database-foundation-end-to-end-slice-and-early-production) | 213–218 | Only closed phases; Docker Desktop installed by the user; promotion ② (the feedback lane and its F34 cell-picking rule) on `main`. |
 | Phase 43 | Planned / unstarted | [Ordinary write functions](#phase-43--ordinary-write-functions) | 219–220 | Phase 42 close/main sync. |
 | Phase 44 | Planned / unstarted | [Inbox/Triage command functions](#phase-44--inboxtriage-command-functions) | 221–224 | Phase 43 close/main sync. |
-| Phase 45 | Planned / unstarted | [Client switch](#phase-45--client-switch) | 225–229 | Phase 44 close/main sync and the feedback lane's close, or the S43 (4) fallback. |
+| Phase 45 | Planned / unstarted | [Client switch](#phase-45--client-switch) | 225–229 | Phase 44 and Phase 49 close/main sync; implements the S43 (4) zone-migration no-op. |
 | Phase 46 | Planned / unstarted | [Dexie removal](#phase-46--dexie-removal) | 230 | Phase 45 close/main sync. |
-| Phase 47 | Planned / unstarted | [Feel and resilience](#phase-47--feel-and-resilience) | 231–234 | Phase 46 close/main sync and the feedback lane's close. |
+| Phase 47 | Planned / unstarted | [Feel and resilience](#phase-47--feel-and-resilience) | 231–234 | Phase 46 and Phase 49 close/main sync. |
 | Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 | Phase 47 close/main sync. |
-| Phase 36 | Awaiting retirement by promotion ② | Terminal, region-by-region then supported-mode conformance | 180–186 | 179 and 179A accepted + Phase 35 close/main sync; Phases 36–40 re-plan (Phase 35 MI-13) first. |
-| Phase 37 | Awaiting retirement by promotion ② | Claymorphism + Origami, one shared writer | 187–193 | 186 accepted + Phase 36 close/main sync; both themes require regional dispositions. |
-| Phase 38 | Awaiting retirement by promotion ② | GridDO + Tiny Desk, one shared writer | 194–200 | 193 accepted + Phase 37 close/main sync; both themes require regional dispositions. |
-| Phase 39 | Awaiting retirement by promotion ② | Graphite, region-by-region then supported-mode conformance | 201–207 | 200 accepted + Phase 38 close/main sync. |
-| Phase 40 | Awaiting retirement by promotion ② | Complete campaign integration and preservation gate | 208 | All accepted Tasks 101–163/105A/166–207, all prior close/main sync and exact retained schema/DP authority. |
+| Phase 49 | Planned / unstarted | [Feedback lane, part 1: theme set, status primitives, toasts](#phase-49--theme-set-status-primitives-and-toasts) | 241–244 | None; runs beside Phases 42–44. Phases 45 and 47 wait for its close/main sync. |
+| Phase 50 | Planned / unstarted | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](#phase-50--inbox-status-breadcrumb-reveal-and-last-scratch) | 245–250 | Phase 49 and Phase 45 close/main sync; runs beside Phases 46–48; does not block Phase 48; closes before the theme stage. |
+| Phases 36–40 | Retired (feedback F28, 2026-10-22) | [Terminal, Claymorphism + Origami, GridDO + Tiny Desk, Graphite, and the Task 208 campaign gate](execution-plan/archive/phases-36-40-retired.md) | 180–208 | Retired as superseded; never runnable. Numbers are not reused. |
 
 ## Theme Realization Task Sets
 
 These are finite aliases, not implied phase-wide dependencies. Each task below
-binds one landing contract, exact predecessor, theme set and evidence path.
+bound one landing contract, exact predecessor, theme set and evidence path.
 `REGIONS` is the union of POOL/BREAKDOWN/STAGING/EXPLORER/PLACE/ARCHIVE.
-`THEMES` is REGIONS plus CONFORM. Task 208 verifies every UF/AF/NEG in addition
-to the owners named in the inventories.
+`THEMES` is REGIONS plus CONFORM. Since the retirement of Phases 36–40
+(feedback F28, 2026-10-22) the aliases expand only to accepted tasks, and the
+`208` entries in the inventories below are retired (Task 208's data and command
+checks pass to the SaaS database suites, its visual matrices to the theme
+stage). The original table, the L1–L7 landing contracts and the retired task
+text are in [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
 
-| Alias | Exact task IDs | Landing contract |
+| Alias | Exact task IDs | Landing contract (archived) |
 |---|---|---|
-| `POOL` | 166, 173, 180, 187, 194, 201 | L1 — common frame and Scratch Pool |
-| `BREAKDOWN` | 167, 174, 181, 188, 195, 202 | L2 — Selected Scratch Context and Breakdown |
-| `STAGING` | 168, 175, 182, 189, 196, 203 | L3 — Staging and its compact drag token |
-| `EXPLORER` | 169, 176, 183, 190, 197, 204 | L4 — Explorer/Finder base and replacement search |
-| `PLACE` | 170, 177, 184, 191, 198, 205 | L5 — Placement, then Newly/Undo |
-| `ARCHIVE` | 171, 178, 185, 192, 199, 206 | L6 — Breakdown-scoped completion and Archive |
-| `CONFORM` | 172, 179, 186, 193, 200, 207 | L7 — current theme(s), supported modes and regression |
+| `POOL` | 166, 173 | L1 — common frame and Scratch Pool |
+| `BREAKDOWN` | 167, 174 | L2 — Selected Scratch Context and Breakdown |
+| `STAGING` | 168, 175 | L3 — Staging and its compact drag token |
+| `EXPLORER` | 169, 176 | L4 — Explorer/Finder base and replacement search |
+| `PLACE` | 170, 177 | L5 — Placement, then Newly/Undo |
+| `ARCHIVE` | 171, 178 | L6 — Breakdown-scoped completion and Archive |
+| `CONFORM` | 172, 179 | L7 — current theme(s), supported modes and regression |
 
 ## User Flow Inventory
 
 | ID | User-visible flow | Owning task(s) |
 |---|---|---|
 | `UF-01` | Enter Inbox through `/grid/[nodeId]` and see the four named areas. | 129, 163; POOL, CONFORM |
-| `UF-02` | Initial/re-entry/reload Scratch selection, invalid prior selection, and true empty state. | 127, 130; POOL, ARCHIVE |
+| `UF-02` | Initial/re-entry/reload Scratch selection, invalid prior selection, and true empty state. | 127, 130, 250; POOL, ARCHIVE |
 | `UF-03` | Expanded Pool search, sort, total/filtered counts, selection, and hidden-selected state. | 127, 130, 144; POOL |
 | `UF-04` | Collapsed switching, first-printable-key collapse, manual reopen, and session restoration. | 127, 130; POOL |
 | `UF-05` | External archive/delete transition, destination changes, draft copy, and restore. | 106, 141, 209; POOL |
 | `UF-06` | Context, Breakdown sort, rows/actions, and ordinary/completion empty distinctions. | 132; BREAKDOWN |
-| `UF-07` | Add by Enter/explicit Add with authoritative pending/reconcile/failure/success/focus. | 120, 136, 143, 148; BREAKDOWN |
+| `UF-07` | Add by Enter/explicit Add with authoritative pending/reconcile/failure/success/focus. | 120, 136, 143, 148, 245; BREAKDOWN |
 | `UF-08` | Leave with an Add draft through continue-writing or discard-and-move. | 108, 139, 140, 211, 212; BREAKDOWN |
-| `UF-09` | Edit Scratch title with conditional Save/Cancel/validation/offline/conflict/invalidation. | 109, 120, 137, 138; BREAKDOWN |
-| `UF-10` | Edit Breakdown content with lifecycle guards and deterministic focus. | 109, 120, 137, 138; BREAKDOWN |
-| `UF-11` | Delete non-optimistically with confirmation, recovery, and focus handoff. | 120, 136, 143, 210; BREAKDOWN |
+| `UF-09` | Edit Scratch title with conditional Save/Cancel/validation/offline/conflict/invalidation. | 109, 120, 137, 138, 245; BREAKDOWN |
+| `UF-10` | Edit Breakdown content with lifecycle guards and deterministic focus. | 109, 120, 137, 138, 245; BREAKDOWN |
+| `UF-11` | Delete non-optimistically with confirmation, recovery, and focus handoff. | 120, 136, 143, 210, 245; BREAKDOWN |
 | `UF-12` | Active, staged, consumed-removal, never-used, all-deleted, and completion row lifecycle. | 132, 136, 142, 145; BREAKDOWN, ARCHIVE |
 | `UF-13` | Durable Node/Bit candidates, counts, sort, quiet empty state, and full-card drag. | 121, 131, 133; STAGING |
-| `UF-14` | Stage with source validation, pending projection, result, and navigation guard. | 121, 145, 147, 176A; STAGING, BREAKDOWN |
-| `UF-15` | Unstage through transient targets, restoring order/focus without success toast. | 121, 145, 148, 176A; STAGING, BREAKDOWN |
-| `UF-16` | Remote candidate arrival, orphan proof/cleanup, invalidation, alert, and drag release. | 122, 146, 147, 176A; STAGING |
+| `UF-14` | Stage with source validation, pending projection, result, and navigation guard. | 121, 145, 147, 176A, 246; STAGING, BREAKDOWN |
+| `UF-15` | Unstage through transient targets, restoring order/focus without success toast. | 121, 145, 148, 176A, 245, 246; STAGING, BREAKDOWN |
+| `UF-16` | Remote candidate arrival, orphan proof/cleanup, invalidation, alert, and drag release. | 122, 146, 147, 176A, 246; STAGING |
 | `UF-17` | Explorer navigation/re-entry, full labels, anchoring, and valid fallback. | 127, 134, 150, 179A; EXPLORER |
 | `UF-18` | Dedicated whole-hierarchy search with pre-search/results/loading/stale/error/duplicates. | 114, 135, 151, 171A; EXPLORER |
-| `UF-19` | Search result reveal/navigation/close semantics, DnD interruption, and result Undo. | 151, 158; EXPLORER, PLACE |
+| `UF-19` | Search result reveal/navigation/close semantics, DnD interruption, and result Undo. | 151, 158, 247; EXPLORER, PLACE |
 | `UF-20` | Staged placement through target-column confirmation and atomic mutation. | 123, 152, 153; PLACE |
 | `UF-21` | Direct type plus path selection and atomic placement. | 123, 152, 153; PLACE |
 | `UF-22` | Valid/invalid/full feedback, visible full reason, and valid-column edge scroll. | 149, 152; EXPLORER, PLACE |
 | `UF-23` | Staged Result Title and direct type-limit surfaces without truncation/fallback. | 116, 154; PLACE |
 | `UF-24` | Actual-card Newly marker, type pinning, normal navigation, mounted-page lifetime. | 155, 157, 171A; EXPLORER, PLACE |
-| `UF-25` | Ordinary/search Undo, dependency reasons, child-first recovery, reconcile, focus. | 124, 156–158, 209; EXPLORER, PLACE |
+| `UF-25` | Ordinary/search Undo, dependency reasons, child-first recovery, reconcile, focus. | 124, 156–158, 209, 247; EXPLORER, PLACE |
 | `UF-26` | Exact durable completion plus Add/title blocker suppression, with no blocker copy since Task 178 (user, 2026-10-19). | 125, 159, 160; BREAKDOWN, ARCHIVE |
 | `UF-27` | Section-scoped overlay, Cancel, complete Context, explicit reopen, switch/re-entry. | 159, 160; ARCHIVE |
 | `UF-28` | Archive pending/recovery/retry and next→previous→filtered-null/true-empty handoff. | 125, 126, 161, 162, 171A; ARCHIVE, POOL |
-| `UF-29` | Theme/mode change preserves all work state and causes no mutation/navigation. | THEMES; complete matrix 208 |
+| `UF-29` | Theme/mode change preserves all work state and causes no mutation/navigation. | THEMES, 241; complete matrix 208 (retired) |
 | `UF-30` | Move a Scratch to Trash from its Pool row or the Retro Mac Context `[X]`: confirmation with staged/draft disclosure, pending/failure/unknown/conflict, handoff/focus, Trash restore. | 209, 210; POOL from Phase 35 |
 | `UF-31` | A Scratch captured while the Inbox is mounted becomes selected through the ordinary switch path. | 212 |
+| `UF-32` | Choose among four color themes; a stored removed theme falls back to the default without a flash. | 241 |
+| `UF-33` | Toasts appear at the top-left of the work area in blended status hues and stay out of the way during a drag. | 244, 248 |
+| `UF-34` | Creating a Node or Bit in a full Grid keeps the dialog, the typed title and an inline reason, at every level. | 244 |
+| `UF-35` | Reveal the breadcrumb from the sidebar Home button (hover, focus, entry, drag), use or drop on its segments, and let it hide again; no Grid cell is reserved. | 248, 249 |
 
 ## Architecture Flow Inventory
 
 New theme owners below are presentation/preservation consumers, not new
-repository, hook or lifetime owners. Task 208 checks every AF, including the
-unchanged data foundations.
+repository, hook or lifetime owners. Task 208, which was to check every AF, is
+retired (feedback F28): the data foundations are checked again by the SaaS
+database suites.
 
 | ID | Architecture flow | Owning task(s) |
 |---|---|---|
@@ -316,7 +330,9 @@ unchanged data foundations.
 | `AF-07` | Commands use complete atomic postconditions and real transaction rollback, without a general log. | 104, 120–126, 209 |
 | `AF-08` | Candidates join source truth; uniqueness, aggregate deletion, orphan audit, Archive and Trash integrity stay repository-owned. | 101, 105, 121, 122, 131, 209; STAGING, ARCHIVE, 208 preservation |
 | `AF-09` | Dedicated Explorer query, existing triage DnD owner, placement, Newly, and Archive coordinators own distinct slices. | 135, 142, 149, 151, 152, 155, 161, 163; STAGING, EXPLORER, PLACE, ARCHIVE, 208 preservation |
-| `AF-10` | One semantic production tree, centralized copy, task-local render evidence, and no theme-ID branching. | 128, 129; THEMES, 208 |
+| `AF-10` | One semantic production tree, centralized copy, task-local render evidence, and no theme-ID branching. | 128, 129, 241; THEMES, 208 (retired) |
+| `AF-11` | The display delay only postpones presentation; status icons never decide success. | 243, 245–247 |
+| `AF-12` | The development state switch forces states in development builds only and never ships enabled. | 243; extended by 231, 233 |
 
 ## Atomic Command Inventory
 
@@ -342,15 +358,15 @@ regional bindings consume and preserve them; none creates another command.
 
 | Recipe surface | Production implementation owner(s) |
 |---|---|
-| Shell and section chrome | 129; POOL; aggregate CONFORM/208 |
-| Scratch Pool | 130, 141, 144, 210; POOL; aggregate CONFORM/208 |
-| Selected Scratch Context | 132, 138, 160, 210; BREAKDOWN and complete variant ARCHIVE; aggregate CONFORM/208 |
-| Breakdown rows and empty states | 132, 136–140, 143, 148, 159–160, 210, 211; BREAKDOWN/ARCHIVE; aggregate CONFORM/208 |
-| Staging | 133, 142, 145–148; STAGING; aggregate CONFORM/208 |
-| Grid Explorer | 134–135, 149–151, 158; EXPLORER; aggregate CONFORM/208 |
-| Placement affordances | 149, 152–154; PLACE; aggregate CONFORM/208 |
-| Newly placed and Undo | 155–158; EXPLORER/PLACE; aggregate CONFORM/208 |
-| Archive completion | 159–162; ARCHIVE; aggregate CONFORM/208 |
+| Shell and section chrome | 129; POOL; aggregate CONFORM |
+| Scratch Pool | 130, 141, 144, 210; POOL; aggregate CONFORM |
+| Selected Scratch Context | 132, 138, 160, 210, 245; BREAKDOWN and complete variant ARCHIVE; aggregate CONFORM |
+| Breakdown rows and empty states | 132, 136–140, 143, 148, 159–160, 210, 211, 245; BREAKDOWN/ARCHIVE; aggregate CONFORM |
+| Staging | 133, 142, 145–148, 246; STAGING; aggregate CONFORM |
+| Grid Explorer | 134–135, 149–151, 158, 247; EXPLORER; aggregate CONFORM |
+| Placement affordances | 149, 152–154; PLACE; aggregate CONFORM |
+| Newly placed and Undo | 155–158, 247; EXPLORER/PLACE; aggregate CONFORM |
+| Archive completion | 159–162; ARCHIVE; aggregate CONFORM |
 
 ## VQ Gate Register
 
@@ -368,6 +384,11 @@ regional bindings consume and preserve them; none creates another command.
 | `VQ-10` | 117 / `DP-VQ10` | 157 Newly/Undo realization |
 | `VQ-11` | 118 / `DP-VQ11` | 160 completion blocker/withdrawal realization |
 | `VQ-12` | 119 / `DP-VQ12` | 162 Archive reliability/recovery realization |
+
+Feedback lane (promotion ②): `VQ-02` is retired in Phase 50 (Task 245). The
+realizations of `VQ-04`, `VQ-05`, the Staging part of `VQ-06` and `VQ-10` are
+amended by Tasks 245–247 under `DP-FB-01` (Task 242). The receipts and released
+edges here stay as history.
 
 ### Executable DP Receipt Edges
 
@@ -399,7 +420,7 @@ element/state to Q02.
 | ID | Prohibited shortcut | Enforced by |
 |---|---|---|
 | `NEG-01` | Copy prototype routes, mock state, handlers, or inline architecture. | 129, 163; THEMES, 208 |
-| `NEG-02` | Flatten eight themes into one generic surface. | 129; THEMES, 208 |
+| `NEG-02` | Flatten the themes into one generic surface. | 129; THEMES, 208 (retired) |
 | `NEG-03` | Retain abbreviated Explorer labels. | 134; EXPLORER, 208 |
 | `NEG-04` | Use a recipe outside the approved nine-file package as execution authority. | Provenance; THEMES, 208 |
 | `NEG-05` | Promote the prototype Pool fold lock. | 127, 130; POOL, 208 |
@@ -408,13 +429,13 @@ element/state to Q02.
 | `NEG-08` | Keep large Staging empty cards. | 133; STAGING, 208 |
 | `NEG-09` | Submit Add on blur. | 136; BREAKDOWN, 208 |
 | `NEG-10` | Extend active-column or global Search for Explorer. | 135, 151, 163; EXPLORER, 208 |
-| `NEG-11` | Use repeated blink/pulse/ping/bounce/spin/flicker for status. | 129, 148, 157, 160, 162; THEMES, 208 |
+| `NEG-11` | Use repeated blink/pulse/ping/bounce/spin/flicker for status. The F03 loader's rotation, shown only after the display delay and static under reduced motion, is the one exception (feedback F03). | 129, 148, 157, 160, 162, 243; THEMES, 208 (retired) |
 | `NEG-12` | Add a permanent candidate Unstage button. | 145; STAGING, 208 |
 | `NEG-13` | Toast successful Unstage or prematurely globalize its failure. | 145, 148; STAGING, BREAKDOWN, 208 |
 | `NEG-14` | Use generic Dialog/AlertDialog for inline edit/conflict. | 138; BREAKDOWN, 208 |
 | `NEG-15` | Auto-unstage/cascade candidate on staged-source edit/delete. | 121, 137; BREAKDOWN, STAGING, 208 preservation |
 | `NEG-16` | Use page Set or label equality for candidate uniqueness. | 101, 121, 132; BREAKDOWN, STAGING, 208 preservation |
-| `NEG-17` | Persist selection/query/draft/path/overlay/Newly beyond its canonical lifetime; only two Inbox sorts persist. | 127, 155, 159, 161; THEMES, 208 preservation |
+| `NEG-17` | Persist selection/query/draft/path/overlay/Newly beyond its canonical lifetime; only two Inbox sorts and, from Phase 50, the last selected Scratch persist. | 127, 155, 159, 161, 250; THEMES, 208 preservation (retired) |
 | `NEG-18` | Auto-pick another placement target or perform partial/best-effort writes. | 123, 152, 153; PLACE, 208 preservation |
 | `NEG-19` | Use `mtime` as edit concurrency authority. | 103, 120; BREAKDOWN, 208 preservation |
 | `NEG-20` | Treat mock success as persistence/lifecycle evidence. | 104, 120–126; THEMES, 208 |
@@ -430,7 +451,7 @@ element/state to Q02.
 | `D-KEYBOARD` | Keyboard or other drag-alternative placement entry. | Future accessibility brainstorming; no placeholder now. |
 | `D-TEXT` | Cross-surface wrapping, line count, expansion, and IME visual design. | Named separate topic. |
 
-Responsive/mobile redesign remains excluded; active implementation targets the declared desktop surface with 1024px minimum and stable 1920×1080 evidence. A future Staging-failure toast migration remains a separate follow-up, not an active task.
+Responsive/mobile redesign remains excluded; active implementation targets the declared desktop surface with 1024px minimum and stable 1920×1080 evidence. Staging failures never toast (feedback F08).
 
 ---
 
@@ -2142,567 +2163,6 @@ Post-close workflow audit and the user's held Step 6 boundary remain in force.
 
 ---
 
-## Future Theme Realization — Shared Binding Contracts
-
-The following finite landing contracts are part of each numbered task that
-explicitly binds them. They are not wildcard component-owner expansion.
-Task parameters are the exact theme set, predecessor and task number named in
-its definition. One writer owns overlapping CSS/components/tests, including
-two-theme phases. Shared JSX is theme-independent; theme/mode values are
-centralized role aliases, not eight implementation branches.
-
-### Entry and applicable evidence
-
-Task 166 requires the accepted Task 163, actual Phase 31 Final Close/main sync,
-approved C04/C05/C06 and passing flow review, the post-close workflow-audit
-disposition, and a fresh phase/task gate. Later theme entry tasks require their
-named preceding conformance task accepted and that phase's actual close/main
-sync. No experiment branch or stacked historical test output is the real
-implementation base; run-phase refreshes the current integration base.
-
-Every region follows the approved design-method contract: independently
-match logical data/state and browser inputs; inventory visible source/DOM →
-computed style/geometry → production owner; implement and internally refine
-fresh original-size 1:1 comparisons before first submission. Check actual
-element typography, icon/decoration, spacing, depth, border and cascade, not
-only page colors. Preserve a separate behavior contract, approved English
-copy and DP-owned production-only states. Live hover/focus/DnD/motion checks
-exercise actual transitions and interruption/reduced-motion behavior.
-No arbitrary visual score or pixel threshold is imposed by this plan.
-
-Regional first comparison targets light, 1920×1080, DPR 1, zoom 100%.
-Note prototype correspondence limits in the ledger checkpoint. Each region
-needs explicit user visual disposition before the next region. A coherent
-approved Working may perform measurement, implementation and bounded internal
-refinement together; no routine contract-only session is inserted. Preserve
-the installed lifecycle's acceptance/continuity/repair boundaries. For a
-two-theme task, both themes receive distinct visual dispositions.
-
-Once a common frame or region is accepted, later theme tasks extend its shared
-semantic owner rather than replace it. Keep earlier accepted themes usable;
-change assigned theme aliases, and verify every shared-structure effect. A new
-geometry/behavior conflict remains Q02, not permission to rebuild a previously
-accepted region. Per-theme variance is centralized styling, not alternate JSX.
-
-Check each region in the running app with test data, never the user's own
-data. Show screenshots in the conversation and do not commit them; there is no
-per-task evidence report or assets directory. The task's ledger checkpoint
-records what was compared, retained differences and why, and the user's first
-judgment separately from any later repair or final disposition
-([PLANNING_STANDARD §5.3](PLANNING_STANDARD.md#53-visual-checks-and-independent-dispositions)).
-No past experiment bytes are reused. Tasks 166–170 ran under the previous
-workflow; the receipts and verification records their supplements below cite
-are kept in local tag `archive/phase-34-codex`, not on main.
-
-Every binding below also creates or extends
-`src/components/triage/inbox-triage-theme-realization.test.tsx` with relevant
-semantic/state-preservation assertions (create in 166, extend thereafter).
-It is not a CSS-string-only proxy for browser fidelity. Existing hook/store/
-repository/copy/schema owners are read-only preservation inputs; execute their
-relevant tests but do not alter behavior, packages or data boundaries here.
-A necessary additional owner or new product/design choice stops only that
-affected write at its owning gate. Q02 blocks a conflicting element/state,
-not unrelated measurement or supported work; advancing the region still needs
-a disposition that truthfully covers any owned remainder.
-
-Use the `CLAUDE.md` gates with the direct test targets below: focused
-checks (direct tests, typecheck) while working and the full gate before the
-checkpoint. Keep direct DOM/state checks separate from fresh mounted-route
-pixel/geometry/pointer/keyboard/focus checks. Per-region checks include
-regression of its previously accepted neighboring regions and any other themes/modes affected by shared JSX.
-L7 closes supported current-theme dark/desktop/accessibility/motion work;
-Task 208 owns the retained full 16-combination campaign matrix. Neither user
-visual acceptance nor a technical pass substitutes for the other.
-
-### L1 — Common frame and Scratch Pool
-
-**Files and actions:** modify `src/app/globals.css` for shared role bindings
-and the assigned theme(s)' frame/Pool aliases; modify
-`src/components/triage/scratch-pool.tsx` and `scratch-pool.test.tsx` for
-sourced semantic structure and preserved Pool actions; modify
-`src/components/triage/triage-workspace.tsx` and `triage-workspace.test.tsx`
-only for the common mounting/frame and existing external-removal presentation.
-Include the shared conformance test above.
-
-**Authority / flows:** D11–D22/D25; UF-01–05, UF-28 handoff, UF-29;
-AF-03/05/10; all applicable NEG. Preserve DP-VQ01 and DP-VQ06-POOL.
-
-**Recipe:** [Shell/chrome](recipes/inbox-triage-shell-section-chrome-visual-recipe.md)
-and [Scratch Pool](recipes/inbox-triage-scratch-pool-visual-recipe.md).
-
-**Phase 41 surfaces (from Phase 35 on):** every later L1 binding also realizes
-the Pool row Trash control and the Scratch Trash dialog for its theme(s), per
-the Scratch Pool recipe's Phase 41 supplement (UF-30). The L2 counterpart is in
-the L2 section. Behavior stays as Tasks 209–212 left it.
-
-**Section header icons (from Phase 35 on):** the Breakdown and Staging
-section headings carry one aria-hidden icon each in the shared tree
-(`FileText` for Breakdown, `CircleDot` for Staging), hidden by default.
-Every later L1 binding shows them for its theme(s) when that theme's
-prototype declares section icons, per the Shell recipe; Retro Mac and
-Terminal keep them hidden. Headings, accessible names and copy are
-unchanged.
-
-**Shared creation-date contract:** Every current and subsequent L1 theme/phase binding must follow [SPEC — Scratch Pool and Context creation-date metadata](SPEC.md#scratch-pool-and-context-creation-date-metadata), shared with L2. Scratch Pool's recipe references that single product contract; theme realization must preserve its common formatter and date body. This requirement is not limited to Task167/P34-09 and does not grant a later task/phase execution gate or reopen accepted Task166.
-
-**Observable acceptance:** fixed approved common geometry; sourced header,
-tools, counts, search/clear, sort, expanded selected/unselected rows, collapsed
-switchers, empty/no-match/status and focus/hover appearance. Selection, hidden
-selection, sorting, first-printable/manual reopen, scrolling, remote/removal
-status and selected Scratch→Breakdown/recovery linkage retain canonical truth.
-Do not visually revise Breakdown/Staging/Explorer internals in this slice.
-
-**Verification:** direct Pool/Workspace/shared-conformance tests; fresh mounted
-expanded/collapsed/query/sort/selection/empty/status/focus/hover checks,
-external-removal focus/recovery and handoff preservation; applicable gates.
-
-**Task 166-only approved supplement (2026-10-04):** extend this L1 common
-frame with R-SHELL's decorative desktop menu and DESIGN_TOKENS desktop-menu
-roles for retro-mac only. Scope receipt:
-`docs/issues/Issues_Phase_34.Task_166.task-scope-desktop-menu.json`.
-Use the same Workspace DOM and central aliases: one 32px bar, 16px lower gap,
-fixed labels/12:00 PM, no interactions or clock behavior. The menu spans Pool,
-Breakdown and Staging; remaining body retains all selected ratios and Pool
-state/focus/scroll/navigation/DP recovery. Verify original-size matched light
-1920x1080, bounded 1024x768/dark layout/clipping, seven other themes and ordinary
-Grid/Archive leakage, real Pool/recovery behavior and the logical gates above.
-Write owners are only existing common Workspace/CSS/direct/shared test owners,
-Task166 evidence/ledger/new receipt and the three approved canonical clauses.
-The separately approved one extra cycle is not a budget reset. Preserve prior
-checkpoint visual approval; submit menu/layout impact for separate disposition.
-Task166 remains [ ] and Q02 remains Tagged. No later task/theme inherits this
-supplement; no completed receipt or neighboring body is revised.
-
-### L2 — Selected Scratch Context and Breakdown
-
-**Files and actions:** modify `src/app/globals.css` for assigned Context/
-Breakdown roles; modify `src/components/triage/breakdown-panel.tsx` and
-`breakdown-panel.test.tsx` for shared presentation; modify
-`src/components/triage/triage-workspace.tsx` and `triage-workspace.test.tsx`
-only for Breakdown mounting and source-attached overlays/status. Include
-the shared conformance test.
-
-**Authority / flows:** D11–D22/D25/D26; UF-06–12, UF-14–15 source linkage,
-UF-26 blockers, UF-29; AF-05/09/10. Retain DP-VQ02/03/04/05/11 exactly.
-
-**Recipe:** [Context](recipes/inbox-triage-selected-scratch-context-visual-recipe.md)
-and [Breakdown](recipes/inbox-triage-breakdown-row-empty-visual-recipe.md).
-
-**Shared creation-date contract:** Every current and subsequent L2 theme/phase binding must follow [SPEC — Scratch Pool and Context creation-date metadata](SPEC.md#scratch-pool-and-context-creation-date-metadata), shared with L1, in Context view and Scratch-title editor. Theme-only prefix presentation follows the Context recipe's central copy/role contract and never replaces the shared date body. This requirement is not limited to Task167/P34-09 and does not grant a later task/phase execution gate or task acceptance.
-
-**Observable acceptance:** sourced plate/title/time/action hierarchy,
-sort, active/staged rows/grips/Edit/Trash, Add and ordinary empty/completion
-distinction. Preserve Edit→Save/Cancel, draft/caret/focus, departure decision,
-Add/Delete/Unstage status, reliability, canonical state and downstream DnD.
-Context height/action reserve or copy conflicts require Q02; no clipped action,
-status or focus. Accepted Pool/common frame remains intact.
-
-**Verification:** direct Breakdown/Workspace/conformance tests; real
-view/edit/save/cancel/validation/dirty/pending/error/locked/recovery,
-Add/Delete/staged/empty and focus/hover/drag-source checks; applicable gates.
-
-**Task 167-only P34-04 Context-geometry supplement:** the matching
-task-scope-context-geometry receipt (`Issues_Phase_34.Task_167.task-scope-context-geometry.json`)
-authorizes the retro-mac Selected Scratch Context alone to use fixed 120.25px
-outer border-box height in every mounted view/editor/overlay/blocker state and
-both modes. Other themes retain 104px; all 9.5rem action reserves, 48px Breakdown
-row slots, shared semantic tree, retained DP behavior/copy/focus and Task160 C1
-placement remain unchanged. Extend only L2's already-owned implementation/tests
-and current Task167 evidence. Reverify state-stable height, caret/actions/status/
-overlays and theme switching, accepted Task166 frame/Pool and neighboring layout/
-scroll/drag linkage. This exception neither grants an adjacent-surface redesign
-nor accepts Task167 or releases Task168.
-
-**Task 167-only P34-07 Context-copy supplement:** the matching
-task-scope-context-copy receipt (`Issues_Phase_34.Task_167.task-scope-context-copy.json`)
-authorizes exactly one additional cycle for retro-mac's non-semantic
-`[ FOLDER DIALOG: INFO ]` / `[X]` strip and next-order sort labels
-(DESC→OLD FIRST, ASC→NEW FIRST), as defined by the amended Context recipe.
-Add only central copy/direct copy test owners `src/lib/copy/inbox-triage.ts`
-and `.test.ts`, the exact Context recipe/DESIGN_TOKENS/this plan supplements,
-and the new receipt to the existing Task167 write set. Centralized text/shared
-DOM/CSS selection preserves other7 themes' ASC/DESC and accessible names,
-all sort commands/locks/lifetimes, DP/C1 and approved120.25/104/152/48 geometry.
-No further cycle, unrelated owner, remaining visual-finding repair or acceptance.
-
-**Task 167 / P34-09 bounded execution supplement:** the matching
-task-scope-created-at receipt (`Issues_Phase_34.Task_167.task-scope-created-at.json`)
-binds exactly one additional repair cycle to implement the shared SPEC date
-contract and Context recipe presentation now. Add only existing formatter/direct
-test owners `src/lib/utils/relative-time.ts` and `src/lib/utils/relative-time.test.ts`,
-and Pool regression owner `src/components/triage/scratch-pool.test.tsx`. Pool
-already consumes this formatter and needs no production-source write. Reuse
-existing Context/CSS, central copy/direct copy test and shared conformance
-owners solely for this date delta; Workspace and producer/hook/store/schema
-owners receive no new write. Reflect only the exact SPEC, Scratch Pool recipe,
-Selected Scratch Context recipe and this plan amendments before affected product
-writes. Run the declared direct/focused/full gates and fresh mounted date/fit/
-theme-switch, accepted166 Pool/frame and adjacent regressions within the exact
-receipt evidence packet. Preserve prior cycles/receipts/evidence and DP/C1,
-120.25px/104px Context, 9.5rem reserve and 48px rows. Stop after this single cycle
-at Implemented / awaiting review, Task167 [ ]. No extra cycle, visual/task
-acceptance, Task168+, publication or topology/history change. This task-scoped
-execution grant does not limit the shared SPEC/L1/L2 product contract to Task167.
-
-**Phase 41 surfaces (from Phase 35 on):** every later L2 binding realizes the
-`DP-VQ03` departure sheet and the Breakdown Delete dialog for its theme(s),
-and the Context `[X]` stays hidden outside Retro Mac. Realizing a DP surface
-means its theme's whole row in the recipe's Eight-Theme Mapping, controls
-included (for `DP-VQ03`: the well, the primary and the destructive
-secondary). "Retain DP-VQ02/03/04/05/11 exactly" fixes their copy,
-placement, states, focus and motion; it does not leave an earlier partial
-theme look in place.
-
-**Retained common L2 scroll direction:** user disposition preserves Context
-and rows in their existing common scroll viewport. Future L2 theme bindings
-retain this co-scroll structure when separately activated; no sticky/standalone
-Context viewport is required. This clause does not activate later tasks.
-
-### L3 — Staging
-
-**Files and actions:** modify `src/app/globals.css` for assigned Staging
-roles; modify `src/components/triage/staging-zone.tsx` and
-`staging-zone.test.tsx`, `src/components/triage/triage-drag-token.tsx`
-and `triage-drag-token.test.tsx` for semantic presentation; modify
-`src/components/triage/triage-workspace.tsx` and `triage-workspace.test.tsx`
-only for Staging mounting/status connections. Include the shared conformance test.
-
-**Authority / flows:** D11–D22/D25; UF-13–16/29; AF-05/08/09/10.
-Retain DP-VQ02 and DP-VQ06-STAGING; Q05 diagnosis/disposition precedes a
-conformance claim about mounted target-reason delivery.
-
-**Recipe:** [Staging](recipes/inbox-triage-staging-visual-recipe.md).
-
-**Drop targets (from Phase 35 on):** every later L3 binding realizes the
-lower Remove-from-staging target and the Breakdown Return overlay
-(`.triage-breakdown__return`, shown during a staged drag) for its theme(s),
-in idle, compatible-hover and incompatible states. Where the theme's
-prototype has no such surface, the task proposes a look within the theme's
-family and the user's visual disposition sets it. Unstage meaning, copy,
-geometry and delivery are unchanged.
-
-**Subsection drop region amendment (user-adopted, 2026-10-17):** per SPEC
-"Staging subsection drop region", the `Nodes` and `Bits` drop regions each
-cover their whole subsection, heading included. The change lands once in the
-shared tree (`staging-zone.tsx`, `triage-workspace.tsx` and their tests, with
-`src/hooks/use-triage-dnd.test.ts` only where it asserts the moved drop hooks)
-and applies to all eight themes; current and future L3 bindings style the
-well states on that whole subsection. It is a behavior change: it gets an
-`expert` review, and already accepted themes are rechecked on the widened
-region.
-
-**Observable acceptance:** sourced Node/Bit headers, independent wells,
-cards/rows, tools/counts and quiet empties under approved 35/65 geometry.
-Preserve full source drag and compact pointer-centered preview, durable
-candidate truth, transient Unstage, order/focus and arrival/integrity/reliability
-states. Neutral/invalid/unavailable/pending and compatible active-hover Remove
-remain distinct. No permanent Unstage, label snapshot or invented success.
-
-**Verification:** direct Staging/drag-token/Workspace/conformance tests;
-fresh actual mounted stage/unstage, both types, eligible/invalid/unavailable/
-pending/remote/integrity states and actual pointer/focus delivery, not only
-mocked props; preserved Pool/Breakdown and applicable gates.
-
-**Task 168 P34-15 drag-visual-feedback supplement:** only the matching `docs/issues/Issues_Phase_34.Task_168.task-scope-drag-visual-feedback.json` receipt approves the exact DESIGN_TOKENS and Staging-recipe presentation deltas, bounded existing Staging/Workspace/Breakdown Return/CSS/test owners and exactly one additional cycle. Reflect exactly three canonical documents/five deltas before affected product writes. Retro Mac Remove uses a static opaque framed Trash overlay and monochrome compatible-hover inversion; actual Node/Bit hover alone receives the adopted pattern; compatible Breakdown Return retains alpha0.90 with destructive tint12%, border and text; desktop gaps retain the existing pattern. Preserve all geometry, semantic states, count A, copy, focus, operations, DP contracts and other-theme presentation. No hook/store/repository/root/provider/common-card or later-region write is granted. Initial3/3 plus three approved extra cycles remain consumed; session rollover never resets the budget. Require direct semantic-owner tests and fresh mounted pointer/computed-style/generated/delivery evidence, then stop at separate user visual/issue/task disposition with Task168 `[ ]`.
-
-**Task 168 count-contract supplement:** the matching `docs/issues/Issues_Phase_34.Task_168.task-scope.json` receipt separately approves the visible-Stage-projection count disposition and its exact SPEC, Staging recipe, DESIGN_TOKENS and this L3 amendments before affected product writes. The shared Workspace consumes existing `useStagedCandidates.counts.visibleNodes/visibleBits` for subsection headings under SPEC's pending/unknown/reconciling, candidate-ID deduplication, Unstage, integrity-exclusion and terminal-to-live-query rules; no hook/store/repository/copy/schema/package write is granted. Count semantics apply to the shared tree across themes; retro-mac remains the only visual-realization assignment. Preserve operation copy, locks, reconciliation, remote-arrival indicators, focus, DP-VQ02, P27-08 deferral and Q05 Closed disposition. Require direct and fresh mounted Node/Bit count-transition evidence and affected-theme regressions. Existing DP receipts and accepted task records remain immutable; this supplement neither reopens their historical release actions nor grants task acceptance or later-task authority.
-
-### L4 — Explorer/Finder and replacement search
-
-**Files and actions:** modify `src/app/globals.css` for assigned Explorer
-roles; modify `src/components/triage/hierarchy-explorer.tsx` and
-`hierarchy-explorer.test.tsx`,
-`src/components/triage/grid-explorer-search-results.tsx` and
-`grid-explorer-search-results.test.tsx` for shared base/search presentation.
-Include the shared conformance test. Conditional candidate owners
-are `src/components/grid/node-card.tsx`, `node-card.test.tsx`,
-`bit-card.tsx`, `bit-card.test.tsx`: before any internal-card write, Q01
-must approve the exact Inbox-only element/path/consumer boundary. Their listing
-is not blanket common-card redesign authority. Any new asset owner needs its
-own gate before writing.
-
-**Authority / flows:** D11–D28; UF-17–19/22/24–25/29; AF-05/09/10.
-Retain DP-VQ06-EXPLORER/07/10; no prototype active-column filter substitution.
-
-**Recipe:** [Explorer](recipes/inbox-triage-grid-explorer-visual-recipe.md);
-[Newly/Undo](recipes/inbox-triage-newly-placed-undo-visual-recipe.md) for
-search-result composition only.
-
-**Observable acceptance:** sourced base chrome, full Home/Level 1/2/3 labels,
-populated hierarchy/card grammar and target/status states. Separately realize
-the approved whole-hierarchy replacement search, including loading/empty/
-stale/error/duplicates/reveal/close and search-result Undo. Record native versus
-derived comparison fixture limits. P29-01/D-CARD is not silently resolved by
-CSS, a wrapper or a new owner; exact approved remainder stays deferred.
-
-**Verification:** direct Explorer/search-results/conformance tests and
-conditional card tests; actual mounted navigation/scroll anchoring/search/
-reveal/focus/drag interruption/status and eligible/full/invalid targets;
-ordinary Grid/card consumers and previously accepted regions; applicable gates.
-
-**Task 169 user-selected review amendment, 2026-10-07:** every current/future
-L4 theme task consumes SPEC's shared Explorer consumer contract, the
-DESIGN_TOKENS review amendment and the updated Explorer/chrome recipes:
-one header with right-hand whole-hierarchy search control; no persistent path
-breadcrumb; actual stored Node/Bit icons; no Finder options/Direct Archive or
-Done?/Mark as done/Dismiss controls; color-only hover and non-draggable cursors;
-readable distinct overdue-incomplete/completed Bit states. Keep internal path,
-full labels, status, navigation, scrolling, reveal, placement targets and
-independent NEW/Undo/reason/focus. Ordinary Grid behavior and broader D-CARD
-deferral remain intact. Theme-specific values stay centralized; no other
-theme/phase task starts from this common-contract reflection.
-
-The header's conditional consumer owners are
-`src/components/triage/triage-workspace.tsx` and
-`triage-workspace.test.tsx`; necessary centralized status/accessibility copy
-uses `src/lib/copy/inbox-triage.ts` and `inbox-triage.test.ts`.
-List exact per-file actions in the matching supplemental whole-file scope
-before writes; this owner listing alone grants no implementation authority.
-Actual-card internals retain the exact Q01 consumer/test gate. Reflect the
-canonical delta before affected product changes and verify changed header
-input/close/Undo focus and drop-target behavior through direct owner tests and
-fresh mounted evidence proportionate to the change. Preserve historical
-Retry failures/BODY observations and unverified Undo recovery as such.
-Task 169's five consumed cycles do not reset; any Cycle6 requires its own
-exact one-extra-cycle approval. Acceptance and Task170 remain separate gates.
-
-**Task 169 Node/Bit distinction amendment, 2026-10-08:** current/future L4
-tasks consume SPEC's common removal of the ordinary-list inter-type divider,
-visible `Bits` heading and reserved Bit-only/Level 3 subsection-header space.
-Retain Node-before-Bit and within-type order, actual shared cards and existing
-DP/state/focus contracts. Retro-mac alone realizes the user-selected folder-tab
-Node/light surface/double outline/larger plain row and stored glyph, versus
-rectangular Bit/gray surface/thin single outline/smaller plain row; metadata
-and independent NEW/Undo/reason retain natural expansion. Bind the selected
-generated-image identity and exact Q01 element/consumer boundary through the
-matching scope receipt. The candidate product/test owners are only
-`src/app/globals.css`, `src/components/triage/hierarchy-explorer.tsx`,
-`src/components/triage/hierarchy-explorer.test.tsx` and
-`src/components/triage/inbox-triage-theme-realization.test.tsx`.
-Actual NodeCard/BitCard TSX/tests remain preservation inputs unless a separate
-exact expansion is approved. Reflect the exact approved Tower-authored
-canonical delta through the same Working's approved adoption commit before
-affected product writes. Require direct semantic tests and fresh mounted
-appearance/interaction evidence proportionate to changed geometry; do not
-reuse Cycle6 results as proof or add a numerical fidelity/campaign gate.
-Six cycles remain consumed; only an exact approved single Cycle7 may execute,
-without reset or Cycle8 authority. Task169 remains `[ ]`, the same Working
-stays active awaiting disposition at checkpoint, and Task170 remains held.
-
-**Column drop region amendment (user-adopted, 2026-10-17):** every open
-Explorer column accepts its column-level drop across the whole pane — the
-full-label header, including its count and path-status strip, plus the
-scrolling rows — per SPEC "Column drop region". The change lands once in the
-shared tree (`hierarchy-explorer.tsx` and `hierarchy-explorer.test.tsx`, with
-`triage-workspace.test.tsx` and `src/hooks/use-triage-dnd.test.ts` only where
-they assert the moved drop hooks) and applies to all eight themes; current and
-future L4 tasks style the eligible, hovered and unavailable target states on
-that whole pane. It is a behavior change: it gets an `expert` review, and
-already accepted themes are rechecked on the widened region.
-
-**Explorer urgency amendment (user-adopted, 2026-10-17, MI-10):** per SPEC
-"Explorer urgency", Q01 approves exactly one internal-card change for all
-themes: `src/components/grid/bit-card.tsx` drops the `animate-urgency-blink-*`
-classes for the `inbox-explorer` presentation (every Explorer Bit, not only
-overdue or completed ones), with its direct test in `bit-card.test.tsx`; the
-ordinary Grid keeps the blink. No other card change is granted.
-
-**Explorer truncated-title amendment (user-adopted, 2026-10-19):** per SPEC
-"Explorer truncated titles", Q01 approves exactly these internal-card changes
-for all themes, owned by Task 179A and granted by the user's approval of this
-amendment: in `src/components/grid/node-card.tsx` and `bit-card.tsx`, for the
-`inbox-explorer` presentation only, (1) a tooltip trigger on
-`explorer-card-title` alone, opened only while the title is truncated; (2) a
-card-root `:focus-visible` open/close for that tooltip; (3) an explorer-only
-read of the active drag from `@dnd-kit/core` `useDndContext` that keeps it
-closed during a drag; (4) the existing Undo tooltip made controlled, with the
-same behavior, only so that the two tooltips exclude each other. Direct tests
-are in `node-card.test.tsx` and `bit-card.test.tsx`. The consumer,
-`hierarchy-explorer.tsx` (`NodeDropCell`, `BitContextRow`), and the ordinary
-Grid card are unchanged. No other card change is granted.
-
-### L5 — Placement, then Newly/Undo
-
-**Files and actions:** modify `src/app/globals.css` for assigned Placement/
-Newly roles; modify `src/components/triage/triage-workspace.tsx` and
-`triage-workspace.test.tsx`,
-`src/components/triage/hierarchy-explorer.tsx` and
-`hierarchy-explorer.test.tsx`,
-`src/components/triage/grid-explorer-search-results.tsx` and
-`grid-explorer-search-results.test.tsx` only for their shared forms/attached
-marker/status/action presentation. Include the shared conformance test.
-Actual Node/Bit internal changes use the same conditional Q01 owners and
-direct tests as L4; no implicit owner enlargement.
-
-**Authority / flows:** D11–D28; UF-19–25/29; AF-05/09/10.
-Retain DP-VQ08/09/10, atomic placement and source-aware Undo.
-
-**Recipe:** [Placement](recipes/inbox-triage-placement-affordances-visual-recipe.md)
-and [Newly/Undo](recipes/inbox-triage-newly-placed-undo-visual-recipe.md).
-
-**Observable acceptance:** source-backed target-column Direct/Staged forms,
-path/title/type-limit/Confirm/Cancel and attached reliability; then actual
-Node/Bit card provenance marker and independent Undo/state presentation.
-Ordinary Finder follows the bounded amendment below; search retains the
-approved always-visible reason rail. Get Placement visual disposition before
-Newly/Undo, and both before Archive. Occlusion/geometry differences from the
-prototype require Q02, not cosmetic discretion. Preserve real transactions,
-result/source truth, dependency reasons, recovery and logical focus.
-
-**Verification:** direct Workspace/Explorer/search/conformance/conditional
-card tests plus existing placement/Newly hook tests as read-only consumers;
-real valid/invalid/full placement, confirm/cancel/title/limits, Newly, eligible/
-ineligible/dependency-clear/pending/reconcile/failed Undo, focus and search
-composition; previously accepted regions and applicable gates.
-
-**Ordinary Finder amendment, 2026-10-08:** current/future L5 ordinary
-NodeCard/BitCard consumers use the amended Newly/Undo recipe and central
-DESIGN_TOKENS contract: centered NEW/content, visually internal independent
-Undo2 action, and above-action hover/keyboard-focus tooltip only for ordinary
-available and nonterminal result-mutated eligibility. All other reasons and
-operation/recovery states retain visible presentation; a terminal
-rejected/conflict cannot be hidden through matching-copy classification.
-Preserve accessibility, disabled mutation suppression, exact copy, shared
-semantic tree, producer/operation/ref/focus/lifetime ownership and static
-normal/reduced-motion presentation. Ordinary Grid and replacement-search
-presentation stay outside this exception. Retro-mac geometry remains theme
-specific; common D-CARD/P29-01/Korean QA deferrals remain unchanged.
-Task170's exact receipt binds the narrow Q01 card/test owners and frozen Tower
-canonical adoption before writes. Placement implementation/visual checkpoint
-comes first; the same approved scope may continue to Newly/Undo only after
-explicit user Placement visual disposition is durably recorded. This does not
-accept Task170, activate Task171 or reopen accepted Task169.
-
-**Placement review amendment, 2026-10-08:** interpret L5's visible path/direct
-heading requirements through the bounded Placement recipe/DESIGN_TOKENS
-exception. Direct/Staged steps omit visible breadcrumbs while retaining
-destination/path authority and invalidation. Direct choice removes visible
-`Choose a result type`, transfers entry focus to existing `DIRECT PLACEMENT`,
-and places Node/Bit/Cancel in one equal-width horizontal row with exact visible
-unavailable reasons retained below it. Staged confirmation keeps source/result
-title and Node/Bit type; compress retro-mac padding/gaps and theme-role rail
-spacing without deleting pre-Confirm reliability/action reservation or clipping
-copy/controls. Verify changed native focus/Tab/action visibility and internal
-scroll, including 1024px. Common semantics carry to later L5 consumers; no
-other-theme geometry or activation is implied. Preserve original DP-VQ08/09
-receipts, prior Placement evidence and the remaining shared budget.
-
-**Placement action-layout amendment, Cycle4, 2026-10-08:** the later user
-direction supersedes the preceding horizontal Direct action arrangement.
-Stack full-width Node, Bit and visually distinct secondary Cancel vertically.
-For Staged confirmation, group the existing heading/item title/Node-or-Bit
-information on the left and vertically center horizontal Confirm/Cancel
-controls on its right. Keep the reserved reliability area below that pair,
-with the same right-hand state-action slot, full recovery copy, refs, locks,
-logical focus, operations and lifetimes. This is a limited staged spatial
-exception to DP-VQ08, not a deletion of its reservation or state authority.
-Keep path omission, direct heading focus, source/title/limits, shared semantic
-order, column geometry/scroll and static behavior. Staged Result Title and
-direct confirmation arrangements remain outside this refinement. Fresh
-Light/Dark, 1024px native Tab/scroll and reached-state evidence must demonstrate
-the changed composition without silently substituting a lower action footer.
-Common composition is distinct from retro-mac visual values; later theme
-tasks and Newly/Undo remain held. Bind exact owners and Tower draft adoption
-through the matching supplemental scope; earlier evidence remains historical.
-
-**Placement chrome/focus amendment, Cycle5, 2026-10-08:** consume the later
-user-selected screenshot edits for Direct selection and Staged confirmation.
-Direct entry focuses the available Node, otherwise available Bit, otherwise
-Cancel, without implicit selection/advance; retro-mac focused/hovered types
-invert, and Direct Cancel becomes borderless text with hover underline. Both
-selected surfaces use a native heading/close header, realized as a black strip
-in retro-mac. The accessible Cancel placement × shares the existing Cancel
-guard, including pending/unknown/reconciling locks. Emphasize actual titles and
-outline Staged Node/Bit tags. Only Staged confirmation/pending uses Cancel then
-OK; the actual Confirm ref/command and all recovery action/focus contracts
-remain. Retain the right-hand action group, lower full-width reservation,
-natural height/scroll and readable 1024px content without footer fallback or
-neighbor geometry changes. Add only the two central placementPresentation
-labels described by DESIGN_TOKENS; keep all other copy/steps/consumers intact.
-Fresh semantic and native focus/hover/close/state/scroll evidence is required;
-generated images and prototype source observations are design inputs rather
-than mounted verification. No numerical gate or later-theme activation follows.
-
-**Selected Placement frame/layout direction, 2026-10-09:** the later approved
-Direct/final-Staged previews remove automatic Direct button focus; restore
-entry focus to the existing DIRECT PLACEMENT heading while preserving native
-keyboard/hover feedback, disabled reasons and explicit selection. Flush the
-retro-mac black header to its top/left/right inner frame edges, with separate
-visible bracket pairs around the unchanged heading and decorative close glyph.
-Preserve central accessible names and existing Cancel guards/return focus.
-Match Direct's frame to Staged and centralize title/body spacing, with a slightly
-larger Direct title and more title vertical padding. Staged uses title-left /
-right horizontal actions in one aligned row, then a separate lower Node/Bit
-tag row; confirmation/pending remains Cancel then OK with the original refs.
-Add real internal button padding and reduce surplus height without deleting
-the lower pre-Confirm reliability reservation, complete recovery, natural
-growth or target-column scroll. Other steps, copy, card/search/Newly/Undo,
-neighbor geometry and producer authority remain unchanged. Pin the selected
-images and exact Tower bytes in the new scope. Design and exactly one additional
-Cycle6 are approved; preserve five consumed cycles and bind the new single
-cycle to the exact supplemental execution scope without reset.
-
-### L6 — Completion and Archive
-
-**Files and actions:** modify `src/app/globals.css` for assigned completion/
-Archive roles; modify `src/components/triage/breakdown-panel.tsx` and
-`breakdown-panel.test.tsx`,
-`src/components/triage/triage-workspace.tsx` and
-`triage-workspace.test.tsx` only for the existing completion/recovery
-presentation. Include the shared conformance test.
-
-**Authority / flows:** D11–D28; UF-02/12/26–29; AF-04/05/09/10.
-Retain DP-VQ11/12 and the accepted completion/Archive coordinator.
-
-**Recipe:** [Archive/completion](recipes/inbox-triage-archive-completion-visual-recipe.md)
-with [Context](recipes/inbox-triage-selected-scratch-context-visual-recipe.md)
-and [Breakdown](recipes/inbox-triage-breakdown-row-empty-visual-recipe.md)
-for their complete/blocker variants.
-
-**Observable acceptance:** Breakdown-scoped overlay/card, complete Context,
-Cancel/Reopen and source-attached blockers/withdrawal; one stable Archive
-reliability/current-action slot and forced-reload recovery. No whole-page
-modal, ornamental success, optimistic removal, retry under uncertainty or
-different handoff algorithm. Already accepted ordinary editors/regions remain
-usable; unsupported prototype states are disclosed.
-
-**Verification:** direct Breakdown/Workspace/conformance tests and existing
-Archive/completion/recovery tests; fresh blocked/eligible/withdrawn/Cancel/
-Reopen/pending/unknown/reconciling/not-applied/conflict/storage-failure/reload
-and next/previous/filtered-null/true-empty handoff with real focus; applicable
-gates and unrelated Archive View/Trash preservation.
-
-### L7 — Supported-theme completion and regression
-
-**Files and actions:** modify `src/app/globals.css` only for the assigned
-theme(s)' missing supported-dark aliases and in-scope CSS accessibility/motion
-conformance; extend the shared realization test and
-`src/app/theme-transition.test.ts`.
-No component/hook/data repair is hidden here; a structural/behavior regression
-returns to its named regional owner under an exact approved repair scope.
-
-**Authority / flows:** D07/D19/D21–D27; UF-01–31 preservation, especially
-UF-29; AF-03/10; all NEG. All nine recipe targets and exact existing DP roles
-are checked, not automatically promoted.
-
-**Recipe:** all nine entries in the Recipe Surface Inventory.
-
-**Observable acceptance:** each assigned theme is usable and materially
-source/DP-correct in light/dark at supported 1024px and 1920×1080 desktop
-viewports; landmarks, visible/accessible labels, focus-visible, non-color
-state, contrast, hidden scrolling, touch targets, motion/reduced motion,
-status/overlay and retained state pass. No theme/mode action saves/cancels/
-navigates/refetches or loses workflow state. Distinguish direct prototype
-coverage from approved production-only realization. User visual disposition
-is separate from these gates; a light-only pass is not full theme completion.
-
-**Verification:** shared conformance/theme-transition tests and all affected
-regional direct tests; current assigned theme(s) × light/dark × both viewports,
-every recipe and representative reliability/editor/recovery state; previously
-completed themes and unrelated surfaces receive scope-appropriate regression
-checks. Preserve earlier theme assertions. Execute full logical gates. Task
-208 still owns all eight themes' complete combined matrix.
-
 ## Phase 34 — Completed / Archived
 
 Retro Mac Tasks 166–172 and repair Task 171A are accepted. Their task
@@ -2717,8 +2177,8 @@ to Task 178 below.
 Scratch Trash Tasks 209–212 are accepted. Their task contracts and
 completion-time scope are in
 [the Phase 41 archive](execution-plan/archive/phase-41.md). Carried item
-MI-2 (Terminal Pool row hover contrast) is in
-[Issues_Deferred.md](issues/Issues_Deferred.md) and bound to Task 180 below.
+MI-2 (Terminal Pool row hover contrast) was closed as Dropped by the user
+(2026-10-22): the Terminal theme leaves (feedback F28).
 
 ## Phase 35 — Completed / Archived
 
@@ -2726,8 +2186,9 @@ Neumorphism Tasks 173–179 and repair Tasks 176A and 179A are accepted. Their
 task contracts and completion-time scope are in
 [the Phase 35 archive](execution-plan/archive/phase-35.md). Carried items are in
 [Issues_Deferred.md](issues/Issues_Deferred.md): MI-19 is bound to Task 229
-and MI-23 is absorbed by Tasks 228 and 234 (SaaS S16, S39); MI-13, MI-14 and
-MI-21 go to promotion ② (the feedback topic).
+and MI-23 is absorbed by Tasks 228 and 234 (SaaS S16, S39); MI-13 (with
+ISSUE-20-01) is bound to Task 241, MI-14 to Task 250 and MI-21 to Tasks 245 and
+246 (feedback lane).
 
 ## SaaS Conversion — Phases 42–48
 
@@ -2742,25 +2203,28 @@ Surfaces; CLAUDE.md Architecture 10 and §Workflow.
 Flow review: [SaaS conversion flow review](reviews/saas-conversion-flow-review.md)
 covers Phases 42–48.
 
-These phases run before Phases 36–40, which promotion ② retires (feedback F28),
-as Phase 41 ran before Phase 35. Each phase leaves `main` working.
+Phases 36–40, numbered before them, are retired (feedback F28). Each phase
+leaves `main` working.
 
 ### Lanes and phase waits
 
-The SaaS lane is Phases 42–48. The feedback lane is one phase numbered after
-Phase 48 (promotion ②), which runs beside Phases 42–44 and closes before
-Phase 45 starts (S41). The `/run-phase` change that allows two open lanes is
+The SaaS lane is Phases 42–48. The feedback lane is Phases 49–50 (promotion
+②, feedback F33, amending S41): Phase 49 runs beside Phases 42–44 and closes
+before Phase 45; Phase 50 follows Phase 45 and runs beside Phases 46–48. A phase
+waits only for the phases listed here (CLAUDE.md §Workflow, Phase waits). The `/run-phase` change that allows two open lanes is
 applied (claude-workflow `b2b7671`, `6044e30`, `b27e9f3`).
 
 | Phase | Waits for (Final Close and `main` sync) |
 |---|---|
-| 42 | Only phases already closed. Phases 36–40, numbered before it, do not block it: promotion ② retires them |
+| 42 | Only phases already closed, with promotion ② on `main` (Tasks 215, 219, 220, 227–229 and 235–237 carry its F34 rule). Phases 36–40, numbered before it, are retired and do not block it |
 | 43 | Phase 42 |
 | 44 | Phase 43 |
-| 45 | Phase 44 and the feedback lane. If the lane has not closed, Phase 45 waits, or the user chooses the S43 (4) fallback at `/run-phase 45` |
+| 45 | Phase 44 and Phase 49. F26 ships in Phase 50, so Phase 45 implements the S43 (4) zone-migration no-op |
 | 46 | Phase 45 |
-| 47 | Phase 46 and the feedback lane |
-| 48 | Phase 47 |
+| 47 | Phase 46 and Phase 49 |
+| 48 | Phase 47. Phase 50 does not block it |
+| 49 | None. Runs beside Phases 42–44 |
+| 50 | Phase 49 and Phase 45. Runs beside Phases 46–48; closes before the theme stage |
 
 ### Shared rules for every SaaS task
 
@@ -2869,7 +2333,9 @@ env file.
 **Files and actions:**
 - Migration: role `griddo_writer` (`NOLOGIN`, no `BYPASSRLS`, not the table
   owner) with its table grants and RLS policies; `internal` helpers for the
-  transaction timestamp, the envelope and L0 cell search; `public.ensure_account()`
+  transaction timestamp, the envelope and cell picking (`internal.pick_free_cell`
+  with reserved cells, SCHEMA §Internal functions, feedback F34);
+  `public.ensure_account(p_reserved_cells jsonb default '[]')`
   (`security definer`, owner `griddo_writer`, empty `search_path`) per SCHEMA
   §Account preparation steps 1–2; its lock (S30). The seed copy (step 3) comes
   in Task 237.
@@ -2879,7 +2345,8 @@ env file.
   `internal` function.
 - `supabase/tests/ensure-account.db.test.ts`: ported `system-nodes.test.ts`
   scenarios (missing, trashed, archived, hidden, occupied cell, full L0);
-  idempotence; two concurrent calls on a new account create one Inbox and one
+  the cell-picking cases (passed reserved cells skipped, a malformed list
+  `rejected` with `invalid_input`, the default unchanged); idempotence; two concurrent calls on a new account create one Inbox and one
   Archive; `last_visit_at` advances.
 
 **Dependencies:** Task 214.
@@ -2948,7 +2415,7 @@ env file.
   write settled is discarded and sent again; subscriptions (SPEC Architecture
   Decision 19).
 - `src/lib/constants.ts`: `DISPLAY_DELAY_MS`, `REQUEST_TIMEOUT_MS` and the
-  connection probe interval (D7), unless the feedback lane has added the first.
+  connection probe interval (D7), unless Task 243 has added the first.
 - A development-only page, `src/app/dev/supabase-slice/page.tsx`, rendered
   only when `NODE_ENV` is `development` and `NEXT_PUBLIC_GRIDDO_SUPABASE_SLICE=1`
   (otherwise `notFound()`; the variable is added to `.env.local.example`):
@@ -3035,7 +2502,8 @@ the user confirms the dashboard settings.
 **Files and actions:**
 - Migrations: `create_node`, `update_node` (extended from Task 217 where
   needed, including system-Node `hiddenFromGrid` with first-free-cell
-  placement on show), `create_bit`, `update_bit` (with the parent deadline
+  placement on show through `internal.pick_free_cell` and
+  `p_reserved_cells`), `create_bit`, `update_bit` (with the parent deadline
   extension, Hook 2), `create_chunk`, `update_chunk` (with the parent Bit
   extension for the Calendar answer, Hook 2), `delete_chunk`, `reorder_chunks`
   (one call for a Chunk reorder); Hooks
@@ -3073,7 +2541,11 @@ every function passes its cross-account, concurrency and change-set cases;
   `empty_trash()` (one transaction), `cleanup_expired_trash()` (Hook 7, and it
   records the visit), `promote_bit_to_node` (Hook 9, with the Node and Bit
   account limits); closure `for update` and
-  parent `for share` locks.
+  parent `for share` locks; `restore_*`, `unarchive_*` and
+  `promote_bit_to_node` take `p_reserved_cells` and choose every relocated or
+  new cell through `internal.pick_free_cell` (feedback F34), with the
+  cell-picking cases in their suites, including the promotion's new chunk Bits
+  (first free cell in row-major order, skipping the reserved block).
 - `supabase/tests/`: ported scenarios from `cascade-delete`, `cascade-restore`,
   `cascade-hard-delete`, `auto-cleanup`, `archive`, `archive-sweep`,
   `promotion` and `scratch-aggregate-hard-delete`; trashing a Node while a Bit
@@ -3190,29 +2662,30 @@ warning at phase close.
 The app moves to local Supabase: snapshot reads, RPC writes (all
 server-confirmed at first), automatic guest entry, the load-failure screen and
 the fixtures. Optimistic feel waits for Phase 47, so a regression in one cannot
-hide in the other. Fallback S43 (4): if feedback F26 has not shipped, the
-Supabase store implements `runBreadcrumbZoneMigration` as a no-op and the zone
-guards stay client-only.
+hide in the other. S43 (4) is the plan (feedback F33): F26 ships in Phase 50,
+after this phase, so the Supabase store implements `runBreadcrumbZoneMigration`
+as a no-op and the zone guards stay client-only until Task 249.
 
-### Task 225: [ ] Record the SaaS surfaces decision `DP-SAAS-01`
+### Task 225: [ ] Confirm the SaaS surfaces decision `DP-SAAS-01`
 
-**Files and actions:** a served HTML option sheet in `griddo`, with
-`retro-mac` and `neumorphism` spot-checks and Korean explanations, rendering
-every surface of DESIGN_TOKENS `DP-SAAS-01` together, with shapes copied from
-the realized theme CSS; record the user's choice in DESIGN_TOKENS §SaaS
-App-State Surfaces. The sheet is scratch, not committed.
+**Files and actions:** `DP-SAAS-01` was decided in Task 242 (Phase 49) on the
+same option sheet as `DP-FB-01` (feedback F33). Compare the recorded choice in
+DESIGN_TOKENS §SaaS App-State Surfaces with the current SPEC surfaces (App-level
+screens, Account icon and modal); show the user any surface SPEC has added or
+changed since Task 242; the user re-confirms or adjusts, and an adjustment is
+recorded in the same section.
 
-**Dependencies:** Phase 44 Final Close and `main` sync; the feedback lane's
-Final Close or the user's S43 (4) choice; this phase's lifecycle gate.
+**Dependencies:** Phase 44 and Phase 49 Final Close and `main` sync; this
+phase's lifecycle gate.
 
-**Authority:** S27, S40; DESIGN_TOKENS `DP-SAAS-01`.
+**Authority:** S27, S40; feedback F33; DESIGN_TOKENS `DP-SAAS-01`.
 
-**Observable acceptance:** the user's choice for each surface is recorded and
-committed; no implementation file changes.
+**Observable acceptance:** the user confirms or adjusts each surface; the
+section matches SPEC; no implementation file changes.
 
 **Verification:** `git diff --check`; the user confirms the recorded text.
 
-**Commit message:** `docs(design): record DP-SAAS-01`.
+**Commit message:** `docs(design): confirm DP-SAAS-01`.
 
 ### Task 226: [ ] Move reads to the snapshot and replace the live queries
 
@@ -3267,7 +2740,7 @@ this task.
   `ensure_account()`; the confirmed-orphan command and its reconcile method
   return `rejected` with no call, since an orphan cannot occur (S18); the five
   test-only Breakdown writes throw "not supported" until Phase 46 removes them;
-  `runBreadcrumbZoneMigration` is a no-op only under the S43 (4) fallback.
+  `runBreadcrumbZoneMigration` is a no-op (S43 (4); Task 249 removes it).
 - One action, one call (SCHEMA §Exposed functions): `DataStore` gains
   `emptyTrash()` and `reorderChunks()`, and the Bit and Chunk updates take the
   parent extension; `use-trash-actions.ts`, `bit-detail-popup.tsx`
@@ -3275,6 +2748,11 @@ this task.
   `use-dnd.ts` (the Calendar Chunk-time answer) call them once. The Dexie
   store implements them too, so the app keeps running on Dexie until Task
   228.
+- Reserved cells (feedback F34): until Task 249 the Supabase store passes the
+  top-left 3×2 block (`getStaticBlockedCells()` in
+  `src/lib/utils/breadcrumb-zone.ts`) as `p_reserved_cells` to `restore_*`,
+  `unarchive_*`, `promote_bit_to_node` and the system-Node show path of
+  `update_node`.
 
 **Dependencies:** Task 226.
 
@@ -3310,6 +2788,8 @@ runs on Dexie.
   `ensure_account()`.
 - `src/lib/db/datastore.ts`: `getDataStore()` returns the Supabase store, once
   the session and snapshot bootstrap above is in place.
+- Reserved cells (feedback F34): `session.ts` passes the same top-left 3×2
+  block to `ensure_account()` until Task 249.
 
 **Dependencies:** Task 227.
 
@@ -3322,7 +2802,8 @@ Supabase stopped the load-failure screen shows its reason and `Retry` works
 after a restart; an empty Grid never flashes before the data; two tabs opened
 on a first visit end on the same guest; Grid,
 Calendar, Bit detail, Trash, Archive View and Inbox flows work on local
-Supabase and a reload shows every change.
+Supabase and a reload shows every change; if Task 243 is on `main`, the state
+switch's outcome injection still works on the Supabase store.
 
 **Verification:** full gate; `expert` review; browser checkpoint in the three
 themes.
@@ -3335,11 +2816,15 @@ themes.
 - `supabase/seed.sql` (runs on local `db reset` only, never a migration):
   creates a `dev` schema with `dev.seed_fixture(user_id, scenario)`, granted
   only to `service_role`; `supabase/config.toml` exposes `dev` locally. The
-  function first calls `ensure_account()` for that user, clears every row
+  function first calls `ensure_account()` for that user with the top-left 3×2
+  block as `p_reserved_cells` (feedback F34; `seed.sql` is development-only, so
+  the block simply stays in this function after Task 249), clears every row
   except the `accounts` row and the system Nodes, then inserts the scenario
   with times
   relative to now (aged, past-deadline, created-order and old-Trash states)
-  and with the account's existing system Node ids in place of the fixture's.
+  and with the account's existing system Node ids in place of the fixture's;
+  neither the system Nodes nor any scenario item uses a cell with `x` < 3 and
+  `y` < 2 at any level (feedback F34), checked by a database test.
 - `scripts/dev-fixtures/inbox-triage.js`: signs in as a local test user, calls
   `dev.seed_fixture` with the local service key, refuses to run against a
   non-local URL, and returns the scenario ids (`IDS`, `inboxRoute`) per run.
@@ -3370,7 +2855,8 @@ SQL checklist); fixture run in the Playwright MCP browser.
 **Files and actions:** delete `src/lib/db/indexeddb.ts`, its test utilities
 and the Dexie-only tests whose scenarios now live in `supabase/tests/`; remove
 `dexie` and `fake-indexeddb` from `package.json`; remove the `settings` store
-and `runBreadcrumbZoneMigration` (if F26 left them), the confirmed-orphan
+and the Dexie side of `runBreadcrumbZoneMigration` (the interface method and
+the Supabase no-op stay for Task 249 if it has not landed), the confirmed-orphan
 command, its reconcile method, its hook dispatch and Workspace caller and its
 orphan state and copy, the test-only Breakdown write methods, the Dexie backing
 of `liveRead`, `use-system-node-seeding.ts`, and the development slice page
@@ -3400,8 +2886,8 @@ keep or roll back, never resend); parent-change moves pick the nearest empty
 cell from the snapshot (S43 (3)); tests for each group and for the S32 cases
 across real calls.
 
-**Dependencies:** Phase 46 Final Close and `main` sync; the feedback lane's
-Final Close; this phase's lifecycle gate.
+**Dependencies:** Phase 46 and Phase 49 Final Close and `main` sync; this
+phase's lifecycle gate.
 
 **Authority:** S09, S15, S16, S32, S43 (3); SPEC §Write feel.
 
@@ -3423,9 +2909,12 @@ rejection.
 - `src/lib/copy/feedback.ts`: the SPEC §Feedback copy toast rows.
 - The 17 kept `toast(` calls move to the helper with their aligned copy (F16);
   rolled-back writes and account limits use their kinds.
-- Group 3 controls show the feedback F03 loader (promotion ②) after
-  `DISPLAY_DELAY_MS` and a busy state (the request timeout itself is Task
+- Group 3 controls show the feedback F03 loader (Task 243's `status-icon`)
+  after `DISPLAY_DELAY_MS` and a busy state (the request timeout itself is Task
   227's).
+- The Toaster's position, colour and stack limit stay as Task 244 set them.
+  If Task 245 has landed, its inline-editor offline toast moves to the helper
+  too; otherwise Task 245 uses the helper.
 
 **Dependencies:** Task 231.
 
@@ -3449,8 +2938,11 @@ a failed background refetch only sets unstable; every write path, the Inbox
 commands included, checks the state first and, while offline, changes nothing,
 keeps typed input and shows the offline toast (F18); the Inbox editor's offline
 source moves from `navigator.onLine` (`use-scratch-breakdowns.ts`) to the
-monitor, after feedback F05 (lane) removed the editor's own offline line; the
-development state switch gains the network states.
+monitor. If Task 245 has not landed, the editor keeps its own offline line
+until then, and Task 245 wires its offline toast to the monitor and the helper
+(whichever lands second does the wiring and also removes the separate
+`navigator.onLine` subscription in `breakdown-panel.tsx`, so one offline source
+remains). The development state switch (Task 243) gains the network states.
 
 **Dependencies:** Task 232.
 
@@ -3470,13 +2962,14 @@ checkpoint.
 ### Task 234: [ ] Add the account icon, the connection badge, the loading screen and the session-expired screen
 
 **Files and actions:** `src/components/layout/account-button.tsx` and test:
-top of the sidebar (below Home when F21 is present), guest and account icons,
+below the Home button if Task 248 has landed, otherwise at the very top
+(Task 248 then puts Home above it; feedback F33), guest and account icons,
 a focusable status element with the connection tooltip and no action until
 Task 235, the badge, and the polite announcements including the screen-reader
 `Back online.` (F17); `app-frame.tsx`: the delayed loading screen (busy) and
 the session-expired screen with `Continue as guest` only (S43 (2), F20),
 shown again after a reload while the session-expired marker is present; all in
-the `DP-SAAS-01` look. Check the Inbox status presentation under real
+the `DP-SAAS-01` look. Check the Inbox status presentation that is on `main` under real
 server latency: network throttling in the browser, or production after
 launch (SPEC §Write feel).
 
@@ -3512,6 +3005,8 @@ recorded it (the deletion request, `account_deleting` in `ensure_account()`,
 account-being-deleted screen); in either branch `account_missing` in
 `get_snapshot()`, the reconcile and write functions, and the account-deleted
 screen; sign-out from one tab followed by the other tabs.
+- Reserved cells (feedback F34): every `ensure_account()` call site added here
+  passes the top-left 3×2 block until Task 249 is on `main`, and none after.
 
 **Dependencies:** Phase 47 Final Close and `main` sync; this phase's lifecycle
 gate.
@@ -3550,6 +3045,8 @@ checkpoint in the three themes.
   its inline error; Turnstile on anonymous sign-in with the widget in the
   security-check screen (S42 (3)); the guest-creation failure reasons; the
   session-expired screen gains the two sign-in buttons (F20).
+- Reserved cells (feedback F34): every `ensure_account()` call site added here
+  passes the top-left 3×2 block until Task 249 is on `main`, and none after.
 
 **Dependencies:** Task 235.
 
@@ -3580,7 +3077,8 @@ below waits for that approval, recorded in this task.
 modification times relative to the copy time, references to Inbox and
 Archive mapped to the account's existing system Nodes and no seed item in their
 cells, `seeded_at`), with the copy-once
-concurrency test (S30, S42 (2)).
+concurrency test (S30, S42 (2)); the seed uses no cell with `x` < 3 and `y` < 2
+at any level (feedback F34), checked by a database test.
 
 **Dependencies:** Task 236.
 
@@ -3624,8 +3122,8 @@ checkpoint.
 
 **Files and actions:** "grid" in `src/app/layout.tsx` metadata, the `sr-only`
 heading of `src/app/(grid)/page.tsx` and the account modal (S24);
-on Node pages the title keeps the format feedback F25 shipped, with "grid" in
-place of "GridDO"; `scripts/backup/weekly-dump.sh` and its `launchd` file
+`APP_NAME` in `src/lib/constants.ts` becomes "grid", so Node pages keep the
+feedback F25 title format (Task 248) whichever task lands first; `scripts/backup/weekly-dump.sh` and its `launchd` file
 (weekly `supabase db dump` as three files: roles, schema, and data including
 the `auth` schema rows; latest 8 kept outside Git; a Docker check and a
 failure notice; the connection secret read from outside Git); the user
@@ -3669,538 +3167,451 @@ smoke result is recorded in the Phase 48 close.
 
 **Commit message:** `docs: prepare the grid launch`.
 
-## Phase 36 — Terminal Regional Realization
-
-Theme set: `terminal`. This phase is proposed and unstarted.
-
-Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
-
-### Task 180: [ ] Fix the common frame and realize Scratch Pool
-
-**Files and actions:** bind L1's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
-
-Carried from Phase 41 (`Issues_Deferred.md`): the Terminal Pool row hover background turns the row light grey under green text, so contrast is low (MI-2). Fix it in the Terminal Pool row states and check hover contrast in light and dark.
-
-**Dependencies:** Tasks 179 and 179A accepted and actual Phase 35 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–30, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L1, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize terminal frame-pool`.
-
-### Task 181: [ ] Realize Selected Scratch Context and Breakdown
-
-**Files and actions:** bind L2's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 180 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L2; UF-06–12/14–15/26/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L2; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L2, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize terminal context-breakdown`.
-
-### Task 182: [ ] Realize Staging and drag presentation
-
-**Files and actions:** bind L3's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 181 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L3; UF-13–16/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L3; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L3, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize terminal staging`.
-
-### Task 183: [ ] Realize Explorer base and replacement search
-
-**Files and actions:** bind L4's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 182 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L4; UF-17–19/22/24–25/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L4; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L4, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize terminal explorer-search`.
-
-### Task 184: [ ] Realize Placement followed by Newly/Undo
-
-**Files and actions:** bind L5's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 183 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L5; UF-19–25/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L5; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L5, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize terminal placement-newly-undo`.
-
-### Task 185: [ ] Realize completion and Archive
-
-**Files and actions:** bind L6's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 184 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L6; UF-02/12/26–29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L6; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L6, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize terminal archive`.
-
-### Task 186: [ ] Complete supported modes, accessibility and regression
-
-**Files and actions:** bind L7's exact per-file actions to `terminal` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 185 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–31 preservation, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition, with the user's first judgment recorded separately from the final disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L7, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize terminal theme-conformance`.
-
----
-
-## Phase 37 — Claymorphism And Origami Regional Realization
-
-Theme set: `claymorphism`, `origami`. This phase is proposed and unstarted.
-
-Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
-
-### Task 187: [ ] Fix the common frame and realize Scratch Pool
-
-**Files and actions:** bind L1's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 186 accepted and actual Phase 36 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–30, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L1, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize claymorphism-origami frame-pool`.
-
-### Task 188: [ ] Realize Selected Scratch Context and Breakdown
-
-**Files and actions:** bind L2's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 187 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L2; UF-06–12/14–15/26/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L2; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L2, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize claymorphism-origami context-breakdown`.
-
-### Task 189: [ ] Realize Staging and drag presentation
-
-**Files and actions:** bind L3's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 188 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L3; UF-13–16/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L3; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L3, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize claymorphism-origami staging`.
-
-### Task 190: [ ] Realize Explorer base and replacement search
-
-**Files and actions:** bind L4's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 189 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L4; UF-17–19/22/24–25/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L4; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L4, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize claymorphism-origami explorer-search`.
-
-### Task 191: [ ] Realize Placement followed by Newly/Undo
-
-**Files and actions:** bind L5's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 190 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L5; UF-19–25/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L5; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L5, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize claymorphism-origami placement-newly-undo`.
-
-### Task 192: [ ] Realize completion and Archive
-
-**Files and actions:** bind L6's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 191 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L6; UF-02/12/26–29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L6; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L6, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize claymorphism-origami archive`.
-
-### Task 193: [ ] Complete supported modes, accessibility and regression
-
-**Files and actions:** bind L7's exact per-file actions to `claymorphism`, `origami` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 192 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–31 preservation, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition, with the user's first judgment recorded separately from the final disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L7, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize claymorphism-origami theme-conformance`.
-
----
-
-## Phase 38 — GridDO And Tiny Desk Regional Realization
-
-Theme set: `griddo`, `tiny-desk`. This phase is proposed and unstarted.
-
-Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
-
-### Task 194: [ ] Fix the common frame and realize Scratch Pool
-
-**Files and actions:** bind L1's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 193 accepted and actual Phase 37 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–30, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L1, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize griddo-tiny-desk frame-pool`.
-
-### Task 195: [ ] Realize Selected Scratch Context and Breakdown
-
-**Files and actions:** bind L2's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 194 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L2; UF-06–12/14–15/26/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L2; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L2, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize griddo-tiny-desk context-breakdown`.
-
-### Task 196: [ ] Realize Staging and drag presentation
-
-**Files and actions:** bind L3's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 195 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L3; UF-13–16/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L3; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L3, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize griddo-tiny-desk staging`.
-
-### Task 197: [ ] Realize Explorer base and replacement search
-
-**Files and actions:** bind L4's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 196 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L4; UF-17–19/22/24–25/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L4; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L4, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize griddo-tiny-desk explorer-search`.
-
-### Task 198: [ ] Realize Placement followed by Newly/Undo
-
-**Files and actions:** bind L5's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 197 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L5; UF-19–25/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L5; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L5, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize griddo-tiny-desk placement-newly-undo`.
-
-### Task 199: [ ] Realize completion and Archive
-
-**Files and actions:** bind L6's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 198 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L6; UF-02/12/26–29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L6; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L6, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize griddo-tiny-desk archive`.
-
-### Task 200: [ ] Complete supported modes, accessibility and regression
-
-**Files and actions:** bind L7's exact per-file actions to `griddo`, `tiny-desk` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 199 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–31 preservation, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition, with the user's first judgment recorded separately from the final disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L7, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize griddo-tiny-desk theme-conformance`.
-
----
-
-## Phase 39 — Graphite Regional Realization
-
-Theme set: `graphite`. This phase is proposed and unstarted.
-
-Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
-
-### Task 201: [ ] Fix the common frame and realize Scratch Pool
-
-**Files and actions:** bind L1's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 200 accepted and actual Phase 38 Final Close/main sync; approved document/flow chain and this phase's fresh lifecycle gate. The matching L1 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L1; UF-01–05/28–30, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L1; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L1 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L1, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize graphite frame-pool`.
-
-### Task 202: [ ] Realize Selected Scratch Context and Breakdown
-
-**Files and actions:** bind L2's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 201 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L2 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L2; UF-06–12/14–15/26/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L2; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L2 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L2, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize graphite context-breakdown`.
-
-### Task 203: [ ] Realize Staging and drag presentation
-
-**Files and actions:** bind L3's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 202 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L3 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L3; UF-13–16/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L3; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L3 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L3, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize graphite staging`.
-
-### Task 204: [ ] Realize Explorer base and replacement search
-
-**Files and actions:** bind L4's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 203 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L4 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L4; UF-17–19/22/24–25/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L4; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L4 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L4, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize graphite explorer-search`.
-
-### Task 205: [ ] Realize Placement followed by Newly/Undo
-
-**Files and actions:** bind L5's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 204 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L5 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L5; UF-19–25/29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L5; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L5 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L5, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize graphite placement-newly-undo`.
-
-### Task 206: [ ] Realize completion and Archive
-
-**Files and actions:** bind L6's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 205 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L6 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L6; UF-02/12/26–29, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L6; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L6 element/state and behavior-preservation criterion, checked against the reference in the running app and refined before first submission, and a separate user visual disposition for each assigned theme; the checkpoint records the user's first judgment separately from the final disposition. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L6, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize graphite archive`.
-
-### Task 207: [ ] Complete supported modes, accessibility and regression
-
-**Files and actions:** bind L7's exact per-file actions to `graphite` only. Conditional owner/decision gates remain in force.
-
-**Dependencies:** Task 206 accepted, including its required user visual dispositions; this phase's approved lifecycle scope. The matching L7 DP contracts and Q01/Q02/Q05 conditions apply only where that binding names them.
-
-**Authority / flows:** selected DECISION and approved DESIGN_TOKENS as cited by L7; UF-01–31 preservation, its AF/NEG constraints and no-storage boundary.
-
-**Recipe:** exactly the source/DP surfaces named by L7; no adjacent or experimental fallback.
-
-**Observable acceptance:** Every L7 current-theme supported-mode criterion and separate user visual disposition, with the user's first judgment recorded separately from the final disposition; no silent component repair or full-campaign pass claim. No later region is advanced from self-review or test success alone.
-
-**Verification:** all exact direct targets and fresh mounted-browser checks in L7, plus its focused/full logical gates and regression boundaries.
-
-**Commit message:** `feat(triage): realize graphite theme-conformance`.
-
----
-
-## Phase 40 — Complete Implementation And Preservation Gate
-
-Flow review: [Inbox/Triage theme realization](reviews/2026-10-03-inbox-triage-theme-realization-flow-review.md) covers Phases 34–40.
-
-### Task 208: [ ] Run the retained all-nodes campaign gate
-
-**Files and actions:** make no production/test/config change. Run the full
-matrix below on the current code with test data and record the outcome in the
-Phase 40 ledger checkpoint: the accepted dispositions of Tasks 129–163,
-166–207 and 209–212, the approved SCHEMA grid correction, all 31 UF/10 AF/21 NEG outcomes,
-nine recipes, fourteen accepted DP receipts covering twelve VQs and
-migration/rollback/ABA/aggregate-retention/recovery/unrelated-surface results.
-Failures return to their exact owner.
-
-**Dependencies:** all accepted Tasks 101–163 including 105A; all accepted Tasks
-166–207 and 209–212; actual Phase 39 Final Close/main sync and all prior phase publication/
-integration proofs; the approved SCHEMA grid correction and fourteen retained
-DP receipts; complete approved C04/C05/C06/flow-review chain and this phase's
-exact lifecycle gate. Transferred 164/165 are explicitly excluded from the
-dependency set, never treated as accepted.
-
-**Authority / flows:** every UF-01–31, AF-01–10, NEG-01–21 and VQ-01–12,
-all independent command/data foundations and DECISION D07/D19/D24.
-No new data or product decision is derived.
-
-**Recipe:** all nine exact source packages in the Recipe Surface Inventory.
-
-**Observable acceptance:** one clean migrated production build passes every
-flow and preserved unrelated surface; real fault injection leaves no partial
-writes; all three ABA sequences conflict without resurrection; aggregate
-deletion retains audits; Archive storage/reload/handoff and state lifetimes
-pass. Eight themes × light/dark at both supported desktop viewports cover all
-nine recipes, representative reliability/editor/recovery states, accessibility,
-pointer/keyboard/focus and adopted motion. All five deferrals remain absent;
-every newly scoped card change has its exact Q01 authority and preserved
-consumer evidence. No unknown result, skipped check, unresolved decision,
-known failure or source-only claim is represented as completion.
-
-**Verification:** run the `CLAUDE.md` full gate; run the complete v3→v4
-migration/rollback, real transaction, ABA-1/2/3, aggregate retention, 31-flow/10-AF/21-NEG, fourteen-DP/nine-recipe,
-16-theme/mode × 1024px/1920×1080, route/reload/remote/concurrent/focus,
-accessibility/motion and unrelated-surface matrices. Browser-dependent
-results need a fresh check on the current code. Finish with a clean working
-tree and independent technical and user visual dispositions. This task does
-not itself authorize Phase 40 Final Close.
-
-**Commit message:** `docs(triage): record full inbox implementation and
-preservation gate`, after every claimed check passes. No repair is bundled.
-
----
+## Feedback Lane — Phases 49–50
+
+Authority: [feedback DECISION](brainstorming/2026-10-18-staging-item-status-feedback/DECISION.md)
+F01, F03–F10, F12, F15, the F16 create-dialog change and dropped breadcrumb
+toast, and F21–F33, under its
+[PROMOTION_MAP](brainstorming/2026-10-18-staging-item-status-feedback/PROMOTION_MAP.md)
+(promotion ②); SPEC §Item status presentation, §Breadcrumb reveal and Home
+button, §Toasts, §Feedback copy, §Development state switch; DESIGN_TOKENS
+§Feedback Status Surfaces, §Color Theme System and the DP amendments it names;
+SCHEMA §Not ported.
+
+Flow review: [Phases 49–50 flow review](reviews/phase-49-50-flow-review.md).
+
+Phase waits are in [Lanes and phase waits](#lanes-and-phase-waits): Phase 49
+waits for none and runs beside Phases 42–44; Phases 45 and 47 wait for it.
+Phase 50 waits for Phases 49 and 45, runs beside Phases 46–48, does not block
+Phase 48 and closes before the theme stage.
+
+### Shared rules for every feedback-lane task
+
+- **Gates:** the CLAUDE.md gate without `pnpm test:db` on every code task; the
+  close of each phase runs `pnpm test:db` under the CLAUDE.md Local Supabase
+  rule once `main` has it (Task 213); before that the close ledger records it
+  as not applicable. Decision-only Task 242 runs `git diff --check`.
+- **Database:** no task edits `supabase/`. From Phase 50 the browser checks run
+  on local Supabase (Phase 45 is on `main`); a task never resets the database
+  or adds a migration, and seeds again after a SaaS-lane reset.
+- **Checkpoints:** a user-visible task is checked in the running app in
+  `griddo`, `retro-mac` and `neumorphism` for correct rendering and in
+  `claymorphism` only for not breaking (F29), light and dark, at 1920×1080 and
+  at 1024px with the Pool open where the Inbox is involved, with the
+  plain-Korean "what to look at" list. From Task 243 on, status states are
+  forced with the development state switch.
+- **Looks:** no visual value is chosen before `DP-FB-01` is recorded (Task 242).
+- **Review:** a task that changes state logic, timing, DnD or focus order gets
+  an `expert` review before acceptance.
+- **Cross-lane files:** see the `cross-lane`, `saas-*` and `feedback-*` rows of
+  the [writer register](#shared-file-writer-register-and-mutex-policy); the lane
+  that merges second resolves conflicts when it merges `main`.
+
+## Phase 49 — Theme Set, Status Primitives And Toasts
+
+Waits for: none (runs beside Phases 42–44). Holds what the SaaS phases need
+before Phase 45 and Phase 47: the four-theme set, the looks, the status
+primitives and the toast position and colour (F33).
+
+### Task 241: [ ] Reduce the color themes to four
+
+**Files and actions:**
+- `src/lib/color-themes.ts` (new, non-client): the theme ids
+  (`griddo`, `neumorphism`, `claymorphism`, `retro-mac`), the default and the
+  storage key, the one list the store and the no-flash script read
+  (ISSUE-20-01).
+- `src/stores/color-theme-store.ts` and test: read the shared list; a persisted
+  removed id falls back to `griddo` through the existing validation.
+- `src/app/layout.tsx`: build the no-flash script from the shared list; drop
+  Playfair Display and VT323.
+- `src/components/layout/color-theme-toggle.tsx`: four options.
+- `src/app/globals.css`: remove the `tiny-desk`, `origami`, `terminal` and
+  `graphite` blocks and swatch variables, including their Inbox/Triage
+  realization rules.
+- Tests that enumerate themes (`theme-transition.test.ts`,
+  `sidebar.test.tsx`, `inbox-triage-theme-realization.test.tsx`,
+  `triage-workspace.test.tsx`, `hierarchy-explorer.test.tsx`,
+  `breakdown-panel.test.tsx` and any other found by search): drop the removed
+  themes.
+
+**Dependencies:** this phase's lifecycle gate.
+
+**Authority:** F28; SaaS S40; Phase 35 MI-13; ISSUE-20-01; CLAUDE.md
+Architecture 8; DESIGN_TOKENS §Color Theme System.
+
+**Observable acceptance:** the picker shows four themes; a reload with a stored
+`terminal` id shows `griddo` with no flash; the four themes look as before;
+no theme context under `src/` names a removed theme (the `tiny-desk`,
+`origami` and `graphite` ids, a `terminal` color-theme id or
+`data-color-theme` selector, `--font-playfair`, `--font-vt323`, Playfair
+Display, VT323); the Inbox `terminal` operation phase is unrelated and stays;
+from this task on no test or check covers the removed themes.
+
+**Verification:** gate; that scoped search returns nothing under `src/`;
+browser checkpoint of the four themes, light and dark.
+
+**Commit message:** `refactor(theme): reduce the color themes to four`.
+
+### Task 242: [ ] Record the feedback and SaaS surface decisions `DP-FB-01` and `DP-SAAS-01`
+
+**Files and actions:** a served HTML option sheet in `griddo`, with
+`retro-mac` and `neumorphism` spot-checks and Korean explanations, rendering
+every surface of DESIGN_TOKENS `DP-FB-01` and `DP-SAAS-01` together, with
+shapes copied from the realized theme CSS, not from base components; record the
+user's choices in DESIGN_TOKENS §Feedback Status Surfaces and §SaaS App-State
+Surfaces, including the `:root` values of the status tokens. The sheet is
+scratch, not committed.
+
+**Dependencies:** Task 241.
+
+**Authority:** F03, F07, F09, F12, F15, F21–F24, F29, F33; SaaS S27, S40;
+DESIGN_TOKENS `DP-FB-01`, `DP-SAAS-01`.
+
+**Observable acceptance:** the user's choice for each surface of both
+prerequisites is recorded and committed; no implementation file changes.
+
+**Verification:** `git diff --check`; the user confirms the recorded text.
+
+**Commit message:** `docs(design): record DP-FB-01 and DP-SAAS-01`.
+
+### Task 243: [ ] Add the status primitives and the development state switch
+
+**Files and actions:**
+- `src/lib/constants.ts`: `DISPLAY_DELAY_MS = 300` (D7; reuse it if Task 217
+  added it first).
+- `src/hooks/use-display-delay.ts` and test: whether a pending or reconciling
+  presentation is visible yet; restarts on a new phase; never reads or changes
+  command state (F02).
+- `src/components/feedback/status-icon.tsx` and test: `pending`, `unknown`,
+  `reconciling`, `problem`; the delayed rotating loader, static under reduced
+  motion; `?`; `!`; the `data-status-emphasis` helper for `?` and `!` only
+  (F03).
+- `src/components/feedback/status-tooltip.tsx` and test: hover and keyboard
+  focus, one at a time, no controls, `aria-describedby`, static display (F09).
+- A visually hidden polite status region for the success announcements of
+  F04, in `src/components/feedback/`.
+- `src/app/globals.css`: the status tokens with the `DP-FB-01` values (light
+  and dark, on `:root`) and the `data-feedback-role` styles.
+- `src/lib/dev/state-switch.ts`, `src/components/dev/state-switch-panel.tsx`
+  and test: a development-only store and panel that force, per item, delayed
+  pending, reconciling, unknown, not applied, rejected, conflict, integrity and
+  editor offline over the current Inbox operation projections, and show each
+  primitive in each state; it also injects outcomes at the `DataStore`
+  boundary, through a development-only wrapper that `getDataStore()` in
+  `src/lib/db/datastore.ts` applies to whichever store it returns (delay the
+  next calls of a command kind, or make them return
+  unknown, not applied, rejected or conflict), so the real recovery paths run
+  end to end without stopping the shared local Supabase; mounted only when
+  `NODE_ENV` is `development`.
+
+**Dependencies:** Task 242.
+
+**Authority:** F02, F03, F04, F09, F15, F30; SPEC §Item status presentation,
+§Development state switch; DESIGN_TOKENS §Feedback Status Surfaces.
+
+**Observable acceptance:** a result faster than 300ms shows nothing; a slower
+one shows the loader at 300ms; reconciling keeps `?` and then the loader; the
+loader is static under reduced motion; only one tooltip shows at a time and it
+describes its item; the switch forces each state on the current Inbox items,
+and an injected unknown or not-applied outcome runs the real `Check again` or
+`Retry` path; the production build contains no switch code.
+
+**Verification:** gate; `expert` review (delay hook, switch isolation); a
+search of the production build output for the switch; browser checkpoint of
+the primitives and forced states in the themes.
+
+**Commit message:** `feat(feedback): add the status primitives and the development state switch`.
+
+### Task 244: [ ] Move and recolour the toasts and keep full-Grid create dialogs open
+
+**Files and actions:**
+- `src/app/providers.tsx`: the `sonner` Toaster at the top-left of the work
+  area, right of the sidebar; at most three visible; kinds styled through the
+  status tokens with the ✓, `!` and `wifi-off` icons instead of `richColors`
+  (F12, F15).
+- `src/hooks/use-toast-anchor.ts` and test: the stack's offset, below the fixed
+  breadcrumb on Grid pages and at the breadcrumb row elsewhere (Task 248
+  extends it to the revealed breadcrumb); translucent and pointer-transparent
+  while a Node or Bit is dragged.
+- `src/app/globals.css`: `toast-stack` and `toast` roles.
+- `src/lib/copy/feedback.ts` (created here if Task 228 has not created it):
+  the create-dialog sentence of SPEC §Feedback copy.
+- `src/components/layout/grid-runtime.tsx` and the Node and Bit create dialogs
+  it opens, with `grid-runtime.test.tsx`: when the target Grid has no empty
+  cell, the dialog stays open with the typed title and shows the inline error,
+  at every level, L0 included; no toast (F16).
+
+**Dependencies:** Task 243.
+
+**Authority:** F12, F15, F16 (create dialog); SPEC §Toasts, §Feedback copy;
+DESIGN_TOKENS `toast-stack`, `toast`; `DP-FB-01`.
+
+**Observable acceptance:** toasts appear at the top-left of the work area,
+below the breadcrumb on Grid pages and at the top-left on the Inbox, Calendar
+and Trash; their hues are blended and their icons differ by kind; at most three
+show; during a drag the stack is translucent and a drop on a cell under it
+works; a full-Grid create keeps the dialog, the title and the reason at L0 and
+below, including a Bit created from L0 into a full parent (the reason names
+that parent), with no toast. The kept toasts' texts are unchanged (Task 232 aligns
+them).
+
+**Verification:** gate; browser checkpoint in the themes, including a drag
+under the stack and full-Grid creates of a Node and a Bit at L0 and at L1.
+
+**Commit message:** `feat(feedback): move and recolour the toasts and keep full-grid create dialogs open`.
+
+## Phase 50 — Inbox Status, Breadcrumb Reveal And Last Scratch
+
+Waits for: Phase 49 and Phase 45 Final Close and `main` sync (runs beside
+Phases 46–48). Does not block Phase 48; closes before the theme stage. Its
+checks run on local Supabase (Shared rules above).
+
+### Task 245: [ ] Show Breakdown, Add and editor statuses on the item
+
+**Files and actions:**
+- `src/components/triage/breakdown-panel.tsx` and test: remove the `DP-VQ02`
+  wash, check, visible text and 160px slot; add the 22px status slot with the
+  status icon, emphasis and tooltip on the row's grip and slot; the Add field
+  icon at its right end with emphasis and tooltip, `Check again` and
+  `Retry Add` beside Add; Delete's `Check again` in the action cluster; the
+  editor states of `DP-VQ04`'s amendment (loader, `!`, tooltip, `Stay here`);
+  the hidden polite `Added.` and `Saved.` (F01, F04–F07).
+- `src/hooks/use-scratch-breakdowns.ts` and test: an editor save attempted
+  while offline keeps the draft and shows the offline write-attempt toast
+  (SPEC §Toasts), through the Task 232 helper and the Task 233 monitor if they
+  are on `main`, otherwise a direct call and `navigator.onLine`. Whichever of
+  Task 233 and this task lands second also removes `breakdown-panel.tsx`'s own
+  `navigator.onLine` subscription for the offline Retry.
+- `src/components/triage/triage-workspace.tsx` and test: the Unstage success
+  projection that drove the `DP-VQ02` row signal now feeds only the hidden
+  announcement.
+- `src/lib/copy/inbox-triage.ts` and test: tooltip use of the existing
+  sentences; no visible success key.
+- `src/app/globals.css`: the Breakdown row grid with the status slot; remove
+  the success roles.
+- `inbox-triage-theme-realization.test.tsx`: the new roles.
+
+**Dependencies:** Phase 49 and Phase 45 Final Close and `main` sync; this
+phase's lifecycle gate; `DP-FB-01` recorded.
+
+**Authority:** F01, F02, F04–F07, F09; MI-21 (row part); SPEC §Item status
+presentation, §Breakdown and Selected Scratch Context; DESIGN_TOKENS `DP-VQ02`
+retirement and the `DP-VQ04`, `DP-VQ05` amendments.
+
+**Observable acceptance:** at 1024px with the Pool open a Breakdown row's title
+keeps its width (the row reserves 22px, not 160px); an Add success shows
+nothing on screen and a screen reader hears `Added.`; a slow Add shows the
+loader only after 300ms; unknown shows `?` with `Check again`, not applied
+`!` with `Retry Add`, each with emphasis and its sentence on hover and focus;
+Delete and the editors follow the same rule; an offline editor save keeps the
+draft and shows the toast; the conflict view is unchanged; a status icon on a
+locked row is reachable by keyboard and shows its sentence on focus.
+
+**Verification:** gate; `expert` review (state-to-presentation mapping and
+timing); browser checkpoint with the state switch.
+
+**Commit message:** `feat(inbox): show Breakdown and editor statuses on the item`.
+
+### Task 246: [ ] Show Staging statuses on the item and widen the Nodes zone
+
+**Files and actions:**
+- `src/components/triage/staging-zone.tsx` and test: the status icon at a Node
+  card's top-right corner and a Bit row's end in place of the in-card line;
+  the problem tooltip leads with the full title, since the label truncates,
+  unless the sentence contains it; the status icon is focusable where its host
+  is not in the Tab order (a Stage projection, an integrity slot); an Unstage
+  failure shows `!` on its candidate (cleared by a new operation for it, its
+  disappearance or a Scratch switch); the alert band only for Stage failures
+  and the stale-invalidation notices; the integrity slot's `!`; the Staging
+  side of the Unstage hold and clear, while the hidden `Returned to Breakdown.`
+  stays with Task 245's workspace projection, so it is announced once (F01, F04,
+  F06–F09).
+- `src/components/triage/triage-workspace.tsx` and test, where the Stage and
+  Unstage alerts are created, and `src/hooks/use-staged-candidates.ts` and
+  test: route Unstage failures to the candidate instead of the alert; the
+  stale-invalidation notices (changed-elsewhere drop cancellation, placement
+  closed) stay in the band.
+- `src/app/globals.css`: the `staging-node-grid` (one card's minimum width,
+  auto-fill, one or two columns) (F10).
+- `src/lib/copy/inbox-triage.ts`; `inbox-triage-theme-realization.test.tsx`.
+
+**Dependencies:** Task 245.
+
+**Authority:** F06–F10; MI-21 (Staging part); SPEC §Durable Staging;
+DESIGN_TOKENS `DP-VQ06-STAGING` amendment.
+
+**Observable acceptance:** at 1024px with the Pool open a Node card is never
+narrower than one card and the well shows one column, two when they fit;
+pending shows the loader after 300ms; unknown and reconciling show `?`; an
+Unstage failure shows `!` on the candidate and no band; a Stage failure keeps
+the band, and so do the stale-invalidation notices; the status icon of a Stage
+projection or integrity slot is reachable by keyboard and shows its sentence on
+focus.
+
+**Verification:** gate; `expert` review (failure routing); browser checkpoint
+with the state switch.
+
+**Commit message:** `feat(inbox): show Staging statuses on the item and widen the Nodes zone`.
+
+### Task 247: [ ] Carry the Undo status in the Undo slot
+
+**Files and actions:** `src/components/triage/hierarchy-explorer.tsx`,
+`src/components/grid/node-card.tsx`, `src/components/grid/bit-card.tsx`,
+`src/components/triage/grid-explorer-search-results.tsx` and their tests;
+`src/lib/copy/inbox-triage.ts`; `src/app/globals.css`: remove the
+`newly-status-rail` and its text recovery actions; the slot states of
+DESIGN_TOKENS §Undo slot status amendment for ordinary rows and search results;
+an unavailable `↶` and an action-less `!` use `aria-disabled="true"`, never
+`disabled`; the slot tooltip adds `Select to check again.` or
+`Select to try again.`; the card body keeps its Task 179A title tooltip and the
+slot shows only its own, one tooltip at a time.
+
+**Dependencies:** Task 246.
+
+**Authority:** F06, F07, F09; SPEC §Actual-card Newly Placed and Undo;
+DESIGN_TOKENS Undo slot status amendment.
+
+**Observable acceptance:** each Undo state shows in the slot and no rail
+remains; the row keeps its width; `?` checks again and `!` retries; an
+unavailable control takes focus and shows its reason on keyboard focus and on
+hover; search results behave the same; focus destinations are unchanged; the
+card body's Task 179A title tooltip still shows and never doubles with the slot
+tooltip.
+
+**Verification:** gate; `expert` review; browser checkpoint with the state
+switch, ordinary columns and search; one check of Add, Stage and Undo under
+browser network throttling on local Supabase, so the loader and the 300ms delay
+are judged under real latency (SPEC §Write feel).
+
+**Commit message:** `feat(inbox): carry the Undo status in the Undo slot`.
+
+### Task 248: [ ] Add the Home button and the breadcrumb reveal
+
+**Files and actions:**
+- `src/components/layout/home-button.tsx` and test: top-most on every route;
+  navigates to `/` through the sidebar's departure-guarded `navigate`
+  (`requestActiveTriageDeparture`), so an Add draft or a pending Inbox
+  operation keeps its guard; `aria-current="page"` on L0; the landing emphasis (F21,
+  F23).
+- `src/components/layout/sidebar.tsx` and test: the order Home, account icon
+  (when present), `+`; the Calendar and system-route-only Home goes.
+- `src/hooks/use-breadcrumb-reveal.ts` and test: the triggers (hover or focus
+  on Home or the breadcrumb, 3 seconds after entering a Node, any Node or Bit
+  drag), the 1-second hide with the fade, the deadline picker hold, the `Esc`
+  order of SPEC; after `Esc` the hover and focus triggers stay suppressed until
+  pointer and focus leave and return, and `Esc` on a segment moves focus to
+  Home (F22, F23). Until Task 249 the zone keeps reserving the cells under the
+  bar's shown position, as today.
+- `src/components/layout/breadcrumbs.tsx`, `breadcrumb-deadline.tsx` and tests:
+  the reveal surface in DOM order right after the Home button (no positive
+  `tabindex`); only segments and the chip take the pointer; during a drag each
+  ancestor segment is a drop target with its signal, the surface is
+  translucent and the chip hidden; the chip in the breadcrumb row (F24, F25).
+- Tab titles of SPEC §Feedback copy: `src/components/layout/grid-runtime.tsx`
+  sets `{title} – {APP_NAME}` on a Node's Grid, `Inbox – {APP_NAME}` and
+  `Archive – {APP_NAME}` on the system Nodes and `APP_NAME` alone on L0; the
+  Calendar pages (`src/app/calendar/weekly/page.tsx`, `monthly/page.tsx`) and
+  `src/app/trash/page.tsx` set `Calendar – {APP_NAME}` and `Trash – {APP_NAME}`;
+  `APP_NAME` in `src/lib/constants.ts` (`GridDO` until Task 239).
+- `src/components/grid/edit-mode-overlay.tsx`: its document-level `Esc` yields
+  to the layer order, so edit mode exits only after the dialog layer, the
+  deadline picker and the breadcrumb (user, 2026-10-22).
+- `src/lib/animations/motion-language.ts` and `src/lib/constants.ts`: the
+  breadcrumb motion and timing tokens of DESIGN_TOKENS §Motion Language.
+- `src/hooks/use-toast-anchor.ts`: the stack follows the revealed breadcrumb
+  (F12).
+- `src/app/globals.css`: `home-button`, `breadcrumb-reveal`,
+  `breadcrumb-drop-target`.
+
+**Dependencies:** Task 247.
+
+**Authority:** F12, F21–F25; SPEC §Breadcrumb reveal and Home button;
+DESIGN_TOKENS §Feedback Status Surfaces, §Motion Language, Sidebar,
+Breadcrumbs.
+
+**Observable acceptance:** Home sits at the top on every route and reveals the
+breadcrumb only on a Node's Grid; the breadcrumb shows for 3 seconds on entry,
+on hover or focus and during a drag, and hides 1 second after the pointer and
+focus leave; Tab from Home enters its segments; `Esc` follows the layer order;
+a card under the bar stays clickable; a drag drops on an ancestor segment;
+under reduced motion nothing moves; each page shows its tab title (a Node's
+name, `Inbox`, `Archive`, `Calendar`, `Trash`, and the app name alone on L0),
+also after client navigation; in edit mode with the breadcrumb shown, one `Esc`
+hides the breadcrumb and a second exits edit mode; Home with an Add draft open
+shows the departure sheet; the user
+rechecks that the deadline is visible
+only while the breadcrumb is shown (F25).
+
+**Verification:** gate; `expert` review (reveal state machine, `Esc` order,
+DnD pass-through, focus order); browser checkpoint with mouse and keyboard.
+
+**Commit message:** `feat(shell): add the Home button and the breadcrumb reveal`.
+
+### Task 249: [ ] Remove the blocked breadcrumb zone
+
+**Files and actions:** delete `src/stores/breadcrumb-zone-store.ts` and
+`src/lib/utils/breadcrumb-zone.ts` with its test; remove the zone measurement
+and every `isCellBlocked` or blocked-cell guard from `grid-runtime.tsx`,
+`grid-view.tsx`, `use-grid-actions.ts`, `use-dnd.ts` (with the
+`Cell reserved by breadcrumb` toast) and `src/lib/grid-dnd.ts`; remove
+`runBreadcrumbZoneMigration` from `datastore.ts`, the Supabase store's no-op
+and, if Phase 46 has not removed it, `indexeddb.ts`, with every `settings` use
+and no Dexie version bump; delete the reserved top-left block the client
+passes as `p_reserved_cells` and stop passing it from `src/lib/db/supabase-store.ts`
+and `src/lib/auth/session.ts` (the server parameter stays at its default; no SQL
+change, feedback F34); update the tests that cover the zone
+(`grid-view.test.tsx`, `use-grid-actions.test.ts`, `use-triage-dnd.test.ts`,
+`grid-dnd.test.ts`, `grid-runtime.test.tsx`, `indexeddb.migration.test.ts`).
+
+**Dependencies:** Task 248.
+
+**Authority:** F26, F34; F16 (dropped toast); SCHEMA §Not ported, §Internal
+functions; SPEC §Breadcrumb reveal and Home button.
+
+**Observable acceptance:** the cells under the breadcrumb accept Add,
+placement and drops like any other cell, including a drag dropped on a
+top-left cell under the revealed bar; a restore, an unhide or a promotion into
+a Grid whose only free cells are top-left lands there; no zone code or `settings` read or
+write remains; every gate passes.
+
+**Verification:** gate; `expert` review (Add, placement and DnD paths); a
+search for the zone names returns nothing; browser checkpoint of a create and a
+drop into the top-left cells.
+
+**Commit message:** `refactor(grid): remove the blocked breadcrumb zone`.
+
+### Task 250: [ ] Remember the last selected Scratch on this device
+
+**Files and actions:** `src/stores/triage-preferences-store.ts` and test: a
+validated `lastSelectedScratchId`; the Inbox selection owner
+(`triage-store.ts` and the Pool or Workspace selection path) and their tests:
+on first entry, reload or a new session, restore it when it resolves to an
+active Scratch of this account, otherwise use the first active Scratch as
+today; the search-hidden and Archive or Trash handoff rules are unchanged.
+
+**Dependencies:** this phase's lifecycle gate.
+
+**Authority:** F27; Phase 35 MI-14; SPEC §Scratch Pool (Selection and
+re-entry), §Inbox/Triage State Ownership; SCHEMA device preferences.
+
+**Observable acceptance:** a reload returns to the last selected Scratch; a
+deleted or archived one, or one from another account, falls back to the first
+active Scratch; no domain data is written.
+
+**Verification:** gate; browser checkpoint (reload; another local test user).
+
+**Commit message:** `feat(inbox): remember the last selected Scratch on this device`.
+
+## Phases 36–40 — Retired
+
+Retired as superseded by feedback F28 (user, 2026-10-20/22): the theme set
+shrinks to four, and the remaining theme work belongs to the theme stage
+(`2026-10-17-theme-scope-replan`). Tasks 180–208 never ran and their numbers
+are not reused. Their task text, the original Theme Realization Task Sets and
+the Future Theme Realization — Shared Binding Contracts (L1–L7) are in
+[the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
+Their deferred items are rebound in [Issues_Deferred.md](issues/Issues_Deferred.md):
+Phase 41 MI-2 closed as Dropped; P29-01 and Phase 34 MI-6 to the theme stage.
 
 ## Shared-File Writer Register And Mutex Policy
 
@@ -4231,72 +3642,78 @@ This register covers every implementation/test path declared by two or more task
 | `db-breakdown-regression` | `src/lib/db/scratch-breakdowns.test.ts` | 101, 103, 105, 120 |
 | `db-command-harness` | `src/lib/db/inbox-operations.test.ts` | 120 creates; 121, 123, 124, 209 extend |
 | `copy` | `src/lib/copy/inbox-triage.ts`; `src/lib/copy/inbox-triage.test.ts` | 128, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 210 |
-| `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 176A, 179A, 210, 211; THEMES |
-| `triage-state` | `src/stores/triage-store.ts`; `src/stores/triage-store.test.ts` | 127, 130, 134, 141, 150, 161, 163, 209, 212 |
-| `triage-preferences` | `src/stores/triage-preferences-store.ts`; `src/stores/triage-preferences-store.test.ts` | 127, 130, 132 |
-| `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162, 176A, 179A, 210, 211 (conditional); BREAKDOWN, ARCHIVE |
+| `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 176A, 179A, 210, 211; THEMES; feedback lane 241, 243–248 |
+| `triage-state` | `src/stores/triage-store.ts`; `src/stores/triage-store.test.ts` | 127, 130, 134, 141, 150, 161, 163, 209, 212, 250 |
+| `triage-preferences` | `src/stores/triage-preferences-store.ts`; `src/stores/triage-preferences-store.test.ts` | 127, 130, 132, 250 |
+| `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162, 176A, 179A, 210, 211 (conditional); BREAKDOWN, ARCHIVE, 245, 233 (offline source) |
 | `breakdown-component-test` | `src/components/triage/breakdown-panel.test.tsx` | 101 plus every `breakdown-component` writer |
-| `workspace-component` | `src/components/triage/triage-workspace.tsx` | 129, 136, 137, 139, 140, 141, 145, 149, 152, 155, 159, 160, 161, 163, 171A, 176A, 179A, 209 (handoff extraction), 210, 212; POOL, BREAKDOWN, STAGING, PLACE, ARCHIVE |
-| `workspace-component-test` | `src/components/triage/triage-workspace.test.tsx` | 101 plus every `workspace-component` writer |
+| `workspace-component` | `src/components/triage/triage-workspace.tsx` | 129, 136, 137, 139, 140, 141, 145, 149, 152, 155, 159, 160, 161, 163, 171A, 176A, 179A, 209 (handoff extraction), 210, 212; POOL, BREAKDOWN, STAGING, PLACE, ARCHIVE; 230 (orphan path), 245, 246 |
+| `workspace-component-test` | `src/components/triage/triage-workspace.test.tsx` | 101 plus every `workspace-component` writer; 230, 245, 246 |
 | `pool-component` | `src/components/triage/scratch-pool.tsx` | 130, 136, 141, 144, 161, 210, 212 (conditional); POOL |
 | `pool-component-test` | `src/components/triage/scratch-pool.test.tsx` | 101 plus every `pool-component` writer |
-| `staging-component` | `src/components/triage/staging-zone.tsx`; `src/components/triage/staging-zone.test.tsx` | 133, 142, 145, 146, 147, 148, 176A; STAGING |
+| `staging-component` | `src/components/triage/staging-zone.tsx`; `src/components/triage/staging-zone.test.tsx` | 133, 142, 145, 146, 147, 148, 176A; STAGING, 246 |
 | `drag-token` | `src/components/triage/triage-drag-token.tsx`; `src/components/triage/triage-drag-token.test.tsx` | 133, 142; STAGING |
-| `explorer-component` | `src/components/triage/hierarchy-explorer.tsx` | 134, 149–158, 210; EXPLORER, PLACE |
-| `explorer-component-test` | `src/components/triage/hierarchy-explorer.test.tsx` | 101, 134, 149–158, 210; EXPLORER, PLACE |
-| `explorer-results` | `src/components/triage/grid-explorer-search-results.tsx`; `src/components/triage/grid-explorer-search-results.test.tsx` | 151, 158, 171A (conditional); EXPLORER, PLACE |
-| `actual-node-card` | `src/components/grid/node-card.tsx` | 155, 156, 157, 179A; EXPLORER, PLACE only after their exact Q01 approval |
-| `actual-node-card-test` | `src/components/grid/node-card.test.tsx` | 101, 155, 156, 157, 179A; EXPLORER, PLACE only after their exact Q01 approval |
-| `actual-bit-card` | `src/components/grid/bit-card.tsx` | 155, 156, 157, 176, 179A; EXPLORER, PLACE only after their exact Q01 approval |
-| `actual-bit-card-test` | `src/components/grid/bit-card.test.tsx` | 101, 155, 156, 157, 176, 179A; EXPLORER, PLACE only after their exact Q01 approval |
-| `theme-realization-test` | `src/components/triage/inbox-triage-theme-realization.test.tsx` | THEMES, 176A, 179A, 210, 211; 166 creates, later writers extend while preserving earlier assertions |
-| `theme-transition-test` | `src/app/theme-transition.test.ts` | CONFORM |
-| `breakdown-hook` | `src/hooks/use-scratch-breakdowns.ts` | 132, 136, 137 |
-| `breakdown-hook-test` | `src/hooks/use-scratch-breakdowns.test.tsx` | 101, 132, 136, 137 |
+| `explorer-component` | `src/components/triage/hierarchy-explorer.tsx` | 134, 149–158, 210; EXPLORER, PLACE, 247 |
+| `explorer-component-test` | `src/components/triage/hierarchy-explorer.test.tsx` | 101, 134, 149–158, 210; EXPLORER, PLACE, 247 |
+| `explorer-results` | `src/components/triage/grid-explorer-search-results.tsx`; `src/components/triage/grid-explorer-search-results.test.tsx` | 151, 158, 171A (conditional); EXPLORER, PLACE, 247 |
+| `actual-node-card` | `src/components/grid/node-card.tsx` | 155, 156, 157, 179A; EXPLORER, PLACE only after their exact Q01 approval; 247 (Undo slot) |
+| `actual-node-card-test` | `src/components/grid/node-card.test.tsx` | 101, 155, 156, 157, 179A; EXPLORER, PLACE only after their exact Q01 approval; 247 (Undo slot) |
+| `actual-bit-card` | `src/components/grid/bit-card.tsx` | 155, 156, 157, 176, 179A; EXPLORER, PLACE only after their exact Q01 approval; 247 (Undo slot) |
+| `actual-bit-card-test` | `src/components/grid/bit-card.test.tsx` | 101, 155, 156, 157, 176, 179A; EXPLORER, PLACE only after their exact Q01 approval; 247 (Undo slot) |
+| `theme-realization-test` | `src/components/triage/inbox-triage-theme-realization.test.tsx` | THEMES, 176A, 179A, 210, 211; 166 creates, later writers extend while preserving earlier assertions; 241, 245–247 |
+| `theme-transition-test` | `src/app/theme-transition.test.ts` | CONFORM, 241 |
+| `breakdown-hook` | `src/hooks/use-scratch-breakdowns.ts` | 132, 136, 137, 245, 232, 233 |
+| `breakdown-hook-test` | `src/hooks/use-scratch-breakdowns.test.tsx` | 101, 132, 136, 137, 245, 232, 233 |
 | `operation-lock` | `src/hooks/use-triage-operation-lock.ts` | 209 |
 | `operation-lock-test` | `src/hooks/use-triage-operation-lock.test.tsx` | 136, 137, 139, 145, 152, 156, 161, 209 |
 | `inbox-hook` | `src/hooks/use-inbox.ts` | 209, 212 |
 | `inbox-hook-test` | `src/hooks/use-inbox.test.tsx` | 101, 130, 209, 212 |
-| `candidate-hook` | `src/hooks/use-staged-candidates.ts`; `src/hooks/use-staged-candidates.test.tsx` | 131, 145, 146, 176A |
-| `triage-dnd` | `src/hooks/use-dnd.ts`; `src/hooks/use-triage-dnd.test.ts` | 142, 145, 146, 149, 152, 163 |
+| `candidate-hook` | `src/hooks/use-staged-candidates.ts`; `src/hooks/use-staged-candidates.test.tsx` | 131, 145, 146, 176A, 246, 230 (orphan path) |
+| `triage-dnd` | `src/hooks/use-dnd.ts`; `src/hooks/use-triage-dnd.test.ts` | 142, 145, 146, 149, 152, 163, 248, 249 |
 | `explorer-search-hook` | `src/hooks/use-grid-explorer-search.ts`; `src/hooks/use-grid-explorer-search.test.tsx` | 135, 151, 158, 171A |
 | `placement-hook` | `src/hooks/use-triage-placement.ts`; `src/hooks/use-triage-placement.test.tsx` | 152, 153, 154, 161 |
 | `newly-hook` | `src/hooks/use-triage-newly-placed.ts`; `src/hooks/use-triage-newly-placed.test.tsx` | 155, 156, 157, 158, 161, 209 |
 | `completion-hook` | `src/hooks/use-can-archive-scratch.ts` | 159, 160 |
 | `completion-hook-test` | `src/hooks/use-can-archive-scratch.test.ts` | 101, 159, 160 |
 | `archive-coordinator` | `src/hooks/use-archive-scratch.ts`; `src/hooks/use-archive-scratch.test.ts` | 161, 162, 171A |
-| `runtime-fixture-test` | `src/components/layout/grid-runtime.test.tsx` | 101, 163; proposed P31-R01 only after Q03 repair approval |
+| `runtime-fixture-test` | `src/components/layout/grid-runtime.test.tsx` | 101, 163; proposed P31-R01 only after Q03 repair approval; 244, 248, 249 |
 | `saas-db-tests` | `supabase/tests/helpers/*`; `supabase/tests/coverage.db.test.ts` | 213, 216, then every task that adds a database function |
 | `saas-zod` | `src/lib/db/schema.ts`; `src/lib/db/schema.test.ts`; `src/lib/db/boundary-cases.ts` | 214 |
 | `saas-snapshot` | `src/lib/db/snapshot-store.ts` and test | 217, 226, 227, 231, 233 |
-| `saas-store` | `src/lib/db/supabase-store.ts` and test | 226, 227, 231, 232, 233 |
-| `saas-datastore` | `src/lib/db/datastore.ts` | 226, 227, 228, 230; feedback lane (F26) |
-| `saas-dexie` | `src/lib/db/indexeddb.ts` | 226, 227, 230; feedback lane (F26) |
-| `saas-dnd` | `src/hooks/use-dnd.ts` | 227, 232; feedback lane (F24, F26) |
+| `saas-store` | `src/lib/db/supabase-store.ts` and test | 226, 227, 231, 232, 233, 249 (no-op removal) |
+| `saas-datastore` | `src/lib/db/datastore.ts` | 226, 227, 228, 230; 249, 243 (development-only injection wrapper) |
+| `saas-dexie` | `src/lib/db/indexeddb.ts` | 226, 227, 230; 249 if Phase 46 has not removed the file |
+| `saas-dnd` | `src/hooks/use-dnd.ts` | 227, 232; 248, 249 |
 | `saas-bit-detail` | `src/components/bit-detail/bit-detail-popup.tsx` | 227, 232 |
 | `saas-env-example` | `.env.local.example` | 213, 217, 236 |
-| `saas-session` | `src/lib/auth/session.ts` | 228, 235, 236, 238 |
+| `saas-session` | `src/lib/auth/session.ts` | 228, 235, 236, 238; 249 (stops passing the reserved block) |
 | `saas-frame` | `src/components/layout/app-frame.tsx` and test | 228, 234, 235, 236, 238 |
-| `saas-sidebar` | `src/components/layout/sidebar.tsx`; `src/components/layout/account-button.tsx` | 232 (kept toast in `sidebar.tsx`), 234, 235; feedback lane (F21) |
-| `saas-providers` | `src/app/providers.tsx` | 228, 232; feedback lane (F12, F15) |
-| `feedback-copy` | `src/lib/copy/feedback.ts` | 228, 232, 235, 236, 238; feedback lane |
+| `saas-sidebar` | `src/components/layout/sidebar.tsx`; `src/components/layout/account-button.tsx` | 232 (kept toast in `sidebar.tsx`), 234, 235; 248 (Home button and order) |
+| `saas-providers` | `src/app/providers.tsx` | 228, 232; 244 (Toaster position, colour, stack limit) |
+| `feedback-copy` | `src/lib/copy/feedback.ts` | 228, 232, 235, 236, 238; 244 (creates it if first), 245 |
 | `saas-db-types` | `src/lib/db/database.types.ts` (generated) | 214 and every task that adds a migration |
 | `saas-supabase-config` | `supabase/config.toml`; `supabase/seed.sql` | 213, 229, 236 |
-| `inbox-copy-saas` | `src/lib/copy/inbox-triage.ts` | 227; feedback lane |
-| `saas-hooks` | the 17 hook files of Task 226 | 226, 227; feedback lane, which may touch them only under the S43 (4) fallback |
-| `state-switch` | the development state switch (feedback F30) | feedback lane creates it; 231, 233 extend it |
-| `cross-lane` | `package.json`; `pnpm-lock.yaml`; `src/lib/constants.ts` | 213, 217, 230 and the feedback lane, which may run at the same time. Mutex rule 1 cannot serialize two worktrees; the lane that merges second resolves the conflict when it merges `main`. |
+| `inbox-copy-saas` | `src/lib/copy/inbox-triage.ts` | 227, 230 (orphan copy); 245, 246, 247 |
+| `saas-hooks` | the 17 hook files of Task 226 | 226, 227, 230; 245 (`use-scratch-breakdowns.ts`), 246 (`use-staged-candidates.ts`), after Phase 45 |
+| `state-switch` | the development state switch (feedback F30) | 243 creates it; 231, 233 extend it; 245–247 consume it |
+| `cross-lane` | `package.json`; `pnpm-lock.yaml`; `src/lib/constants.ts` | 213, 217, 230, 239 (`APP_NAME`) and the feedback lane (243 `DISPLAY_DELAY_MS`, 248 `APP_NAME` and breadcrumb timings), which may run at the same time. Mutex rule 1 cannot serialize two worktrees; the lane that merges second resolves the conflict when it merges `main`. |
+| `feedback-status` | `src/components/feedback/*`; `src/hooks/use-display-delay.ts` and tests | 243 creates; 232 (group-3 loader), 245–248 consume |
+| `color-theme` | `src/lib/color-themes.ts`; `src/stores/color-theme-store.ts` and test; `src/components/layout/color-theme-toggle.tsx`; `src/app/layout.tsx` | 241; 239 (`layout.tsx` metadata) |
+| `grid-shell` | `src/components/layout/grid-runtime.tsx`; `src/components/layout/breadcrumbs.tsx`; `src/components/layout/breadcrumb-deadline.tsx`; `src/components/grid/grid-view.tsx`; `src/hooks/use-grid-actions.ts`; `src/lib/grid-dnd.ts` and their tests | 244 (`grid-runtime.tsx`), 248, 249, and any SaaS task that names one of them |
+| `toast-anchor` | `src/hooks/use-toast-anchor.ts` and test | 244 creates; 248 extends |
+| `reserved-cells` | `src/lib/utils/breadcrumb-zone.ts` (the static top-left block) | 227, 228 read it; 249 deletes it and stops passing it from `supabase-store.ts` and `session.ts` |
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 42 / Task 213 (SaaS conversion). Promotion ② retires Phases 36–40 and adds the feedback lane. Phases 32 and 33 remain reserved with no tasks.
-- **Next unallocated numbers after the SaaS promotion:** Phase 49 / Task 241;
-  promotion ② uses them for the feedback lane. Planned Phases 34–48 and Tasks
-  166–240 are already allocated; none may be reused for another meaning.
+- **Next planned implementation phase/task:** Phase 42 / Task 213 (SaaS lane) and Phase 49 / Task 241 (feedback lane), which may run at the same time. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next unallocated numbers:** Phase 51 / Task 251. Planned Phases 42–50 and
+  Tasks 213–250 are allocated; retired Phases 36–40 and Tasks 180–208 keep
+  their numbers; none may be reused for another meaning.
 - Graph reconciliation: 85 accepted tasks (101–163 plus 105A, 166–172, 171A,
-  173–179 plus 176A and 179A, and 209–212), twelve completed archives (Phases 23–31, 34, 35 and 41), two historical
-  unaccepted transfer records (164/165), 29 unaccepted tasks (180–208) in
-  Phases 36–40, 28 unaccepted tasks (213–240) in Phases 42–48, and two
-  reserved phases (32–33).
+  173–179 plus 176A and 179A, and 209–212), twelve completed archives (Phases
+  23–31, 34, 35 and 41), two historical unaccepted transfer records (164/165),
+  29 retired tasks (180–208) in retired Phases 36–40, 28 unaccepted tasks
+  (213–240) in Phases 42–48, 10 unaccepted tasks (241–250) in Phases 49–50, and
+  two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

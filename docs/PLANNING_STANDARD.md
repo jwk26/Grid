@@ -17,6 +17,11 @@
 > Core items for the account snapshot and adds
 > [Database, Accounts And Network](#database-accounts-and-network) with the SQL
 > function checklist.
+> **Feedback lane amendment (promotion ②):** 2026-10-22, from the
+> [feedback DECISION](brainstorming/2026-10-18-staging-item-status-feedback/DECISION.md)
+> F01–F33. §5.1 points to the archived binding contracts; §5.2 retires the
+> Phase 40 / Task 208 matrix and adds Phases 49–50; §6 adds the item status,
+> toast, breadcrumb and state-switch checks and the F03 loader exception.
 > **Workflow update — 2026-10-15:** §2 Enforcement, §3, §5.2–5.3 and §6 now name
 > the 3rd-generation skills and `CLAUDE.md` instead of the Codex adapter and
 > receipts. See [WORKFLOW](WORKFLOW.md#workflow-lineage).
@@ -348,9 +353,10 @@ approved contracts.
 These rules apply to approved Inbox/Triage prototype-to-production realization,
 not every unrelated task. DESIGN_TOKENS
 [realization and token ownership](DESIGN_TOKENS.md#prototype-to-production-realization-and-token-ownership)
-owns the visual boundary; EXECUTION_PLAN
-[shared binding contracts](EXECUTION_PLAN.md#future-theme-realization--shared-binding-contracts)
-own the exact region order, component/test owners and task-local outputs.
+owns the visual boundary; the
+[shared binding contracts](execution-plan/archive/phases-36-40-retired.md#future-theme-realization--shared-binding-contracts)
+(archived with retired Phases 36–40, 2026-10-22) owned the exact region order,
+component/test owners and task-local outputs of Phases 34–35.
 The external `/Users/jwk/Documents/docs/prototype-to-production.md` is reusable
 methodology context only, not a canonical approval or executable source.
 
@@ -403,10 +409,12 @@ invariants. The approved execution plan's transfer register moves unaccepted
 | Current scope | Applicable verification | Completion boundary |
 |---|---|---|
 | Phase 31 technical close (completed) | Accepted Task 163 integration, separately approved corrections, affected route/state/focus and unrelated-surface preservation; adapter logical technical gates and issue dispositions at the actual close candidate. | No eight-theme visual-completion or Task 165 pass is claimed. Transfer does not excuse a known failure. Q03 repair, Q04 correction/disposal guards, Q05 tier/disposition and Q06 dependent-output proof retain their exact approved-plan boundaries. |
-| Phases 34–39 regional tasks | Assigned theme(s), light-first matched 1920×1080 / DPR 1 / zoom 100% region states. Direct semantic/behavior tests plus fresh rendered/interaction evidence. Verify prior accepted neighboring regions and other themes/modes affected by shared changes. | Per-region user visual disposition and technical results are separate. Do not substitute a prior experiment, light-only result or self-review for broader conformance. |
+| Phases 34–35 regional tasks (36–39 retired) | Assigned theme(s), light-first matched 1920×1080 / DPR 1 / zoom 100% region states. Direct semantic/behavior tests plus fresh rendered/interaction evidence. Verify prior accepted neighboring regions and other themes/modes affected by shared changes. | Per-region user visual disposition and technical results are separate. Do not substitute a prior experiment, light-only result or self-review for broader conformance. |
 | Supported-theme completion, plan L7 | Assigned theme(s) × supported light/dark × 1024px and 1920×1080 desktop viewports; all nine recipes, applicable DP/editor/reliability/recovery states, contrast/focus/non-color cues, reachability, touch targets, motion and theme-state preservation. Earlier themes/unrelated surfaces receive scope-appropriate regression checks. | Each assigned theme needs its own disposition. Light-only work is not a finished theme; a structural/behavior repair returns to its named owner rather than hiding in CSS conformance. |
 | Phase 41 hotfix (Tasks 209–212) | Shared behavior in every theme; Retro Mac light/dark realization plus GridDO base. The Pool row restructure (Task 210) is a shared change: check Pool rows in all eight themes at 1920×1080 light, Retro Mac also dark. | The user's Retro Mac visual disposition plus technical gates; other themes' full realization stays with Phases 35–39. |
-| Phase 40 / Task 208 | Retained 8 themes × light/dark × both desktop viewports, nine recipes, 31 UF, 10 AF, 21 NEG, 14 DP/12 VQ and migration/rollback/real transactions/three ABA sequences/aggregate retention/Archive recovery/unrelated-surface matrices. | Original complete implementation/preservation promise remains intact. No unknown result, skipped check, unresolved required decision or known failure is represented as completion. |
+| Phase 40 / Task 208 (retired) | Retired with Phases 36–40 (feedback F28, 2026-10-22). Its data and command matrices pass to the SaaS database suites (Tasks 216, 219–224); its visual matrices to the theme stage, which sets its own gate. | No retained full-gate promise remains in this plan. |
+| Phase 49 (Tasks 241–244) | `griddo`, `retro-mac` and `neumorphism` for correct rendering and `claymorphism` only for not breaking (F29), light and dark, 1920×1080 and 1024px; the four themes after Task 241. | The user's per-task disposition plus technical gates; per-theme finishing belongs to the theme stage. |
+| Phase 50 (Tasks 245–250) | As Phase 49, on local Supabase, with every status state forced by the development state switch, and the Inbox at 1024px with the Pool open (MI-21). | As Phase 49. |
 
 Use the full gate declared in `CLAUDE.md`, with the approved task's direct test
 targets. This section changes the applicable visual matrix, not the gate
@@ -559,13 +567,30 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   through `supabase/migrations/`; a phase that changes SQL closes with no new
   Security Advisor warning and follows the CLAUDE.md Production order; no
   secret key in Git or client code.
-- [ ] **Test gate and lanes (S20):** every SaaS-lane task runs
-  `pnpm test:db`; the feedback lane runs it only at its close, when the SaaS
-  lane is not doing database work, and never edits `supabase/`.
+- [ ] **Test gate and lanes (S20, F33):** every SaaS-lane task runs
+  `pnpm test:db`; the feedback lane (Phases 49–50) runs it only at a phase
+  close, when the SaaS lane is not doing database work, never edits
+  `supabase/`, and in Phase 50 never resets the database or adds a migration
+  during the phase.
 - [ ] **Feedback rules (F02, F11, F13, F14):** toasts go through the shared
   helper and only for SPEC's four uses; toast, app-state and blocking copy
   lives in `src/lib/copy/feedback.ts`; `DISPLAY_DELAY_MS` postpones
   presentation and never decides success.
+- [ ] **Item status rule (F01, F03–F09):** every item-attached Inbox status is
+  an icon, emphasis and tooltip on the item through the
+  [Feedback Status Surfaces](DESIGN_TOKENS.md#feedback-status-surfaces) roles;
+  success shows nothing on screen and is announced politely; only `?` and `!`
+  add emphasis and never in the destructive red; decision surfaces keep their
+  sentences; an Inbox status never toasts; an unavailable status control uses
+  `aria-disabled`, never `disabled`.
+- [ ] **Toasts, breadcrumb and switch (F12, F15, F22–F26, F30):** the toast stack
+  sits at the top-left of the work area in the status tokens and lets the
+  pointer through during a drag; no Grid cell is reserved for the breadcrumb,
+  only its segments and chip take the pointer, and its Tab order comes from DOM
+  placement; until Task 249 every server-side cell choice goes through
+  `internal.pick_free_cell` with the reserved cells the client passes, and
+  after it the client passes none (F34); the development state switch is
+  absent from production builds.
 
 #### Theme, Decision-Prerequisite, And Evidence Conformance
 
@@ -579,10 +604,11 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   `pending`, `reconciling`, `success`, `newly-placed`, `completed`, and
   `local-alert`. Theme differences flow through semantic tokens/classes and
   approved realization components; outside the theme picker, components do not
-  branch on `data-color-theme` or split into eight theme implementations.
+  branch on `data-color-theme` or split into per-theme implementations.
   Independent states never collapse into one flag, remain distinguishable by
   non-color cues, and do not use repeated blink, pulse, ping, bounce, spin, or
-  flicker as ambient status. Extend existing semantic token → region/element/
+  flicker as ambient status; the F03 loader's rotation after the display delay,
+  static under reduced motion, is the one exception. Extend existing semantic token → region/element/
   state alias → centralized theme/mode values consumed by shared elements;
   not every pixel needs a token, and theme-ID JSX forks, test-ID styling or
   accumulating override patches are not the realization method.
@@ -603,12 +629,14 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   in §5.1 before presenting the first result. Page colors, CSS-string checks or
   a wide screenshot alone are not proof of every child element/state.
 - [ ] **Applicable-theme staged verification:** Apply §5.2's regional,
-  supported-theme and retained full-campaign matrices to the exact task scope.
+  supported-theme and phase matrices to the exact task scope.
   Evidence covers contrast, `focus-visible`, non-color cues, reduced motion,
   touch targets, hidden-scrollbar reachability, section-scoped overlays and
   recipe/state facts without inventing mobile or absent-prototype coverage.
-  Phase 40 retains the complete 16-theme/mode matrix; Phase 31 technical close
-  is not that campaign completion.
+  The Phase 40 full-campaign matrix is retired (feedback F28, 2026-10-22): its
+  data and command checks pass to the SaaS database suites and its visual
+  matrices to the theme stage. Phase 31 technical close was not campaign
+  completion.
 - [ ] **No clipping or shared-style leakage:** Fixed height/overflow must not
   hide editors, actions, status, recovery, caret or focus. Check actual loaded
   fonts/cascade/geometry and regress previously accepted regions/themes when
@@ -631,8 +659,8 @@ Important issues that should be surfaced and recorded, but do not automatically 
   do not invent loading chrome; the only loading surface is the app-level
   loading screen after `DISPLAY_DELAY_MS`. Genuine pending, transport-unknown, and reconciliation states
   preserve usable authoritative content rather than replacing whole surfaces
-  with a generic spinner or skeleton; any waiting indicator corresponds to a
-  real unresolved operation.
+  with a generic spinner or skeleton; any waiting indicator, the F03 loader
+  included, corresponds to a real unresolved operation.
 
 ### Updating this checklist
 

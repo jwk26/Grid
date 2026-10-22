@@ -1,5 +1,8 @@
 # Phase 35 — Neumorphism Regional Realization
 
+> **Binding contracts (2026-10-22):** the L1–L7 contracts this phase's tasks bind to are
+> [archived with retired Phases 36–40](phases-36-40-retired.md#future-theme-realization--shared-binding-contracts).
+
 ## Completion-time scope
 
 Closed 2026-10-20. Tasks 173–179 and repair Tasks 176A and 179A are
