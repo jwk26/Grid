@@ -887,13 +887,9 @@ describe("BreakdownPanel", () => {
     expect(globalsCss).toContain("@media (prefers-reduced-motion: reduce)");
     expect(globalsCss).toContain(".breakdown-success-status");
     for (const theme of [
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ]) {
       expect(globalsCss).toContain(
         `[data-color-theme="${theme}"] [data-triage-role="breakdown-active-row"][data-triage-state~="success"]`,
@@ -1014,20 +1010,12 @@ describe("BreakdownPanel", () => {
     const themeSelectors = [
       ["griddo-light", ":root"],
       ["griddo-dark", ".dark"],
-      ["tiny-desk-light", ':root[data-color-theme="tiny-desk"]'],
-      ["tiny-desk-dark", '.dark[data-color-theme="tiny-desk"]'],
       ["neumorphism-light", ':root[data-color-theme="neumorphism"]'],
       ["neumorphism-dark", '.dark[data-color-theme="neumorphism"]'],
       ["claymorphism-light", ':root[data-color-theme="claymorphism"]'],
       ["claymorphism-dark", '.dark[data-color-theme="claymorphism"]'],
-      ["origami-light", ':root[data-color-theme="origami"]'],
-      ["origami-dark", '.dark[data-color-theme="origami"]'],
-      ["terminal-light", ':root[data-color-theme="terminal"]'],
-      ["terminal-dark", '.dark[data-color-theme="terminal"]'],
       ["retro-mac-light", ':root[data-color-theme="retro-mac"]'],
       ["retro-mac-dark", '.dark[data-color-theme="retro-mac"]'],
-      ["graphite-light", ':root[data-color-theme="graphite"]'],
-      ["graphite-dark", '.dark[data-color-theme="graphite"]'],
     ] as const;
 
     for (const [name, selector] of themeSelectors) {
@@ -1076,13 +1064,9 @@ describe("BreakdownPanel", () => {
     expect(globalsCss).toContain(".breakdown-add-reliability");
     expect(globalsCss).toContain(".breakdown-delete-reliability");
     for (const theme of [
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ]) {
       expect(globalsCss).toContain(
         `:root[data-color-theme="${theme}"] .breakdown-reliability`,
@@ -2110,13 +2094,9 @@ describe("BreakdownPanel", () => {
     };
     const themes = [
       "griddo",
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ];
     const view = render(<BreakdownPanel />);
 
@@ -2782,13 +2762,9 @@ describe("BreakdownPanel", () => {
     expect(globalsCss).toMatch(/\.archive-card[\s\S]*animation: none !important;/);
     expect(globalsCss).toMatch(/\.archive-card[\s\S]*transition: none !important;/);
     for (const theme of [
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ]) {
       expect(globalsCss).toContain(
         `:root[data-color-theme="${theme}"] .archive-card`,
@@ -3163,13 +3139,9 @@ describe("BreakdownPanel", () => {
       /\.triage-fixed-context \.triage-inline-editor__issue-overlay[\s\S]*\[data-triage-role="inline-editor-issue-status"\][\s\S]*white-space: normal/,
     );
     for (const theme of [
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ]) {
       expect(globalsCss).toContain(
         `:root[data-color-theme="${theme}"] .archive-withdrawal-status`,
@@ -4224,7 +4196,7 @@ describe("BreakdownPanel", () => {
 
 
 describe("Task167 shared Context/Breakdown presentation", () => {
-  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("retains source slots, grip-only activation and canonical actions in %s", (theme) => {
+  it.each(["griddo", "neumorphism", "claymorphism", "retro-mac"])("retains source slots, grip-only activation and canonical actions in %s", (theme) => {
     document.documentElement.dataset.colorTheme = theme;
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [createScratchBreakdown({ id: "row-1", content: "Arrange workshop materials" })];
@@ -4241,7 +4213,7 @@ describe("Task167 shared Context/Breakdown presentation", () => {
     expect(row).not.toHaveAttribute("draggable");
     fireEvent.click(within(row).getByRole("button", { name: "Edit" }));
     expect(editorState.openBreakdown).toHaveBeenCalled();
-    document.documentElement.dataset.colorTheme = "graphite";
+    document.documentElement.dataset.colorTheme = "neumorphism";
     view.rerender(<BreakdownPanel />);
     expect(screen.getByTestId("selected-scratch-context")).toBe(context);
     expect(context.querySelectorAll('[data-triage-role="context-title-strip"]')).toHaveLength(1);

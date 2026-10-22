@@ -1547,13 +1547,9 @@ describe("TriageWorkspace", () => {
     expect(globalsCss).toContain("@media (prefers-reduced-motion: reduce)");
     expect(globalsCss).toContain('[data-triage-role^="staging-"]');
     for (const theme of [
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ]) {
       expect(globalsCss).toContain(`:root[data-color-theme="${theme}"]\n  .staging-local-alert`);
     }
@@ -1916,19 +1912,12 @@ describe("TriageWorkspace", () => {
 
   it("binds every exact DP-VQ01 theme role family without JSX branches", () => {
     for (const requiredBinding of [
-      'data-color-theme="tiny-desk"]\n  [data-triage-role="external-removal-countdown-track"]',
-      'data-color-theme="tiny-desk"]\n  [data-triage-role^="external-removal-"][data-triage-role$="action"]',
       'data-color-theme="neumorphism"]\n  .external-removal-panel__actions button',
       'data-color-theme="claymorphism"]\n  [data-triage-role="external-removal-countdown-track"]',
       'data-color-theme="claymorphism"]\n  .external-removal-panel__actions button',
-      'data-color-theme="origami"]\n  [data-triage-role="external-removal-countdown-track"]',
-      'data-color-theme="origami"]\n  [data-triage-role="external-removal-secondary-action"]',
-      'data-color-theme="terminal"]\n  [data-triage-role="external-removal-countdown-fill"]',
       'data-color-theme="retro-mac"] .external-removal-panel__title',
       'data-color-theme="retro-mac"]\n  [data-triage-role="external-removal-draft-card"]',
       'data-color-theme="retro-mac"]\n  .external-removal-panel__actions button',
-      'data-color-theme="graphite"]\n  [data-triage-role="external-removal-draft-card"]',
-      'data-color-theme="graphite"]\n  [data-triage-role="external-removal-countdown-track"]',
     ]) {
       expect(globalsCss).toContain(requiredBinding);
     }
@@ -2195,7 +2184,7 @@ describe("TriageWorkspace", () => {
     expect(screen.getByTestId("bit-staging-zone")).toBeInTheDocument();
   });
 
-  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("mounts one noninteractive desktop decoration in the shared tree under %s", (theme) => {
+  it.each(["griddo", "neumorphism", "claymorphism", "retro-mac"])("mounts one noninteractive desktop decoration in the shared tree under %s", (theme) => {
     document.documentElement.dataset.colorTheme = theme;
     render(<TriageWorkspace node={createNode()} />);
     const workspace = screen.getByTestId("triage-workspace");
@@ -3288,7 +3277,7 @@ describe("TriageWorkspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Second Scratch" }));
     expect(screen.getByText("NEW")).toBeInTheDocument();
-    document.documentElement.dataset.colorTheme = "graphite";
+    document.documentElement.dataset.colorTheme = "neumorphism";
     mounted.rerender(<TriageWorkspace node={createNode()} />);
     expect(screen.getByText("NEW")).toBeInTheDocument();
 

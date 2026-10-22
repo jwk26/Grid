@@ -173,7 +173,7 @@ describe("ScratchTrashDialog", () => {
       const dialog = screen.getByRole("alertdialog");
       const focused = document.activeElement;
       const text = dialog.textContent;
-      for (const theme of ["retro-mac", "terminal", "griddo"]) {
+      for (const theme of ["retro-mac", "neumorphism", "griddo"]) {
         document.documentElement.dataset.colorTheme = theme;
         document.documentElement.classList.toggle("dark");
       }
