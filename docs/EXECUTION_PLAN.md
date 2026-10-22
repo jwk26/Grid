@@ -3213,7 +3213,7 @@ Waits for: none (runs beside Phases 42–44). Holds what the SaaS phases need
 before Phase 45 and Phase 47: the four-theme set, the looks, the status
 primitives and the toast position and colour (F33).
 
-### Task 241: [ ] Reduce the color themes to four
+### Task 241: [x] Reduce the color themes to four
 
 **Files and actions:**
 - `src/lib/color-themes.ts` (new, non-client): the theme ids

@@ -10,9 +10,9 @@ Cross-lane overlap (user, 2026-10-22): no other phase is open. Against Phase 42 
 ## Task 241 — Reduce the color themes to four
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: user acceptance of the browser checkpoint
-- Open: ISSUE-20-01, MI-13 (both close with this task)
+- Status: Accepted
+- Next: Task 242
+- Open: none
 
 ### Log
 - Work plan: (1) Failing tests first: `color-theme-store.test.ts` (four ids; stored `terminal`/`tiny-desk` falls back to `griddo`) and a test that the no-flash script is built from the shared list. (2) New non-client `src/lib/color-themes.ts` (ids, default, storage key); the store, `color-theme-toggle.tsx` (four labels) and `layout.tsx` (script built from the list, Playfair Display and VT323 dropped) read it. (3) `globals.css`: remove the four theme blocks, swatch variables and every rule that targets them with a postcss script (a comma list loses only the removed selectors; emptied rules and at-rules go); the Inbox `archive-status-mark="terminal"` operation phase stays. (4) Drop the removed themes from the enumerating tests found by search (`theme-transition`, `sidebar`, `inbox-triage-theme-realization`, `triage-workspace`, `hierarchy-explorer`, `breakdown-panel`, others). (5) Verify: scoped search under `src/` returns nothing, focused tests, then the gate without `test:db`; browser checkpoint of the four themes in light and dark, plus a stored `terminal` id reload. One user stop: the browser checkpoint (single stage, one commit `refactor(theme): reduce the color themes to four`). No `expert` review (no state logic beyond a fallback list); the persisted-id fallback is covered by the test.
@@ -25,3 +25,5 @@ Cross-lane overlap (user, 2026-10-22): no other phase is open. Against Phase 42 
 - Please check: the picker (four rows), then each theme in light and dark against your memory of before; reload with `localStorage["griddo-color-theme"]="terminal"` shows GridDO.
 - Unresolved: none. The first before-captures of Calendar hit `/calendar` (404) and were retaken at `/calendar/monthly` from a `git archive` copy of HEAD on a second port.
 - Review: no `expert` review (no state logic beyond a fallback list; the persisted-id fallback and the no-flash script are tested).
+- Review (advisory, 2026-10-22, browser checkpoint / task finish): approve. A postcss comparison of `globals.css` before (`dc2654f`) and after (`09d90fc`), with the removed-theme selectors and swatches filtered from the before side, is identical (5,793 rules, selectors and declarations), so the four kept themes' CSS is unchanged; L0 captures are byte-identical and the Inbox/Calendar captures differ only in seed-relative times. No Task 242 note needed. Apply: none. Not applied: none.
+- Decision: Task 241 accepted; ISSUE-20-01 and MI-13 closed with it (user, 2026-10-22).
