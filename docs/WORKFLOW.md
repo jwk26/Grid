@@ -221,7 +221,7 @@ Role:
 
 Translate the finalized execution plan into code:
 
-- **`/run-phase`** (Opus session): checks readiness and drift against the code, creates the phase branch and worktree from `origin/main`, runs the baseline gate and opens the phase ledger.
+- **`/run-phase`** (Opus session): checks readiness and drift against the code, creates the phase branch and worktree from `origin/main`, runs the baseline gate and opens the phase ledger. A phase is ready when the phases its plan entry lists as waits are closed and synced to `main`. A phase that waits for none says so; a phase that states nothing waits for every phase before it in plan order. Another phase may be open at the same time in a second lane; the kickoff then reports the files both phases change.
 - **`/run-task`** (Sonnet working session, one per task): shows a short work plan and waits for the go-ahead, implements, iterates on visual feedback directly with the user, runs the full gate, asks the `expert` subagent to review logic changes, and writes the checkpoint into the ledger. Fully specified work may go to the `worker` subagent.
 
 Verification matches risk. Data, state, persistence, async and drag-and-drop logic get a failing test first. Layout, styling and copy are verified in the browser.
@@ -263,6 +263,8 @@ Final gate before integration. Confirms that every task is `[x]` and that no led
    - Blocking violations must be fixed or the standard explicitly amended.
    - Advisory violations are surfaced, acknowledged, and recorded.
 
+If another phase merged into `main` while this one was open, the close first merges the latest `origin/main` with a merge commit (never a rebase), reruns the full gate and reviews against `origin/main...HEAD`.
+
 Then: archives the phase, records cross-phase learnings, commits the close documents, reruns the full gate, and asks once for approval to push, open the PR and merge.
 
 Key Questions:
@@ -288,7 +290,7 @@ Role:
 
 After the user's approval, `/end-phase` merges the PR with a regular merge commit, syncs the integration worktree, and removes the phase branch and worktree.
 
-After merge, the next phase begins from a clean main.
+After merge, any phase whose listed waits are now closed may begin from a clean `main`. A phase still open in another lane is not touched; it merges the new `main` when it closes.
 
 Key Questions:
 
