@@ -38,9 +38,9 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 ## Task 214 — Add the account tables, constraints and RLS
 
 ### Current state
-- Status: In Progress
-- Next: stage 1 acceptance (migration read-through)
-- Open: none for this task (MI-1 is phase-level)
+- Status: Awaiting User Decision
+- Next: decision on MI-4, then acceptance
+- Open: MI-4 (MI-1 is phase-level)
 
 ### Log
 - Work plan:
@@ -54,3 +54,12 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 - Stage 1 (2026-10-23): migration `20261023000000_account_schema.sql` written without `griddo_writer` (per review item 1), applies on `supabase db reset`; `database.types.ts` generated; typecheck/lint pass. Lengths are UTF-16 and `color` uses explicit character sets, so the DB matches Zod (review item 5); the Unicode cases get tested in Stage 3.
 - Review (advisory, 2026-10-23, stage 1 checkpoint): approve with changes. The migration matches SCHEMA §Postgres Target (CHECKs, composite FKs, unique source, partial system-role index, listed indexes, select-only RLS and grants, default `EXECUTE` revoked globally and per schema); the `color` whitespace set equals JS `\s` exactly. Apply: (1) replace the literal invisible Unicode whitespace in the `color` CHECK with regex escapes (` `, ` `, ` - `, ` `, ` `, ` `, ` `, `　`, `﻿`), same set, ASCII-only file; (2) keep the UTF-16 length expression inline (a helper in `internal` would need `EXECUTE` for the inserting role). Not applied: none.
 - Decision: the database constraints are aligned to Zod (UTF-16 code-unit lengths, `[0-9]` and the JS `\s` whitespace set in `color`), instead of changing Zod (user, 2026-10-23).
+- Stages 2–3 done (ff2b636): boundary table, `row-mapping`, `icon` max 64, `tables` and `constraints` DB suites; Zod and the database agree on every boundary case, including the Unicode ones.
+- Review (expert, 2026-10-23): no blocking finding. Fixed: the API test now requires `PGRST106` and proves GraphQL is absent (pg_graphql is not installed locally), with a case-insensitive name filter. Not applied: a gate step that compares `supabase gen types` with the committed file (finding 3) — outside this task; proposed for a later task.
+- MI-4 [Awaiting User Decision]: Zod accepts integers the database refuses with `22003` instead of a CHECK, e.g. `order` or `version` above int4 (2147483648), `deadline`/`time` above bigint — cause: unbounded `z.number().int()` in `schema.ts` — recommended fix: add int4/bigint maximums to Zod for `order`, `version` (int4) and keep timestamps as safe integers (JS cannot exceed 2^53, far below bigint, so only int4 fields need a bound). Trade-off: a tiny Zod change now vs. the write functions (Task 215+) mapping a `22003` to `invalid_input`.
+
+### Checkpoint
+- Changed: migration `20261023000000_account_schema.sql`; `database.types.ts`; `boundary-cases.ts`, `row-mapping.ts` (+ test); `schema.ts` (`icon` ≤ 64); `schema.test.ts`; `supabase/tests/{tables,constraints}.db.test.ts`, `helpers/{db,seed}.ts`.
+- Verified: `pnpm test` 1964, `pnpm test:db` 175, `typecheck`, `build`, `git diff --check` pass; lint 0 errors (11 existing warnings). `expert` SQL review done.
+- Please check: (1) decide MI-4. (2) Read `tables.db.test.ts` headings: isolation, no write grant, anon, API, composite FKs, staged source, cascade, system roles, EXECUTE probe. (3) `git status` clean.
+- Unresolved: MI-4; local pg_graphql is off, so the GraphQL half is proven only for local (re-check on hosted).

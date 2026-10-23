@@ -96,7 +96,7 @@ describe("no table is reachable through the API", () => {
     const client = await signedInClient(a);
     for (const table of TABLES) {
       const { data, error } = await client.schema("app" as never).from(table).select("*");
-      expect(error, table).not.toBeNull();
+      expect(error?.code, table).toBe("PGRST106");
       expect(data, table).toBeNull();
     }
   });
@@ -118,13 +118,17 @@ describe("no table is reachable through the API", () => {
       errors?: { message: string }[];
     };
     const names = body.data?.__schema.types.map((type) => type.name) ?? [];
-    // Local Supabase does not enable pg_graphql; where it is enabled the schema is listed.
-    if (body.errors?.some((error) => /not enabled/.test(error.message))) {
-      expect(names).toEqual([]);
-    } else {
+    const installed = await withActor({ role: "owner" }, async (db) => {
+      const { rows } = await db.query("select count(*)::int as n from pg_extension where extname = 'pg_graphql'");
+      return rows[0].n === 1;
+    });
+    if (installed) {
       expect(names.length).toBeGreaterThan(0);
+    } else {
+      // Local Supabase does not install pg_graphql, so GraphQL serves no table at all.
+      expect(body.errors?.some((error) => /not enabled/.test(error.message))).toBe(true);
     }
-    expect(names.filter((name) => /^(Nodes|Bits|Chunks|Accounts|ScratchBreakdowns|StagedCandidates)/.test(name))).toEqual([]);
+    expect(names.filter((name) => /^(accounts|nodes|bits|chunks|scratch_?breakdowns|staged_?candidates)/i.test(name))).toEqual([]);
   });
 });
 
