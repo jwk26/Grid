@@ -377,6 +377,20 @@ describe("ensure_account: callers and privileges", () => {
     expect(code).toBe("42501");
   });
 
+  it("is executable by authenticated alone", async () => {
+    const db = await connect();
+    try {
+      const { rows } = await db.query(
+        `select has_function_privilege('anon', 'public.ensure_account(jsonb)', 'execute') as anon,
+                has_function_privilege('service_role', 'public.ensure_account(jsonb)', 'execute') as service_role,
+                has_function_privilege('authenticated', 'public.ensure_account(jsonb)', 'execute') as authenticated`,
+      );
+      expect(rows[0]).toEqual({ anon: false, service_role: false, authenticated: true });
+    } finally {
+      await db.end();
+    }
+  });
+
   it("returns account_missing when the caller's auth user is gone, and writes nothing", async () => {
     const gone = await createTestUser("gone");
     const db = await connect();

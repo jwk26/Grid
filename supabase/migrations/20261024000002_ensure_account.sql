@@ -101,6 +101,9 @@ end
 $$;
 
 alter function public.ensure_account(jsonb) owner to griddo_writer;
-revoke all on function public.ensure_account(jsonb) from public;
+-- Task 214 revoked the default EXECUTE from public, anon and authenticated only; service_role
+-- keeps a default grant on public functions. Client functions go to authenticated alone.
+alter default privileges for role postgres in schema public revoke execute on functions from service_role;
+revoke all on function public.ensure_account(jsonb) from public, anon, service_role;
 grant execute on function public.ensure_account(jsonb) to authenticated;
 revoke create on schema public from griddo_writer;
