@@ -43,14 +43,15 @@ describe("registered function cases", () => {
   it("reports a function that has no registered cases", () => {
     const functions: CatalogFunction[] = [
       { name: "ensure_account", securityDefiner: true },
-      { name: "update_node", securityDefiner: true },
+      { name: "fake_write", securityDefiner: true },
       { name: "read_things", securityDefiner: false },
     ];
-    expect(findMissingCases(functions, FUNCTION_CASES, readTestFile)).toEqual([
-      "update_node: no registered cross-account case",
-      "update_node: no registered change-set case",
+    // Only ensure_account is registered here, so a later task's entry never changes this list.
+    const registry = { ensure_account: FUNCTION_CASES.ensure_account };
+    expect(findMissingCases(functions, registry, readTestFile)).toEqual([
+      "fake_write: no registered cross-account case",
+      "fake_write: no registered change-set case",
       "read_things: no registered cross-account case",
-      "get_snapshot: registered but no such function in public",
     ]);
   });
 

@@ -152,6 +152,9 @@ isOneToOne: false
                            },
 "get_snapshot":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"update_node":
+{ Args: { "p_changes": Json,"p_id": string,"p_reserved_cells"?: Json }; Returns: Json
                            }
           }
           Enums: {

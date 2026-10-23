@@ -18,6 +18,16 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "matches for a first call and for a no-op rerun",
     },
   },
+  update_node: {
+    crossAccount: {
+      file: "update-node.db.test.ts",
+      title: "leaves another account's Node untouched and sees nothing of it",
+    },
+    changeSet: {
+      file: "update-node.db.test.ts",
+      title: "before + changes equals after for an edit, a no-op, a move and a rejection",
+    },
+  },
   get_snapshot: {
     crossAccount: {
       file: "snapshot.db.test.ts",
