@@ -2368,7 +2368,7 @@ env file.
 
 **Commit message:** `feat(db): add the write role and ensure_account`.
 
-### Task 216: [ ] Add the account snapshot and the function coverage suites
+### Task 216: [x] Add the account snapshot and the function coverage suites
 
 **Files and actions:**
 - Migration: `public.get_snapshot()` (`security invoker`), one SQL statement
