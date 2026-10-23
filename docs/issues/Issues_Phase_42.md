@@ -34,3 +34,18 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 - Please check: (1) with Docker Desktop running, run `pnpm exec supabase start`, then `pnpm test:db`: it should print a reset and `1 passed`. (2) Quit Docker Desktop and run `pnpm test:db` again: it should fail within a few seconds with a Docker message, not wait. (3) `git status` shows no `.env.local`.
 - Unresolved: `withActor` (direct DB connection as a role) is not exercised yet; the status variable names (`PUBLISHABLE_KEY`, `SECRET_KEY`, `API_URL`, `DB_URL`) were confirmed against the running CLI.
 - Review: none requested (no logic changed).
+
+## Task 214 — Add the account tables, constraints and RLS
+
+### Current state
+- Status: Awaiting User Decision
+- Next: go-ahead on the work plan
+- Open: none for this task (MI-1 is phase-level)
+
+### Log
+- Work plan:
+  - Stage 1 (DB): `supabase/migrations/<ts>_account_schema.sql` — schemas `app`/`internal`, six tables per SCHEMA §Postgres Target (CHECKs, `unique (user_id, id)`, composite FKs `NO ACTION`, `user_id` cascade, unique source, partial system-role index, listed indexes), RLS (`authenticated`/`griddo_writer` policies), grants, default `EXECUTE` revoked. `griddo_writer` is created here as `NOLOGIN` only so the policies and grants can name it; its function ownership and proof stay in Task 215. Then `pnpm db:types` → `database.types.ts`.
+  - Stage 2 (TS, tests first): `schema.ts` icon max 64 (D9); `boundary-cases.ts` table; `schema.test.ts` runs it against Zod; `row-mapping.ts` + test (snake↔camel for every table, typed by the generated types).
+  - Stage 3 (DB tests): `withActor` asserts `current_user`/`auth.uid()` (advisory note); `tables.db.test.ts` (cross-account select/insert/update/delete, no client write grant, `anon` nothing, composite FK, staged-source delete refused, auth-user cascade, second Inbox/Archive refused); `constraints.db.test.ts` runs the boundary table against the DB.
+  - Checkpoints with you: after Stage 1 (migration read-through), after Stage 3 (all green). No browser work — no UI changes.
+  - Verify: full gate incl. `pnpm test:db`; `expert` review with the SQL checklist (PLANNING_STANDARD §6) before acceptance. Keep ≥10 GB disk free.
