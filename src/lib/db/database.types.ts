@@ -149,6 +149,9 @@ isOneToOne: false
           Functions: {
             "ensure_account":
 { Args: { "p_reserved_cells"?: Json }; Returns: Json
+                           },
+"get_snapshot":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            }
           }
           Enums: {
