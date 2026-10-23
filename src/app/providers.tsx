@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
@@ -10,6 +11,18 @@ import { SearchOverlay } from "@/components/layout/search-overlay";
 import { QuickCaptureOverlays } from "@/components/quick-capture/quick-capture-overlays";
 import { useSystemNodeSeeding } from "@/hooks/use-system-node-seeding";
 import { useTrashAutoCleanup } from "@/hooks/use-trash-auto-cleanup";
+
+// Development state switch (feedback F30): never part of a production bundle.
+const StateSwitchPanel =
+  process.env.NODE_ENV === "development"
+    ? dynamic(
+        () =>
+          import("@/components/dev/state-switch-panel").then(
+            (module) => module.StateSwitchPanel,
+          ),
+        { ssr: false },
+      )
+    : null;
 
 function TrashAutoCleanup() {
   useTrashAutoCleanup();
@@ -46,6 +59,7 @@ export default function Providers({
           <BitDetailPopup />
         </Suspense>
         <Toaster richColors position="bottom-right" />
+        {StateSwitchPanel ? <StateSwitchPanel /> : null}
       </ColorThemeProvider>
     </ThemeProvider>
   );
