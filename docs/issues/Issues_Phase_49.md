@@ -31,8 +31,8 @@ Cross-lane overlap (user, 2026-10-22): no other phase is open. Against Phase 42 
 ## Task 242 — Record the feedback and SaaS surface decisions `DP-FB-01` and `DP-SAAS-01`
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: user acceptance of Task 242 (the recorded decisions in `docs/DESIGN_TOKENS.md`)
+- Status: Accepted
+- Next: Task 243
 - Open: none
 
 ### Log
@@ -57,3 +57,7 @@ Cross-lane overlap (user, 2026-10-22): no other phase is open. Against Phase 42 
 - Please check: that the recorded text reads as a complete contract without the sheet; the two known limits written into it (the faint `retro-mac` emphasis under the grey item colour, FB-3b; the wrapper structure for the breadcrumb motion).
 - Unresolved: none. Side effects of this task, all outside the repo: the sheet proxy `serve.py` on port 3055 (stopped at the end of the task), temporary vitest files used to render real components (deleted), and the dev server on 3049, which was already running from this worktree and is left as it was.
 - Review: no `expert` review (no logic changed).
+- Review (advisory, 2026-10-23, task finish): approve. Checked in `01c46c0`: the three stop-2 changes are in (the fold recorded exactly, with the Home emphasis at its end; SA-1 placement per SPEC §Sidebar; the loader names from SPEC copy and the SA-3 title), the wrapper constraint is in FB-11, `git diff --check` passes, the sheet server on 3055 is stopped. The choice of the wrapper variant over "solid during motion" was the working session's, not part of the user's decision above; the user confirms it below. Apply: the Task 243 note below. Not applied: none.
+- Decision: the breadcrumb motion structure is the wrapper variant as recorded in DESIGN_TOKENS FB-11 (user, 2026-10-23).
+- Task 243 note: the status token values are in DESIGN_TOKENS §Status tokens, light on `:root` and dark on `.dark`; the plan's "on `:root`" means theme-independent, not one block.
+- Decision: Task 242 accepted (user, 2026-10-23).

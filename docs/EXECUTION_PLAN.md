@@ -3252,7 +3252,7 @@ browser checkpoint of the four themes, light and dark.
 
 **Commit message:** `refactor(theme): reduce the color themes to four`.
 
-### Task 242: [ ] Record the feedback and SaaS surface decisions `DP-FB-01` and `DP-SAAS-01`
+### Task 242: [x] Record the feedback and SaaS surface decisions `DP-FB-01` and `DP-SAAS-01`
 
 **Files and actions:** a served HTML option sheet in `griddo`, with
 `retro-mac` and `neumorphism` spot-checks and Korean explanations, rendering
