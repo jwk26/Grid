@@ -1146,6 +1146,13 @@ by default) without an error (S31). Phase 42 measures its load time against
 the account limits. Under the account-deletion fallback it rejects an account
 with a pending deletion request (`account_deleting`) instead of returning rows.
 
+A caller without an `accounts` row gets `account_missing`
+([Account deletion](#account-deletion)). A rejection is one value that holds
+only the envelope's `rejection` object, for example
+`{ "rejection": { "code": "account_missing" } }`, built in the same
+statement; a returned snapshot has no `rejection`. So the client reads
+`rejection?.code` the same way on every function result (user, 2026-10-23).
+
 ### Locks
 
 A function that checks and then writes takes its locks before the check, and
