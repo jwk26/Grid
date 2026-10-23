@@ -217,3 +217,53 @@ export function accountToRow(account: Account): AccountRow {
     deletion_requested_at: account.deletionRequestedAt,
   };
 }
+
+// The fields update_node() accepts (SCHEMA Hook 8). A partial patch: an undefined key is left
+// out, null is kept. `level`, `id`, `version`, `mtime` and the lifecycle fields are server-owned
+// and not part of the type, so they can never reach p_changes.
+export type NodePatch = Partial<
+  Pick<
+    Node,
+    | "title"
+    | "color"
+    | "icon"
+    | "deadline"
+    | "deadlineAllDay"
+    | "parentId"
+    | "x"
+    | "y"
+    | "hiddenFromGrid"
+    | "pastDeadlineDismissed"
+  >
+>;
+
+export type NodePatchRow = Partial<
+  Pick<
+    NodeRow,
+    | "title"
+    | "color"
+    | "icon"
+    | "deadline"
+    | "deadline_all_day"
+    | "parent_id"
+    | "x"
+    | "y"
+    | "hidden_from_grid"
+    | "past_deadline_dismissed"
+  >
+>;
+
+export function nodePatchToRow(patch: NodePatch): NodePatchRow {
+  const row: NodePatchRow = {};
+  if (patch.title !== undefined) row.title = patch.title;
+  if (patch.color !== undefined) row.color = patch.color;
+  if (patch.icon !== undefined) row.icon = patch.icon;
+  if (patch.deadline !== undefined) row.deadline = patch.deadline;
+  if (patch.deadlineAllDay !== undefined) row.deadline_all_day = patch.deadlineAllDay;
+  if (patch.parentId !== undefined) row.parent_id = patch.parentId;
+  if (patch.x !== undefined) row.x = patch.x;
+  if (patch.y !== undefined) row.y = patch.y;
+  if (patch.hiddenFromGrid !== undefined) row.hidden_from_grid = patch.hiddenFromGrid;
+  if (patch.pastDeadlineDismissed !== undefined) row.past_deadline_dismissed = patch.pastDeadlineDismissed;
+  return row;
+}

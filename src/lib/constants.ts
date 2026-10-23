@@ -17,3 +17,8 @@ export const TRASH_RETENTION_DAYS = 30;
 // Inbox badge thresholds
 export const INBOX_BADGE_WARM_THRESHOLD = 8;
 export const INBOX_BADGE_HIGH_THRESHOLD = 15;
+
+// Account snapshot writes (SPEC Write feel, Architecture Decision 19)
+export const DISPLAY_DELAY_MS = 300;
+export const REQUEST_TIMEOUT_MS = 15000;
+export const CONNECTION_PROBE_INTERVAL_MS = 30000;

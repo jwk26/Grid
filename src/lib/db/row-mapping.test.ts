@@ -8,6 +8,7 @@ import {
   chunkFromRow,
   chunkToRow,
   nodeFromRow,
+  nodePatchToRow,
   nodeToRow,
   scratchBreakdownFromRow,
   scratchBreakdownToRow,
@@ -59,5 +60,49 @@ describe("row mapping", () => {
     const row = accountToRow(account);
     expect(Object.keys(row).sort()).toEqual(Object.keys(account).map(snake).sort());
     expect(accountFromRow(row)).toEqual(account);
+  });
+
+  describe("nodePatchToRow", () => {
+    it("maps every update_node key to its column and keeps null", () => {
+      expect(
+        nodePatchToRow({
+          title: "T",
+          color: "hsl(1, 2%, 3%)",
+          icon: "i",
+          deadline: null,
+          deadlineAllDay: true,
+          parentId: null,
+          x: 1,
+          y: 2,
+          hiddenFromGrid: false,
+          pastDeadlineDismissed: true,
+        }),
+      ).toEqual({
+        title: "T",
+        color: "hsl(1, 2%, 3%)",
+        icon: "i",
+        deadline: null,
+        deadline_all_day: true,
+        parent_id: null,
+        x: 1,
+        y: 2,
+        hidden_from_grid: false,
+        past_deadline_dismissed: true,
+      });
+    });
+
+    it("skips undefined keys and never emits level or a server-owned column", () => {
+      const patch = {
+        x: 4,
+        title: undefined,
+        level: 2,
+        id: "x",
+        version: 9,
+        mtime: 1,
+        systemRole: "inbox",
+        deletedAt: 1,
+      } as never;
+      expect(nodePatchToRow(patch)).toEqual({ x: 4 });
+    });
   });
 });
