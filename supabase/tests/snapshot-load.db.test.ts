@@ -1,3 +1,4 @@
+import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { buildLimitSizedAccount, type AccountCounts } from "./fixtures/limit-sized-account";
 import { connect } from "./helpers/db";
@@ -20,6 +21,7 @@ async function measure(label: string, scale: number) {
   const client = await signedInClient(user);
   const times: number[] = [];
   let bytes = 0;
+  let gzipped = 0;
   let snap: Record<string, unknown[]> = {};
   for (let i = 0; i < RUNS; i++) {
     const start = performance.now();
@@ -27,7 +29,9 @@ async function measure(label: string, scale: number) {
     times.push(performance.now() - start);
     expect(error).toBeNull();
     snap = data as Record<string, unknown[]>;
-    bytes = Buffer.byteLength(JSON.stringify(data));
+    const json = JSON.stringify(data);
+    bytes = Buffer.byteLength(json);
+    gzipped = gzipSync(json).length;
   }
   times.sort((x, y) => x - y);
   const median = times[Math.floor(RUNS / 2)];
@@ -35,7 +39,7 @@ async function measure(label: string, scale: number) {
     `[D8 local] ${label}: nodes ${counts.nodes}, bits ${counts.bits}, chunks ${counts.chunks}, ` +
       `breakdowns ${counts.scratchBreakdowns}, candidates ${counts.stagedCandidates}; ` +
       `median of ${RUNS} = ${median.toFixed(0)} ms (min ${times[0].toFixed(0)}, max ${times[RUNS - 1].toFixed(0)}); ` +
-      `${(bytes / 1024 / 1024).toFixed(2)} MB`,
+      `${(bytes / 1024 / 1024).toFixed(2)} MB (gzip ${(gzipped / 1024 / 1024).toFixed(2)} MB)`,
   );
   const check = await connect();
   try {

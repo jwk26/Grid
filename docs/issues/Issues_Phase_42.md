@@ -117,8 +117,8 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 
 ### Current state
 - Status: Implemented, awaiting acceptance
-- Next: user acceptance
-- Open: MI-2 (and phase-level MI-1)
+- Next: user acceptance (second checkpoint)
+- Open: none for this task (MI-1 is phase-level)
 
 ### Log
 - Work plan:
@@ -146,3 +146,11 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 - Please check: (1) the D8 numbers above (limit-sized ≈ 0.2–0.3 s, 8.95 MB locally). (2) `function-cases.ts`: later tasks add an entry per new function. (3) MI-2.
 - Unresolved: MI-2. Disk 8.1 GB free (target 10 GB), no failure seen.
 - Review: expert findings 1–5 → fixed.
+- Review (advisory, 2026-10-23, task finish): approve with changes. Acceptance holds: the coverage suite reads `public` from the catalog (extensions excluded, overloads aggregated, `security definer` needs a change-set case, only live titles count) and the `zz_probe` run shows it fails for an unregistered function; the change-set helper reports omitted rows, rows of another account, unknown keys and bad `deleted` ids, with self-tests; the fixture is valid (no shared cell, two system Nodes, Breakdown rows in the Inbox, F34 block free) and takes `(db, userId, scale)`; the SQL is unchanged since Stage 1. Apply: (1) the fixture's filler text (`repeat('x', …)`, `repeat('idea ', …)` and similar) compresses far better than real text, so a gzip-ed production response would make D8 look easy: replace it with non-repeating text (for example md5-derived) at about the same lengths, rerun `pnpm test:db` and replace the D8 local numbers; (2) MI-2 is merged into MI-1 (see Decision). Also: disk fell from 8.3 to 7.1 GB free during this task (target 10 GB); the user checks `docker system df` before Task 217. Not applied: none.
+- Decision: MI-2 is closed as a duplicate of MI-1; MI-1 records a second occurrence (Task 216 final gate, 2012/2013, name not captured), and from now on the gate saves the `pnpm test` output to a file so a failing test's name is kept (user, 2026-10-23).
+- Task 217 note (advisory, 2026-10-23): register `update_node` in `supabase/tests/helpers/function-cases.ts` with its cross-account case and a change-set case that uses `assertChangeSet` (`coverage.db.test.ts` fails otherwise); regenerate `src/lib/db/database.types.ts` with `pnpm db:types` after the migration (`types.db.test.ts` fails otherwise); the snapshot store treats a `get_snapshot` value that holds `rejection` as a rejection (`account_missing`), never as an empty account (SCHEMA §Snapshot).
+- Task 218 note (advisory, 2026-10-23): the D8 measurement builds both accounts with `buildLimitSizedAccount(db, userId, scale)` (`supabase/tests/fixtures/limit-sized-account.ts`) on a production connection whose string stays outside Git, after each anonymous auth user exists; it records time, JSON bytes and transfer (compressed) bytes, next to the Task 216 local numbers.
+- Review applied (task finish, 2026-10-23): (1) the fixture's filler is now md5-derived, non-repeating text at the same lengths; the load test also logs the gzip size; `pnpm test:db` rerun, D8 local numbers replaced below; (2) MI-2 closed as a duplicate of MI-1 (the user's Decision), so MI-1 now records the second occurrence; the gate saved `pnpm test` output to a file ($CLAUDE_JOB_DIR/tmp), and this run was 2013/2013. Task 217/218 notes taken. Disk 7.1 GB free (target 10 GB); `docker system df` shows images 8.0 GB, volumes 0.14 GB, nothing reclaimable, so the user decides what to free.
+- D8 local measurement, replaced (non-repeating text): limit-sized ≈ 220–310 ms, 8.97 MB (gzip 2.78 MB); one-tenth ≈ 20–34 ms, 0.89 MB (gzip 0.28 MB).
+- Gate (2026-10-23, rerun): `git diff --check`, `pnpm test` 2013, `pnpm test:db` 336, `pnpm lint` (0 errors, 11 existing warnings), `typecheck`, `build` pass.
+- Checkpoint (second, 2026-10-23): fixture text and gzip logging changed (commit below); everything else as in the first Checkpoint. Replace the D8 numbers there with the ones above.

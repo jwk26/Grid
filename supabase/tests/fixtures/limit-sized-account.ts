@@ -42,6 +42,11 @@ export async function buildLimitSizedAccount(
   const l0 = Math.min(L0_NODES, n);
   const scratchBits = Math.min(SCRATCH_BITS, b);
 
+  // Non-repeating filler of `len` characters (md5-derived), so a compressed response is not
+  // flattered by repeated text. `seed` and `len` are SQL expressions.
+  const text = (seed: string, len: string) =>
+    `left((select string_agg(md5((${seed}) || ':' || i), ' ') from generate_series(1, ((${len}) / 32) + 1) i), ${len})`;
+
   const id = (kind: string, g: string) => `md5('${kind}:' || $1::uuid::text || ':' || ${g})::uuid`;
 
   await db.query(
@@ -57,7 +62,7 @@ export async function buildLimitSizedAccount(
     `insert into app.nodes (id, user_id, title, color, icon, mtime, created_at, version, parent_id, level, x, y, system_role)
      select ${id("node", "g::text")}, $1::uuid,
             case g when 0 then 'Inbox' when 1 then 'Archive'
-                 else 'Project area ' || g || ' — ' || repeat('x', 20 + g % 30) end,
+                 else 'Project area ' || g || ' — ' || ${text("'n' || g", '20 + g % 30')} end,
             'hsl(' || (g * 37 % 360) || ', 70%, 55%)', 'folder', 1000 + g, 1000 + g, 1,
             case when g < $2 then null else ${id("node", "(2 + g % ($2 - 2))::text")} end,
             case when g < $2 then 0 else 1 end,
@@ -71,8 +76,8 @@ export async function buildLimitSizedAccount(
   // spread over the other Nodes.
   await db.query(
     `insert into app.bits (id, user_id, title, description, icon, status, priority, mtime, created_at, version, parent_id, x, y)
-     select ${id("bit", "g::text")}, $1::uuid, 'Task ' || g || ' ' || repeat('t', 30 + g % 60),
-            repeat('Notes about this task, with some detail. ', 1 + g % 7), 'check',
+     select ${id("bit", "g::text")}, $1::uuid, 'Task ' || g || ' ' || ${text("'bt' || g", '30 + g % 60')},
+            ${text("'bd' || g", '40 * (1 + g % 7)')}, 'check',
             case when g % 5 = 0 then 'complete' else 'active' end,
             (array['high','mid','low'])[1 + g % 3], 2000 + g, 2000 + g, 1,
             case when g < $4 then ${id("node", "'0'")}
@@ -84,8 +89,8 @@ export async function buildLimitSizedAccount(
 
   await db.query(
     `insert into app.chunks (id, user_id, title, description, status, "order", parent_id)
-     select ${id("chunk", "g::text")}, $1::uuid, 'Step ' || g || ' ' || repeat('s', 20 + g % 50),
-            repeat('Chunk detail line. ', 1 + g % 6),
+     select ${id("chunk", "g::text")}, $1::uuid, 'Step ' || g || ' ' || ${text("'ct' || g", '20 + g % 50')},
+            ${text("'cd' || g", '20 * (1 + g % 6)')},
             case when g % 3 = 0 then 'complete' else 'incomplete' end, g / $2,
             ${id("bit", "(g % $2)::text")}
        from generate_series(0, $3 - 1) g`,
@@ -95,7 +100,7 @@ export async function buildLimitSizedAccount(
   await db.query(
     `insert into app.scratch_breakdowns (id, user_id, scratch_bit_id, content, "order", created_at, version)
      select ${id("breakdown", "g::text")}, $1::uuid, ${id("bit", "(g % $2)::text")},
-            'Breakdown row ' || g || ': ' || repeat('idea ', 5 + g % 40), g / $2, 3000 + g, 1
+            'Breakdown row ' || g || ': ' || ${text("'sb' || g", '5 * (5 + g % 40)')}, g / $2, 3000 + g, 1
        from generate_series(0, $3 - 1) g`,
     [userId, scratchBits, s],
   );
