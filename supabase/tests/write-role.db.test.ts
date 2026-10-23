@@ -137,3 +137,41 @@ describe("griddo_writer under RLS", () => {
     expect(code).toBe("42501");
   });
 });
+
+describe("function privileges", () => {
+  it("no client role can execute an internal function", async () => {
+    const db = await connect();
+    try {
+      const { rows } = await db.query(
+        `select p.oid::regprocedure::text as fn,
+                has_function_privilege('anon', p.oid, 'execute') as anon,
+                has_function_privilege('authenticated', p.oid, 'execute') as authenticated,
+                has_function_privilege('griddo_writer', p.oid, 'execute') as writer
+           from pg_proc p where p.pronamespace = 'internal'::regnamespace`,
+      );
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.anon, row.fn).toBe(false);
+        expect(row.authenticated, row.fn).toBe(false);
+        expect(row.writer, row.fn).toBe(true);
+      }
+    } finally {
+      await db.end();
+    }
+  });
+
+  it("every security definer function in public and internal is owned by griddo_writer", async () => {
+    const db = await connect();
+    try {
+      const { rows } = await db.query(
+        `select p.oid::regprocedure::text as fn, r.rolname as owner
+           from pg_proc p join pg_roles r on r.oid = p.proowner
+          where p.pronamespace in ('public'::regnamespace, 'internal'::regnamespace)
+            and p.prosecdef and r.rolname <> 'griddo_writer'`,
+      );
+      expect(rows).toEqual([]);
+    } finally {
+      await db.end();
+    }
+  });
+});
