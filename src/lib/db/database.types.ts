@@ -147,7 +147,9 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "ensure_account":
+{ Args: { "p_reserved_cells"?: Json }; Returns: Json
+                           }
           }
           Enums: {
             [_ in never]: never

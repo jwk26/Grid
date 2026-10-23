@@ -5,7 +5,8 @@ import { baseEntities } from "@/lib/db/boundary-cases";
 import { nodeToRow } from "@/lib/db/row-mapping";
 import type { Node } from "@/lib/db/schema";
 import { connect, becomeActor, expectDbError, insertRow, withActor } from "./helpers/db";
-import { adminClient, createTestUser, type TestUser } from "./helpers/users";
+import { createClient } from "@supabase/supabase-js";
+import { adminClient, createTestUser, signedInClient, type TestUser } from "./helpers/users";
 
 // Ported from src/lib/db/system-nodes.test.ts (the answer key), plus the account row, the
 // cell picking of feedback F34, concurrency (S30) and the deleted-auth-user case.
@@ -409,6 +410,38 @@ describe("ensure_account: callers and privileges", () => {
       await db.query("rollback").catch(() => undefined);
       await db.end();
     }
+  });
+});
+
+describe("ensure_account: through the API", () => {
+  it("a signed-in client gets applied and only its own Inbox and Archive; a client without a session fails", async () => {
+    const fresh = await createTestUser("api");
+    const bystander = await createTestUser("apib");
+    const client = await signedInClient(fresh);
+    const { data, error } = await client.rpc("ensure_account");
+    expect(error).toBeNull();
+    expect(data).toMatchObject({ status: "applied", result: null });
+
+    const db = await connect();
+    try {
+      const { rows } = await db.query(
+        "select user_id, system_role from app.nodes where user_id in ($1, $2) order by system_role",
+        [fresh.id, bystander.id],
+      );
+      expect(rows).toEqual([
+        { user_id: fresh.id, system_role: "archive_view" },
+        { user_id: fresh.id, system_role: "inbox" },
+      ]);
+    } finally {
+      await db.end();
+    }
+
+    const anon = createClient(process.env.SUPABASE_TEST_URL!, process.env.SUPABASE_TEST_PUBLISHABLE_KEY!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const refused = await anon.rpc("ensure_account");
+    expect(refused.data).toBeNull();
+    expect(refused.error?.code).toBe("42501");
   });
 });
 
