@@ -560,6 +560,25 @@ describe("update_node: concurrency (S30)", () => {
     }
   }, 30_000);
 
+  it("a title edit that waits on a move of the same Node is applied and the new parent stays", async () => {
+    const { u, owner, add } = await committedAccount("un-edit");
+    try {
+      const p = await add({ x: 3, y: 3 });
+      const m = await add({ x: 4, y: 4 });
+      const [first, second] = await race(
+        u,
+        (db) => update(db, m, { parent_id: p, x: 1, y: 1 }),
+        (db) => update(db, m, { title: "Edited" }),
+      );
+      expect(first.status).toBe("applied");
+      expect(second.status).toBe("applied");
+      const { rows } = await owner.query("select title, parent_id, level, version from app.nodes where id = $1", [m]);
+      expect(rows[0]).toEqual({ title: "Edited", parent_id: p, level: 1, version: 3 });
+    } finally {
+      await owner.end();
+    }
+  }, 30_000);
+
   it("a move into a Node that is being trashed: parent_inactive after the wait", async () => {
     const { u, owner, add } = await committedAccount("un-trash");
     try {

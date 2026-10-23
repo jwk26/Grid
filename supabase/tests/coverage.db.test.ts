@@ -47,11 +47,12 @@ describe("registered function cases", () => {
       { name: "read_things", securityDefiner: false },
     ];
     // Only ensure_account is registered here, so a later task's entry never changes this list.
-    const registry = { ensure_account: FUNCTION_CASES.ensure_account };
+    const registry = { ensure_account: FUNCTION_CASES.ensure_account, gone_function: FUNCTION_CASES.get_snapshot };
     expect(findMissingCases(functions, registry, readTestFile)).toEqual([
       "fake_write: no registered cross-account case",
       "fake_write: no registered change-set case",
       "read_things: no registered cross-account case",
+      "gone_function: registered but no such function in public",
     ]);
   });
 

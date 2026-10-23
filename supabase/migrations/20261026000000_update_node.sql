@@ -31,6 +31,7 @@ declare
   v_ids uuid[];
   v_ids_after uuid[];
   v_attempt integer;
+  v_position boolean;
   v_touches boolean;
   v_showing boolean;
   v_depth integer;
@@ -66,14 +67,20 @@ begin
   -- The Grid the Node ends up in: the Grid advisory lock first, then the row locks (S30).
   v_target := case when p_changes ? 'parent_id' then (p_changes ->> 'parent_id')::uuid else v_old.parent_id end;
   v_locked_parent := v_target;
-  if p_changes ?| array['parent_id', 'x', 'y', 'hidden_from_grid'] then
+  v_position := p_changes ?| array['parent_id', 'x', 'y', 'hidden_from_grid'];
+  if v_position then
     perform internal.lock_grid(v_user, v_target);
   end if;
 
-  -- Row locks, in one statement ordered by id: the moved subtree, the target parent's ancestor
-  -- chain and the old parent. The set is computed again once the locks are held; a set that
-  -- grew meanwhile is locked again.
-  for v_attempt in 1 .. 3 loop
+  -- A call without a position key (a field edit) locks only its own row; it never depends on the
+  -- Node's place in the tree, so it waits for a concurrent move and then applies on top of it.
+  -- Row locks of a position call, in one statement ordered by id: the moved subtree, the target
+  -- parent's ancestor chain and the old parent. The set is computed again once the locks are
+  -- held; a set that grew meanwhile is locked again.
+  if not v_position then
+    perform 1 from app.nodes where id = p_id and user_id = v_user for update;
+  end if;
+  for v_attempt in 1 .. case when v_position then 3 else 0 end loop
     with recursive sub as (
       select id from app.nodes where id = p_id and user_id = v_user
       union all
@@ -112,7 +119,7 @@ begin
   if not found then
     return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'not_found'));
   end if;
-  if not (p_changes ? 'parent_id') and v_old.parent_id is distinct from v_locked_parent then
+  if v_position and not (p_changes ? 'parent_id') and v_old.parent_id is distinct from v_locked_parent then
     raise exception 'update_node: the Node moved while the call waited' using errcode = '40001';
   end if;
 
