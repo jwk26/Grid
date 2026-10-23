@@ -77,8 +77,8 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 ## Task 215 — Add the write role and `ensure_account()`
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: your acceptance of the checkpoint (task-finish review applied)
+- Status: Accepted
+- Next: Task 216
 - Open: none for this task (MI-1 is phase-level). Canonical-document edit for the advisory session: see Log, 'Canonical docs'.
 
 ### Log
@@ -104,6 +104,7 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 - Task 216 note (advisory, 2026-10-23): `coverage.db.test.ts` also asserts that `service_role` (with `anon`) has no EXECUTE on any `public` function (expert finding, Task 215).
 - Task 217 note (advisory, 2026-10-23): `update_node()` reads the caller with `internal.uid()` and rejects a null id before `internal.lock_grid` (expert finding, Task 215); it builds its result with `internal.envelope` and uses `internal.pick_free_cell`/`internal.lock_grid` as they are.
 - Review applied (task finish, 2026-10-23): (1) `database.types.ts` regenerated with `pnpm db:types` (raw CLI output, now has `ensure_account`); (2) API-path test in `ensure-account.db.test.ts`: a signed-in supabase-js `rpc('ensure_account')` returns `applied` and creates only that user's Inbox and Archive, a client without a session gets 42501; (3) canonical wording done by the advisory session (940e36a); (4) Task 216/217 notes taken. `pnpm test:db` 306, lint 0 errors, typecheck, `git diff --check` pass. Disk 8.3 GB free: free space before Task 216.
+- Decision: Task 215 accepted (user, 2026-10-23).
 
 ### Checkpoint
 - Changed: migrations `20261024000000_write_role.sql`, `…01_internal_helpers.sql`, `…02_ensure_account.sql`; tests `write-role`, `internal-helpers`, `ensure-account` (`*.db.test.ts`); `helpers/db.ts` (`griddo_writer` actor, `auth.uid()` read before the role switch).

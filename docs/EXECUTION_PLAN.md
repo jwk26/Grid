@@ -2329,7 +2329,7 @@ env file.
 
 **Commit message:** `feat(db): add the account tables, constraints and RLS`.
 
-### Task 215: [ ] Add the write role and `ensure_account()`
+### Task 215: [x] Add the write role and `ensure_account()`
 
 **Files and actions:**
 - Migration: role `griddo_writer` (`NOLOGIN`, no `BYPASSRLS`, not the table
