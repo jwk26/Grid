@@ -116,9 +116,9 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 ## Task 216 — Add the account snapshot and the function coverage suites
 
 ### Current state
-- Status: In Progress
-- Next: Stage 2 (change-set helper, fixtures), then Stage 3
-- Open: none for this task (MI-1 is phase-level)
+- Status: Implemented, awaiting acceptance
+- Next: user acceptance
+- Open: MI-2 (and phase-level MI-1)
 
 ### Log
 - Work plan:
@@ -134,3 +134,15 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 - Review (advisory, 2026-10-23, stage 1 checkpoint): approve with changes. `get_snapshot` is one `language sql stable` invoker statement with an empty `search_path`, `auth.uid()` plus an explicit user filter, `EXECUTE` to `authenticated` alone, and the SCHEMA §Snapshot rejection shape; the race test is non-vacuous (the volatile two-statement control shows orphans, `get_snapshot` none); the API-path, no-session, lifecycle and types-drift tests hold. Apply: (1) `types.db.test.ts` gives its test a 60 s timeout (`it(…, 60_000)`) to match the 60 s `execFileSync` timeout, since `testTimeout` is 20 s. Also: the control function lives briefly in `public`; acceptable because DB files run serially (`fileParallelism: false`), it is dropped in `finally` and the next `pnpm test:db` resets; disk 8.2 GB free (target 10 GB) before the Stage 2 fixtures. Not applied: none.
 - Decision: Stage 1 accepted with the review above (user, 2026-10-23).
 - Review applied (Stage 1): `types.db.test.ts` has a 60 s test timeout. Stage 1 committed.
+- Stages 2–3 (2026-10-23): `helpers/change-set.ts` (`diffChangeSet` pure + `assertChangeSet`; self-tests in `change-set.db.test.ts` incl. a real `ensure_account` case), `fixtures/limit-sized-account.ts` (`buildLimitSizedAccount(db, userId, scale)`; Inbox + Archive counted in the Node limit, scratch Bits in the Inbox, no shared cell in a Grid, nothing below row 2 of the top-left block), `snapshot-load.db.test.ts` (D8 local measurement + fixture validity), `helpers/function-cases.ts` + `helpers/coverage.ts` + `coverage.db.test.ts` (catalog listing from `pg_proc`, extension functions excluded, overloads aggregated, live `it`/`test` titles only, comments stripped, disabled blocks and non-`*.db.test.ts` files refused, unit tests that a fake function is reported; `anon`/`service_role` cannot execute `public` functions; no client role executes `internal` ones). Probe: a temporary `public.zz_probe()` made `coverage.db.test.ts` fail ("no registered cross-account case"), then was dropped. New `ensure_account` cross-account case: another account's `accounts` row and trashed Inbox are unchanged.
+- D8 local measurement (supabase-js `rpc('get_snapshot')`, median of 5, JSON bytes): limit-sized (nodes 1,000, bits 5,000, chunks 10,000, breakdowns 5,000, candidates 1,250) ≈ 210–340 ms, 8.95 MB; one-tenth ≈ 22–28 ms, 0.89 MB. Production measurement stays Task 218.
+- Review (expert, 2026-10-23): no blocking finding. Fixed: (1) fixture put 400 Node/Bit pairs in one cell, scratch Bits outside the Inbox, no system Nodes → rebuilt, validity test added; (2) coverage counted commented-out tests and `describe.skip` → comments stripped, disabled blocks and non-db-test files refused; (3) overloads: `security definer` if any overload is → `bool_or` per name; (4) change-set helper missed bad `deleted` ids and unknown keys → both reported; (5) `ensure_account` cross-account case did not touch the write path → stranger now has an `accounts` row and a trashed Inbox.
+- MI-2 [Open]: `pnpm test` failed one test (2012/2013) in the final gate; the test name was not captured, and the next run passed 2013/2013 — same pattern as MI-1. Next: capture the name if it recurs; the user decides whether to merge MI-1 and MI-2 or drop them.
+- Gate (2026-10-23): `git diff --check`, `pnpm test:db` 336, `pnpm lint` (0 errors, 11 existing warnings), `typecheck`, `build` pass; `pnpm test` 2013 on the rerun (see MI-2).
+
+### Checkpoint
+- Changed: migration `20261025000000_get_snapshot.sql`; `database.types.ts`; tests `snapshot`, `types`, `change-set`, `snapshot-load`, `coverage` (`*.db.test.ts`) and one case in `ensure-account`; helpers `change-set`, `coverage`, `function-cases`; fixture `limit-sized-account`.
+- Verified: gate above; get_snapshot race test with a failing control; coverage fails for an unregistered function (probe).
+- Please check: (1) the D8 numbers above (limit-sized ≈ 0.2–0.3 s, 8.95 MB locally). (2) `function-cases.ts`: later tasks add an entry per new function. (3) MI-2.
+- Unresolved: MI-2. Disk 8.1 GB free (target 10 GB), no failure seen.
+- Review: expert findings 1–5 → fixed.

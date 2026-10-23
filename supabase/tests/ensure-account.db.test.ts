@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Client } from "pg";
 import { beforeAll, describe, expect, it } from "vitest";
 import { baseEntities } from "@/lib/db/boundary-cases";
-import { nodeToRow } from "@/lib/db/row-mapping";
+import { accountToRow, nodeToRow } from "@/lib/db/row-mapping";
 import type { Node } from "@/lib/db/schema";
 import { connect, becomeActor, expectDbError, insertRow, withActor } from "./helpers/db";
 import { createClient } from "@supabase/supabase-js";
@@ -201,6 +201,26 @@ describe("ensure_account: existing Nodes", () => {
       await ensure(db);
       const [inbox] = await systemNodes(db, "inbox");
       expect(inbox).toMatchObject({ title: "My Work", icon: "star", color: "hsl(0,0%,50%)", hidden_from_grid: true, x: 7, y: 3 });
+    });
+  });
+
+  it("leaves another account's rows untouched", async () => {
+    await withActor(authed(), async (db, owner) => {
+      const stranger = await owner(() => createTestUser("ex-keep"));
+      await owner(async () => {
+        await insertRow(db, "accounts", accountToRow({ userId: stranger.id, createdAt: 1, lastVisitAt: 1, seededAt: null, deletionRequestedAt: null }));
+        await addNode(db, { x: 0, y: 0 }, stranger.id);
+        await addNode(db, { title: "Inbox", systemRole: "inbox", deletedAt: 5, x: 5, y: 5 }, stranger.id);
+      });
+      const strangerRows = () =>
+        owner(async () => ({
+          accounts: (await db.query("select * from app.accounts where user_id = $1", [stranger.id])).rows,
+          nodes: await nodes(db, stranger.id),
+        }));
+      const before = await strangerRows();
+      expect(before.nodes).toHaveLength(2);
+      await ensure(db);
+      expect(await strangerRows()).toEqual(before);
     });
   });
 
