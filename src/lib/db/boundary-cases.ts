@@ -103,6 +103,9 @@ function c(
 
 // Zod counts UTF-16 code units; Postgres `char_length` counts code points. An astral
 // character (one code point) is two code units, so these cases catch a length mismatch.
+const INT4_MAX = 2147483647;
+const TS_MAX = Number.MAX_SAFE_INTEGER;
+
 const astral = "\u{1F600}";
 
 function lengthCases(
@@ -162,10 +165,10 @@ const COLOR_CASES: BoundaryCase[] = [
   c("node", "color", "hsl(210, 80, 55%)", false, "color missing percent"),
   c("node", "color", "rgb(1, 2, 3)", false, "color other function"),
   c("node", "color", "hsl(210, 80%, 55%) ", false, "color trailing space"),
-  c("node", "color", "hsl(210, 80%, 55%)", true, "color NBSP counts as \\s in JS"),
-  c("node", "color", "hsl(210,　 80%, 55%)", true, "color ideographic space counts as \\s"),
-  c("node", "color", "hsl(١٢٣, 80%, 55%)", false, "color Arabic-Indic digits"),
-  c("node", "color", "hsl(210, ８０%, 55%)", false, "color fullwidth digits"),
+  c("node", "color", "hsl(210,\u00a080%,\u00a055%)", true, "color NBSP counts as \\s in JS"),
+  c("node", "color", "hsl(210,\u3000 80%, 55%)", true, "color ideographic space counts as \\s"),
+  c("node", "color", "hsl(\u0661\u0662\u0663, 80%, 55%)", false, "color Arabic-Indic digits"),
+  c("node", "color", "hsl(210, \uff18\uff10%, 55%)", false, "color fullwidth digits"),
 ];
 
 export const boundaryCases: BoundaryCase[] = [
@@ -176,14 +179,13 @@ export const boundaryCases: BoundaryCase[] = [
   ...rangeCases("node", "level", 0, 2),
   ...rangeCases("node", "x", 0, GRID_COLS - 1),
   ...rangeCases("node", "y", 0, GRID_ROWS - 1),
-  ...rangeCases("node", "version", 1, null),
-  ...rangeCases("node", "mtime", 1, null),
-  ...rangeCases("node", "createdAt", 1, null),
+  ...rangeCases("node", "version", 1, INT4_MAX),
+  ...rangeCases("node", "mtime", 1, TS_MAX),
+  ...rangeCases("node", "createdAt", 1, TS_MAX),
   ...enumCases("node", "systemRole", ["inbox", "archive_view"], true),
-  c("node", "deadline", 0, false, "deadline zero"),
-  c("node", "deadline", 1, true, "deadline one"),
-  c("node", "deletedAt", 0, false, "deletedAt zero"),
-  c("node", "archivedAt", 0, false, "archivedAt zero"),
+  ...rangeCases("node", "deadline", 1, TS_MAX),
+  ...rangeCases("node", "deletedAt", 1, TS_MAX),
+  ...rangeCases("node", "archivedAt", 1, TS_MAX),
   // bits
   ...lengthCases("bit", "title", 1, 200),
   ...lengthCases("bit", "description", 0, 1000),
@@ -192,29 +194,29 @@ export const boundaryCases: BoundaryCase[] = [
   ...enumCases("bit", "status", ["active", "complete"], false),
   ...rangeCases("bit", "x", 0, GRID_COLS - 1),
   ...rangeCases("bit", "y", 0, GRID_ROWS - 1),
-  ...rangeCases("bit", "version", 1, null),
-  ...rangeCases("bit", "mtime", 1, null),
-  ...rangeCases("bit", "createdAt", 1, null),
-  c("bit", "deadline", 0, false, "deadline zero"),
-  c("bit", "deletedAt", 0, false, "deletedAt zero"),
-  c("bit", "archivedAt", 0, false, "archivedAt zero"),
+  ...rangeCases("bit", "version", 1, INT4_MAX),
+  ...rangeCases("bit", "mtime", 1, TS_MAX),
+  ...rangeCases("bit", "createdAt", 1, TS_MAX),
+  ...rangeCases("bit", "deadline", 1, TS_MAX),
+  ...rangeCases("bit", "deletedAt", 1, TS_MAX),
+  ...rangeCases("bit", "archivedAt", 1, TS_MAX),
   // chunks
   ...lengthCases("chunk", "title", 1, 200),
   ...lengthCases("chunk", "description", 0, 500),
   ...enumCases("chunk", "status", ["complete", "incomplete"], false),
-  ...rangeCases("chunk", "order", 0, null),
-  c("chunk", "time", 0, false, "time zero"),
+  ...rangeCases("chunk", "order", 0, INT4_MAX),
+  ...rangeCases("chunk", "time", 1, TS_MAX),
   // scratch breakdowns
   ...lengthCases("scratchBreakdown", "content", 1, 1000),
-  ...rangeCases("scratchBreakdown", "order", 0, null),
-  ...rangeCases("scratchBreakdown", "version", 1, null),
-  ...rangeCases("scratchBreakdown", "createdAt", 1, null),
-  c("scratchBreakdown", "consumedAt", 0, false, "consumedAt zero"),
+  ...rangeCases("scratchBreakdown", "order", 0, INT4_MAX),
+  ...rangeCases("scratchBreakdown", "version", 1, INT4_MAX),
+  ...rangeCases("scratchBreakdown", "createdAt", 1, TS_MAX),
+  ...rangeCases("scratchBreakdown", "consumedAt", 1, TS_MAX),
   // staged candidates
   ...enumCases("stagedCandidate", "resultType", ["node", "bit"], false),
   c("stagedCandidate", "lifecycle", "staged", true, "lifecycle staged"),
   c("stagedCandidate", "lifecycle", "placed", false, "lifecycle other"),
-  ...rangeCases("stagedCandidate", "version", 1, null),
-  ...rangeCases("stagedCandidate", "createdAt", 1, null),
-  ...rangeCases("stagedCandidate", "updatedAt", 1, null),
+  ...rangeCases("stagedCandidate", "version", 1, INT4_MAX),
+  ...rangeCases("stagedCandidate", "createdAt", 1, TS_MAX),
+  ...rangeCases("stagedCandidate", "updatedAt", 1, TS_MAX),
 ];

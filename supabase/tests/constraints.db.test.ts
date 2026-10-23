@@ -92,7 +92,8 @@ describe("boundary cases against the database constraints", () => {
       if (boundary.valid) {
         expect(code).toBe("");
       } else {
-        expect(["23514", "23502"]).toContain(code);
+        // 22003: a value past int4 is refused before the CHECK runs.
+        expect(["23514", "23502", "22003"]).toContain(code);
       }
     },
   );

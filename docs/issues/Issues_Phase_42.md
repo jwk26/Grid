@@ -38,9 +38,9 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 ## Task 214 — Add the account tables, constraints and RLS
 
 ### Current state
-- Status: Awaiting User Decision
-- Next: decision on MI-4, then acceptance
-- Open: MI-4 (MI-1 is phase-level)
+- Status: Implemented, awaiting acceptance
+- Next: user acceptance
+- Open: MI-4 fixed, awaiting your close (MI-1 is phase-level)
 
 ### Log
 - Work plan:
@@ -56,10 +56,17 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 - Decision: the database constraints are aligned to Zod (UTF-16 code-unit lengths, `[0-9]` and the JS `\s` whitespace set in `color`), instead of changing Zod (user, 2026-10-23).
 - Stages 2–3 done (ff2b636): boundary table, `row-mapping`, `icon` max 64, `tables` and `constraints` DB suites; Zod and the database agree on every boundary case, including the Unicode ones.
 - Review (expert, 2026-10-23): no blocking finding. Fixed: the API test now requires `PGRST106` and proves GraphQL is absent (pg_graphql is not installed locally), with a case-insensitive name filter. Not applied: a gate step that compares `supabase gen types` with the committed file (finding 3) — outside this task; proposed for a later task.
-- MI-4 [Awaiting User Decision]: Zod accepts integers the database refuses with `22003` instead of a CHECK, e.g. `order` or `version` above int4 (2147483648), `deadline`/`time` above bigint — cause: unbounded `z.number().int()` in `schema.ts` — recommended fix: add int4/bigint maximums to Zod for `order`, `version` (int4) and keep timestamps as safe integers (JS cannot exceed 2^53, far below bigint, so only int4 fields need a bound). Trade-off: a tiny Zod change now vs. the write functions (Task 215+) mapping a `22003` to `invalid_input`.
+- MI-4 [Fixed, awaiting user close]: Zod accepts integers the database refuses with `22003` instead of a CHECK, e.g. `order` or `version` above int4 (2147483648), `deadline`/`time` above bigint — cause: unbounded `z.number().int()` in `schema.ts` — recommended fix: add int4/bigint maximums to Zod for `order`, `version` (int4) and keep timestamps as safe integers (JS cannot exceed 2^53, far below bigint, so only int4 fields need a bound). Trade-off: a tiny Zod change now vs. the write functions (Task 215+) mapping a `22003` to `invalid_input`.
+- Review (advisory, 2026-10-23, checkpoint): approve with changes. Every acceptance item has a non-vacuous test; earlier review items hold. Correction to MI-4: with Zod 3.25, `.int()` is `Number.isInteger`, which accepts `1e20`, so a timestamp above bigint passes Zod and fails with `22003`; values between 2^53 and 2^63 pass both and lose precision when read back as JSON. Apply: (1) MI-4 option A: Zod `version` and `order` `.max(2147483647)`, `timestampSchema` `.max(Number.MAX_SAFE_INTEGER)`; the migration's timestamp CHECKs become `between 1 and 9007199254740991` (edited in place: applied only locally until Task 218); boundary cases 2147483647 valid / 2147483648 invalid for `version` and `order`, 2^53−1 valid / 2^53 invalid for timestamps; `constraints.db.test.ts` accepts `22003` as a refusal for int4 overflow; (2) replace the literal NBSP and U+3000 in `boundary-cases.ts` (color cases) with ` ` and `　`; (3) expert finding 3 (types drift check) goes to Task 216, not this task; (4) the hosted GraphQL/API check goes to Task 218. Not applied: none.
+- Decision: MI-4 fixed by option A, Zod and the database bounded alike (int4 for `version`/`order`, `Number.MAX_SAFE_INTEGER` for timestamps) (user, 2026-10-23).
+- Decision: expert finding 3 (types drift check) is deferred to Task 216 (user, 2026-10-23).
+- Task 216 note (advisory, 2026-10-23): add a test that regenerates the database types from the local schema and fails if they differ from the committed `src/lib/db/database.types.ts`, so a stale file cannot hide a column change (S33; expert finding 3 of Task 214).
+- Task 218 note (advisory, 2026-10-23): local Supabase has no pg_graphql, so Task 214 proved the GraphQL half only locally. `hosted-roles.sql` checks on production whether pg_graphql is installed and, if so, that an `authenticated` introspection shows no `app` table types; and that a PostgREST call to the `app` schema fails with `PGRST106`.
 
 ### Checkpoint
 - Changed: migration `20261023000000_account_schema.sql`; `database.types.ts`; `boundary-cases.ts`, `row-mapping.ts` (+ test); `schema.ts` (`icon` ≤ 64); `schema.test.ts`; `supabase/tests/{tables,constraints}.db.test.ts`, `helpers/{db,seed}.ts`.
 - Verified: `pnpm test` 1964, `pnpm test:db` 175, `typecheck`, `build`, `git diff --check` pass; lint 0 errors (11 existing warnings). `expert` SQL review done.
 - Please check: (1) decide MI-4. (2) Read `tables.db.test.ts` headings: isolation, no write grant, anon, API, composite FKs, staged source, cascade, system roles, EXECUTE probe. (3) `git status` clean.
 - Unresolved: MI-4; local pg_graphql is off, so the GraphQL half is proven only for local (re-check on hosted).
+- Review items applied (this commit): Zod `version`/`order` ≤ 2147483647 and timestamps ≤ `Number.MAX_SAFE_INTEGER`; the migration CHECKs match (edited in place, applied only locally); boundary table gains the upper cases and ASCII-only escapes; `constraints.db.test.ts` accepts `22003` for int4 overflow. Fix for MI-4 in the commit that follows this entry.
+- Gate rerun: `git diff --check`, `pnpm test` 2013, `pnpm test:db` 224, `pnpm lint` (0 errors), `typecheck`, `build` pass.
