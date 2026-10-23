@@ -364,7 +364,6 @@ describe("SnapshotStore: the pending-write layer", () => {
     });
 
     it("a store still not ready after the retries is failed, not left loading", async () => {
-      let store!: SnapshotStore;
       let n = 0;
       const fetchSnapshot = vi.fn(async () => {
         // a write settles during every fetch, so each answer is discarded
@@ -372,7 +371,7 @@ describe("SnapshotStore: the pending-write layer", () => {
         await store.write({ effect: move(id, 1), send: async () => applied([]) });
         return snapshotOf([nodeRow(NODE_ID)]);
       });
-      store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+      const store: SnapshotStore = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
       expect(await store.load()).toBe("failed");
       expect(fetchSnapshot).toHaveBeenCalledTimes(5);
       expect(store.getState().status).toEqual({ phase: "failed" });
