@@ -263,7 +263,7 @@ Category/container items displayed as mobile app-style icons on the grid. Nodes 
 | `createdAt` | `number` | NOT NULL | `Date.now()` | Creation timestamp (ms) |
 | `version` | `number` | NOT NULL, integer ≥ 1 | `1` | Monotonic direct-record mutation revision. Required so placement Undo can detect later Node mutation without using `mtime` |
 | `parentId` | `string \| null` | FK → `nodes.id` | `null` | Parent Node. `null` = Level 0 (root) |
-| `level` | `number` | NOT NULL, 0–2 | — | Hierarchy depth. Derived from parent chain on creation. Nodes exist at levels 0, 1, 2 only (Level 3 = Bits only) |
+| `level` | `number` | NOT NULL, 0–2 | — | Hierarchy depth. Derived from parent chain on creation and on every parent change (`update_node()` recomputes it for the moved Node and its descendant Nodes; Hook 8). Nodes exist at levels 0, 1, 2 only (Level 3 = Bits only) |
 | `x` | `number` | NOT NULL, 0–17 | — | Column index on the production 18-column grid |
 | `y` | `number` | NOT NULL, 0–8 | — | Row index on the production 9-row grid |
 | `deletedAt` | `number \| null` | — | `null` | Soft-delete timestamp. `null` = active. Non-null = trashed |
@@ -1125,7 +1125,7 @@ type WriteEnvelope<Result> = {
   the numbers differ for guests and live only on the server.
 - `rejection.code` names the rule: `account_limit`, `cell_taken`,
   `grid_full`, `not_found`, `invalid_target` (a move into a descendant, a Bit
-  onto Home, a system-Node rule), `invalid_input` (a malformed
+  onto Home, a system-Node rule; for Nodes see Hook 8), `invalid_input` (a malformed
   `p_reserved_cells`), `parent_inactive`, `deadline_exceeds_parent`,
   `account_deleting` (deletion fallback only), `account_missing`, and the
   existing Inbox command reasons. A rule the function does not check, such as a CHECK
@@ -1165,7 +1165,11 @@ checks the locked rows again after it holds them (S30; user, 2026-10-22):
   active. Whichever comes second waits and then sees the other's result, so a
   live item can never end up under a trashed, archived or deleted Node. A
   restore that brings back trashed ancestors locks that ancestor chain
-  `for update`.
+  `for update`. A Node parent change locks, in one statement ordered by id,
+  the moved Node's subtree and the target parent's ancestor chain (the target
+  parent included) `for update`, then checks the cycle, depth and activity
+  rules of Hook 8 on the locked rows, so two moves that would together form a
+  cycle or a Node below level 2 cannot both pass (user, 2026-10-23).
 - **Cells.** Cell writes (create, move, restore with relocation, placement,
   promotion, system-Node normalization) also take a transaction-scoped advisory
   lock per target Grid: account plus parent, with L0 as its own key. Two
@@ -1179,8 +1183,11 @@ checks the locked rows again after it holds them (S30; user, 2026-10-22):
 - System Node inserts use `on conflict do nothing` on the partial unique index.
 - Tests fire concurrent calls: two creates into one cell (one is `rejected`);
   trashing a Node while a Bit is created in a descendant Grid (the Bit is
-  either trashed with it or `rejected`); and two `ensure_account()` calls on a
-  new guest (one Inbox, one Archive and one seed copy result).
+  either trashed with it or `rejected`); two `ensure_account()` calls on a
+  new guest (one Inbox, one Archive and one seed copy result); two crossing
+  Node moves, A into B and B into A (one is `rejected` with `invalid_target`,
+  no deadlock error); and a Node moved under another while a Node is moved
+  under the first one's child (one is `rejected`, no Node below level 2).
 
 ### Account preparation
 
@@ -1384,6 +1391,24 @@ Before inserting or moving a Node/Bit to `(parentId, x, y)`:
 3. **Exception:** Bits whose `parentId` is the Inbox system Node ("Scratch") are exempt — they use the `x = 0, y = 0` sentinel and are not subject to cell uniqueness. The Triage layout orders them by `createdAt`.
 
 In the Postgres target the write function runs this check after taking the Grid lock ([Locks](#locks), S30) and returns `rejected` with `cell_taken` for a taken cell. A parent-change move (a drop on a Node or a breadcrumb drop) picks its cell on the client from the snapshot, nearest empty cell first as `findNearestEmptyCell` does today, and the server refuses a taken one (S43 (3)).
+
+Node structure rules in `update_node()` (user, 2026-10-23; today the client
+sends no `level` on a move and nothing guards system Nodes, so these replace
+that behavior):
+
+- `level` is server-derived and not accepted in the changes: a parent change
+  sets the moved Node to the new parent's level + 1 (0 at L0) and each
+  descendant Node to its own parent's level + 1. A descendant whose `level`
+  changes gets `version + 1` and no `mtime`, and is returned in `changes`.
+- `rejected` with `invalid_target` for: a move into the Node itself or its own
+  subtree; a move after which any Node of the moved subtree would be below
+  level 2; a move into a system Node (Inbox or Archive); a parent change of a
+  system Node (system Nodes stay at L0); `hidden_from_grid` set on a
+  non-system Node.
+- Showing a hidden system Node (`hidden_from_grid` to false) ignores any `x`
+  and `y` in the changes and picks the cell with `internal.pick_free_cell`
+  (first free L0 cell in row-major order outside the reserved cells); with no
+  free cell it returns `rejected` with `grid_full`.
 
 ### 9. Bit-to-Node Promotion
 
