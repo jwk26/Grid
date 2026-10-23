@@ -553,7 +553,8 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   cross-account, concurrency and change-set match. Every task that changes SQL
   gets an `expert` review before acceptance.
 - [ ] **Account isolation (S14, S29):** RLS on every table with
-  `(select auth.uid())`; composite foreign keys inside an account; no table
+  `(select auth.uid())` for client roles and `(select internal.uid())` for
+  `griddo_writer`; composite foreign keys inside an account; no table
   write grant for a client role; `coverage.db.test.ts` passes; no client role
   can execute an `internal` function. Cross-account tests are blocking for
   every phase that adds a table or function.

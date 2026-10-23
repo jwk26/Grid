@@ -492,13 +492,21 @@ states the database rules. The exact SQL lives in `supabase/migrations/`.
 
 - Default `EXECUTE` is revoked from `public`, `anon` and `authenticated` on
   every function, because Postgres grants it to everyone by default; each
-  client function is then granted to `authenticated` alone. No client role can
-  execute an internal function (S29 (1)).
+  client function is then granted to `authenticated` alone; the default grant
+  Supabase gives `service_role` on `public` functions is revoked too. No client
+  role can execute an internal function (S29 (1)).
 - Write functions are `security definer` and owned by `griddo_writer`, a
   `NOLOGIN` role without `BYPASSRLS` that does not own the tables, so RLS still
   applies inside them and a function bug cannot reach another account (S14).
   Phase 42 proves this locally and on hosted Supabase; if it does not hold, the
   recorded fallback is explicit per-function ownership checks (S14).
+- Write functions and the `griddo_writer` policies read the caller through
+  `internal.uid()` and `internal.jwt()`, not `auth.uid()` and `auth.jwt()`:
+  `postgres` cannot grant `griddo_writer` usage on the `auth` schema. Both are
+  `security invoker` helpers owned by `griddo_writer` that read the request's
+  JWT claims as the `auth` functions do; a claim format they do not know gives
+  null, so every policy is unmatched and the write is refused (user,
+  2026-10-23).
 - `delete_my_account()` is owned by its own role, which holds only the right to
   delete the caller's auth user. It is the only exception to S29 (1) and S14
   (S42 (1)). If hosted Supabase refuses that role or grant, the fallback in
@@ -508,8 +516,9 @@ states the database rules. The exact SQL lives in `supabase/migrations/`.
 - Every function sets `search_path` to an empty value and schema-qualifies
   every name (S29 (2)).
 - A guest is a Supabase anonymous user: it has the `authenticated` role and the
-  `is_anonymous` JWT claim, which functions read through `auth.jwt()` where a
-  rule differs for guests ([Account limits](#account-limits)).
+  `is_anonymous` JWT claim, which write functions read through
+  `internal.jwt()` where a rule differs for guests
+  ([Account limits](#account-limits)).
 
 ### Tables
 
@@ -615,14 +624,16 @@ cleanup.
 
 ### RLS and grants
 
-- RLS is enabled on every table, with policies for `authenticated` and
-  `griddo_writer` that test `user_id = (select auth.uid())` in `using` and
-  `with check`; the sub-select makes Postgres evaluate it once per statement
-  instead of once per row (S14, S29 (5)).
+- RLS is enabled on every table, with policies for `authenticated` that test
+  `user_id = (select auth.uid())` and for `griddo_writer` that test
+  `user_id = (select internal.uid())`, in `using` and `with check`; the
+  sub-select makes Postgres evaluate it once per statement instead of once per
+  row (S14, S29 (5)).
 - `authenticated` has `usage` on `app` and `select` on its tables, for the
   `security invoker` read functions; it has no `insert`, `update` or `delete`
   (S08). `anon` has no grant.
-- `griddo_writer` has `select`, `insert`, `update` and `delete` on the tables.
+- `griddo_writer` has `select`, `insert`, `update` and `delete` on the tables,
+  except `delete` on `accounts`: an account row goes only with its auth user.
 - Because `app` is not exposed, no table is reachable through the API, even
   for `select`.
 
