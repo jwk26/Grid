@@ -38,8 +38,8 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 ## Task 214 — Add the account tables, constraints and RLS
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: user acceptance
+- Status: Accepted
+- Next: Task 215
 - Open: none for this task (MI-1 is phase-level)
 
 ### Log

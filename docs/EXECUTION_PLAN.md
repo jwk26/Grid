@@ -2290,7 +2290,7 @@ env file.
 
 **Commit message:** `chore(db): add local Supabase and the test:db gate`.
 
-### Task 214: [ ] Add the account tables, constraints and RLS
+### Task 214: [x] Add the account tables, constraints and RLS
 
 **Files and actions:**
 - `supabase/migrations/<timestamp>_account_schema.sql`: schemas `app`, `public`
