@@ -225,9 +225,11 @@ export class SnapshotStore {
   refetch(): Promise<RefetchResult> {
     if (!this.inflight) {
       if (this.status.phase === "empty") this.setStatus({ phase: "loading" });
-      this.inflight = this.runFetch().finally(() => {
-        this.inflight = null;
+      const own: Promise<RefetchResult> = this.runFetch().finally(() => {
+        // A fetch from before reset() must not clear the new session's in-flight fetch.
+        if (this.inflight === own) this.inflight = null;
       });
+      this.inflight = own;
     }
     return this.inflight;
   }
@@ -256,6 +258,7 @@ export class SnapshotStore {
       this.publish();
       return "applied";
     }
+    if (epoch === this.epoch && this.status.phase !== "ready") this.setStatus({ phase: "failed" });
     return "failed";
   }
 
@@ -276,39 +279,71 @@ export class SnapshotStore {
     this.pending = [...this.pending, entry];
     this.publish();
 
-    const run = previous ? previous.then(() => this.send(entry, args.send)) : this.send(entry, args.send);
-    const tail = run.finally(() => {
+    const started = previous
+      ? previous.then(() => this.send(entry, args.send))
+      : Promise.resolve(this.send(entry, args.send));
+    const run = started.then((sent) => sent.outcome);
+    // The next write to this record waits for the request itself to end, not for the timeout: a
+    // later write cannot overtake a timed-out one on the server.
+    const tail: Promise<unknown> = started.then((sent) => sent.done).finally(() => {
       if (this.chains.get(key) === tail) this.chains.delete(key);
     });
     this.chains.set(key, tail);
     return run;
   }
 
-  private async send(entry: PendingEntry, send: () => Promise<Envelope>): Promise<WriteOutcome> {
+  // Starts the request now. `outcome` settles at the answer or at the timeout; `done` settles
+  // when the request itself has ended. The pending write leaves the view at the timeout; a late
+  // answer to a timed-out write is not applied to the base and triggers one refetch.
+  private send(
+    entry: PendingEntry,
+    send: () => Promise<Envelope>,
+  ): { outcome: Promise<WriteOutcome>; done: Promise<void> } {
+    if (!this.pending.some((item) => item.id === entry.id)) {
+      // A reset (sign-out) dropped the entry while it waited: it is never sent.
+      return { outcome: Promise.resolve({ outcome: "error", error: new Error("store reset") }), done: Promise.resolve() };
+    }
     if (entry.state === "queued") {
       entry.state = "sent";
       this.publish();
     }
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let request: Promise<Envelope>;
     try {
-      const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
-        timer = setTimeout(() => resolve(TIMED_OUT), this.requestTimeoutMs);
-      });
-      const result = await Promise.race([send(), timeout]);
-      if (result === TIMED_OUT) {
-        this.settle(entry, null);
-        void this.refetch();
-        return { outcome: "unknown" };
-      }
-      this.settle(entry, result.changes);
-      const outcome = result.status === "applied" || result.status === "already_applied" ? "applied" : "rejected";
-      return { outcome, envelope: result };
+      request = Promise.resolve(send());
     } catch (error) {
-      this.settle(entry, null);
-      return { outcome: "error", error };
-    } finally {
-      clearTimeout(timer);
+      request = Promise.reject(error);
     }
+    let timedOut = false;
+    const done = request.then(
+      () => undefined,
+      () => undefined,
+    ).then(() => {
+      if (timedOut) void this.refetch();
+    });
+    const outcome = (async (): Promise<WriteOutcome> => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+          timer = setTimeout(() => resolve(TIMED_OUT), this.requestTimeoutMs);
+        });
+        const result = await Promise.race([request, timeout]);
+        if (result === TIMED_OUT) {
+          timedOut = true;
+          this.settle(entry, null);
+          void this.refetch();
+          return { outcome: "unknown" };
+        }
+        this.settle(entry, result.changes);
+        const outcome = result.status === "applied" || result.status === "already_applied" ? "applied" : "rejected";
+        return { outcome, envelope: result };
+      } catch (error) {
+        this.settle(entry, null);
+        return { outcome: "error", error };
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+    return { outcome, done };
   }
 
   // The write leaves the list and its changes reach the base in one step, so the view never shows

@@ -338,5 +338,79 @@ describe("SnapshotStore: the pending-write layer", () => {
       expect(fetchSnapshot).toHaveBeenCalledTimes(2);
       expect(nodeX(store)).toBe(0);
     });
+
+    it("the record's next write waits for the timed-out request itself to end; its late answer causes one refetch", async () => {
+      const fetchSnapshot = vi.fn<() => Promise<unknown>>(async () => snapshotOf([nodeRow(NODE_ID, { x: 0 })]));
+      const store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+      await store.load();
+      const first = deferred<Envelope>();
+      const sendFirst = vi.fn(() => first.promise);
+      const sendSecond = vi.fn(async () => applied([nodeRow(NODE_ID, { x: 2, version: 3 })]));
+      const w1 = store.write({ effect: move(NODE_ID, 1), send: sendFirst });
+      const w2 = store.write({ effect: move(NODE_ID, 2), send: sendSecond });
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect((await w1).outcome).toBe("unknown");
+      // W1 left the view at the timeout, but its request has not ended: W2 is still held back.
+      expect(sendSecond).not.toHaveBeenCalled();
+      expect(store.getState().pending.map((p) => p.state)).toEqual(["queued"]);
+      const fetchesAtTimeout = fetchSnapshot.mock.calls.length;
+      first.resolve(applied([nodeRow(NODE_ID, { x: 1, version: 2 })]));
+      await vi.advanceTimersByTimeAsync(0);
+      // the late answer is not applied to the base
+      expect(store.getState().view.nodes.get(NODE_ID)?.version).not.toBe(2);
+      expect(fetchSnapshot.mock.calls.length).toBe(fetchesAtTimeout + 1);
+      expect(sendSecond).toHaveBeenCalledTimes(1);
+      expect((await w2).outcome).toBe("applied");
+    });
+
+    it("a store still not ready after the retries is failed, not left loading", async () => {
+      let store!: SnapshotStore;
+      let n = 0;
+      const fetchSnapshot = vi.fn(async () => {
+        // a write settles during every fetch, so each answer is discarded
+        const id = `00000000-0000-4000-8000-0000000001${String(n++).padStart(2, "0")}`;
+        await store.write({ effect: move(id, 1), send: async () => applied([]) });
+        return snapshotOf([nodeRow(NODE_ID)]);
+      });
+      store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+      expect(await store.load()).toBe("failed");
+      expect(fetchSnapshot).toHaveBeenCalledTimes(5);
+      expect(store.getState().status).toEqual({ phase: "failed" });
+    });
+  });
+
+  it("a fetch from before reset does not clear the new session's in-flight fetch", async () => {
+    const a = deferred<unknown>();
+    const b = deferred<unknown>();
+    const fetchSnapshot = vi
+      .fn<() => Promise<unknown>>()
+      .mockReturnValueOnce(a.promise)
+      .mockReturnValueOnce(b.promise);
+    const store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+    void store.load();
+    store.reset();
+    const second = store.load();
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+    a.resolve(snapshotOf([nodeRow(OTHER_ID)])); // the old session's answer
+    await flush();
+    const shared = store.refetch();
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2); // joined the in-flight fetch, sent no third
+    b.resolve(snapshotOf([nodeRow(NODE_ID)]));
+    expect(await second).toBe("applied");
+    expect(await shared).toBe("applied");
+    expect([...store.getState().view.nodes.keys()]).toEqual([NODE_ID]);
+  });
+
+  it("a write queued behind another is never sent after reset", async () => {
+    const { store } = await loaded();
+    const first = deferred<Envelope>();
+    const sendSecond = vi.fn(async () => applied([]));
+    const w1 = store.write({ effect: move(NODE_ID, 1), send: () => first.promise });
+    const w2 = store.write({ effect: move(NODE_ID, 2), send: sendSecond });
+    store.reset();
+    first.resolve(applied([]));
+    await w1;
+    expect((await w2).outcome).toBe("error");
+    expect(sendSecond).not.toHaveBeenCalled();
   });
 });
