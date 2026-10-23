@@ -50,6 +50,12 @@
 > through one item status rule (Phase 50); reduces the color themes to four
 > (Task 241); moves the `DP-SAAS-01` decision to Task 242. Until a task lands,
 > the contracts it amends stay in force as built.
+> **Task 242 decision record (Phase 49):** 2026-10-23. `DP-FB-01` and
+> `DP-SAAS-01` are decided and recorded in
+> [Feedback Status Surfaces](#feedback-status-surfaces) and
+> [SaaS App-State Surfaces](#saas-app-state-surfaces); the status token values
+> and every surface choice are exact there, so the implementation tasks need
+> no option sheet.
 
 ---
 
@@ -1598,6 +1604,25 @@ are or what colour they use (S28):
 - Position and colour are feedback F12 and F15, applied by Task 244 (Phase 49)
   before Phase 47 ([Feedback Status Surfaces](#feedback-status-surfaces)).
 
+### Approved SaaS app-state realization — `DP-SAAS-01`
+
+**User-approved 2026-10-23 (Task 242).** Chosen on the same option sheet as
+`DP-FB-01`, with the same method: the app's own Inbox/Triage and grid DOM, the
+real sidebar buttons and Inbox count badge, the real shell background, and the
+Scratch Trash dialog as the app's realized confirmation shape, in `griddo`,
+`retro-mac` and `neumorphism`, light and dark. Surface text is SPEC
+[Feedback copy](SPEC.md#feedback-copy). The GitHub and Google marks on the sheet
+were placeholders; implementation uses the providers' official marks.
+
+| Contract | Exact requirement |
+|---|---|
+| Account icon (SA-1) | `data-app-role="account-button"` is a sidebar icon button with exactly the classes of its neighbour `Add item` (`flex h-10 w-10 items-center justify-center rounded-lg border border-transparent p-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 text-muted-foreground hover:bg-accent hover:text-foreground`). Lucide `user-round` for a guest and `user-round-check` for an OAuth account at `h-5 w-5`. No ring, tint or background distinguishes the account state; the glyph does. It is the top-most sidebar icon until the Home button lands (Phase 50), then sits right below Home and above `+`: the order is Home, account icon, `+` (SPEC §Sidebar, F21, F33). |
+| Connection badge (SA-2) | `data-app-role="account-badge"` has the shape of the existing Inbox count badge: `absolute -top-1 -right-1 z-10 flex h-4 min-w-4 translate-x-[25%] -translate-y-[25%] items-center justify-center rounded-full px-1 font-mono text-[10px] font-bold leading-none ring-2 ring-background`. Unstable (`data-connection-state="unstable"`): the glyph `!`, `background: hsl(var(--status-warning-surface))`, `color: hsl(var(--status-warning))`, plus an inner 1px `hsl(var(--status-warning-border))` edge (an inset `box-shadow` kept beside the ring). Offline (`"offline"`): Lucide `wifi-off` at 10px with the same treatment in `--status-error-*`. No badge in the normal state. The sentence is a tooltip in the FB-4 look, to the right of the icon, 8px away. |
+| Loading screen (SA-3) | The frame (below) holds no card: on the shell background, centred, the title `Loading your grid…` at `text-xl font-semibold` with the app loader (`--status-icon-size: 28px`) 12px below it. The loader is named by that title (`aria-labelledby`) and the frame is exposed as busy. It covers the sidebar and appears after `DISPLAY_DELAY_MS`. |
+| App-level frame (SA-4) | The frame is the shell background (`data-triage-role="shell-background"`, so each theme's desktop or page surface shows) over the whole window, sidebar included, with one centred card: the Scratch Trash dialog's markup and classes without the overlay, `width: min(480px, 92%)`, static position, footer buttons wrapping. The card carries the title, the reason line and the actions of the SPEC screen; it takes the dialog's theme CSS as is (the `retro-mac` `!` mark and window frame, the `neumorphism` raised plate). Buttons use the existing button variants: `Retry` and `Continue as guest` are `default`; `Sign in with GitHub` and `Sign in with Google` are `outline`. The security-check card holds the Turnstile widget, 300×65, centred, in the card body. |
+| Narrow-window notice (SA-5) | Laid over the mounted, `inert` app: the dialog overlay (`fixed inset-0 z-50 bg-black/50`) and, centred, the Scratch Trash dialog card with the title and the SPEC sentence, no actions. The app stays visible, dimmed, behind it. |
+| Guest and account modal (SA-6) | The Scratch Trash dialog (`AlertDialogContent` with the app's confirmation classes and its overlay) as the frame. Guest: the title `You're browsing as a guest`; the two sentences as description paragraphs; then a `border-t pt-4` block with `Sign in with GitHub` and `Sign in with Google` as `outline` buttons side by side (`gap-2`, wrapping) and the privacy note below them in `text-xs text-muted-foreground` with line-height 1.5. The inline sign-in error is the dialog's existing state line (`role="status"`, `min-h-5 text-sm font-medium`). Account: the account name as the title; a `border-t pt-4` row with `Delete account` on the left (`outline` plus `border-destructive/50 text-destructive`) and `Sign out` on the right (`outline`). `Delete account` opens the existing confirmation pattern: `Cancel` (`outline`) and `Delete account` (`destructive`). |
+
 ### Decision prerequisite — `DP-SAAS-01`
 
 | Field | Value |
@@ -1605,9 +1630,10 @@ are or what colour they use (S28):
 | Owner | User |
 | Missing decision | The look of the account icon and badge, the loading screen, the failure, guest-creation-failure, session-expired, account-being-deleted and security-check screens (one frame), the narrow-window notice, and the guest and account modal |
 | How it is decided | One rendered option sheet in `griddo`, with `retro-mac` and `neumorphism` spot-checks, all surfaces together (S27, S40); shapes copied from the realized theme CSS, not from base components |
-| Resume condition | The user's choice is recorded in this section and committed |
-| Blocks | The Phase 45 load-failure screens (Task 228), the Phase 47 icon, badge, loading and session-expired screens (Task 234), and the Phase 48 modal, account-being-deleted screen, security-check screen and narrow-window notice (Tasks 235, 236, 238); not the data, network-state or toast-helper work. It is decided in Task 242 (Phase 49) on the same option sheet as `DP-FB-01` (feedback F33); Task 225, at the start of Phase 45, confirms the recorded choice against the current SPEC surfaces |
-| No fallback | Until it is recorded, no size, spacing, layout, motion or per-theme value for these surfaces is chosen by implementation |
+| Status | **Decided, 2026-10-23 (Task 242)**, recorded in [Approved SaaS app-state realization](#approved-saas-app-state-realization--dp-saas-01) |
+| Resume condition | Met: the user's choice is recorded in this section and committed |
+| Unblocks | The Phase 45 load-failure screens (Task 228), the Phase 47 icon, badge, loading and session-expired screens (Task 234), and the Phase 48 modal, account-being-deleted screen, security-check screen and narrow-window notice (Tasks 235, 236, 238); not the data, network-state or toast-helper work. It is decided in Task 242 (Phase 49) on the same option sheet as `DP-FB-01` (feedback F33); Task 225, at the start of Phase 45, confirms the recorded choice against the current SPEC surfaces |
+| Remaining | Per-theme finishing belongs to the theme stage; implementation chooses no other size, spacing, layout, motion or per-theme value than those recorded |
 
 ---
 
@@ -1632,18 +1658,47 @@ this section owns the visual roles, the status tokens and their boundary.
 ### Status tokens
 
 Three status kinds carry the hues the toasts use today (`richColors`), blended
-into each theme (F15):
+into each theme (F15), and one neutral token carries item status:
 
 | Token | Use |
 |---|---|
-| `--status-success`, `--status-success-surface`, `--status-success-foreground` | Success toasts |
-| `--status-warning`, `--status-warning-surface`, `--status-warning-foreground` | Warning toasts (offline write attempt), the unstable connection badge |
-| `--status-error`, `--status-error-surface`, `--status-error-foreground` | Failure toasts, the offline connection badge |
+| `--status-success`, `--status-success-surface`, `--status-success-foreground`, `--status-success-border` | Success toasts |
+| `--status-warning`, `--status-warning-surface`, `--status-warning-foreground`, `--status-warning-border` | Warning toasts (offline write attempt), the unstable connection badge |
+| `--status-error`, `--status-error-surface`, `--status-error-foreground`, `--status-error-border` | Failure toasts, the offline connection badge |
+| `--status-item` | Item status `?` and `!`, and the item emphasis; never a toast or badge colour |
 
-- `DP-FB-01` sets their values on `:root` (light and dark), and every theme
-  inherits them; the theme stage may override them per theme.
+`DP-FB-01` values (user, 2026-10-23; HSL channel triplets like the core
+tokens). They go on `:root` (light) and `.dark`, and every theme inherits them;
+the theme stage may override them per theme.
+
+| Token | Light | Dark |
+|---|---|---|
+| `--status-success` | `142 72% 30%` | `142 65% 58%` |
+| `--status-success-surface` | `142 55% 94%` | `142 35% 13%` |
+| `--status-success-foreground` | `142 60% 16%` | `142 60% 88%` |
+| `--status-success-border` | `142 45% 78%` | `142 35% 24%` |
+| `--status-warning` | `32 95% 36%` | `38 92% 62%` |
+| `--status-warning-surface` | `40 100% 93%` | `38 45% 13%` |
+| `--status-warning-foreground` | `30 80% 17%` | `40 90% 88%` |
+| `--status-warning-border` | `38 80% 72%` | `38 45% 25%` |
+| `--status-error` | `0 72% 42%` | `0 84% 70%` |
+| `--status-error-surface` | `0 85% 96%` | `0 40% 15%` |
+| `--status-error-foreground` | `0 65% 22%` | `0 90% 90%` |
+| `--status-error-border` | `0 70% 82%` | `0 40% 27%` |
+| `--status-item` | `240 6% 30%` | `240 5% 78%` |
+
+Measured on the option sheet (WCAG contrast, `foreground` on `surface` for
+text, the kind token on `surface` for the icon): light success 10.6:1 text and
+4.3:1 icon, warning 11.4:1 and 4.1:1, error 11.7:1 and 5.7:1; dark success
+12.2:1 and 8.2:1, warning 12.7:1 and 8.4:1, error 11.6:1 and 5.8:1 (text needs
+4.5:1, icon 3:1). `--status-item` against `--background`: `griddo` 9.0:1 light
+and 11.5:1 dark, `retro-mac` 9.0:1 and 12.1:1, `neumorphism` 7.2:1 and 10.0:1.
+
+- The toast no longer depends on the `sonner` theme: the installed `Toaster`
+  has no `theme` prop and showed light colours in dark mode, and these tokens
+  carry their own dark values.
 - Item status (`?`, `!`, emphasis) never uses the error hue: red stays reserved
-  for destructive actions (F03). Its colours are part of `DP-FB-01`.
+  for destructive actions (F03). It uses `--status-item`, a neutral grey.
 - The icon shape always carries the kind, so colour is never the only signal
   (WCAG 1.4.1).
 
@@ -1665,6 +1720,30 @@ Shared elements carry `data-feedback-role`:
 | `breadcrumb-drop-target` | An ancestor segment during a drag (F24) | A visible "drop here" signal on the segment only |
 | `staging-node-grid` | The `Nodes` well's card grid (F10) | Minimum width of one Node card; auto-fill grid, one column when two cards do not fit, two when they do |
 
+### Approved status surface realization — `DP-FB-01`
+
+**User-approved 2026-10-23 (Task 242).** Chosen on one rendered option sheet
+built from the app's own DOM and CSS (the Inbox/Triage workspace, the real grid
+route and its breadcrumb, the installed `sonner` markup), checked in `griddo`,
+`retro-mac` and `neumorphism`, in light and dark, in both motion modes. Only
+the status surfaces below are new; every host surface keeps its existing role,
+size and theme CSS. The option sheet is scratch and not committed.
+
+| Contract | Exact requirement |
+|---|---|
+| Status icon shape (FB-1, FB-5) | `data-feedback-role="status-icon"` is a 16px square box (`--status-icon-size: 16px`, 12px inside the Explorer Undo button). `data-status="unknown"` / `"problem"`: the glyph `?` / `!` at weight 800, line-height 1, font-size `0.62 ×` the box (about 10px), in `--theme-font`, inside a 1.5px circle (`border-radius: 999px`, border `currentColor`), colour `hsl(var(--status-item))`. `data-status="pending"` / `"reconciling"`: Lucide `loader-circle` at stroke 2.4, colour `hsl(var(--muted-foreground))`, no circle, `role="img"` named by the sentence of its state in SPEC Feedback copy (`src/lib/copy/inbox-triage.ts`), the same sentence the tooltip shows; it rotates 360deg in 0.9s, linear, infinite, appears only after `DISPLAY_DELAY_MS` (300ms) and is static under reduced motion. |
+| Item status colour (FB-2) | Neutral: `?` and `!` both use `--status-item` (values above); the loader uses `--muted-foreground`. No hue, no red; the glyph shape carries the kind. |
+| Emphasis (FB-3, FB-3b) | `data-status-emphasis`, set only with `?` and `!`, never with the loader: `outline: 1.5px solid hsl(var(--status-item) / 0.8); outline-offset: 1px;` and a background layer `linear-gradient(hsl(var(--status-item) / 0.09), hsl(var(--status-item) / 0.09))` in `background-image`. It uses outline and `background-image` only, so each theme's own `box-shadow` stays (the `retro-mac` Staging card and Bit row set their own). The existing dimming of a locked source row or candidate stays. Known limit, accepted by the user on 2026-10-23 after seeing it: against the 2px black row borders of `retro-mac` this emphasis is faint; strengthening it per theme is theme-stage work, not a change to this contract. |
+| Status tooltip (FB-4) | The existing `TooltipContent` look: `z-50 w-fit rounded-md bg-foreground px-3 py-1.5 text-xs text-balance text-background` plus the `explorer-title-tooltip` class, which keeps it static and gives `neumorphism` its plate. No arrow animation, no controls, one at a time; the sentence is the SPEC status sentence. |
+| Placement and slots (FB-5) | Breakdown row: the third grid column of `.triage-fixed-breakdown-row` (`10rem`, the old success slot) becomes `22px`; `.breakdown-success-slot` loses its inline padding and centres the icon; the column is always reserved. Staging Node card: the icon sits at `top: 4px; right: 4px` inside the card. Staging Bit row: `right: 8px`, vertically centred. Add field: inside the field at `right: 8px`, vertically centred, with `padding-inline-end: 30px` on the field. |
+| Explorer Newly Undo slot (FB-6) | The existing `.newly-undo-action` button keeps its shape, minimum size and theme CSS (width and focus target unchanged); only its content changes: the `Undo2` icon, then the 12px loader, `?` (enabled, Check again) or `!` (`aria-disabled="true"`, focusable, never `disabled`). |
+| Inline editors (FB-7) | The icon is the first child of `.triage-inline-editor__actions` in a 22px box, where the progress sentence sits today. Loader: Save and Cancel are `disabled`. `!`: the editor field takes the emphasis above and Save stays enabled. No text for unsaved changes. |
+| Toast surface (FB-9) | `sonner` DOM kept, restyled through `data-type`: `background: hsl(var(--status-{kind}-surface))`, `color: hsl(var(--status-{kind}-foreground))`, `border: 1px solid hsl(var(--status-{kind}-border))`, `border-radius: 12px`, `box-shadow: var(--theme-shadow)`, `--theme-font`. `retro-mac` shows `border-radius: 0` and `box-shadow: 2px 2px 0 hsl(var(--foreground))`; per-theme finishing otherwise belongs to the theme stage. Width 356px, 8px between toasts, 16px padding, 13px text. The icon is 16px in an 18px box in `hsl(var(--status-{kind}))`: a check (stroke 3) for success, `!` for failure and for a warning that is not offline, Lucide `wifi-off` for the offline write-attempt warning. Warning and failure toasts carry a `×` close control. The stack position is F12. |
+| Home landing emphasis (FB-10) | When the breadcrumb folds into Home (F23), the Home button runs once, starting when the fold ends (0.35s after the fold starts), 0.6s ease-out: `box-shadow` from `0 0 0 0 hsl(var(--primary) / 0.7)` to `0 0 0 10px hsl(var(--primary) / 0)` and `background-color` from `hsl(var(--primary) / 0.14)` to transparent. No size change. Reduced motion: no movement, a static `0 0 0 2px hsl(var(--primary))` ring with `hsl(var(--primary) / 0.12)` background for the same 0.6s. |
+| Breadcrumb reveal surface (FB-11) | The surface is unchanged from today: `h-8 rounded-lg border border-border/40 bg-background/80 shadow-sm backdrop-blur-md`. Structure (checked by the user on the option sheet, in the user's browser, 2026-10-23): `clip-path` and the `translateX` run on a wrapper element around the breadcrumb surface, and the opacity runs on the surface itself. They must not run on the element that has `backdrop-filter`: there the user saw a finished card fade in and out at 0.25× speed instead of unfolding from the left edge. Unfold from Home: 0.26s `cubic-bezier(0.2, 0.7, 0.2, 1)`, `clip-path: inset(0 100% 0 0)` to `inset(0)`, opacity 0.2 to 1 and `translateX(-8px)` to 0, from the left edge. Fold into Home (F23): the exact reverse of the unfold, 0.35s with the same `cubic-bezier(0.2, 0.7, 0.2, 1)`: `clip-path: inset(0)` to `inset(0 100% 0 0)` and `translateX(0)` to `translateX(-8px)`, towards the left edge; opacity goes 1 to 0 linearly and reaches 0 at 0.3s, inside the fold, so the fade is part of it and not a separate step. The Home landing emphasis below starts when the fold ends, 0.35s after the fold starts. Reduced motion: no movement; the breadcrumb appears and disappears in place (SPEC §Breadcrumb reveal and Home button). |
+| Drag translucency (FB-12) | During a Node or Bit drag the breadcrumb surface and the toast stack are at `opacity: 0.5` and pass the pointer through, except the breadcrumb segments (drop targets); the deadline chip is hidden. |
+| Segment drop signal (FB-13) | During a drag every ancestor segment (Home and the ancestor Nodes, not the current Node) shows `box-shadow: 0 0 0 2px hsl(var(--primary))` and `background: hsl(var(--primary) / 0.14)` with `--foreground` text; the segment under the pointer adds `0 0 0 5px hsl(var(--primary) / 0.25)`. No label. |
+
 ### Decision prerequisite — `DP-FB-01`
 
 | Field | Value |
@@ -1672,9 +1751,10 @@ Shared elements carry `data-feedback-role`:
 | Owner | User |
 | Missing decision | The look of the status icons (loader, `?`, `!`), the item emphasis, the status tooltip, the Breakdown status slot, the Explorer slot buttons and the editor status positions (the Breakdown row editor and the Scratch-title editor in the Context); the values of the status tokens and the toast surface; the Home button and its landing emphasis; the breadcrumb reveal surface, its drag translucency and the segment "drop here" signal |
 | How it is decided | One rendered option sheet in `griddo`, with `retro-mac` and `neumorphism` spot-checks, shapes copied from the realized theme CSS, together with `DP-SAAS-01` (Task 242, feedback F33) |
-| Resume condition | The user's choice is recorded in this section and committed |
-| Blocks | The visual parts of Task 243 (primitives and tokens), Task 244 (toasts), Tasks 245–247 (Inbox surfaces) and Task 248 (Home and reveal); not the theme reduction (241), the zone removal (249) or the last-Scratch preference (250) |
-| No fallback | Until it is recorded, no size, colour, spacing, motion or per-theme value for these surfaces is chosen by implementation |
+| Status | **Decided, 2026-10-23 (Task 242)**, recorded in [Status tokens](#status-tokens) and [Approved status surface realization](#approved-status-surface-realization--dp-fb-01) |
+| Resume condition | Met: the user's choice is recorded in this section and committed |
+| Unblocks | The visual parts of Task 243 (primitives and tokens), Task 244 (toasts), Tasks 245–247 (Inbox surfaces) and Task 248 (Home and reveal); not the theme reduction (241), the zone removal (249) or the last-Scratch preference (250) |
+| Remaining | Per-theme finishing of these surfaces for `retro-mac` and `neumorphism`, and all of Paper and Claymorphism, belong to the theme stage; implementation chooses no other size, colour, spacing, motion or per-theme value than those recorded |
 
 ---
 
