@@ -1,5 +1,5 @@
 import { nodePatchToRow, type NodePatch } from "@/lib/db/row-mapping";
-import type { Envelope } from "@/lib/db/snapshot-store";
+import { UnknownOutcomeError, type Envelope } from "@/lib/db/snapshot-store";
 import type { GriddoSupabaseClient } from "@/lib/db/supabase-client";
 
 // The Supabase calls the snapshot store is given (Task 217 wires get_snapshot and update_node;
@@ -36,11 +36,14 @@ export async function callUpdateNode(
   id: string,
   patch: NodePatch,
 ): Promise<Envelope> {
-  const { data, error } = await client.rpc("update_node", {
+  const { data, error, status } = await client.rpc("update_node", {
     p_id: id,
     p_changes: nodePatchToRow(patch),
     p_reserved_cells: BREADCRUMB_RESERVED_CELLS,
   });
+  // postgrest-js reports a request that got no response as an error with status 0 instead of
+  // throwing. The write may have committed, so it is an unknown outcome, not a failed write.
+  if (error && status === 0) throw new UnknownOutcomeError(`update_node got no response: ${error.message}`);
   if (error) throw new Error(`update_node failed: ${error.message}`);
   return data as unknown as Envelope;
 }

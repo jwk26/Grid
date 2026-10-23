@@ -184,6 +184,15 @@ export type SnapshotStoreOptions = {
   requestTimeoutMs?: number;
 };
 
+// Thrown by a send function when the request ended without an answer (the connection failed
+// before a response). It is an unknown outcome like a timeout: the write may have committed.
+export class UnknownOutcomeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UnknownOutcomeError";
+  }
+}
+
 const MAX_FETCH_ATTEMPTS = 5;
 const TIMED_OUT = Symbol("timed out");
 
@@ -313,12 +322,21 @@ export class SnapshotStore {
     } catch (error) {
       request = Promise.reject(error);
     }
+    const epoch = this.epoch;
     let timedOut = false;
+    // After an unknown outcome the request's own end (a late answer or a failure) discards any
+    // fetch that started before it and sends one more, since that fetch may have read before the
+    // write committed.
+    const refetchAfterUnknown = () => {
+      if (epoch !== this.epoch) return;
+      this.settledCount += 1;
+      void this.refetch();
+    };
     const done = request.then(
       () => undefined,
       () => undefined,
     ).then(() => {
-      if (timedOut) void this.refetch();
+      if (timedOut) refetchAfterUnknown();
     });
     const outcome = (async (): Promise<WriteOutcome> => {
       let timer: ReturnType<typeof setTimeout> | undefined;
@@ -330,7 +348,7 @@ export class SnapshotStore {
         if (result === TIMED_OUT) {
           timedOut = true;
           this.settle(entry, null);
-          void this.refetch();
+          if (epoch === this.epoch) void this.refetch();
           return { outcome: "unknown" };
         }
         this.settle(entry, result.changes);
@@ -338,6 +356,10 @@ export class SnapshotStore {
         return { outcome, envelope: result };
       } catch (error) {
         this.settle(entry, null);
+        if (error instanceof UnknownOutcomeError) {
+          if (epoch === this.epoch) void this.refetch();
+          return { outcome: "unknown", error };
+        }
         return { outcome: "error", error };
       } finally {
         clearTimeout(timer);

@@ -5,9 +5,10 @@ import {
   callUpdateNode,
   fetchSnapshotValue,
 } from "@/lib/db/supabase-calls";
+import { UnknownOutcomeError } from "@/lib/db/snapshot-store";
 import type { GriddoSupabaseClient } from "@/lib/db/supabase-client";
 
-const clientWith = (result: { data: unknown; error: { message: string } | null }) => {
+const clientWith = (result: { data: unknown; error: { message: string } | null; status?: number }) => {
   const rpc = vi.fn(async () => result);
   return { client: { rpc } as unknown as GriddoSupabaseClient, rpc };
 };
@@ -34,6 +35,11 @@ describe("supabase calls", () => {
     await expect(callUpdateNode(client, "id-1", { x: 1 })).rejects.toThrow(/boom/);
     await expect(fetchSnapshotValue(client)).rejects.toThrow(/get_snapshot failed/);
     await expect(callEnsureAccount(client)).rejects.toThrow(/ensure_account failed/);
+  });
+
+  it("a request that got no response (status 0) is an unknown outcome, not a failed write", async () => {
+    const { client } = clientWith({ data: null, error: { message: "FetchError: Failed to fetch" }, status: 0 });
+    await expect(callUpdateNode(client, "id-1", { x: 1 })).rejects.toBeInstanceOf(UnknownOutcomeError);
   });
 
   it("the reserved block is the top-left 3x2 cells", () => {

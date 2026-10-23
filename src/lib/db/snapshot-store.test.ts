@@ -3,6 +3,7 @@ import { baseEntities } from "@/lib/db/boundary-cases";
 import { bitToRow, nodeToRow } from "@/lib/db/row-mapping";
 import {
   SnapshotStore,
+  UnknownOutcomeError,
   parseSnapshotValue,
   type Envelope,
   type PendingEffect,
@@ -314,6 +315,19 @@ describe("SnapshotStore: the pending-write layer", () => {
     expect(store.getState().view.nodes.size).toBe(0);
   });
 
+  it("a request that ended without an answer is unknown: rolled back, refetched, never resent", async () => {
+    const { store, fetchSnapshot } = await loaded();
+    const send = vi.fn(async (): Promise<Envelope> => {
+      throw new UnknownOutcomeError("no response");
+    });
+    const outcome = await store.write({ effect: move(NODE_ID, 6), send });
+    expect(outcome.outcome).toBe("unknown");
+    await flush();
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+    expect(store.getState().pending).toEqual([]);
+  });
+
   describe("unknown outcome", () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
@@ -361,6 +375,42 @@ describe("SnapshotStore: the pending-write layer", () => {
       expect(fetchSnapshot.mock.calls.length).toBe(fetchesAtTimeout + 1);
       expect(sendSecond).toHaveBeenCalledTimes(1);
       expect((await w2).outcome).toBe("applied");
+    });
+
+    it("the late answer of a timed-out write discards a refetch that started before it", async () => {
+      const timeoutFetch = deferred<unknown>();
+      const fetchSnapshot = vi
+        .fn<() => Promise<unknown>>()
+        .mockResolvedValueOnce(snapshotOf([nodeRow(NODE_ID, { x: 0 })])) // load
+        .mockReturnValueOnce(timeoutFetch.promise) // the refetch sent at the timeout, may read before the commit
+        .mockResolvedValueOnce(snapshotOf([nodeRow(NODE_ID, { x: 1, version: 2 })])); // after the late answer
+      const store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+      await store.load();
+      const first = deferred<Envelope>();
+      const w1 = store.write({ effect: move(NODE_ID, 1), send: () => first.promise });
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect((await w1).outcome).toBe("unknown");
+      first.resolve(applied([nodeRow(NODE_ID, { x: 1, version: 2 })])); // the late answer arrives first
+      await vi.advanceTimersByTimeAsync(0);
+      timeoutFetch.resolve(snapshotOf([nodeRow(NODE_ID, { x: 0 })])); // the old read answers
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchSnapshot).toHaveBeenCalledTimes(3);
+      expect(nodeX(store)).toBe(1);
+    });
+
+    it("an old request ending after reset starts no fetch", async () => {
+      const fetchSnapshot = vi.fn<() => Promise<unknown>>(async () => snapshotOf([nodeRow(NODE_ID)]));
+      const store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+      await store.load();
+      const first = deferred<Envelope>();
+      const w1 = store.write({ effect: move(NODE_ID, 1), send: () => first.promise });
+      store.reset();
+      await vi.advanceTimersByTimeAsync(15_000);
+      await w1;
+      first.resolve(applied([]));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchSnapshot).toHaveBeenCalledTimes(1);
+      expect(store.getState().status).toEqual({ phase: "empty" });
     });
 
     it("a store still not ready after the retries is failed, not left loading", async () => {

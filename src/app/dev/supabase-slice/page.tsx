@@ -103,7 +103,10 @@ function SliceView() {
   }, [store]);
 
   const nodes = [...state.view.nodes.values()]
-    .filter((node) => node.parentId === null && node.deletedAt === null)
+    .filter(
+      (node) =>
+        node.parentId === null && node.deletedAt === null && node.archivedAt === null && !node.hiddenFromGrid,
+    )
     .sort((a, b) => a.y - b.y || a.x - b.x);
 
   function move(id: string, dx: number, dy: number, absolute?: { x: number; y: number }) {
