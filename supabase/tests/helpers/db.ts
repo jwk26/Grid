@@ -2,7 +2,7 @@ import { Client } from "pg";
 
 export type DbActor =
   | { role: "owner" }
-  | { role: "anon" | "authenticated" | "service_role"; userId?: string };
+  | { role: "anon" | "authenticated" | "service_role" | "griddo_writer"; userId?: string };
 
 export async function connect(): Promise<Client> {
   const url = process.env.SUPABASE_TEST_DB_URL;
@@ -22,8 +22,11 @@ export async function becomeActor(db: Client, actor: DbActor): Promise<void> {
   await db.query("reset role");
   const claims = JSON.stringify({ role: actor.role, ...(actor.userId ? { sub: actor.userId } : {}) });
   await db.query("select set_config('request.jwt.claims', $1, true)", [claims]);
+  // Read auth.uid() before the switch: griddo_writer has no access to schema auth.
+  const { rows: uidRows } = await db.query("select auth.uid()::text as uid");
   await db.query(`set local role ${actor.role}`);
-  const { rows } = await db.query("select current_user as role, auth.uid()::text as uid");
+  const { rows } = await db.query("select current_user as role");
+  rows[0].uid = uidRows[0].uid;
   if (rows[0].role !== actor.role) {
     throw new Error(`expected role ${actor.role}, got ${rows[0].role}`);
   }
