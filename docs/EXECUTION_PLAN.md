@@ -3322,7 +3322,7 @@ the primitives and forced states in the themes.
 
 **Commit message:** `feat(feedback): add the status primitives and the development state switch`.
 
-### Task 244: [ ] Move and recolour the toasts and keep full-Grid create dialogs open
+### Task 244: [x] Move and recolour the toasts and keep full-Grid create dialogs open
 
 **Files and actions:**
 - `src/app/providers.tsx`: the `sonner` Toaster at the top-left of the work
@@ -3700,7 +3700,7 @@ This register covers every implementation/test path declared by two or more task
 | `feedback-status` | `src/components/feedback/*`; `src/hooks/use-display-delay.ts` and tests | 243 creates; 232 (group-3 loader), 245–248 consume |
 | `color-theme` | `src/lib/color-themes.ts`; `src/stores/color-theme-store.ts` and test; `src/components/layout/color-theme-toggle.tsx`; `src/app/layout.tsx` | 241; 239 (`layout.tsx` metadata) |
 | `grid-shell` | `src/components/layout/grid-runtime.tsx`; `src/components/layout/breadcrumbs.tsx`; `src/components/layout/breadcrumb-deadline.tsx`; `src/components/grid/grid-view.tsx`; `src/hooks/use-grid-actions.ts`; `src/lib/grid-dnd.ts` and their tests | 244 (`grid-runtime.tsx`), 248, 249, and any SaaS task that names one of them |
-| `toast-anchor` | `src/hooks/use-toast-anchor.ts` and test | 244 creates; 248 extends |
+| `toast-anchor` | `src/hooks/use-toast-anchor.ts` and test; `src/stores/toast-anchor-store.ts` | 244 creates; 248 extends |
 | `reserved-cells` | `src/lib/utils/breadcrumb-zone.ts` (the static top-left block) | 227, 228 read it; 249 deletes it and stops passing it from `supabase-store.ts` and `session.ts` |
 
 ## Next Numbers

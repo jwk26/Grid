@@ -1802,9 +1802,12 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/feedback/forced-item-status.ts` *(Phase 49)* | Production-safe read seam of the [development state switch](#development-state-switch): `useForcedItemStatus(itemKey)` returns `null` unless the development panel registered, and the item key scheme the panel and the Inbox surfaces share (F30) |
 | `src/lib/color-themes.ts` *(Phase 49)* | The one non-client list of color theme ids, the default and the storage key, read by the store and the no-flash script (F28, ISSUE-20-01) |
 | `src/hooks/use-toast-anchor.ts` *(Phase 49)* | The toast stack's offset from the breadcrumb and its drag translucency (F12) |
+| `src/stores/toast-anchor-store.ts` *(Phase 49)* | The bottom of the shown breadcrumb and whether a Grid drag is active, written by `grid-runtime.tsx` and read by `use-toast-anchor.ts`; reset when the Grid layout unmounts (F12) |
+| `src/components/feedback/app-toaster.tsx` *(Phase 49)* | The app's one `sonner` Toaster: top-left anchor, at most three visible, status-token kinds, a close control on warnings and failures (F12, F15) |
+| `src/components/feedback/toast-icons.tsx` *(Phase 49)* | The Toaster's ✓, `!` and `×` icons, and `offlineToastIcon` (Lucide `wifi-off`), which the offline write-attempt warning passes as its `icon` so Task 232's helper reuses it (F15, F18) |
 | `src/lib/dev/state-switch.ts`, `src/components/dev/state-switch-panel.tsx` *(Phase 49, development only)* | [Development state switch](#development-state-switch) (F30) |
 | `src/components/layout/home-button.tsx`, `src/hooks/use-breadcrumb-reveal.ts` *(Phase 50)* | Sidebar Home button and the breadcrumb reveal state: triggers, hiding, `Esc`, drag (F21–F25) |
-| `src/lib/copy/feedback.ts` | Toast, app-state and blocking copy (F14) |
+| `src/lib/copy/feedback.ts` *(Phase 49)* | Toast, app-state and blocking copy (F14); Task 244 creates it with the create-dialog sentence |
 | `supabase/config.toml`, `supabase/migrations/`, `supabase/tests/` *(Phase 42)* | Local Supabase configuration, migrations in Git, `pnpm test:db` suites |
 | `vitest.db.config.ts` *(Phase 42)* | Vitest configuration for `pnpm test:db` (local Supabase), kept apart from `pnpm test` |
 | `.env.local.example` *(Phase 42)* | Names of the public env vars; values live in git-ignored `.env.local` |
