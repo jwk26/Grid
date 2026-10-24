@@ -82,17 +82,23 @@ end $$;
 
 -- 4. Directly as griddo_writer: RLS holds in every table ------------------------------------
 do $$
-declare t text; vis int; upd int; ok boolean := true; bad text := '';
+declare t text; vis int; upd int; del int; ok boolean := true; bad text := '';
 begin
   foreach t in array array['accounts', 'nodes', 'bits', 'chunks', 'scratch_breakdowns', 'staged_candidates'] loop
     perform pg_temp.act_as('A', 'griddo_writer');
     execute format('select count(*) from app.%I where user_id = (select id from probe_users where label = ''B'')', t) into vis;
     execute format('update app.%I set user_id = user_id where user_id = (select id from probe_users where label = ''B'')', t);
     get diagnostics upd = row_count;
+    if t <> 'accounts' then
+      execute format('delete from app.%I where user_id = (select id from probe_users where label = ''B'')', t);
+      get diagnostics del = row_count;
+    else
+      del := 0;
+    end if;
     reset role;
-    if vis <> 0 or upd <> 0 then ok := false; bad := bad || t || ' '; end if;
+    if vis <> 0 or upd <> 0 or del <> 0 then ok := false; bad := bad || t || ' '; end if;
   end loop;
-  perform pg_temp.report(ok, 'griddo_writer sees and changes only the caller''s rows in all six tables', bad);
+  perform pg_temp.report(ok, 'griddo_writer sees, changes and deletes only the caller''s rows in all six tables', bad);
 
   begin
     perform pg_temp.act_as('A', 'griddo_writer');
@@ -194,23 +200,35 @@ begin
     return;
   end;
 
-  perform pg_temp.act_as('A');
-  perform public.probe_delete_me();
-  reset role;
-  select count(*) into gone_a from auth.users where id = (select id from probe_users where label = 'A');
-  select count(*) into kept_b from auth.users where id = (select id from probe_users where label = 'B');
-  select count(*) into rows_a from app.nodes where user_id = (select id from probe_users where label = 'A');
-  select count(*) into rows_b from app.nodes where user_id = (select id from probe_users where label = 'B');
-  raise notice 'INFO caller''s auth user left: %, caller''s Node rows left: %, other account''s user left: %, other account''s Node rows left: %',
-    gone_a, rows_a, kept_b, rows_b;
   -- auth.users has row level security with no policy for other roles and is owned by
-  -- supabase_auth_admin, so a delete by another role that matches 0 rows means the dedicated
-  -- role cannot work here.
-  if gone_a = 0 and rows_a = 0 and kept_b = 1 and rows_b = 2 then
-    raise notice 'RESULT account-deletion: DEDICATED ROLE AVAILABLE';
-  else
-    raise notice 'RESULT account-deletion: FALLBACK (SCHEMA §Account deletion); the grant was accepted but the delete removed nothing';
-  end if;
+  -- supabase_auth_admin, so a delete by the probe role can match 0 rows. Attempt 2 gives the
+  -- role BYPASSRLS (if hosted Supabase allows it) so the user can decide the branch.
+  for attempt in 1..2 loop
+    begin
+      if attempt = 2 then
+        alter role griddo_delete_probe bypassrls;
+      end if;
+      perform pg_temp.act_as('A');
+      perform public.probe_delete_me();
+      reset role;
+    exception when others then
+      reset role;
+      raise notice 'INFO account-deletion role: attempt % refused (% %)', attempt, sqlstate, sqlerrm;
+      exit;
+    end;
+    select count(*) into gone_a from auth.users where id = (select id from probe_users where label = 'A');
+    select count(*) into kept_b from auth.users where id = (select id from probe_users where label = 'B');
+    select count(*) into rows_a from app.nodes where user_id = (select id from probe_users where label = 'A');
+    select count(*) into rows_b from app.nodes where user_id = (select id from probe_users where label = 'B');
+    raise notice 'INFO attempt %: caller''s auth user left: %, caller''s Node rows left: %, other account''s user left: %, other account''s Node rows left: %',
+      attempt, gone_a, rows_a, kept_b, rows_b;
+    if gone_a = 0 and rows_a = 0 and kept_b = 1 and rows_b = 2 then
+      raise notice 'RESULT account-deletion: %', case attempt when 1 then 'DEDICATED ROLE AVAILABLE'
+        else 'DEDICATED ROLE AVAILABLE (needs BYPASSRLS; the user decides the branch)' end;
+      return;
+    end if;
+  end loop;
+  raise notice 'RESULT account-deletion: FALLBACK (SCHEMA §Account deletion); the dedicated role could not delete the caller''s auth user';
 end $$;
 
 rollback;

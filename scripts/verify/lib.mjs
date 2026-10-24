@@ -9,6 +9,8 @@
 //   GRIDDO_PROD_DB_URL                 Session pooler URI of the production database
 //   NEXT_PUBLIC_SUPABASE_URL           https://<ref>.supabase.co
 //   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+//   GRIDDO_PROD_DB_CA                  Path of the Supabase CA certificate (Database → SSL
+//                                      Configuration), kept outside the repository
 import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -65,11 +67,14 @@ export function target() {
     dbUrl: need("GRIDDO_PROD_DB_URL"),
     apiUrl: need("NEXT_PUBLIC_SUPABASE_URL").replace(/\/$/, ""),
     publishableKey: need("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+    dbCa: need("GRIDDO_PROD_DB_CA"),
   };
 }
 
 export async function connectDb(t) {
-  const client = new pg.Client({ connectionString: t.dbUrl, ssl: t.name === "production" ? { rejectUnauthorized: false } : undefined });
+  // Production: verify the server certificate against the Supabase CA, never skip the check.
+  const ssl = t.name === "production" ? { ca: readFileSync(t.dbCa, "utf8"), rejectUnauthorized: true } : undefined;
+  const client = new pg.Client({ connectionString: t.dbUrl, ssl });
   client.on("error", () => undefined);
   await client.connect();
   return client;
