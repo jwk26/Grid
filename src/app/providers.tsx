@@ -3,9 +3,9 @@
 import dynamic from "next/dynamic";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
-import { Toaster } from "sonner";
 import type { ReactNode } from "react";
 import { BitDetailPopup } from "@/components/bit-detail/bit-detail-popup";
+import { AppToaster } from "@/components/feedback/app-toaster";
 import { ColorThemeProvider } from "@/components/layout/color-theme-provider";
 import { SearchOverlay } from "@/components/layout/search-overlay";
 import { QuickCaptureOverlays } from "@/components/quick-capture/quick-capture-overlays";
@@ -58,7 +58,7 @@ export default function Providers({
         <Suspense>
           <BitDetailPopup />
         </Suspense>
-        <Toaster richColors position="bottom-right" />
+        <AppToaster />
         {StateSwitchPanel ? <StateSwitchPanel /> : null}
       </ColorThemeProvider>
     </ThemeProvider>

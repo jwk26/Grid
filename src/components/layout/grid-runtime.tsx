@@ -3,7 +3,6 @@
 import { DndContext } from "@dnd-kit/core";
 import { useParams } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { CreateBitDialog } from "@/components/grid/create-bit-dialog";
 import { CreateItemChooser } from "@/components/grid/create-item-chooser";
 import { CreateNodeDialog } from "@/components/grid/create-node-dialog";
@@ -29,6 +28,7 @@ import { useDnd } from "@/hooks/use-dnd";
 import { useGridActions } from "@/hooks/use-grid-actions";
 import { useNode } from "@/hooks/use-node";
 import { GRID_COLS, GRID_ROWS } from "@/lib/constants";
+import { createDialogNoEmptyCell } from "@/lib/copy/feedback";
 import { gridCollisionDetection } from "@/lib/grid-dnd";
 import { cn } from "@/lib/utils";
 import {
@@ -40,6 +40,7 @@ import { findNearestEmptyCell } from "@/lib/utils/bfs";
 import { isDeadlineAfter } from "@/lib/utils/deadline";
 import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
 import { useQuickCaptureStore } from "@/stores/quick-capture-store";
+import { useToastAnchorStore } from "@/stores/toast-anchor-store";
 import type { Node } from "@/types";
 import { AddFlowProvider } from "./add-flow-context";
 
@@ -47,6 +48,8 @@ type PlacementContext =
   | { mode: "auto" }
   | { mode: "cell"; x: number; y: number };
 type OpenDialogType = "node" | "bit" | null;
+// The create-dialog target for a Node created at L0 (SPEC §Feedback copy).
+const HOME_TARGET = "Home";
 type DeleteRequest = NonNullable<PendingDelete>;
 
 type DeleteFlowContextValue = {
@@ -87,6 +90,7 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
   const node = useNode(nodeId ?? "");
   const isInboxRoute = node?.systemRole === "inbox";
   const isArchiveRoute = node?.systemRole === "archive_view";
+  const showsBreadcrumb = !isInboxRoute && !isArchiveRoute;
   const displayLevel = nodeId === null ? 0 : (node?.level ?? 0) + 1;
   const isLeafLevel = displayLevel >= 3;
   const {
@@ -125,7 +129,18 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
   const activeOverlay = useQuickCaptureStore((state) => state.activeOverlay);
   const setActiveOverlay = useQuickCaptureStore((state) => state.setActiveOverlay);
   const closeAll = useQuickCaptureStore((state) => state.closeAll);
+  const setToastBreadcrumbBottom = useToastAnchorStore(
+    (state) => state.setBreadcrumbBottom,
+  );
+  const setToastDragActive = useToastAnchorStore((state) => state.setDragActive);
+  const resetToastAnchor = useToastAnchorStore((state) => state.reset);
 
+  // Leaving the Grid layout (Trash, Calendar) must not keep a Grid page's offset.
+  useEffect(() => resetToastAnchor, [resetToastAnchor]);
+
+  // `showsBreadcrumb` is a dependency: `useNode` keeps the previous node until
+  // the new one arrives, so on client navigation from the Inbox the cluster
+  // mounts after `nodeId` has already changed and has to be measured then.
   useEffect(() => {
     const cluster = clusterRef.current;
     const container = gridContainerRef.current;
@@ -149,6 +164,12 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
       });
 
       setBlockedCells(cells);
+      // The toast stack sits below the breadcrumb while one is shown.
+      setToastBreadcrumbBottom(
+        clusterElement.isConnected && clusterRect.height > 0
+          ? clusterRect.bottom
+          : null,
+      );
 
       const sessionKey = nodeId ?? "__root__";
       if (cells.size > 0 && !migrationSessionRef.current.has(sessionKey)) {
@@ -165,10 +186,11 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
     return () => {
       ro.disconnect();
       setBlockedCells(new Set());
+      setToastBreadcrumbBottom(null);
       // clear on unmount — prevents stale state when leaving the grid layout entirely
       // (intra-grid navigations re-trigger ResizeObserver; cleanup only fires on full layout exit)
     };
-  }, [setBlockedCells, nodeId]);
+  }, [setBlockedCells, setToastBreadcrumbBottom, nodeId, showsBreadcrumb]);
 
   function openAdd(context: PlacementContext) {
     setPlacementContext(context);
@@ -233,13 +255,8 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
       const cell = findNearestEmptyCell(occupied, originX, originY, blockedCells);
 
       if (cell === null) {
-        if (nodeId === null) {
-          setError("No empty cells available at this level.");
-        } else {
-          setOpenDialogType(null);
-          toast.error("Grid is full. Reorganize or move items to make space.");
-        }
-
+        // `node` is set whenever `nodeId` is: the missing-parent case returned above.
+        setError(createDialogNoEmptyCell(node?.title ?? HOME_TARGET));
         return;
       }
 
@@ -272,6 +289,7 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
     priority,
     description,
     parentId: dialogParentId,
+    parentTitle: dialogParentTitle,
   }: {
     title: string;
     icon: string;
@@ -280,6 +298,7 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
     priority: "high" | "mid" | "low" | null;
     description: string;
     parentId?: string | null;
+    parentTitle?: string | null;
   }) {
     if (nodeId !== null && !node) {
       setError("Unable to find parent node.");
@@ -310,8 +329,15 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
       );
 
       if (cell === null) {
-        setOpenDialogType(null);
-        toast.error("Grid is full. Reorganize or move items to make space.");
+        // The Node whose Grid receives the Bit: the current Node, or the parent
+        // chosen in the dialog when it is created from L0.
+        const targetTitle = node?.title ?? dialogParentTitle ?? null;
+
+        setError(
+          targetTitle === null
+            ? "Unable to find parent node."
+            : createDialogNoEmptyCell(targetTitle),
+        );
         return;
       }
 
@@ -361,14 +387,23 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
     <DeleteFlowContext.Provider value={deleteFlowValue}>
       <DndContext
         collisionDetection={gridCollisionDetection}
+        // The toast stack turns translucent and lets the pointer through while a
+        // Node or Bit is dragged, so the cells under it stay droppable (F12). It
+        // follows the drag events, not `activeItem`: `useDnd` has no cancel
+        // handler, so an Escape-cancelled drag leaves `activeItem` set.
+        onDragCancel={() => setToastDragActive(false)}
         onDragEnd={async (event) => {
+          setToastDragActive(false);
           const deleteRequest = await handleDragEnd(event);
           if (deleteRequest) {
             setPendingDelete(deleteRequest);
           }
         }}
         onDragOver={handleDragOver}
-        onDragStart={handleDragStart}
+        onDragStart={(event) => {
+          setToastDragActive(true);
+          handleDragStart(event);
+        }}
         sensors={sensors}
         autoScroll={false}
       >
@@ -403,7 +438,7 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
             data-level={displayLevel}
             data-testid="display-level"
           >
-            {!isInboxRoute && !isArchiveRoute && (
+            {showsBreadcrumb && (
               <div className="pointer-events-none absolute top-3 left-3 right-3 z-30 flex flex-col items-start gap-1.5">
                 <div className="pointer-events-none w-full">
                   <Breadcrumbs ref={clusterRef} nodeId={nodeId} dragActiveItem={activeItem} />

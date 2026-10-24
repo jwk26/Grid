@@ -471,6 +471,131 @@
   );
 }
 
+/* ── Toasts (DP-FB-01, Task 244) ──
+   The sonner DOM stays. `.toast-stack` is the `toast-stack` role and
+   `[data-sonner-toast][data-type]` the `toast` role: sonner takes no data-*
+   props, so its own `data-type` (success, warning, error) stands in for
+   `data-toast-kind`. Values are the recorded contract in DESIGN_TOKENS
+   §Approved status surface realization (Toast surface, Drag translucency);
+   width 356px, 16px padding and 13px text are sonner's own and the gap between
+   toasts (8px) is a Toaster prop. Selectors carry `.toast-stack` to outrank the
+   stylesheet sonner injects at run time. */
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+  /* Default, info and loading toasts take the neutral card look. */
+  --toast-kind: var(--foreground);
+  --toast-surface: var(--card);
+  --toast-foreground: var(--card-foreground);
+  --toast-border: var(--border);
+  background: hsl(var(--toast-surface));
+  color: hsl(var(--toast-foreground));
+  border: 1px solid hsl(var(--toast-border));
+  border-radius: 12px;
+  box-shadow: var(--theme-shadow);
+  font-family: var(--theme-font);
+}
+
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"][data-type="success"] {
+  --toast-kind: var(--status-success);
+  --toast-surface: var(--status-success-surface);
+  --toast-foreground: var(--status-success-foreground);
+  --toast-border: var(--status-success-border);
+}
+
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"][data-type="warning"] {
+  --toast-kind: var(--status-warning);
+  --toast-surface: var(--status-warning-surface);
+  --toast-foreground: var(--status-warning-foreground);
+  --toast-border: var(--status-warning-border);
+}
+
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"][data-type="error"] {
+  --toast-kind: var(--status-error);
+  --toast-surface: var(--status-error-surface);
+  --toast-foreground: var(--status-error-foreground);
+  --toast-border: var(--status-error-border);
+}
+
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  box-shadow: var(--theme-shadow);
+}
+
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-description] {
+  color: inherit;
+}
+
+/* The icon: 16px in an 18px box, in the kind's colour. */
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-icon] {
+  color: hsl(var(--toast-kind));
+}
+
+.toast-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.toast-icon-box svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* The close control: a plain × at the right end of the row, on warnings and
+   failures only. It is first in the DOM, so `order` puts it last. */
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+  position: static;
+  order: 1;
+  flex: none;
+  width: auto;
+  height: auto;
+  margin-left: auto;
+  padding: 0 0 0 8px;
+  transform: none;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:hover {
+  background: none;
+  border: none;
+  opacity: 1;
+}
+
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"][data-type="success"] [data-close-button] {
+  display: none;
+}
+
+:root[data-color-theme="retro-mac"] .toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+  border-radius: 0;
+  box-shadow: 2px 2px 0 hsl(var(--foreground));
+}
+
+/* During a Node or Bit drag the stack turns translucent and lets the pointer
+   through, so the cells under it stay droppable (FB-12). */
+.toast-stack-dragging[data-sonner-toaster] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* ── Color Theme Overrides (Batch 2) ── */
 
 /* 2. New Morphism — soft extrusion */
