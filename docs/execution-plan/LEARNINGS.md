@@ -23,6 +23,8 @@
 
 **Do not draw an empty state from a not-yet-read array.** A component remounted by `key` restarts every hook it owns from its initial value, so data the parent already holds flashes empty for a frame (`Unknown Scratch`, an empty-rows state). Pass loaded data down as props and draw the empty state only after the read reports ready. *(Phase 35, Task 179A MI-22)*
 
+**Key a measuring effect to what mounts the measured node, not to the route id.** After client navigation a data hook can return the previous record for one render, so a conditionally mounted element (the breadcrumb) mounts a render after the id changed; an effect keyed on the id has already run and measured nothing, and the toast stack stayed over the breadcrumb. Add the mount condition (`showsBreadcrumb`) to the effect's dependencies. *(Phase 49, Task 244)*
+
 ---
 
 ## Radix UI
@@ -49,6 +51,8 @@
 
 **Always specify boolean gate conditions in AI delegation prompts.** If a component is mode-gated (e.g., only active in an edit state), include the explicit condition (e.g., `disabled: !isActive`) in the prompt and acceptance criteria. Natural-language phrases like "only in edit mode" are not reliably inferred as prop-level constraints. *(Phase 7)*
 
+**Derive a drag-active flag from the `DndContext` events, cancel included.** Escape ends a dnd-kit drag through `onDragCancel`, not `onDragEnd`, so state cleared only in `handleDragEnd` (`useDnd`'s `activeItem`) stays set after a cancelled drag: the grid stayed dimmed and the toast stack stayed pointer-transparent. Clear drag state in `onDragStart`/`onDragEnd`/`onDragCancel` alike, and test the Escape path. *(Phase 49, Task 244; mi-3)*
+
 ---
 
 ## Dexie v4
@@ -74,6 +78,10 @@
 **Put a per-theme row gap on the row's container, not inside it.** A gap kept as `margin-block-end` inside a positioned container made a `top: 50%` control centre on row + gap. *(Phase 41, Task 210 mi-1)*
 
 **Do not animate a container's width under heavy shadows.** In a blur-shadow theme every resized child repaints its shadow each frame (Neumorphism Pool: 13.1ms per frame, a third of frames over 20ms). Change the size in one step and move content with `transform`. A `transform` animation with `both`/`forwards` fill keeps the element a containing block for `position: fixed` descendants after it ends (a drag overlay drew offset); use `backwards` when the last keyframe equals the resting style. A CSS animation restarts only when its name changes, so give each state its own keyframe name when React reuses the element. *(Phase 35, Task 179)*
+
+**Keep `clip-path` motion off an element with `backdrop-filter`.** A clip-path unfold on the blurred breadcrumb surface clipped in Chrome but did not in the user's browser; with `clip-path` and the move on a wrapper element and only the opacity on the blurred surface, it unfolded in both. Check motion in the user's browser, not only in the automation browser. *(Phase 49, Task 242)*
+
+**Style `sonner` toasts through its own attributes.** `sonner` passes no `data-*` props through to its toaster or toasts, so a design role (`toast-stack`, `toast`) is selected by `[data-sonner-toaster]` and `[data-sonner-toast][data-type]`, with a class on the stack. Do not patch the library or add an observer to set attributes. *(Phase 49, Task 244)*
 
 ---
 
@@ -132,3 +140,5 @@
 **Mounted components consume repository truth through dedicated reactive hooks.** Even read-only `liveQuery` and DataStore calls violate the component boundary when placed directly in a coordinator component. Move those reads behind a focused hook API and test both observation replacement and stale-result cancellation, including same-identity context replacement. *(Phase 27, P27-11)*
 
 **A regression task returns behavior defects through a bounded repair task.** When the final regression task finds a shared component or hook defect that predates the phase, an Opus session plans a separate repair task with its own scope review, and the regression task waits for its acceptance. The regression task never fixes it in place. *(Phase 34, Tasks 171A and 172)*
+
+**Prove dev-only code is out of the production build with a non-vacuous search.** Gate the import behind `process.env.NODE_ENV === "development"` with a dynamic import, put a unique marker string in the dev-only module, then search the production output (`.next/static`, `.next/server`) for it and confirm the dev output does contain it. Source maps may still quote the gating source; executable chunks must not. *(Phase 49, Task 243)*
