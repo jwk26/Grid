@@ -258,6 +258,62 @@ describe("SnapshotStore: the pending-write layer", () => {
     expect(store.getState().pending).toEqual([]);
   });
 
+  it("an older envelope row never overwrites a newer base row (replies in reverse commit order)", async () => {
+    const parent = "00000000-0000-4000-8000-0000000000a1";
+    const child = "00000000-0000-4000-8000-0000000000a2";
+    const { store } = await loaded([
+      nodeRow(parent, { x: 3, y: 3 }),
+      nodeRow(child, { parentId: parent, level: 1, x: 0, y: 0 }),
+    ]);
+    const moveParent = deferred<Envelope>(); // commits first: the child's level 1 -> 0, version 2
+    const editChild = deferred<Envelope>(); // commits second: version 3 (level 0)
+    const w1 = store.write({ effect: move(parent, 4), send: () => moveParent.promise });
+    const w2 = store.write({ effect: { kind: "patch", table: "nodes", id: child, patch: { title: "T" } }, send: () => editChild.promise });
+    // the later commit answers first, then the earlier one
+    editChild.resolve(applied([nodeRow(child, { parentId: null, level: 0, title: "T", version: 3 })]));
+    await w2;
+    moveParent.resolve(applied([nodeRow(parent, { x: 4, y: 3, version: 2 }), nodeRow(child, { parentId: null, level: 0, version: 2 })]));
+    await w1;
+    expect(store.getState().view.nodes.get(child)).toMatchObject({ level: 0, version: 3, title: "T" });
+    expect(store.getState().view.nodes.get(parent)).toMatchObject({ x: 4, version: 2 });
+  });
+
+  it("applies a row with an equal version", async () => {
+    const { store } = await loaded();
+    await store.write({
+      effect: move(NODE_ID, 2),
+      send: async () => applied([nodeRow(NODE_ID, { x: 2, version: 1 })]),
+    });
+    expect(nodeX(store)).toBe(2);
+  });
+
+  it("refetches once after a state-dependent rejection, and not after account_limit or invalid_input", async () => {
+    for (const [code, refetches] of [
+      ["not_found", 1],
+      ["cell_taken", 1],
+      ["parent_inactive", 1],
+      ["grid_full", 1],
+      ["invalid_target", 1],
+      ["account_limit", 0],
+      ["invalid_input", 0],
+    ] as const) {
+      const { store, fetchSnapshot } = await loaded();
+      const outcome = await store.write({
+        effect: move(NODE_ID, 9),
+        send: async (): Promise<Envelope> => ({
+          status: "rejected",
+          result: null,
+          changes: { nodes: { upserted: [nodeRow(NODE_ID, { x: 0 })], deleted: [] } },
+          rejection: { code },
+        }),
+      });
+      await flush();
+      expect(outcome.outcome, code).toBe("rejected");
+      expect(fetchSnapshot.mock.calls.length - 1, code).toBe(refetches);
+      expect(nodeX(store), code).toBe(0);
+    }
+  });
+
   it("not_applied and conflict also roll back; already_applied counts as applied", async () => {
     for (const [status, expected] of [
       ["not_applied", "rejected"],

@@ -155,7 +155,19 @@ export function applyChanges(base: AccountView, changes: Changes): AccountView {
     const table = TABLE_BY_CHANGE[changeTable];
     const map = next[table] as Map<string, Entity>;
     for (const id of change.deleted) map.delete(id);
-    for (const row of change.upserted) map.set(row.id, mapRow(table, row));
+    for (const row of change.upserted) {
+      // Results for different records can arrive out of commit order: a row older than the base
+      // row is ignored (tables with `version`; an equal version applies). SPEC Decision 19.
+      const current = map.get(row.id) as { version?: number } | undefined;
+      if (
+        current?.version !== undefined &&
+        typeof row.version === "number" &&
+        row.version < current.version
+      ) {
+        continue;
+      }
+      map.set(row.id, mapRow(table, row));
+    }
   }
   return next;
 }
@@ -192,6 +204,17 @@ export class UnknownOutcomeError extends Error {
     this.name = "UnknownOutcomeError";
   }
 }
+
+// A rejection that depends on the server's current state: the client's snapshot was probably
+// behind, so the store refetches once after it. Not after account_limit or invalid_input, which
+// a refetch cannot change (SPEC Decision 19).
+const STATE_DEPENDENT_REJECTIONS = new Set([
+  "not_found",
+  "cell_taken",
+  "parent_inactive",
+  "grid_full",
+  "invalid_target",
+]);
 
 const MAX_FETCH_ATTEMPTS = 5;
 const TIMED_OUT = Symbol("timed out");
@@ -353,6 +376,14 @@ export class SnapshotStore {
         }
         this.settle(entry, result.changes);
         const outcome = result.status === "applied" || result.status === "already_applied" ? "applied" : "rejected";
+        if (
+          outcome === "rejected" &&
+          result.rejection &&
+          STATE_DEPENDENT_REJECTIONS.has(result.rejection.code) &&
+          epoch === this.epoch
+        ) {
+          void this.refetch();
+        }
         return { outcome, envelope: result };
       } catch (error) {
         this.settle(entry, null);
