@@ -211,3 +211,21 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 - Review (advisory, 2026-10-24, task finish, second checkpoint): approve. c1d1123 follows SPEC Architecture Decision 19 (c88498f): `applyChanges` skips an upserted row whose `version` is lower than the base row's (tables without `version` unchanged), and the reverse-commit-order test fails without the rule; the store refetches once after `not_found`, `cell_taken`, `parent_inactive`, `grid_full` or `invalid_target`, not after `account_limit` or `invalid_input`, each code tested; the refetch starts after the settle, so it is not discarded; gate passes (`pnpm test` 2050, `pnpm test:db` 378; the advisory reran `snapshot-store.test.ts`, 28/28). Apply: none. Not applied: none.
 - Decision: MI-6 and MI-7 closed as fixed in c1d1123 (user, 2026-10-24).
 - Decision: Task 217 accepted (user, 2026-10-24).
+
+## Task 218 — Set up production early and verify the hosted plan
+
+### Current state
+- Status: Awaiting User Decision
+- Next: go-ahead on the work plan
+- Open: none for this task (MI-1 is phase-level)
+
+### Log
+- Work plan:
+  - Most of this task is on the user's side or needs the user's approval; I write the scripts and record results. Nothing reaches production without a stop.
+  - Stage 1 (scripts, no production access): `scripts/verify/hosted-roles.sql` (write-role proof as `griddo_writer` with two temporary auth users, internal-function EXECUTE checks for `anon`/`authenticated`, account-deletion role probe: create a NOLOGIN role that may delete only the caller's `auth.users` row and see whether hosted Supabase allows the grant; `pg_cron` check with a job that deletes one temporary anonymous auth user, cascade confirmed, job removed; all rows removed at the end, each check prints PASS/FAIL), a runner script for the D8 measurement that builds both accounts with `buildLimitSizedAccount` and times `rpc('get_snapshot')` (time, JSON bytes, compressed bytes), and `scripts/verify/README.md`. Connection strings are read from the environment only, never from a file in Git. I run the SQL against local Supabase first so the script is proven before it touches production.
+  - Stage 2 (user): create the production Supabase project (Seoul, free plan) and the Vercel Hobby project linked to `main`; set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in Vercel (the slice switch is not needed, a production build returns 404 for it). I give the exact dashboard steps in plain Korean at this stop. Anonymous sign-in stays off.
+  - Stage 3 (production, after your approval): `supabase db push` with the migrations (7 files up to `update_node`), then `hosted-roles.sql` through the connection string you export in your own shell (`! export …`), so the secret never enters this conversation or Git; `pg_cron` check; Security Advisor with lint 0012 recorded as accepted if it fires.
+  - Stage 4 (D8): you turn anonymous sign-in on for the measurement only; I run the measurement from your network (this Mac), record time and size next to the Task 216 local numbers (limit-sized ≈ 220–310 ms, 8.97 MB; one-tenth ≈ 20–34 ms), delete both accounts, and you turn anonymous sign-in off. If the limit-sized load is over 3 s or the one-tenth over 1 s, I propose lower limits and stop for a SCHEMA amendment.
+  - Ledger records: hosted write-role result (or the S14 fallback), account-deletion branch (dedicated role or SCHEMA fallback), `pg_cron` result (or the S22 fallback for Task 238), Advisor result, D8 numbers, Vercel deploy URL (unannounced).
+  - Verify: `git diff --check`, `pnpm test`, `pnpm lint`, `typecheck`, `build`; `pnpm test:db` only if SQL changes (none planned; disk is 6.5 GB free, below the 10 GB target, so I skip it otherwise); no `expert` review (no logic change in the app; the SQL script is reviewed by running it locally and on production). You confirm the dashboard settings at the end. Commit: `docs(db): record the early production setup`.
+  - Decisions I need from you at this stop: (a) OK that scripts live in `scripts/verify/` and use only environment variables for secrets; (b) the Supabase CLI is installed in `node_modules/.bin` only, so `supabase db push` needs `supabase login` and `supabase link` by you (`! pnpm exec supabase login`).
