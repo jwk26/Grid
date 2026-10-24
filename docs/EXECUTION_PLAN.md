@@ -2446,7 +2446,7 @@ pending-layer logic); browser check of the slice page.
 
 **Commit message:** `feat(db): add the end-to-end Supabase slice`.
 
-### Task 218: [ ] Set up production early and verify the hosted plan
+### Task 218: [x] Set up production early and verify the hosted plan
 
 **Files and actions:**
 - The user creates the production Supabase project (Seoul, free plan) and the
