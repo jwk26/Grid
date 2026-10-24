@@ -2400,7 +2400,7 @@ env file.
 
 **Commit message:** `feat(db): add the account snapshot and the coverage suites`.
 
-### Task 217: [ ] Build the end-to-end slice behind a development switch
+### Task 217: [x] Build the end-to-end slice behind a development switch
 
 **Files and actions:**
 - `src/lib/db/supabase-client.ts`: browser client from the public env vars,
