@@ -3274,7 +3274,7 @@ prerequisites is recorded and committed; no implementation file changes.
 
 **Commit message:** `docs(design): record DP-FB-01 and DP-SAAS-01`.
 
-### Task 243: [ ] Add the status primitives and the development state switch
+### Task 243: [x] Add the status primitives and the development state switch
 
 **Files and actions:**
 - `src/lib/constants.ts`: `DISPLAY_DELAY_MS = 300` (D7; reuse it if Task 217

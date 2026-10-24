@@ -1796,7 +1796,10 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/feedback/toast.ts` *(Phase 47)* | Shared toast helper: kinds, counted bursts, timing (F13, F14) |
 | `src/components/feedback/status-icon.tsx` *(Phase 49)* | Status icons and item emphasis: the delayed loader, `?`, `!` (F02, F03) |
 | `src/components/feedback/status-tooltip.tsx` *(Phase 49)* | Hover/focus status tooltip, one at a time, described-by wiring (F09) |
+| `src/components/feedback/status-announcement.tsx` *(Phase 49)* | Visually hidden polite status region and its hook for the success announcements: `Added.`, `Returned to Breakdown.`, `Saved.` (F04) |
 | `src/hooks/use-display-delay.ts` *(Phase 49)* | Presentation-only `DISPLAY_DELAY_MS` delay; never decides success (F02) |
+| `src/lib/feedback/item-status.ts` *(Phase 49)* | Item status and glyph vocabulary: which glyph a status shows, and that only `?` and `!` add emphasis (F02, F03) |
+| `src/lib/feedback/forced-item-status.ts` *(Phase 49)* | Production-safe read seam of the [development state switch](#development-state-switch): `useForcedItemStatus(itemKey)` returns `null` unless the development panel registered, and the item key scheme the panel and the Inbox surfaces share (F30) |
 | `src/lib/color-themes.ts` *(Phase 49)* | The one non-client list of color theme ids, the default and the storage key, read by the store and the no-flash script (F28, ISSUE-20-01) |
 | `src/hooks/use-toast-anchor.ts` *(Phase 49)* | The toast stack's offset from the breadcrumb and its drag translucency (F12) |
 | `src/lib/dev/state-switch.ts`, `src/components/dev/state-switch-panel.tsx` *(Phase 49, development only)* | [Development state switch](#development-state-switch) (F30) |
