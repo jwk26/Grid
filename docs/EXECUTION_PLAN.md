@@ -3522,12 +3522,29 @@ are judged under real latency (SPEC §Write feel).
   (F12).
 - `src/app/globals.css`: `home-button`, `breadcrumb-reveal`,
   `breadcrumb-drop-target`.
+- Drag cancel (Phase 49 mi-3): `src/hooks/use-dnd.ts` and its test gain a
+  cancel handler that clears `activeItem` and the drag state `handleDragEnd`
+  clears, without a write; the `DndContext` in `grid-runtime.tsx` and in
+  `src/app/calendar/layout.tsx` wire it to `onDragCancel`, so an
+  `Esc`-cancelled drag no longer leaves the cards dimmed, the scroll wrapper
+  clipped or the breadcrumb drag-styled or revealed.
+- Calendar (Phase 49 mi-1, mi-2), `src/app/calendar/layout.tsx` with
+  `calendar-node-creation.test.tsx`, `calendar-bit-creation.test.tsx` and a
+  drag-flag test:
+  its drags set and clear the toast anchor store's drag flag on start, end and
+  cancel, as `grid-runtime.tsx` does, so the stack is translucent and
+  pointer-transparent over the Pool and the unschedule zone; its Node and Bit
+  create dialogs show the create-dialog sentence of SPEC §Feedback copy
+  (`createDialogNoEmptyCell` in `src/lib/copy/feedback.ts`; the target is
+  `Home` for a Node, the chosen parent for a Bit) instead of
+  `No empty cells available in the root grid.` and
+  `No empty cells available in the parent node.`
 
 **Dependencies:** Task 247.
 
-**Authority:** F12, F21–F25; SPEC §Breadcrumb reveal and Home button;
-DESIGN_TOKENS §Feedback Status Surfaces, §Motion Language, Sidebar,
-Breadcrumbs.
+**Authority:** F12, F16 (create dialog), F21–F25; Phase 49 mi-1, mi-2, mi-3;
+SPEC §Breadcrumb reveal and Home button, §Feedback copy; DESIGN_TOKENS
+§Feedback Status Surfaces, §Motion Language, Sidebar, Breadcrumbs.
 
 **Observable acceptance:** Home sits at the top on every route and reveals the
 breadcrumb only on a Node's Grid; the breadcrumb shows for 3 seconds on entry,
@@ -3540,10 +3557,15 @@ also after client navigation; in edit mode with the breadcrumb shown, one `Esc`
 hides the breadcrumb and a second exits edit mode; Home with an Add draft open
 shows the departure sheet; the user
 rechecks that the deadline is visible
-only while the breadcrumb is shown (F25).
+only while the breadcrumb is shown (F25); after an `Esc`-cancelled drag on a
+Grid or the Calendar the cards, the breadcrumb and the toast stack return to
+their resting state; during a Calendar drag the toast stack is translucent;
+a full-Grid create from the Calendar keeps the dialog with the same sentence
+as the Grid pages.
 
 **Verification:** gate; `expert` review (reveal state machine, `Esc` order,
-DnD pass-through, focus order); browser checkpoint with mouse and keyboard.
+DnD pass-through and drag cancel, focus order); browser checkpoint with mouse
+and keyboard, including an `Esc`-cancelled drag on a Grid and on the Calendar.
 
 **Commit message:** `feat(shell): add the Home button and the breadcrumb reveal`.
 
