@@ -3148,8 +3148,16 @@ Docker stopped reports failure.
 **Files and actions:** production auth settings final (anonymous sign-in with
 Turnstile, both providers, rate limits), confirmed by the user in the
 dashboard; the Security Advisor on production shows no warning other than the
-accepted lint 0012; a written production smoke checklist in the ledger (guest
-entry, a write, OAuth sign-in with both providers, sign-out, account deletion,
+accepted lint 0012 and one `authenticated_security_definer_function_executable`
+warning for each client write function in the SCHEMA function table (accepted
+by design, S14; user, 2026-10-24); such a warning for any other function, or
+any other warning, is a finding; the D8 measurement again on production
+(MI-8): `scripts/verify/d8-measure.mjs` after an `analyze` of the built
+accounts, with the server time and the network time recorded separately and
+the cold call judged with the warm ones (limit-sized 3 s or less, one-tenth
+1 s or less); if it fails, a migration lowers the limits (SCHEMA §Account
+limits) before the Phase 48 close; a written production smoke checklist in the
+ledger (guest entry, a write, OAuth sign-in with both providers, sign-out, account deletion,
 guest cleanup scheduled). The Phase 48 close then follows the CLAUDE.md
 Production order (dump, migrations, merge) and runs that smoke right after the
 merge, before the URL is announced; if it fails, the URL stays unannounced and
@@ -3157,10 +3165,11 @@ the fix goes through a new phase.
 
 **Dependencies:** Task 239.
 
-**Authority:** S21, S34, S36; SPEC §Environments And Hosting.
+**Authority:** S21, S34, S36, S37; D8; SPEC §Environments And Hosting.
 
 **Observable acceptance:** the production settings and the Advisor result are
-recorded and confirmed by the user; the smoke checklist exists; no secret in
+recorded and confirmed by the user; the D8 result is recorded and passes, or
+the lowered limits are applied; the smoke checklist exists; no secret in
 Git; the production schema equals the migrations applied so far.
 
 **Verification:** full gate; the user confirms the settings. The post-merge

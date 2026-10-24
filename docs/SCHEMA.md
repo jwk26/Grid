@@ -644,7 +644,11 @@ Create paths enforce per-account row limits, stricter for guests (S37; user,
 Nodes. A create that would pass a limit returns `rejected` with
 `rejection.code = "account_limit"` and the table. Staged candidates have no
 limit of their own (at most one per Breakdown row). The numbers live in one
-internal function; Phase 42 may lower them after measuring the initial load.
+internal function. Phase 42 measured the initial load on production (Task
+218): the one-tenth account passed, the limit-sized one passed two of three
+runs (MI-8), so the numbers stay; Task 240 measures again on production
+before launch and lowers them by a migration if the target fails (user,
+2026-10-24).
 
 | Table | Real account | Guest |
 |---|---|---|
