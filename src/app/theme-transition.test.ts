@@ -33,8 +33,6 @@ describe("theme transition wiring", () => {
 
     // Swatch spot checks
     expect(globals).toContain("--color-theme-swatch-griddo: hsl(38 28% 91%);");
-    expect(globals).toContain("--color-theme-swatch-terminal: hsl(120 100% 50%);");
-    expect(globals).toContain("--color-theme-swatch-graphite: hsl(0 0% 47%);");
 
     // ── .dark base shadow overrides ──────────────────────────────────────────
     expect(globals).toContain("--theme-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);");
@@ -47,14 +45,10 @@ describe("theme transition wiring", () => {
     expect(globals).toContain(".theme-surface");
     expect(globals).toContain(".theme-surface:hover");
 
-    // ── All 7 override selectors present ────────────────────────────────────
-    expect(globals).toContain('data-color-theme="tiny-desk"');
+    // ── All 3 override selectors present ────────────────────────────────────
     expect(globals).toContain('data-color-theme="neumorphism"');
     expect(globals).toContain('data-color-theme="claymorphism"');
-    expect(globals).toContain('data-color-theme="origami"');
-    expect(globals).toContain('data-color-theme="terminal"');
     expect(globals).toContain('data-color-theme="retro-mac"');
-    expect(globals).toContain('data-color-theme="graphite"');
 
     // ── griddo has NO override block (it IS the base layer) ─────────────────
     expect(globals).not.toContain('data-color-theme="griddo"');
@@ -70,17 +64,9 @@ describe("theme transition wiring", () => {
       "--theme-shadow: 6px 6px 12px rgba(0, 0, 0, 0.1), -6px -6px 12px rgba(255, 255, 255, 0.9), inset 4px 4px 8px rgba(255, 255, 255, 0.9), inset -4px -4px 8px rgba(0, 0, 0, 0.05);"
     );
 
-    // terminal: no base shadow, green glow hover
-    expect(globals).toContain("--theme-shadow: none;");
-    expect(globals).toContain("--theme-shadow-hover: 0 0 15px hsl(120 100% 50%);");
-    expect(globals).toContain("--calendar-today-border-color: hsl(120 100% 50%);");
-
     // retro-mac: hard offset shadow
     expect(globals).toContain("--theme-shadow: 2px 2px 0px rgba(0, 0, 0, 1);");
     expect(globals).toContain("--theme-shadow-hover: 4px 4px 0px rgba(0, 0, 0, 1);");
-
-    // origami: asymmetric radius
-    expect(globals).toContain("--theme-radius: 2px 12px 2px 12px / 12px 2px 12px 2px;");
   });
 
   it("switches theme and dark mode through CSS and attributes only, so no workflow state is touched (Task 179)", () => {

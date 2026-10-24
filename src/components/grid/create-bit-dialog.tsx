@@ -31,6 +31,8 @@ export type CreateBitDialogValues = {
   deadlineAllDay: boolean;
   priority: Priority;
   parentId?: string | null;
+  // The chosen parent's title, so a caller can name it in a blocked-create reason.
+  parentTitle?: string | null;
 };
 
 type CreateBitDialogProps = {
@@ -130,7 +132,13 @@ export function CreateBitDialog({
         deadline,
         deadlineAllDay,
         priority,
-        ...(requireParent ? { parentId: selectedParentId } : {}),
+        ...(requireParent
+          ? {
+              parentId: selectedParentId,
+              parentTitle:
+                nodes.find((node) => node.id === selectedParentId)?.title ?? null,
+            }
+          : {}),
       });
     } finally {
       setIsSubmitting(false);

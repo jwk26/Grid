@@ -17,3 +17,7 @@ export const TRASH_RETENTION_DAYS = 30;
 // Inbox badge thresholds
 export const INBOX_BADGE_WARM_THRESHOLD = 8;
 export const INBOX_BADGE_HIGH_THRESHOLD = 15;
+
+// Display delay (feedback F02): a pending or reconciling presentation shows only
+// after this long. It postpones presentation and never decides success.
+export const DISPLAY_DELAY_MS = 300;

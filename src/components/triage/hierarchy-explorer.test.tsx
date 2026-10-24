@@ -1409,7 +1409,7 @@ describe("HierarchyExplorer Task 155 actual-card Newly Placed projection", () =>
     expect(card).toHaveAttribute("data-newly-placed", "true");
     expect(card).toContainElement(screen.getByText("NEW"));
 
-    document.documentElement.dataset.colorTheme = "terminal";
+    document.documentElement.dataset.colorTheme = "neumorphism";
     view.rerender(
       <HierarchyExplorer {...defaultProps} newlyPlacedEntries={[entry]} />,
     );
@@ -2016,13 +2016,9 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
       expect(globalsCss).toContain(`.${role}`);
     }
     for (const theme of [
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ]) {
       expect(globalsCss).toContain(
         `:root[data-color-theme="${theme}"] .newly-status-rail`,
@@ -2210,13 +2206,9 @@ describe("HierarchyExplorer Task 153 placement reliability rail", () => {
       expect(globalsCss).toContain(`.${role}`);
     }
     for (const theme of [
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ]) {
       expect(globalsCss).toContain(
         `:root[data-color-theme="${theme}"] .placement-reliability-rail`,
@@ -2446,13 +2438,9 @@ describe("HierarchyExplorer Task 154 Result Title and direct limits", () => {
       expect(globalsCss).toContain(`.${role}`);
     }
     for (const theme of [
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ]) {
       expect(globalsCss).toContain(
         `:root[data-color-theme="${theme}"] .placement-result-title-shell`,
@@ -2730,13 +2718,9 @@ describe("HierarchyExplorer Task 150 remote/path statuses", () => {
     expect(globalsCss).toContain(".explorer-path-status");
     expect(globalsCss).toContain(".explorer-status-action");
     for (const theme of [
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ]) {
       expect(globalsCss).toContain(
         `:root[data-color-theme="${theme}"] .explorer-path-status`,
@@ -3251,13 +3235,9 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
       expect(globalsCss).toContain(`.${role}`);
     }
     for (const theme of [
-      "tiny-desk",
       "neumorphism",
       "claymorphism",
-      "origami",
-      "terminal",
       "retro-mac",
-      "graphite",
     ]) {
       for (const role of [
         "explorer-search-entry",
@@ -3435,7 +3415,7 @@ it("keeps the mounted Explorer navigation, selected card and focus through theme
   fireEvent.click(row);
   row.focus();
   const root = screen.getByTestId("hierarchy-explorer");
-  for (const theme of ["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"]) {
+  for (const theme of ["griddo", "neumorphism", "claymorphism", "retro-mac"]) {
     for (const mode of ["light", "dark"]) {
       document.documentElement.dataset.colorTheme = theme;
       document.documentElement.classList.toggle("dark", mode === "dark");
@@ -3599,7 +3579,7 @@ describe("HierarchyExplorer Task170 Placement presentation", () => {
     const view = render(tree);
     const placement = screen.getByRole("region", { name: "Placement" });
     const confirm = within(placement).getByRole("button", { name: "OK" });
-    for (const theme of ["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"]) {
+    for (const theme of ["griddo", "neumorphism", "claymorphism", "retro-mac"]) {
       document.documentElement.dataset.colorTheme = theme;
       for (const mode of ["light", "dark"]) {
         document.documentElement.className = mode;

@@ -293,16 +293,6 @@ vi.mock("@/stores/search-store", () => ({
 }));
 
 vi.mock("@/stores/color-theme-store", () => ({
-  COLOR_THEMES: [
-    "griddo",
-    "tiny-desk",
-    "neumorphism",
-    "claymorphism",
-    "origami",
-    "terminal",
-    "retro-mac",
-    "graphite",
-  ] as const,
   useColorThemeStore: (
     selector: (state: { colorTheme: string; setColorTheme: typeof setColorThemeMock }) => unknown,
   ) => selector({ colorTheme: "griddo", setColorTheme: setColorThemeMock }),
@@ -685,32 +675,28 @@ describe("Sidebar", () => {
       expect(screen.getByRole("button", { name: "Change color theme" })).toBeInTheDocument();
     });
 
-    it("shows all 8 theme labels when trigger is clicked", () => {
+    it("shows the four theme labels when trigger is clicked", () => {
       render(<Sidebar />);
       fireEvent.click(screen.getByRole("button", { name: "Change color theme" }));
       expect(screen.getByRole("button", { name: /GridDO/ })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Tiny Desk/ })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /New Morphism/ })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /3D Clay/ })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Origami/ })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Terminal/ })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Retro Mac/ })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Graphite/ })).toBeInTheDocument();
     });
 
     it("calls setColorTheme with the selected theme id when a row is clicked", () => {
       render(<Sidebar />);
       fireEvent.click(screen.getByRole("button", { name: "Change color theme" }));
-      fireEvent.click(screen.getByRole("button", { name: /Terminal/ }));
-      expect(setColorThemeMock).toHaveBeenCalledWith("terminal");
+      fireEvent.click(screen.getByRole("button", { name: /Retro Mac/ }));
+      expect(setColorThemeMock).toHaveBeenCalledWith("retro-mac");
     });
 
     it("closes the popover after a theme row is clicked", () => {
       render(<Sidebar />);
       fireEvent.click(screen.getByRole("button", { name: "Change color theme" }));
-      expect(screen.getByRole("button", { name: /Terminal/ })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: /Terminal/ }));
-      expect(screen.queryByRole("button", { name: /Terminal/ })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Retro Mac/ })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Retro Mac/ }));
+      expect(screen.queryByRole("button", { name: /Retro Mac/ })).not.toBeInTheDocument();
     });
 
     it("marks the currently active theme row with bg-accent", () => {

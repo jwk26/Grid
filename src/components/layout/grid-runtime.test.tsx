@@ -1,9 +1,10 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GRID_COLS } from "@/lib/constants";
 import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
 import { useQuickCaptureStore } from "@/stores/quick-capture-store";
+import { useToastAnchorStore } from "@/stores/toast-anchor-store";
 import type { Bit, Node } from "@/types";
 import * as nodeGridPage from "@/app/(grid)/grid/[nodeId]/page";
 import { NodeGridBody } from "./node-grid-body";
@@ -39,6 +40,8 @@ const createNodeMock = vi.hoisted(() => vi.fn());
 const createBitMock = vi.hoisted(() => vi.fn());
 const softDeleteNodeMock = vi.hoisted(() => vi.fn());
 const softDeleteBitMock = vi.hoisted(() => vi.fn());
+const toastErrorMock = vi.hoisted(() => vi.fn());
+const toastMock = vi.hoisted(() => Object.assign(vi.fn(), { error: toastErrorMock }));
 const createNodeDialogSubmission = vi.hoisted(() => ({
   current: {
     title: "  New node  ",
@@ -57,12 +60,45 @@ const createBitDialogSubmission = vi.hoisted(() => ({
     priority: "high" as Bit["priority"],
     description: "Bit description",
     parentId: undefined as string | null | undefined,
+    parentTitle: undefined as string | null | undefined,
   },
 }));
 
 vi.mock("next/navigation", () => ({
   useParams: useParamsMock,
 }));
+
+vi.mock("sonner", () => ({
+  toast: toastMock,
+}));
+
+const dndContextProps = vi.hoisted(() => ({
+  current: undefined as
+    | {
+        onDragStart?: (event: unknown) => void;
+        onDragEnd?: (event: unknown) => unknown;
+        onDragCancel?: (event: unknown) => void;
+      }
+    | undefined,
+}));
+
+// Passes children through and keeps the handlers, so a test can fire drag events.
+vi.mock("@dnd-kit/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@dnd-kit/core")>();
+
+  return {
+    ...actual,
+    DndContext: (props: {
+      children: React.ReactNode;
+      onDragStart?: (event: unknown) => void;
+      onDragEnd?: (event: unknown) => unknown;
+      onDragCancel?: (event: unknown) => void;
+    }) => {
+      dndContextProps.current = props;
+      return <>{props.children}</>;
+    },
+  };
+});
 
 vi.mock("@/hooks/use-node", () => ({
   useNode: useNodeMock,
@@ -248,6 +284,7 @@ vi.mock("@/components/grid/create-bit-dialog", () => ({
       priority: Bit["priority"];
       description: string;
       parentId?: string | null;
+      parentTitle?: string | null;
     }) => Promise<void>;
     requireParent?: boolean;
     error?: string;
@@ -416,7 +453,9 @@ describe("GridRuntime", () => {
       priority: "high",
       description: "Bit description",
       parentId: undefined,
+      parentTitle: undefined,
     };
+    useToastAnchorStore.getState().reset();
     vi.stubGlobal(
       "ResizeObserver",
       class ResizeObserver {
@@ -914,6 +953,7 @@ describe("GridRuntime", () => {
       priority: "mid",
       description: "Root bit description",
       parentId: "selected-parent",
+      parentTitle: undefined,
     };
     createBitMock.mockResolvedValue({
       id: "created-root-bit",
@@ -986,6 +1026,7 @@ describe("GridRuntime", () => {
       priority: "low",
       description: "Should not be created",
       parentId: null,
+      parentTitle: undefined,
     };
 
     render(
@@ -1122,5 +1163,374 @@ describe("GridRuntime", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(handleNodeMoveCancel).toHaveBeenCalledTimes(1);
+  });
+  describe("full-Grid create", () => {
+    async function mockFullGrid() {
+      const { findNearestEmptyCell } = await import("@/lib/utils/bfs");
+
+      getGridOccupancyMock.mockResolvedValue(new Set(["2,2"]));
+      vi.mocked(findNearestEmptyCell).mockReturnValue(null);
+    }
+
+    const NO_ROOM = "Move or delete an item to make room.";
+
+    it("keeps the Node dialog open with the reason for Home at L0, without a toast", async () => {
+      await mockFullGrid();
+      useParamsMock.mockReturnValue({});
+      useNodeMock.mockReturnValue(null);
+
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      fireEvent.click(screen.getByLabelText("sidebar-add"));
+      fireEvent.click(screen.getByLabelText("entry-create-node"));
+      fireEvent.click(screen.getByLabelText("submit-node"));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        `“Home” has no empty cell. ${NO_ROOM}`,
+      );
+      expect(screen.getByLabelText("submit-node")).toBeInTheDocument();
+      expect(createNodeMock).not.toHaveBeenCalled();
+      expect(toastErrorMock).not.toHaveBeenCalled();
+      expect(toastMock).not.toHaveBeenCalled();
+    });
+
+    it("keeps the Node dialog open with the current Node's title inside a Node", async () => {
+      await mockFullGrid();
+      const parentNode = createNode({ id: "parent-node", title: "Roadmap", level: 0 });
+      useParamsMock.mockReturnValue({ nodeId: parentNode.id });
+      useNodeMock.mockReturnValue(parentNode);
+
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      fireEvent.click(screen.getByLabelText("add-at-cell"));
+      fireEvent.click(screen.getByLabelText("choose-node"));
+      fireEvent.click(screen.getByLabelText("submit-node"));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        `“Roadmap” has no empty cell. ${NO_ROOM}`,
+      );
+      expect(screen.getByLabelText("submit-node")).toBeInTheDocument();
+      expect(createNodeMock).not.toHaveBeenCalled();
+      expect(toastErrorMock).not.toHaveBeenCalled();
+    });
+
+    it("keeps the Bit dialog open with the current Node's title on a leaf Grid", async () => {
+      await mockFullGrid();
+      const leafNode = createNode({ id: "leaf-node", title: "Sprint 4", level: 2 });
+      useParamsMock.mockReturnValue({ nodeId: leafNode.id });
+      useNodeMock.mockReturnValue(leafNode);
+
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      fireEvent.click(screen.getByLabelText("sidebar-add"));
+      fireEvent.click(screen.getByLabelText("entry-create-bit"));
+      fireEvent.click(screen.getByLabelText("submit-bit"));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText("submit-bit")).toHaveAttribute(
+          "data-error",
+          `“Sprint 4” has no empty cell. ${NO_ROOM}`,
+        );
+      });
+      expect(createBitMock).not.toHaveBeenCalled();
+      expect(toastErrorMock).not.toHaveBeenCalled();
+    });
+
+    it("names the chosen parent when a Bit is created from L0 into a full parent", async () => {
+      await mockFullGrid();
+      useParamsMock.mockReturnValue({});
+      useNodeMock.mockReturnValue(null);
+      createBitDialogSubmission.current = {
+        ...createBitDialogSubmission.current,
+        parentId: "selected-parent",
+        parentTitle: "Projects",
+      };
+
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      fireEvent.click(screen.getByLabelText("sidebar-add"));
+      fireEvent.click(screen.getByLabelText("entry-create-bit"));
+      fireEvent.click(screen.getByLabelText("submit-bit"));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText("submit-bit")).toHaveAttribute(
+          "data-error",
+          `“Projects” has no empty cell. ${NO_ROOM}`,
+        );
+      });
+      expect(getGridOccupancyMock).toHaveBeenCalledWith("selected-parent");
+      expect(createBitMock).not.toHaveBeenCalled();
+      expect(toastErrorMock).not.toHaveBeenCalled();
+    });
+
+    it("does not guess a name when the chosen parent's title is unknown", async () => {
+      await mockFullGrid();
+      useParamsMock.mockReturnValue({});
+      useNodeMock.mockReturnValue(null);
+      createBitDialogSubmission.current = {
+        ...createBitDialogSubmission.current,
+        parentId: "selected-parent",
+        parentTitle: null,
+      };
+
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      fireEvent.click(screen.getByLabelText("sidebar-add"));
+      fireEvent.click(screen.getByLabelText("entry-create-bit"));
+      fireEvent.click(screen.getByLabelText("submit-bit"));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText("submit-bit")).toHaveAttribute(
+          "data-error",
+          "Unable to find parent node.",
+        );
+      });
+      expect(toastErrorMock).not.toHaveBeenCalled();
+    });
+
+    it("clears the reason when the dialog is submitted again with room", async () => {
+      const { findNearestEmptyCell } = await import("@/lib/utils/bfs");
+      getGridOccupancyMock.mockResolvedValue(new Set(["2,2"]));
+      vi.mocked(findNearestEmptyCell).mockReturnValueOnce(null);
+      vi.mocked(findNearestEmptyCell).mockReturnValueOnce({ x: 3, y: 3 });
+      createNodeMock.mockResolvedValue(createNode({ id: "created" }));
+      useParamsMock.mockReturnValue({});
+      useNodeMock.mockReturnValue(null);
+
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      fireEvent.click(screen.getByLabelText("sidebar-add"));
+      fireEvent.click(screen.getByLabelText("entry-create-node"));
+      fireEvent.click(screen.getByLabelText("submit-node"));
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText("submit-node"));
+
+      await waitFor(() => {
+        expect(createNodeMock).toHaveBeenCalledTimes(1);
+      });
+      await waitFor(() => {
+        expect(screen.queryByLabelText("submit-node")).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("toast anchor", () => {
+    it("publishes the bottom of the breadcrumb cluster", () => {
+      useParamsMock.mockReturnValue({ nodeId: "parent-node" });
+      useNodeMock.mockReturnValue(createNode({ id: "parent-node" }));
+
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      // The mocked cluster rect is 12 + 50 = 62px from the top.
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBe(62);
+    });
+
+    it("returns to the breadcrumb row on unmount", () => {
+      useParamsMock.mockReturnValue({ nodeId: "parent-node" });
+      useNodeMock.mockReturnValue(createNode({ id: "parent-node" }));
+
+      const { unmount } = render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBe(62);
+
+      unmount();
+
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBeNull();
+      expect(useToastAnchorStore.getState().dragActive).toBe(false);
+    });
+
+    it("returns to the breadcrumb row when the route becomes the Inbox", () => {
+      const parentNode = createNode({ id: "parent-node" });
+      const inboxNode = createNode({
+        id: "inbox-node",
+        title: "Inbox",
+        systemRole: "inbox",
+        hiddenFromGrid: true,
+      });
+      useParamsMock.mockReturnValue({ nodeId: parentNode.id });
+      useNodeMock.mockReturnValue(parentNode);
+
+      const { rerender } = render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBe(62);
+
+      useParamsMock.mockReturnValue({ nodeId: inboxNode.id });
+      useNodeMock.mockReturnValue(inboxNode);
+      rerender(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      expect(screen.queryByTestId("breadcrumbs")).not.toBeInTheDocument();
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBeNull();
+    });
+
+    it("clears the bottom when the Inbox resolves on the same route", () => {
+      const callbacks: ResizeObserverCallback[] = [];
+      vi.stubGlobal(
+        "ResizeObserver",
+        class ResizeObserver {
+          constructor(private readonly callback: ResizeObserverCallback) {
+            callbacks.push(callback);
+          }
+
+          disconnect() {}
+
+          observe() {
+            this.callback([], this);
+          }
+
+          unobserve() {}
+        },
+      );
+      const inboxNode = createNode({
+        id: "inbox-node",
+        title: "Inbox",
+        systemRole: "inbox",
+        hiddenFromGrid: true,
+      });
+      useParamsMock.mockReturnValue({ nodeId: inboxNode.id });
+      useNodeMock.mockReturnValue(null);
+
+      const { rerender } = render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBe(62);
+
+      useNodeMock.mockReturnValue(inboxNode);
+      rerender(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      callbacks.forEach((callback) => callback([], {} as ResizeObserver));
+
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBeNull();
+    });
+
+    it("reports a Node or Bit drag from its start to its end", async () => {
+      useParamsMock.mockReturnValue({});
+      useNodeMock.mockReturnValue(null);
+      const handleDragStart = vi.fn();
+      const handleDragEnd = vi.fn().mockResolvedValue(null);
+      useDndMock.mockReturnValue({ ...useDndMock(), handleDragStart, handleDragEnd });
+      const startEvent = { active: { id: "draggable-bit-1" } };
+
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(useToastAnchorStore.getState().dragActive).toBe(false);
+
+      act(() => dndContextProps.current?.onDragStart?.(startEvent));
+      expect(handleDragStart).toHaveBeenCalledWith(startEvent);
+      expect(useToastAnchorStore.getState().dragActive).toBe(true);
+
+      await act(async () => {
+        await dndContextProps.current?.onDragEnd?.({ active: { id: "draggable-bit-1" } });
+      });
+      expect(handleDragEnd).toHaveBeenCalledTimes(1);
+      expect(useToastAnchorStore.getState().dragActive).toBe(false);
+    });
+
+    it("clears the drag when it is cancelled, even though useDnd keeps its active item", () => {
+      useParamsMock.mockReturnValue({});
+      useNodeMock.mockReturnValue(null);
+      // useDnd has no cancel handler: an Escape-cancelled drag leaves its activeItem set.
+      useDndMock.mockReturnValue({
+        ...useDndMock(),
+        activeItem: { id: "bit-1", type: "bit", title: "Ship launch" },
+      });
+
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      act(() => dndContextProps.current?.onDragStart?.({ active: { id: "draggable-bit-1" } }));
+      expect(useToastAnchorStore.getState().dragActive).toBe(true);
+
+      act(() => dndContextProps.current?.onDragCancel?.({ active: { id: "draggable-bit-1" } }));
+      expect(useToastAnchorStore.getState().dragActive).toBe(false);
+    });
+
+    it("measures the breadcrumb when it appears after a stale Inbox node on client navigation", () => {
+      const inboxNode = createNode({
+        id: "inbox-node",
+        title: "Inbox",
+        systemRole: "inbox",
+        hiddenFromGrid: true,
+      });
+      const parentNode = createNode({ id: "parent-node" });
+      useParamsMock.mockReturnValue({ nodeId: inboxNode.id });
+      useNodeMock.mockReturnValue(inboxNode);
+
+      const { rerender } = render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBeNull();
+
+      // useNode keeps the previous node until the new one arrives, so the route
+      // changes first while `node` is still the Inbox.
+      useParamsMock.mockReturnValue({ nodeId: parentNode.id });
+      rerender(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(screen.queryByTestId("breadcrumbs")).not.toBeInTheDocument();
+
+      useNodeMock.mockReturnValue(parentNode);
+      rerender(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      expect(screen.getByTestId("breadcrumbs")).toBeInTheDocument();
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBe(62);
+    });
   });
 });

@@ -89,7 +89,7 @@ it("keeps actual Finder and ordinary card identities across shared theme rerende
   const ordinary = screen.getByRole("button", { name: "Ordinary Identity" });
   const actualBit = screen.getByText("Finder Bit").closest('[role="button"]');
   const ordinaryBit = screen.getByRole("button", { name: "Ordinary Bit" });
-  for (const theme of ["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"]) {
+  for (const theme of ["griddo", "neumorphism", "claymorphism", "retro-mac"]) {
     document.documentElement.dataset.colorTheme = theme;
     view.rerender(tree);
     expect(screen.getByRole("button", { name: "Finder Identity" })).toBe(finder);
@@ -125,7 +125,7 @@ it("keeps actual Finder and ordinary card identities across shared theme rerende
 });
 
 describe("Inbox/Triage shared theme realization — L1", () => {
-  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("retains a single semantic Pool tree under %s", theme => {
+  it.each(["griddo", "neumorphism", "claymorphism", "retro-mac"])("retains a single semantic Pool tree under %s", theme => {
     document.documentElement.dataset.colorTheme = theme;
     render(<ScratchPool />);
     const pool = screen.getByTestId("scratch-pool");
@@ -346,7 +346,7 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
 });
 
 describe("Task167 L2 shared theme conformance", () => {
-  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("preserves accessible Context Edit and sort while selecting their decoration in %s", theme => {
+  it.each(["griddo", "neumorphism", "claymorphism", "retro-mac"])("preserves accessible Context Edit and sort while selecting their decoration in %s", theme => {
     document.documentElement.dataset.colorTheme = theme;
     const style = document.createElement("style");
     style.dataset.task167SortLabels = "true";
@@ -379,7 +379,7 @@ describe("Task167 L2 shared theme conformance", () => {
     expect(within(context).getByRole("button", { name: "Edit" })).toBe(edit);
   });
 
-  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("preserves current-order names except the approved next-order presentation in %s", theme => {
+  it.each(["griddo", "neumorphism", "claymorphism", "retro-mac"])("preserves current-order names except the approved next-order presentation in %s", theme => {
     document.documentElement.dataset.colorTheme = theme;
     const style = document.createElement("style");
   style.dataset.task167SortLabels = "true";
@@ -399,7 +399,7 @@ describe("Task167 L2 shared theme conformance", () => {
     })).toBe(sort);
     expect(screen.getByTestId("selected-scratch-context")).toBe(context);
   });
-  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("keeps canonical identity/actions and staged source gates in %s", theme => {
+  it.each(["griddo", "neumorphism", "claymorphism", "retro-mac"])("keeps canonical identity/actions and staged source gates in %s", theme => {
     document.documentElement.dataset.colorTheme = theme;
     l2.stagedIds = new Set();
     const view = render(<BreakdownPanel />);
@@ -422,7 +422,7 @@ describe("Task167 L2 shared theme conformance", () => {
 });
 
 describe("one shared date body across all theme consumers", () => {
-  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("uses createdAt rather than mtime in Pool and Context for %s", theme => {
+  it.each(["griddo", "neumorphism", "claymorphism", "retro-mac"])("uses createdAt rather than mtime in Pool and Context for %s", theme => {
     vi.spyOn(Date, "now").mockReturnValue(new Date(2026, 5, 17, 12).getTime());
     document.documentElement.dataset.colorTheme = theme;
     inbox.bits = [{ ...scratch("first", "Date identity", new Date(2026, 4, 4).getTime()), mtime: Date.now() }];
@@ -594,7 +594,7 @@ describe("Neumorphism L4 replacement search (Task 176 Stage 3)", () => {
 });
 
 describe("L3 shared presentation tree", () => {
-  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("preserves shared neutral and unavailable meanings during real-target presentation in %s", theme => {
+  it.each(["griddo", "neumorphism", "claymorphism", "retro-mac"])("preserves shared neutral and unavailable meanings during real-target presentation in %s", theme => {
     document.documentElement.dataset.colorTheme = theme;
     const item = { kind: "triage-staged-node" as const, id: "candidate", label: "Research" };
     const projection = { candidates: [], integrityCandidates: [], operations: [] };
@@ -606,7 +606,7 @@ describe("L3 shared presentation tree", () => {
     expect(screen.queryByRole("button", { name: /unstage|retry/i })).not.toBeInTheDocument();
   });
 
-  it.each(["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"])("keeps wells quiet and drag preview pointer-inert in %s", theme => {
+  it.each(["griddo", "neumorphism", "claymorphism", "retro-mac"])("keeps wells quiet and drag preview pointer-inert in %s", theme => {
     document.documentElement.dataset.colorTheme = theme;
     render(<><StagingZone type="node" projection={{ candidates: [], integrityCandidates: [], operations: [] }} /><StagingZone type="bit" projection={{ candidates: [], integrityCandidates: [], operations: [] }} /><TriageDragToken item={{ kind: "triage-breakdown", id: "l3-row", label: "Research note", scratchId: "first", sourceBreakdownId: "l3-row", sourceVersion: 1, sourceLifecycle: "active" }} /></>);
     expect(screen.getByTestId("node-staging-zone")).toHaveAttribute("data-empty", "true");
@@ -633,7 +633,7 @@ describe("Inbox/Triage shared theme realization — L4 replacement search", () =
     const undo = screen.getByRole("button", { name: "Check again" });
     const viewport = screen.getByRole("list", { name: "1 results" });
     undo.focus();
-    for (const theme of ["griddo", "tiny-desk", "neumorphism", "claymorphism", "origami", "terminal", "retro-mac", "graphite"]) {
+    for (const theme of ["griddo", "neumorphism", "claymorphism", "retro-mac"]) {
       for (const mode of ["light", "dark"]) {
         document.documentElement.dataset.colorTheme = theme;
         document.documentElement.classList.toggle("dark", mode === "dark");
@@ -742,7 +742,7 @@ describe("Phase 41 Scratch Trash realization (Task 210)", () => {
   });
 
   it("renders the Context [X] as a labelled button in every theme", () => {
-    for (const theme of ["griddo", "retro-mac", "graphite"]) {
+    for (const theme of ["griddo", "retro-mac"]) {
       document.documentElement.dataset.colorTheme = theme;
       const view = render(<BreakdownPanel />);
       expect(
@@ -756,7 +756,7 @@ describe("Phase 41 Scratch Trash realization (Task 210)", () => {
 describe("Phase 41 Retro Mac departure sheet realization (Task 211)", () => {
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
   const start = css.indexOf("/* Phase 41 (Task 211)");
-  const block = css.slice(start, css.indexOf(':root[data-color-theme="graphite"] .breakdown-departure-sheet', start));
+  const block = css.slice(start, css.indexOf("@media (prefers-reduced-motion: reduce) {\n  .breakdown-reliability,", start));
   const rule = (selector: string) =>
     block.match(new RegExp(`${selector.replace(/[.[\]()*>]/g, "\\$&")} \\{([^}]*)\\}`))?.[1] ?? "";
 
