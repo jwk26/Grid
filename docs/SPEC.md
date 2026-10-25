@@ -1788,6 +1788,8 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/db/database.types.ts` *(Phase 42, generated)* | `supabase gen types typescript` output; types the row converter (S33) |
 | `src/lib/db/row-mapping.ts` *(Phase 42)* | snake_case database rows ↔ camelCase TypeScript types, at the snapshot loader and the function-result boundary only (S11) |
 | `src/lib/db/snapshot-store.ts` *(Phase 42)* | Account snapshot: base, pending-write layer, envelope application, refetch, subscriptions (Decision 19) |
+| `src/lib/db/supabase-calls.ts` *(Phase 42)* | One typed wrapper per database function the snapshot store calls (`get_snapshot`, `ensure_account`, `update_node`; later tasks add theirs), and the reserved breadcrumb cells passed until Task 249 |
+| `src/lib/db/boundary-cases.ts` *(Phase 42)* | One table of boundary values per field rule, run against the Zod schemas and the database CHECKs so both give the same verdict (S12, S33) |
 | `src/lib/db/supabase-store.ts` *(Phase 45)* | `DataStore` implementation: reads over the snapshot, one RPC per write |
 | `src/lib/db/connection-monitor.ts` *(Phase 47)* | Connection state from request results: normal, unstable, offline; recovery probe |
 | `src/lib/auth/session.ts` *(Phase 45)* | Guest entry (anonymous sign-in, later Turnstile), OAuth, sign-out, refresh-failure detection, `ensure_account()` call |
@@ -1810,6 +1812,7 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/copy/feedback.ts` *(Phase 49)* | Toast, app-state and blocking copy (F14); Task 244 creates it with the create-dialog sentence |
 | `supabase/config.toml`, `supabase/migrations/`, `supabase/tests/` *(Phase 42)* | Local Supabase configuration, migrations in Git, `pnpm test:db` suites |
 | `vitest.db.config.ts` *(Phase 42)* | Vitest configuration for `pnpm test:db` (local Supabase), kept apart from `pnpm test` |
+| `scripts/verify/` *(Phase 42)* | Hosted Supabase checks run locally with `--local` and then on production: the write-role proof, `pg_cron`, the API surface and the D8 measurement; production values live outside Git (README) |
 | `.env.local.example` *(Phase 42)* | Names of the public env vars; values live in git-ignored `.env.local` |
 | `scripts/backup/` *(Phase 48)* | The weekly `supabase db dump` job and its scheduler file, with no secret |
 | `src/lib/db/schema.ts` | Zod validation schemas and TypeScript types (from SCHEMA.md) |
