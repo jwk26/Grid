@@ -2266,10 +2266,11 @@ logs); each task reads its notes at its start.
 ### Task 219: [ ] Port the Node, Bit and Chunk write functions
 
 **Files and actions:**
-- Migrations: `create_node`, `update_node` (extended from Task 217 where
-  needed, including system-Node `hiddenFromGrid` with first-free-cell
-  placement on show through `internal.pick_free_cell` and
-  `p_reserved_cells`), `create_bit`, `update_bit` (with the parent deadline
+- Migrations: `create_node`, `update_node` (extended from Task 217 only where
+  this task's hooks need it; system-Node `hiddenFromGrid` with first-free-cell
+  placement on show through `internal.pick_free_cell` and `p_reserved_cells`
+  is already in Task 217's function and suite, so it is kept and rechecked,
+  not rebuilt — Phase 43 start drift D1), `create_bit`, `update_bit` (with the parent deadline
   extension, Hook 2), `create_chunk`, `update_chunk` (with the parent Bit
   extension for the Calendar answer, Hook 2), `delete_chunk`, `reorder_chunks`
   (one call for a Chunk reorder); Hooks
