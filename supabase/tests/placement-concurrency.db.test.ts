@@ -123,6 +123,31 @@ describe("concurrency (placement)", () => {
     }
   }, 60_000);
 
+  it("a placement and the trash of an ancestor of the target, in both orders", async () => {
+    const t = await fresh("plcx-anc-trash-1", false);
+    try {
+      const into = { ...t.place, target: t.mid, path: [t.target, t.mid] };
+      // Trash first: the placement waits for the Mid row the trash locked, then finds it deleted.
+      const [a, b] = await race(t.u, (db) => call(db, "soft_delete_node", [t.target]), (db) => placeDirect(db, into), "place_direct_breakdown");
+      expect(a.status).toBe("applied");
+      expect(b).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      expect(await rowOf(t.owner, "scratch_breakdowns", t.src)).toMatchObject({ version: 3, consumed_at: null });
+      expect(await countWhere(t.owner, "bits", "parent_id = $1", [t.mid])).toBe(0);
+    } finally {
+      await t.owner.end();
+    }
+    const u = await fresh("plcx-anc-trash-2", false);
+    try {
+      const into = { ...u.place, target: u.mid, path: [u.target, u.mid] };
+      // Placement first: the trash waits and then trashes the new Bit with the ancestor.
+      const [a, b] = await race(u.u, (db) => placeDirect(db, into), (db) => call(db, "soft_delete_node", [u.target]), "soft_delete_node");
+      expect(statuses(a, b)).toEqual(["applied", "applied"]);
+      expect(await rowOf(u.owner, "bits", into.result)).toMatchObject({ deleted_at: expect.any(Number) });
+    } finally {
+      await u.owner.end();
+    }
+  }, 60_000);
+
   it("a placement and a move of an ancestor of the target: the path check sees the move", async () => {
     const t = await fresh("plcx-move", false);
     try {
