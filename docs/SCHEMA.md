@@ -1348,9 +1348,12 @@ Which writes recompute the Bit's status (user, 2026-10-25; today Dexie
 recomputes on every `updateChunk`, so a Chunk title edit or a reorder returns
 a hand-completed Bit to `"active"`; this replaces that behavior):
 
-- A Chunk status change, a Chunk create and a Chunk delete recompute it as
-  `updateBitCompletionAndCascade` does: every Chunk complete (at least one
-  Chunk) → `"complete"`; on an uncheck the sticky rule above; otherwise
+- A Chunk status change, a Chunk create and a Chunk delete recompute it:
+  every Chunk complete (at least one Chunk) → `"complete"`; on an uncheck the
+  sticky rule above; a create → `"active"` (new work); a check or a delete
+  never returns a `"complete"` Bit to `"active"`, so a hand-completed Bit
+  stays `"complete"` (user, 2026-10-25; Dexie's
+  `updateBitCompletionAndCascade` returned it to `"active"`); otherwise
   `"active"`.
 - A Chunk title or time edit does not recompute it; it only touches `mtime`
   (Hook 1).
