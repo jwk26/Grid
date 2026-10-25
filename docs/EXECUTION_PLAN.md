@@ -2298,7 +2298,7 @@ every function passes its cross-account, concurrency and change-set cases;
 
 **Commit message:** `feat(db): port the node, bit and chunk write functions`.
 
-### Task 220: [ ] Port the lifecycle write functions
+### Task 220: [x] Port the lifecycle write functions
 
 **Files and actions:**
 - Migrations: `soft_delete_node`, `soft_delete_bit`, `restore_node`,

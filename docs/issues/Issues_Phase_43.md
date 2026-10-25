@@ -77,8 +77,8 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 ## Task 220 — Port the lifecycle write functions
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: user acceptance of Task 220 (Checkpoint: Stage 4 — Promotion, with the task finish record)
+- Status: Accepted
+- Next: Task 221
 - Open: none
 
 ### Log
@@ -147,3 +147,9 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 - Task summary: thirteen public functions in four migrations (`soft_delete_node`, `soft_delete_bit`, `restore_node`, `restore_bit`, `archive_node`, `archive_bit`, `unarchive_node`, `unarchive_bit`, `hard_delete_node`, `hard_delete_bit`, `empty_trash`, `cleanup_expired_trash`, `promote_bit_to_node`) and their internal helpers. Migrations are local only; Task 218's production run applies them when you approve (CLAUDE.md Production). After they reach production, rerun `node scripts/verify/hosted-roles.mjs`; each client write function adds one accepted Security Advisor warning.
 - Please check: (1) the long-title behaviour of promotion (CHECK error, no truncation); (2) `invalid_target` for a trashed or archived Bit and `parent_inactive` for an inactive parent; (3) the deviations from Dexie recorded in the Stage 1–3 checkpoints.
 - Unresolved: none.
+- Review (advisory, 2026-10-25, task finish): approve with changes. Stage 4: `promote_bit_to_node` follows work-plan review item (8) (limits on the count after the call through `limit_reached(user, table, delta)`, Grid → Node → Bit → Chunk locks with a retry for a moved Bit, cells in Chunk `order` outside the reserved cells, server-generated ids with the new Node id in `result.id`, `grid_full` rolled back, concurrency with `create_chunk`, a rename and a create into the Bit's cell); `changes` carries the new Node, the new Bits, the parent and the deleted Bit and Chunk ids. Task: acceptance holds (thirteen functions in four migrations, the "no live item under an inactive Node" concurrency cases, `cleanup_expired_trash` advances `last_visit_at`, `coverage.db.test.ts`), full gate green, MI-1 did not recur, `expert` review with no blocking finding and its window-edge test gap fixed in b505abe. Apply: (1) Current state names the finish stop (done in f212523); (2) the Task 221 and Task 227 notes below. Not applied: none.
+- Decision: promotion of a Bit whose title is over 100 characters (the Node limit) keeps failing with the CHECK error and writes nothing (S16; no truncation, no new rejection code); the client stops offering Promote for such a Bit (Task 227 note) (user, 2026-10-25).
+- Decision: `invalid_target` for a trashed or archived Bit and `parent_inactive` for an inactive parent in `promote_bit_to_node` are accepted (user, 2026-10-25).
+- Task 221 note (advisory, 2026-10-25): reuse `internal.lock_bit_and_node`, `lock_grid`, `cell_taken`, `limit_reached(user, table, delta)` and the `deleted` lists of `internal.purge_changes`; `soft_delete_bit` and `archive_bit` refuse an Inbox Scratch with `invalid_target`, so the Trash Scratch and Archive Scratch commands are the only paths; the Trash restore and the unarchive of a Scratch are already `restore_bit` / `unarchive_bit` (the (0,0) sentinel kept, version + 1) and are not rebuilt in Phase 44.
+- Task 227 note (advisory, 2026-10-25): a lifecycle call on an item already in the target state returns `applied` with the current rows; `restore_*` and `unarchive_*` add the rejection `parent_inactive`; `promote_bit_to_node` returns the new Node id in `result.id`, the Node and its Bits are read from `changes`; `empty_trash()` is one call, so the `Node not found:` catch in `use-trash-actions.ts` goes; `canPromote` in `bit-detail-popup.tsx` also requires the Bit title to fit the Node limit (100), per the Decision above.
+- Decision: Task 220 accepted (user, 2026-10-25).
