@@ -677,7 +677,7 @@ satisfy the original Stage postcondition"; deleting a staged source is refused
 
 **Commit message:** `feat(db): port the stage and unstage commands`.
 
-### Task 223: [ ] Port the Placement and Undo commands
+### Task 223: [x] Port the Placement and Undo commands
 
 **Files and actions:** migrations for `place_staged_candidate`,
 `place_direct_breakdown`, `undo_staged_placement`, `undo_direct_placement`
