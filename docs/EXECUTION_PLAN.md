@@ -634,7 +634,7 @@ reads its notes at its start.
 Each command keeps the SCHEMA command/result contract. The confirmed-orphan
 command and its audit store are not ported (S18).
 
-### Task 221: [ ] Port the Breakdown and Scratch title commands
+### Task 221: [x] Port the Breakdown and Scratch title commands
 
 **Files and actions:** migrations for `add_breakdown`, `save_scratch_title`,
 `save_breakdown`, `delete_breakdown` and their read-only reconcile functions
