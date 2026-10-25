@@ -156,3 +156,98 @@ cleanup, or Phase 30–31 implementation occurred during candidate preparation.
 
 **Comparative workflow audit:**
 [`docs/verification/inbox-triage/phase-29-workflow-pilot-audit.md`](../../verification/inbox-triage/phase-29-workflow-pilot-audit.md)
+
+## Task Contracts
+
+The accepted task contracts, moved verbatim from `docs/EXECUTION_PLAN.md`
+on 2026-10-25; relative links are rebased to this folder.
+
+### Canonical two-track gate
+
+Phase 29 runs two equal-weight tracks under its own approved Gate C and a fresh
+branch/worktree:
+
+- **Track A — product:** implement and accept Tasks 155–158 under their exact
+  existing contracts.
+- **Track B — workflow audit:** replicate the unchanged candidate commit
+  `94e89782f7fe2cdbdd035e842ca6881b4a87ce49`, record actual measurements,
+  compare Phases 28 and 29, and produce exact unapplied skill/reference/test
+  improvement handoff. Its continuity owner is
+  `docs/verification/inbox-triage/phase-29-workflow-pilot-audit.md`.
+
+Every Task 155–158 implementation checkpoint is incomplete until both product
+evidence and the matching audit row are committed. An acceptance-only commit
+does not change the audit. The product contract is not duplicated into the
+audit, and audit measurements are not repeated in the task sections.
+
+Phase 29 may close only when Tasks 155–158 are `[x]`, Accepted and the audit
+contains four task measurement rows, finding/limitation disposition, a Phase
+28/29 comparison, a `retain` / `change` / `reject` / `insufficient evidence`
+verdict for every `WF28-01`–`WF28-11` item, answers to all seven decision
+questions, and the exact skill/reference/test change plan that was not applied
+during the phase. Candidate skill and Adapter files remain read-only throughout
+Phase 29. The pilot does not automatically extend to a third phase.
+
+### Task 155: [x] Project Newly Placed provenance over actual cards
+
+**Files and actions:** create canonical `src/hooks/use-triage-newly-placed.ts` and `.test.tsx`; modify `src/components/triage/triage-workspace.tsx` and `.test.tsx`, `src/components/triage/hierarchy-explorer.tsx` and `.test.tsx`, `src/components/grid/node-card.tsx` and `.test.tsx`, and `src/components/grid/bit-card.tsx` and `.test.tsx`. Instantiate the hook at the mounted Inbox page/workspace, never in `triage-store`; register only Task 152 placements started/confirmed by that mounted page using stable result/type/source/candidate/operation provenance; layer a semantic marker slot on actual NodeCard/BitCard; pin locally new Nodes/Bits newest-first within their type projection without changing stored x/y; preserve marker across Scratch/path/theme changes; clear marker/pinning/Undo provenance on Inbox route exit/reload/unmount, not Scratch switch. Remote/other-tab records remain ordinary. Add no second Newly owner and do not redesign cards.
+
+**Dependencies:** Tasks 123 and 152.
+
+**Authority / flows:** `UF-24`; `AF-05`, `AF-09`; `NEG-11`, `NEG-17`; `D-CARD`.
+
+**Recipe:** [`Newly placed and Undo`](../../recipes/inbox-triage-newly-placed-undo-visual-recipe.md).
+
+**Observable acceptance:** marker is on the real card, independent from selection, and appears only for local mounted-page results; x/y remains unchanged; multiple markers/type pinning survive Scratch/path/theme change; route exit/reload clears; no Zustand/Newly persistence or duplicate card model exists.
+
+**Verification:** focused hook/Workspace/Explorer/NodeCard/BitCard tests; run local/remote Node/Bit, multiple results, selection overlap semantics, pinning, Scratch/path/theme, route exit, and reload, recording `docs/verification/inbox-triage/task-155.md`; `pnpm typecheck`.
+
+**Commit contract:** canonical mounted-page Newly owner, actual-card semantic slots, tests, and Task 155 evidence only; `feat(triage): project newly placed cards`.
+
+### Task 156: [x] Connect ordinary-card source-aware Undo independently of search
+
+**Files and actions:** modify `src/hooks/use-triage-newly-placed.ts` and `.test.tsx`, `src/components/triage/hierarchy-explorer.tsx` and `.test.tsx`, `src/components/grid/node-card.tsx` and `.test.tsx`, and `src/components/grid/bit-card.tsx` and `.test.tsx`; extend `src/hooks/use-triage-operation-lock.test.tsx`. Derive ordinary-card Undo availability/reason from exact current result/source/candidate/dependency truth; keep marker and eligibility separate; stop Undo activation from bubbling into card navigation. Before dispatch, synchronously acquire Task 136's shared `undo` lock; retain actual card/source and the complete matrix through pending/unknown/reconciling, reject duplicate/competing action without queue/replay, and release only on terminal result. Another active owner, result mutation, descendants, open placement, or dirty Edit intent disables Undo; re-enable after terminal release or child-first Undo. Restore staged/direct source/candidate/path and focus. Do not import or depend on Explorer search or `DP-VQ07`.
+
+**Dependencies:** Tasks 124, 136, 137, 139, 152, and 155; deliberately not Tasks 114 or 151.
+
+**Authority / flows:** ordinary-column portion of `UF-25`; `AF-02`, `AF-07`, `AF-09`; `NEG-18`, `NEG-20`.
+
+**Recipe:** [`Newly placed and Undo`](../../recipes/inbox-triage-newly-placed-undo-visual-recipe.md).
+
+**Observable acceptance:** ordinary cards expose base Undo placement/semantics without Search; selection/navigation never revokes eligibility; Undo acquires once, keeps the full matrix through unknown/reconciliation, and releases only at terminal; blocked intents write/navigate/replay nothing; child-first recovery re-enables; staged restores same candidate provenance, direct does not invent one; success focuses next card → previous → column heading.
+
+**Verification:** focused operation-lock/hook/Explorer/card/departure tests for staged/direct, the complete pending matrix, duplicate/competing acquisition, mutation, descendants, child-first, dirty Edit, pending/unknown/reconcile/terminal release, event propagation, and focus; run ordinary-card flows and record `docs/verification/inbox-triage/task-156.md`; `pnpm typecheck`.
+
+**Commit contract:** ordinary-card Undo model/adapter, tests, and Task 156 evidence only; `feat(triage): connect ordinary card undo`.
+
+### Task 157: [x] Render `DP-VQ10` Newly and Undo states
+
+**Files and actions:** after `DP-VQ10`, modify `src/hooks/use-triage-newly-placed.ts` and `.test.tsx`, `src/components/triage/hierarchy-explorer.tsx` and `.test.tsx`, `src/components/grid/node-card.tsx` and `.test.tsx`, `src/components/grid/bit-card.tsx` and `.test.tsx`, `src/app/globals.css`, `src/lib/copy/inbox-triage.ts` and `.test.ts`. Populate approved wording and render selected+newly overlap, available/ineligible/re-enabled reasons, undoing/failure/reconcile/retry/conflict, marker/control placement, timing, focus, reduced motion, and themes without repeated motion or common-card redesign.
+
+**Dependencies:** Tasks 117, 128, 155, and 156.
+
+**Authority / flows:** `DP-VQ10`, `UF-24`, `UF-25`; `NEG-11`, `NEG-21`; `D-CARD`.
+
+**Recipe:** [`Newly placed and Undo`](../../recipes/inbox-triage-newly-placed-undo-visual-recipe.md).
+
+**Observable acceptance:** marker, selection, and eligibility are independently perceivable; reasons work by keyboard/touch without hover; all result states are exact; no pulse/flicker or card redesign occurs.
+
+**Verification:** focused hook/Explorer/card/copy state tests; run overlap, every reason/result, child-first re-enable, keyboard/touch, focus, reduced motion, and themes, recording `docs/verification/inbox-triage/task-157.md`; `pnpm typecheck`.
+
+**Commit contract:** DP-VQ10 copy/realization, tests, styles, and Task 157 evidence only; `feat(triage): render newly placed undo states`.
+
+### Task 158: [x] Integrate Undo into Explorer search results only
+
+**Files and actions:** modify `src/components/triage/grid-explorer-search-results.tsx` and `.test.tsx`, `src/components/triage/hierarchy-explorer.tsx` and `.test.tsx`, `src/hooks/use-grid-explorer-search.ts` and `.test.tsx`, and `src/hooks/use-triage-newly-placed.ts` and `.test.tsx`. Reuse Tasks 156–157 Undo model/realization in the `DP-VQ07` body without making search rows DnD sources. Locally placed records enter matching results immediately. Undo from a result retains active query/scroll, removes only the undone result after terminal success, announces source restoration, and focuses the next surviving result at the removed row's position when one exists; otherwise it focuses the search input, with no previous-result fallback. Unknown/failure keeps the result. Do not change ordinary-column Undo dependencies or behavior.
+
+**Dependencies:** Tasks 114, 151, 156, and 157.
+
+**Authority / flows:** search-only portions of `UF-19`, `UF-25`; `AF-02`, `AF-09`; `NEG-10`, `NEG-18`.
+
+**Recipe:** [`Grid Explorer`](../../recipes/inbox-triage-grid-explorer-visual-recipe.md) and [`Newly placed and Undo`](../../recipes/inbox-triage-newly-placed-undo-visual-recipe.md).
+
+**Observable acceptance:** result Undo preserves query, removes only the terminally undone result, focuses the next result or otherwise the search input with no previous-result fallback, and never becomes a drag source; ordinary Undo remains usable even if `DP-VQ07`/Task 151 was delayed before this search-only task.
+
+**Verification:** focused results/search/Newly/Explorer tests; run matching/nonmatching local result, pending/failure/unknown/success, list-edge focus, query retention, route exit, and ordinary-column regression, recording `docs/verification/inbox-triage/task-158.md`; `pnpm typecheck`.
+
+**Commit contract:** search-result Undo integration, tests, and Task 158 evidence only; `feat(triage): integrate undo in explorer search`.
