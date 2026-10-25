@@ -144,4 +144,44 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "before + changes equals after for trash, restore, no-ops and rejections",
     },
   },
+  archive_node: {
+    crossAccount: {
+      file: "archive-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "archive-writes.db.test.ts",
+      title: "before + changes equals after for archive, unarchive, no-ops and rejections",
+    },
+  },
+  archive_bit: {
+    crossAccount: {
+      file: "archive-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "archive-writes.db.test.ts",
+      title: "before + changes equals after for archive, unarchive, no-ops and rejections",
+    },
+  },
+  unarchive_node: {
+    crossAccount: {
+      file: "archive-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "archive-writes.db.test.ts",
+      title: "before + changes equals after for archive, unarchive, no-ops and rejections",
+    },
+  },
+  unarchive_bit: {
+    crossAccount: {
+      file: "archive-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "archive-writes.db.test.ts",
+      title: "before + changes equals after for archive, unarchive, no-ops and rejections",
+    },
+  },
 };

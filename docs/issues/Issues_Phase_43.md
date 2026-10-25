@@ -77,8 +77,8 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 ## Task 220 — Port the lifecycle write functions
 
 ### Current state
-- Status: In Progress
-- Next: Stage 2 (archive) checkpoint
+- Status: Awaiting User Decision
+- Next: Stage 2 (archive) acceptance
 - Open: none
 
 ### Log
@@ -107,3 +107,13 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 - Decision: the `parent_inactive` rule and the top-first ancestor restore are accepted; a Node inside the 5 s window is restored only when its parent is restored or active (deviation from Dexie, which restored it under a Node left trashed) (user, 2026-10-25).
 - Review applied (Stage 1, 2026-10-25): (1) `internal.lock_restore` finds the topmost ancestor in the same state from an unlocked read, runs `lock_tree` on it (its subtree with the same-window siblings, its chain, the Grids and the Bits) and checks the topmost ancestor again under the locks; `restore_node` and `restore_bit` use it. New test: after `restore_node(G)` with R trashed above C, a second connection's `pg_try_advisory_xact_lock` on the Grid keys of S, R, C and L0 returns false. Mutation check: with `lock_restore` locking only the called Node the test fails; reverted, the migration is unchanged from the applied state. (2) The raw-`update` case "a create into a Node that is being trashed" is removed from `node-bit-writes.db.test.ts` (covered by the real `soft_delete_node` cases). (3) Noted, no change: a `lock_tree` retry can take a Grid key below one it already holds, so a rare `40P01` is possible; it ends as a failed write (same class as Task 217 L4). `pnpm test:db` 532/532, `typecheck` pass.
 - Decision: Stage 1 accepted with the review above (user, 2026-10-25).
+
+### Checkpoint (Stage 2 — Archive)
+- Changed: `supabase/migrations/20261030000000_archive_writes.sql` (`archive_node`, `archive_bit`, `unarchive_node`, `unarchive_bit`; the unarchive pair reuses Stage 1's `lock_restore` and `restore_tree` with `p_deleted = false`, so the locks, the 5 s window, the parent chain and the cell picking are shared code); `supabase/tests/archive-writes.db.test.ts` (32 cases); `function-cases.ts`; `database.types.ts` regenerated.
+- Verified: `pnpm test:db` 564/564, `pnpm typecheck`, `pnpm lint` (0 errors, 11 existing warnings), `git diff --check origin/main...HEAD`. `pnpm test` and `pnpm build` run at the task finish (no `src` code changed).
+- Review items applied: (3) the archive cascade sets `archived_at` only where it is null (trashed descendants still get it); test with real calls (archive the child, archive the root, unarchive the root, the child and its Bit stay archived at their own time); mutation check: dropping `and archived_at is null` from `archive_node` fails exactly that test, reverted. (5) `parent_inactive` for an unarchive under a trashed parent; ancestors in the same state come back top first with their windows and same-window siblings (tested). (6) `unarchive_bit` of an Inbox Scratch keeps (0,0). (7) `grid_full` writes nothing (Node and Bit). Concurrency: archive vs create in a descendant Grid (the Bit is archived with it, or the create is `parent_inactive`), archive vs a Node moved into the subtree, `unarchive_node(A)` vs `unarchive_bit` under A (no `40P01`), unarchive vs create into the original cell (both orders), `archive_bit` vs `update_bit`.
+- Ported from `archive.test.ts`: shared timestamp and versions, system Node refused, only the target Bit, Inbox Scratch refused without mutation, same-window restore with an independently archived descendant kept, parent chain restore, no `deleted_at` change, the Bit-under-a-still-archived-Node regression. `archive-sweep.test.ts` is client reads except its two `createNode` cases (a cell held only by an archived or hidden Node is free), which `node-bit-writes.db.test.ts` already covers.
+- Note (deviation from Dexie): `archive_node` of an Inbox-parented or system item is `invalid_target` instead of a thrown error; `archive_bit` of a Scratch likewise (the Archive Scratch command is Phase 44).
+- Please check: (1) the archive cascade now leaves an independently archived descendant at its own time (Dexie overwrote it); (2) the unarchive rules match the trash restore rules of Stage 1.
+- Unresolved: none.
+

@@ -147,7 +147,13 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "create_bit":
+            "archive_bit":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"archive_node":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"create_bit":
 { Args: { "p_id": string,"p_values": Json }; Returns: Json
                            },
 "create_chunk":
@@ -179,6 +185,12 @@ isOneToOne: false
                            },
 "soft_delete_node":
 { Args: { "p_id": string }; Returns: Json
+                           },
+"unarchive_bit":
+{ Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"unarchive_node":
+{ Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
                            },
 "update_bit":
 { Args: { "p_changes": Json,"p_extend_parent"?: boolean,"p_id": string }; Returns: Json
