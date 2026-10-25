@@ -21,3 +21,7 @@ export const INBOX_BADGE_HIGH_THRESHOLD = 15;
 // Display delay (feedback F02): a pending or reconciling presentation shows only
 // after this long. It postpones presentation and never decides success.
 export const DISPLAY_DELAY_MS = 300;
+
+// Account snapshot writes (SPEC Write feel, Architecture Decision 19)
+export const REQUEST_TIMEOUT_MS = 15000;
+export const CONNECTION_PROBE_INTERVAL_MS = 30000;

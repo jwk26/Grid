@@ -115,6 +115,16 @@
 
 ---
 
+## Supabase / Postgres
+
+**A full disk can leave Docker image layers with empty files.** When the system disk filled during `supabase start`, extracted layers kept 0-byte files, and later pulls reused them: `pgsodium_getkey.sh` was empty, so the database container exited with `FATAL: invalid secret key`, identically with a fresh `supabase init`. Remove the images, prune, pull again and check a known file's size (`pgsodium_getkey.sh` = 208 bytes). Keep about 10 GB free for local Supabase. *(Phase 42, Task 213, MI-3)*
+
+**postgrest-js reports a request that got no response as status 0, not as a thrown error.** An `rpc()` whose connection drops resolves with `status: 0` and an error object, so code that only catches exceptions treats a write of unknown outcome as an ordinary failure. Map status 0 to the unknown outcome (refetch, never resend). *(Phase 42, Task 217)*
+
+**Apply envelope rows by version, not by arrival.** Two writes to different records of one account can answer out of commit order, and a cascade (a move that changes a descendant's `level`) makes the older answer carry an older copy of the newer record. Ignore an upserted row whose `version` is lower than the base row's; apply an equal one. *(Phase 42, Task 217, MI-6)*
+
+---
+
 ## Workflow / Process
 
 **Spec ambiguities break delegation.** Codex follows formulas literally. Resolve any contradiction in docs *before* delegating — ambiguous specs produce spec-conformant but wrong implementations. *(Phase 1)*
@@ -142,3 +152,5 @@
 **A regression task returns behavior defects through a bounded repair task.** When the final regression task finds a shared component or hook defect that predates the phase, an Opus session plans a separate repair task with its own scope review, and the regression task waits for its acceptance. The regression task never fixes it in place. *(Phase 34, Tasks 171A and 172)*
 
 **Prove dev-only code is out of the production build with a non-vacuous search.** Gate the import behind `process.env.NODE_ENV === "development"` with a dynamic import, put a unique marker string in the dev-only module, then search the production output (`.next/static`, `.next/server`) for it and confirm the dev output does contain it. Source maps may still quote the gating source; executable chunks must not. *(Phase 49, Task 243)*
+
+**Run `git diff --check` over the branch, not the working tree.** Bare `git diff --check` sees only uncommitted changes, so whitespace in an already committed file passes every task gate and fails at phase close (`git diff --check origin/main...HEAD`). Run the range form in task gates. *(Phase 42 close)*

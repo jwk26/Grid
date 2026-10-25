@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { GRID_COLS, GRID_ROWS } from "@/lib/constants";
+import { baseEntities, boundaryCases } from "@/lib/db/boundary-cases";
 import * as dbSchema from "@/lib/db/schema";
 import {
   createBitSchema,
   createChunkSchema,
   createNodeSchema,
+  bitSchema,
+  chunkSchema,
   createScratchBreakdownSchema,
   nodeSchema,
   scratchBreakdownSchema,
+  stagedCandidateSchema,
 } from "@/lib/db/schema";
 import type {
   CandidateOrphanAuditEvent,
@@ -549,4 +553,29 @@ describe("schema", () => {
       startedAt: timestamp,
     });
   });
+});
+
+describe("boundary cases (shared with the database constraints)", () => {
+  const schemas = {
+    node: nodeSchema,
+    bit: bitSchema,
+    chunk: chunkSchema,
+    scratchBreakdown: scratchBreakdownSchema,
+    stagedCandidate: stagedCandidateSchema,
+  };
+
+  it("accepts every base entity", () => {
+    for (const [entity, schema] of Object.entries(schemas)) {
+      const base = baseEntities[entity as keyof typeof baseEntities];
+      expect(schema.safeParse(base).success, entity).toBe(true);
+    }
+  });
+
+  it.each(boundaryCases.map((boundary) => [`${boundary.entity}.${boundary.label}`, boundary] as const))(
+    "%s",
+    (_name, boundary) => {
+      const row = { ...baseEntities[boundary.entity], [boundary.field]: boundary.value };
+      expect(schemas[boundary.entity].safeParse(row).success).toBe(boundary.valid);
+    },
+  );
 });
