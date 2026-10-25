@@ -147,7 +147,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "archive_bit":
+            "add_breakdown":
+{ Args: { "p_breakdown_id": string,"p_content": string,"p_scratch_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
+"archive_bit":
 { Args: { "p_id": string }; Returns: Json
                            },
 "archive_node":
@@ -186,6 +189,12 @@ isOneToOne: false
 "promote_bit_to_node":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
                            },
+"reconcile_add_breakdown":
+{ Args: { "p_breakdown_id": string,"p_content": string,"p_scratch_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
+"reconcile_save_scratch_title":
+{ Args: { "p_base_title": string,"p_expected_version": number,"p_scratch_id": string,"p_title": string }; Returns: Json
+                           },
 "reorder_chunks":
 { Args: { "p_bit_id": string,"p_chunk_ids": (string)[] }; Returns: Json
                            },
@@ -194,6 +203,9 @@ isOneToOne: false
                            },
 "restore_node":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"save_scratch_title":
+{ Args: { "p_base_title": string,"p_expected_version": number,"p_scratch_id": string,"p_title": string }; Returns: Json
                            },
 "soft_delete_bit":
 { Args: { "p_id": string }; Returns: Json
