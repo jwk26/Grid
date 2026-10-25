@@ -264,6 +264,26 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "before + changes equals after for Stage, Unstage and their rejections",
     },
   },
+  place_staged_candidate: {
+    crossAccount: {
+      file: "placement-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "placement-commands.db.test.ts",
+      title: "before + changes equals after for placements, reconciles and their rejections",
+    },
+  },
+  reconcile_place_staged_candidate: {
+    crossAccount: {
+      file: "placement-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "placement-commands.db.test.ts",
+      title: "before + changes equals after for placements, reconciles and their rejections",
+    },
+  },
   promote_bit_to_node: {
     crossAccount: {
       file: "promote-bit.db.test.ts",
