@@ -392,8 +392,9 @@ begin
     return internal.envelope('conflict', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, p_candidate_id));
   end if;
 
+  -- Title length in UTF-16 units, as the column check and the client count it.
   v_max := case p_result_type when 'node' then 100 else 200 end;
-  if length(p_title) < 1 or length(p_title) > v_max then
+  if (char_length(p_title) + char_length(regexp_replace(p_title, '[^\U00010000-\U0010FFFF]', '', 'g'))) < 1 or (char_length(p_title) + char_length(regexp_replace(p_title, '[^\U00010000-\U0010FFFF]', '', 'g'))) > v_max then
     return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, p_candidate_id),
                              jsonb_build_object('code', 'invalid_input'));
   end if;
@@ -527,7 +528,7 @@ create function public.reconcile_place_staged_candidate(
              and exists (select 1 from cand, bysrc where bysrc.id = cand.id and cand.source_breakdown_id = p_source_id
                            and cand.scratch_bit_id = p_scratch_id and cand.lifecycle = 'staged'
                            and cand.result_type = p_result_type and cand.version = p_candidate_expected_version)
-             and length(p_title) between 1 and (case p_result_type when 'node' then 100 else 200 end)
+             and (char_length(p_title) + char_length(regexp_replace(p_title, '[^\U00010000-\U0010FFFF]', '', 'g'))) between 1 and (case p_result_type when 'node' then 100 else 200 end)
              and tgt.ok
              and p_x between 0 and 17 and p_y between 0 and 8
              and not exists (select 1 from app.nodes n, u where n.user_id = u.id and n.parent_id is not distinct from p_target_parent_id
@@ -684,8 +685,9 @@ begin
                              jsonb_build_object('code', 'invalid_input'));
   end if;
 
+  -- Title length in UTF-16 units, as the column check and the client count it.
   v_max := case p_result_type when 'node' then 100 else 200 end;
-  if length(p_title) < 1 or length(p_title) > v_max then
+  if (char_length(p_title) + char_length(regexp_replace(p_title, '[^\U00010000-\U0010FFFF]', '', 'g'))) < 1 or (char_length(p_title) + char_length(regexp_replace(p_title, '[^\U00010000-\U0010FFFF]', '', 'g'))) > v_max then
     return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null),
                              jsonb_build_object('code', 'invalid_input'));
   end if;
@@ -814,7 +816,7 @@ create function public.reconcile_place_direct_breakdown(
              and exists (select 1 from src where src.scratch_bit_id = p_scratch_id and src.consumed_at is null
                            and src.version = p_source_expected_version)
              and not exists (select 1 from bysrc) and exists (select 1 from src where src.content = p_title)
-             and length(p_title) between 1 and (case p_result_type when 'node' then 100 else 200 end)
+             and (char_length(p_title) + char_length(regexp_replace(p_title, '[^\U00010000-\U0010FFFF]', '', 'g'))) between 1 and (case p_result_type when 'node' then 100 else 200 end)
              and tgt.ok
              and p_x between 0 and 17 and p_y between 0 and 8
              and not exists (select 1 from app.nodes n, u where n.user_id = u.id and n.parent_id is not distinct from p_target_parent_id

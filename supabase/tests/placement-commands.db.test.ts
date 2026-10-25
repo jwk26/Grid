@@ -348,6 +348,22 @@ describe("place_direct_breakdown", () => {
     });
   });
 
+  it("counts the title in UTF-16 units like the column check: 50 emoji fit a Node, 'a' + 50 emoji do not", async () => {
+    await withActor(A(), async (db, owner) => {
+      const long = "a" + "😀".repeat(50);
+      const t = await setup(db, owner, { type: "node", content: long });
+      const p: Place = { ...t.place, type: "node", title: long, target: null, path: [] };
+      await owner(() => sql(db, "delete from app.staged_candidates where id = $1", [t.cand]));
+      expect(await placeDirect(db, p)).toMatchObject({ status: "rejected", rejection: { code: "invalid_input" } });
+      expect(await reconcileDirect(db, p)).toMatchObject({ status: "conflict" });
+      await owner(() => sql(db, "insert into app.staged_candidates (id, user_id, scratch_bit_id, source_breakdown_id, result_type, lifecycle, created_at, updated_at, version) values ($1, $2, $3, $4, 'node', 'staged', 1, 1, 2)", [t.cand, user.id, t.scratch, t.src]));
+      expect(await placeStaged(db, p)).toMatchObject({ status: "rejected", rejection: { code: "invalid_input" } });
+      expect(await reconcileStaged(db, p)).toMatchObject({ status: "conflict" });
+      const fits = "😀".repeat(50);
+      expect(await placeStaged(db, { ...p, title: fits })).toMatchObject({ status: "applied" });
+    });
+  });
+
   it("rejects a source that owns a candidate, returning that candidate, and writes nothing", async () => {
     await withActor(A(), async (db, owner) => {
       const t = await setup(db, owner);
