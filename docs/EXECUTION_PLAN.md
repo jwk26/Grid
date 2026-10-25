@@ -658,7 +658,7 @@ limit gets `rejected` with `account_limit`.
 
 **Commit message:** `feat(db): port the breakdown and scratch title commands`.
 
-### Task 222: [ ] Port the Stage and Unstage commands
+### Task 222: [x] Port the Stage and Unstage commands
 
 **Files and actions:** migrations for `stage_candidate`, `unstage_candidate`
 and their reconcile functions; ported `staged-candidates` and Stage/Unstage
