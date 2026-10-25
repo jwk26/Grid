@@ -224,4 +224,14 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
     },
   },
+  promote_bit_to_node: {
+    crossAccount: {
+      file: "promote-bit.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "promote-bit.db.test.ts",
+      title: "before + changes equals after for promotions and rejections",
+    },
+  },
 };

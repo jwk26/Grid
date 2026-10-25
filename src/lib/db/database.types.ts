@@ -183,6 +183,9 @@ isOneToOne: false
 "hard_delete_node":
 { Args: { "p_id": string }; Returns: Json
                            },
+"promote_bit_to_node":
+{ Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
 "reorder_chunks":
 { Args: { "p_bit_id": string,"p_chunk_ids": (string)[] }; Returns: Json
                            },
