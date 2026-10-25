@@ -5,8 +5,8 @@ import { baseEntities } from "@/lib/db/boundary-cases";
 import { scratchBreakdownToRow, stagedCandidateToRow } from "@/lib/db/row-mapping";
 import type { ScratchBreakdown } from "@/lib/db/schema";
 import { assertChangeSet, type Envelope as ChangeEnvelope } from "./helpers/change-set";
-import { expectDbError, insertRow, withActor } from "./helpers/db";
-import { account, addBit, addNode, authed, call, sql, stored, type Envelope, type Owner, type Row } from "./helpers/lifecycle";
+import { connect, expectDbError, insertRow, withActor } from "./helpers/db";
+import { account, addBit, addNode, authed, call, committed, race, sql, stored, type Envelope, type Owner, type Row } from "./helpers/lifecycle";
 import { createTestUser, type TestUser } from "./helpers/users";
 
 // The Breakdown and Scratch title commands (Task 221), ported from the Dexie scenarios in
@@ -620,5 +620,187 @@ describe("cross-account and change set", () => {
       await run(() => del(db, row, 2, t.scratch, 7));
       await run(() => reconcileDel(db, row, 2, t.scratch, 7));
     });
+  });
+});
+
+describe("concurrency (S30)", () => {
+  // A committed Inbox with one Scratch (version 5) and, optionally, rows; `owner` reads the result.
+  async function fresh(label: string, rows = 0) {
+    const c = await committed(label);
+    const inbox = await c.node({ systemRole: "inbox", x: 8, y: 8 });
+    const scratch = await c.bit({ parentId: inbox, title: "Scratch", x: 0, y: 0, version: 5 });
+    const ids: string[] = [];
+    for (let i = 0; i < rows; i += 1) {
+      const id = randomUUID();
+      ids.push(id);
+      await insertRow(c.owner, "scratch_breakdowns", scratchBreakdownToRow({ ...baseEntities.scratchBreakdown, id, scratchBitId: scratch, order: i }, c.u.id));
+    }
+    return { ...c, scratch, ids };
+  }
+  const version = async (owner: Client, scratch: string) =>
+    Number((await owner.query("select version from app.bits where id = $1", [scratch])).rows[0].version);
+  const statuses = (a: Envelope, b: Envelope) => [a.status, b.status];
+
+  it("two Adds on one Scratch version: one applied, one conflict, the Scratch advanced once", async () => {
+    const t = await fresh("bd-race-add");
+    try {
+      const [first, second] = await race(t.u, (db) => add(db, randomUUID(), t.scratch, 5, "A"), (db) => add(db, randomUUID(), t.scratch, 5, "B"), "add_breakdown");
+      expect(statuses(first, second)).toEqual(["applied", "conflict"]);
+      expect(await version(t.owner, t.scratch)).toBe(6);
+      expect((await t.owner.query("select count(*) as n from app.scratch_breakdowns where scratch_bit_id = $1", [t.scratch])).rows[0].n).toBe("1");
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it("two Adds with the same id and version: the second sees the committed row as already_applied", async () => {
+    const t = await fresh("bd-race-same");
+    try {
+      const id = randomUUID();
+      const [first, second] = await race(t.u, (db) => add(db, id, t.scratch, 5), (db) => add(db, id, t.scratch, 5), "add_breakdown");
+      expect(statuses(first, second)).toEqual(["applied", "already_applied"]);
+      expect(await version(t.owner, t.scratch)).toBe(6);
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it.each([true, false])("Add and Delete on one Scratch version (Add first: %s): the second is a conflict", async (addFirst) => {
+    const t = await fresh(`bd-race-ad-${addFirst}`, 1);
+    try {
+      const doAdd = (db: Client) => add(db, randomUUID(), t.scratch, 5);
+      const doDel = (db: Client) => del(db, t.ids[0], 1, t.scratch, 5);
+      const [first, second] = addFirst ? await race(t.u, doAdd, doDel, "delete_breakdown") : await race(t.u, doDel, doAdd, "add_breakdown");
+      expect(statuses(first, second)).toEqual(["applied", "conflict"]);
+      expect(await version(t.owner, t.scratch)).toBe(6);
+      expect((await t.owner.query("select count(*) as n from app.scratch_breakdowns where scratch_bit_id = $1", [t.scratch])).rows[0].n).toBe(addFirst ? "2" : "0");
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it.each([true, false])("Add and a title save on one Scratch version (Add first: %s): the second is a conflict", async (addFirst) => {
+    const t = await fresh(`bd-race-at-${addFirst}`);
+    try {
+      const doAdd = (db: Client) => add(db, randomUUID(), t.scratch, 5);
+      const doTitle = (db: Client) => saveTitle(db, t.scratch, 5, "Scratch", "Renamed");
+      const [first, second] = addFirst ? await race(t.u, doAdd, doTitle, "save_scratch_title") : await race(t.u, doTitle, doAdd, "add_breakdown");
+      expect(statuses(first, second)).toEqual(["applied", "conflict"]);
+      expect(await version(t.owner, t.scratch)).toBe(6);
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it("two Saves on one row: one applied, one conflict, the row advanced once", async () => {
+    const t = await fresh("bd-race-save", 1);
+    try {
+      const [first, second] = await race(t.u, (db) => save(db, t.ids[0], 1, ["Idea", 0], ["One", 0]), (db) => save(db, t.ids[0], 1, ["Idea", 0], ["Two", 0]), "save_breakdown");
+      expect(statuses(first, second)).toEqual(["applied", "conflict"]);
+      expect((await t.owner.query("select content, version from app.scratch_breakdowns where id = $1", [t.ids[0]])).rows[0]).toEqual({ content: "One", version: 2 });
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it.each([true, false])("Save and Delete on one row (Save first: %s): Delete after Save is a conflict, Save after Delete is not_found", async (saveFirst) => {
+    const t = await fresh(`bd-race-sd-${saveFirst}`, 1);
+    try {
+      const doSave = (db: Client) => save(db, t.ids[0], 1, ["Idea", 0], ["One", 0]);
+      const doDel = (db: Client) => del(db, t.ids[0], 1, t.scratch, 5);
+      const [first, second] = saveFirst ? await race(t.u, doSave, doDel, "delete_breakdown") : await race(t.u, doDel, doSave, "save_breakdown");
+      if (saveFirst) {
+        expect(statuses(first, second)).toEqual(["applied", "conflict"]);
+        expect((await t.owner.query("select version from app.scratch_breakdowns where id = $1", [t.ids[0]])).rows[0]).toEqual({ version: 2 });
+      } else {
+        expect(first.status).toBe("applied");
+        expect(second).toMatchObject({ status: "rejected", rejection: { code: "not_found" } });
+        expect((await t.owner.query("select count(*) as n from app.scratch_breakdowns where id = $1", [t.ids[0]])).rows[0].n).toBe("0");
+      }
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it.each([true, false])("a title save and update_bit on the Scratch title (save first: %s) serialize without losing a revision", async (saveFirst) => {
+    const t = await fresh(`bd-race-tb-${saveFirst}`);
+    try {
+      const doSave = (db: Client) => saveTitle(db, t.scratch, 5, "Scratch", "From save");
+      const doUpdate = (db: Client) => call(db, "update_bit", [t.scratch, { title: "From update" }]);
+      const [first, second] = saveFirst ? await race(t.u, doSave, doUpdate, "update_bit") : await race(t.u, doUpdate, doSave, "save_scratch_title");
+      const row = (await t.owner.query("select title, version from app.bits where id = $1", [t.scratch])).rows[0];
+      if (saveFirst) {
+        // update_bit is last-write-wins: both apply, two increments.
+        expect(statuses(first, second)).toEqual(["applied", "applied"]);
+        expect(row).toEqual({ title: "From update", version: 7 });
+      } else {
+        expect(statuses(first, second)).toEqual(["applied", "conflict"]);
+        expect(row).toEqual({ title: "From update", version: 6 });
+      }
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+});
+
+describe("atomicity and definitions", () => {
+  // A before-update trigger on app.bits makes the Scratch version write fail after the row write.
+  const refuseScratchUpdate = (db: Client) =>
+    db.query(`create function app.refuse_bit_update() returns trigger language plpgsql as $f$ begin raise exception 'refused' using errcode = 'P0001'; end $f$`)
+      .then(() => db.query("create trigger refuse_bits before update on app.bits for each row execute function app.refuse_bit_update()"));
+
+  it("rolls the row insert back when the Scratch revision write fails", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      await owner(() => refuseScratchUpdate(db));
+      const id = randomUUID();
+      await db.query("savepoint s");
+      expect(await expectDbError(() => add(db, id, t.scratch, 5))).toBe("P0001");
+      await db.query("rollback to savepoint s");
+      expect(await breakdown(db, id)).toBeUndefined();
+      expect(await stored(db, "bits", t.scratch)).toMatchObject({ version: 5 });
+    });
+  });
+
+  it("rolls the row delete back when the Scratch revision write fails", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(async () => {
+        await seedRow(db, t.scratch, { id });
+        await refuseScratchUpdate(db);
+      });
+      await db.query("savepoint s");
+      expect(await expectDbError(() => del(db, id, 1, t.scratch, 5))).toBe("P0001");
+      await db.query("rollback to savepoint s");
+      expect(await breakdown(db, id)).toMatchObject({ version: 1 });
+      expect(await stored(db, "bits", t.scratch)).toMatchObject({ version: 5 });
+    });
+  });
+
+  // Tasks 222–224 add their reconcile functions to this list.
+  const RECONCILE_FUNCTIONS = [
+    "reconcile_add_breakdown",
+    "reconcile_save_scratch_title",
+    "reconcile_save_breakdown",
+    "reconcile_delete_breakdown",
+  ];
+
+  it("every reconcile function is one stable SQL statement run as the caller, so it reads one point in time", async () => {
+    const db = await connect();
+    try {
+      const { rows } = await db.query(
+        `select p.proname, l.lanname, p.provolatile, p.prosecdef, p.proconfig
+           from pg_proc p join pg_language l on l.oid = p.prolang
+          where p.pronamespace = 'public'::regnamespace and p.proname like 'reconcile\_%'
+          order by p.proname`,
+      );
+      expect(rows.map((r) => r.proname)).toEqual([...RECONCILE_FUNCTIONS].sort());
+      for (const r of rows) {
+        expect(r).toMatchObject({ lanname: "sql", provolatile: "s", prosecdef: false, proconfig: ["search_path=\"\""] });
+      }
+    } finally {
+      await db.end();
+    }
   });
 });
