@@ -219,6 +219,12 @@ isOneToOne: false
 "reconcile_stage_candidate":
 { Args: { "p_candidate_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json
                            },
+"reconcile_undo_direct_placement":
+{ Args: { "p_result": Json,"p_source": Json }; Returns: Json
+                           },
+"reconcile_undo_staged_placement":
+{ Args: { "p_candidate": Json,"p_result": Json,"p_source": Json }; Returns: Json
+                           },
 "reconcile_unstage_candidate":
 { Args: { "p_candidate_expected_version": number,"p_candidate_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json
                            },
@@ -251,6 +257,12 @@ isOneToOne: false
                            },
 "unarchive_node":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"undo_direct_placement":
+{ Args: { "p_result": Json,"p_source": Json }; Returns: Json
+                           },
+"undo_staged_placement":
+{ Args: { "p_candidate": Json,"p_result": Json,"p_source": Json }; Returns: Json
                            },
 "unstage_candidate":
 { Args: { "p_candidate_expected_version": number,"p_candidate_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json

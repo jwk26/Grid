@@ -335,6 +335,19 @@ describe("place_direct_breakdown", () => {
     },
   );
 
+  it.each([
+    ["a Node title of 100 characters", "node", "n".repeat(100)],
+    ["a Bit title of 200 characters", "bit", "b".repeat(200)],
+  ] as const)("applies %s (the limit itself)", async (_l, type, title) => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner, { type, content: title });
+      await owner(() => sql(db, "delete from app.staged_candidates where id = $1", [t.cand]));
+      const p: Place = { ...t.place, type, title, target: type === "node" ? null : t.target, path: type === "node" ? [] : [t.target] };
+      expect(await placeDirect(db, p)).toMatchObject({ status: "applied" });
+      expect(await stored(db, type === "node" ? "nodes" : "bits", p.result)).toMatchObject({ title });
+    });
+  });
+
   it("rejects a source that owns a candidate, returning that candidate, and writes nothing", async () => {
     await withActor(A(), async (db, owner) => {
       const t = await setup(db, owner);

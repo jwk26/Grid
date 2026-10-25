@@ -302,7 +302,47 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       file: "placement-commands.db.test.ts",
       title: "before + changes equals after for direct placements, reconciles and their rejections",
     },
+  },  undo_staged_placement: {
+    crossAccount: {
+      file: "placement-undo.db.test.ts",
+      title: "is refused for another account's rows, with nothing of theirs in changes",
+    },
+    changeSet: {
+      file: "placement-undo.db.test.ts",
+      title: "before + changes equals after for undo placements, reconciles and their rejections",
+    },
   },
+  undo_direct_placement: {
+    crossAccount: {
+      file: "placement-undo.db.test.ts",
+      title: "is refused for another account's rows, with nothing of theirs in changes",
+    },
+    changeSet: {
+      file: "placement-undo.db.test.ts",
+      title: "before + changes equals after for undo placements, reconciles and their rejections",
+    },
+  },
+  reconcile_undo_staged_placement: {
+    crossAccount: {
+      file: "placement-undo.db.test.ts",
+      title: "is refused for another account's rows, with nothing of theirs in changes",
+    },
+    changeSet: {
+      file: "placement-undo.db.test.ts",
+      title: "before + changes equals after for undo placements, reconciles and their rejections",
+    },
+  },
+  reconcile_undo_direct_placement: {
+    crossAccount: {
+      file: "placement-undo.db.test.ts",
+      title: "is refused for another account's rows, with nothing of theirs in changes",
+    },
+    changeSet: {
+      file: "placement-undo.db.test.ts",
+      title: "before + changes equals after for undo placements, reconciles and their rejections",
+    },
+  },
+
 
   promote_bit_to_node: {
     crossAccount: {
