@@ -2263,7 +2263,7 @@ logs); each task reads its notes at its start.
 
 ## Phase 43 — Ordinary Write Functions
 
-### Task 219: [ ] Port the Node, Bit and Chunk write functions
+### Task 219: [x] Port the Node, Bit and Chunk write functions
 
 **Files and actions:**
 - Migrations: `create_node`, `update_node` (extended from Task 217 only where

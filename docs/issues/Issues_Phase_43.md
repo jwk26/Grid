@@ -12,8 +12,8 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 ## Task 219 — Port the Node, Bit and Chunk write functions
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: user acceptance of Task 219
+- Status: Accepted
+- Next: Task 220
 - Open: none
 
 ### Log
@@ -71,3 +71,5 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 - Decision: the Calendar answer in `update_chunk` sets the Bit's `deadline_all_day` to the Chunk's `time_all_day` together with `deadline` (expert finding 3 kept; Dexie's `deadline`-only write left an all-day Bit with a timed value, which breaks the start-of-day storage rule) (user, 2026-10-25).
 - Task 220 note (advisory, 2026-10-25): reuse `internal.cell_taken`, `internal.limit_reached` (the promotion's Node and Bit limits) and `internal.lock_bit_and_node`; `internal.changes` builds only `upserted`, so hard delete and Empty Trash extend it for `deleted`; take the Grid advisory lock first, then Nodes (one statement ordered by id), Bits, Chunks (SCHEMA §Locks, a9a7eca); replace the Stage 1 concurrency case that trashes the parent with a raw `update` by a real `soft_delete_node` call; an update of a trashed or archived Bit is applied (Dexie parity, as for Nodes) while `create_chunk` refuses an inactive Bit or Node with `parent_inactive`; the Task 219 migrations are local only: after they reach production, rerun `node scripts/verify/hosted-roles.mjs`, and each client write function adds one accepted Security Advisor warning.
 - Review applied (task finish, 2026-10-25): (1) mutation checks of the hardened change-set tests, each reverted afterwards: dropping the Node row from `delete_chunk`'s `changes` fails "deletes the Chunk, recomputes the Bit and touches it and its Node" and the chunk S31 test; dropping the parent Node row from `create_bit`'s `changes` fails "creates a Bit: active, version 1, defaults, parent Node touched" and the node/bit S31 test. The migrations are unchanged (`git status` clean for them); `pnpm test:db` 499/499 after the revert. (2) The `for share` Note is resolved by SCHEMA §Locks (a9a7eca). (3) The Task 220 note is taken for Task 220.
+- Review (advisory, 2026-10-25, task finish, second checkpoint): approve. The mutation checks fail their tests as recorded and the migrations are unchanged since 9ce1146; `pnpm test:db` 499/499 after the revert; the Task 220 note is in a78a73a. Apply: none. Not applied: none.
+- Decision: Task 219 accepted (user, 2026-10-25).
