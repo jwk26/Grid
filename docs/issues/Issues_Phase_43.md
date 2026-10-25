@@ -77,8 +77,8 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 ## Task 220 — Port the lifecycle write functions
 
 ### Current state
-- Status: Awaiting User Decision
-- Next: Stage 3 (permanent delete) acceptance
+- Status: Implemented, awaiting acceptance
+- Next: user acceptance of Task 220 (Checkpoint: Stage 4 — Promotion, with the task finish record)
 - Open: none
 
 ### Log
