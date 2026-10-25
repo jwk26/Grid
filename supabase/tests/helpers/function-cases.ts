@@ -231,7 +231,7 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
     },
     changeSet: {
       file: "stage-commands.db.test.ts",
-      title: "before + changes equals after for Stage and its rejections",
+      title: "before + changes equals after for Stage, Unstage and their rejections",
     },
   },
   reconcile_stage_candidate: {
@@ -241,7 +241,27 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
     },
     changeSet: {
       file: "stage-commands.db.test.ts",
-      title: "before + changes equals after for Stage and its rejections",
+      title: "before + changes equals after for Stage, Unstage and their rejections",
+    },
+  },
+  unstage_candidate: {
+    crossAccount: {
+      file: "stage-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "stage-commands.db.test.ts",
+      title: "before + changes equals after for Stage, Unstage and their rejections",
+    },
+  },
+  reconcile_unstage_candidate: {
+    crossAccount: {
+      file: "stage-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "stage-commands.db.test.ts",
+      title: "before + changes equals after for Stage, Unstage and their rejections",
     },
   },
   promote_bit_to_node: {

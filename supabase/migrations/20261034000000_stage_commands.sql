@@ -148,7 +148,8 @@ create function public.reconcile_stage_candidate(
       select case
         when not acct.ok then 'account_missing'
         when p_candidate_id is null or p_scratch_id is null or p_source_id is null
-             or p_source_expected_version is null or p_result_type is null then 'conflict'
+             or p_source_expected_version is null or p_result_type is null
+             or p_result_type not in ('node', 'bit') then 'conflict'
         when act.ok
              and exists (select 1 from cand, bysrc where bysrc.id = cand.id and cand.scratch_bit_id = p_scratch_id
                            and cand.source_breakdown_id = p_source_id and cand.result_type = p_result_type
@@ -176,10 +177,136 @@ create function public.reconcile_stage_candidate(
   $$;
 
 -- ---------------------------------------------------------------------------------------------
+-- unstage_candidate(p_candidate_id, p_candidate_expected_version, p_source_id, p_source_expected_version)
+-- Deletes the candidate and increments the source row's version once; content, `order`, `created_at`
+-- and `consumed_at` do not change. Like the Dexie command it does not require an active Scratch (a
+-- trashed or archived Scratch holds no candidate). A candidate of another source is rejected
+-- (invalid_target); a missing source, a consumed source or any other version mismatch is a conflict.
+create function public.unstage_candidate(
+  p_candidate_id uuid, p_candidate_expected_version integer, p_source_id uuid, p_source_expected_version integer
+) returns jsonb
+  language plpgsql volatile security definer set search_path = ''
+  as $$
+declare
+  v_user uuid := internal.uid();
+  v_scratch_id uuid;
+  v_scratch app.bits;
+  v_src app.scratch_breakdowns;
+  v_cur app.staged_candidates;
+  v_by_src app.staged_candidates;
+  v_cands jsonb;
+  v_new jsonb;
+begin
+  if v_user is null then
+    raise exception 'not authenticated' using errcode = '28000';
+  end if;
+  if p_candidate_id is null or p_candidate_expected_version is null or p_source_id is null
+     or p_source_expected_version is null then
+    raise exception 'unstage_candidate needs every argument' using errcode = '22023';
+  end if;
+  if not exists (select 1 from app.accounts where user_id = v_user) then
+    return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'account_missing'));
+  end if;
+
+  select scratch_bit_id into v_scratch_id from app.scratch_breakdowns where id = p_source_id and user_id = v_user;
+  if v_scratch_id is null then
+    -- No source: the candidate cannot exist either (foreign key), so the Stage was undone or never ran.
+    return internal.envelope('conflict', null, '{}');
+  end if;
+  v_scratch := internal.lock_bit_and_node(v_user, v_scratch_id);
+  if v_scratch.id is null then
+    return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'not_found'));
+  end if;
+  select * into v_src from app.scratch_breakdowns where id = p_source_id and user_id = v_user for update;
+  if v_src.id is not null and v_src.scratch_bit_id <> v_scratch_id then
+    -- The id was deleted and added again under another Scratch between the unlocked read and the lock.
+    raise exception 'could not settle the lock set of Breakdown %', p_source_id using errcode = '40001';
+  end if;
+  if v_src.id is null then
+    return internal.envelope('conflict', null, internal.inbox_changes(jsonb_build_array(to_jsonb(v_scratch))));
+  end if;
+  select * into v_cur from app.staged_candidates where id = p_candidate_id and user_id = v_user;
+  select * into v_by_src from app.staged_candidates where source_breakdown_id = p_source_id and user_id = v_user;
+  select coalesce(jsonb_agg(to_jsonb(c)), '[]'::jsonb) into v_cands
+    from app.staged_candidates c
+   where c.user_id = v_user and (c.id = p_candidate_id or c.source_breakdown_id = p_source_id);
+
+  if v_cur.id is null and v_by_src.id is null and v_src.consumed_at is null
+     and v_src.version = p_source_expected_version + 1 then
+    return internal.envelope('already_applied', jsonb_build_object('id', p_candidate_id),
+                             internal.inbox_changes('[]', jsonb_build_array(to_jsonb(v_src))));
+  end if;
+  if v_cur.id is not null and v_cur.source_breakdown_id <> p_source_id then
+    return internal.envelope('rejected', null,
+                             internal.inbox_changes('[]', jsonb_build_array(to_jsonb(v_src)), v_cands),
+                             jsonb_build_object('code', 'invalid_target'));
+  end if;
+  if v_cur.id is null or v_by_src.id is distinct from v_cur.id or v_cur.lifecycle <> 'staged'
+     or v_cur.version <> p_candidate_expected_version
+     or v_src.consumed_at is not null or v_src.version <> p_source_expected_version then
+    return internal.envelope('conflict', null,
+                             internal.inbox_changes('[]', jsonb_build_array(to_jsonb(v_src)), v_cands));
+  end if;
+
+  delete from app.staged_candidates where id = p_candidate_id and user_id = v_user;
+  update app.scratch_breakdowns set version = version + 1 where id = p_source_id and user_id = v_user
+  returning to_jsonb(app.scratch_breakdowns.*) into v_new;
+
+  return internal.envelope('applied', jsonb_build_object('id', p_candidate_id),
+                           internal.inbox_changes('[]', jsonb_build_array(v_new), '[]', '{}', array[p_candidate_id]));
+end
+$$;
+
+-- Read-only classification of unstage_candidate: already_applied (candidate absent by id and by
+-- source, the source unconsumed at expected + 1), not_applied (the exact candidate and source
+-- versions), else conflict. A later Stage or placement advanced the source again, so it is a conflict.
+create function public.reconcile_unstage_candidate(
+  p_candidate_id uuid, p_candidate_expected_version integer, p_source_id uuid, p_source_expected_version integer
+) returns jsonb
+  language sql stable security invoker set search_path = ''
+  as $$
+    with u as (select (select auth.uid()) as id),
+    acct as (select exists (select 1 from app.accounts a, u where a.user_id = u.id) as ok),
+    src as (select r.* from app.scratch_breakdowns r, u where r.user_id = u.id and r.id = p_source_id),
+    cand as (select c.* from app.staged_candidates c, u where c.user_id = u.id and c.id = p_candidate_id),
+    bysrc as (select c.* from app.staged_candidates c, u where c.user_id = u.id and c.source_breakdown_id = p_source_id),
+    verdict as (
+      select case
+        when not acct.ok then 'account_missing'
+        when p_candidate_id is null or p_candidate_expected_version is null or p_source_id is null
+             or p_source_expected_version is null then 'conflict'
+        when not exists (select 1 from cand) and not exists (select 1 from bysrc)
+             and exists (select 1 from src where src.consumed_at is null and src.version = p_source_expected_version + 1) then 'already_applied'
+        when exists (select 1 from cand, bysrc, src where bysrc.id = cand.id and cand.source_breakdown_id = p_source_id
+                       and cand.lifecycle = 'staged' and cand.version = p_candidate_expected_version
+                       and src.scratch_bit_id = cand.scratch_bit_id and src.consumed_at is null
+                       and src.version = p_source_expected_version) then 'not_applied'
+        else 'conflict'
+      end as s
+      from acct
+    )
+    select case when verdict.s = 'account_missing'
+      then jsonb_build_object('status', 'rejected', 'result', null, 'changes', '{}'::jsonb,
+                              'rejection', jsonb_build_object('code', 'account_missing'))
+      else jsonb_build_object('status', verdict.s, 'result', null, 'changes', coalesce((select jsonb_object_agg(t.k, t.v) from (values
+        ('scratch_breakdowns', case when exists (select 1 from src) then jsonb_build_object('upserted', (select jsonb_agg(to_jsonb(src)) from src), 'deleted', '[]'::jsonb) end),
+        ('staged_candidates', case when exists (select 1 from cand union all select 1 from bysrc)
+           then jsonb_build_object('upserted', (select jsonb_agg(to_jsonb(x)) from (select * from cand union select * from bysrc) x), 'deleted', '[]'::jsonb) end)
+      ) as t(k, v) where t.v is not null), '{}'::jsonb))
+    end
+    from verdict
+  $$;
+
+-- ---------------------------------------------------------------------------------------------
 alter function public.stage_candidate(uuid, uuid, uuid, integer, text) owner to griddo_writer;
+alter function public.unstage_candidate(uuid, integer, uuid, integer) owner to griddo_writer;
 revoke all on function public.stage_candidate(uuid, uuid, uuid, integer, text) from public, anon, service_role;
 revoke all on function public.reconcile_stage_candidate(uuid, uuid, uuid, integer, text) from public, anon, service_role;
+revoke all on function public.unstage_candidate(uuid, integer, uuid, integer) from public, anon, service_role;
+revoke all on function public.reconcile_unstage_candidate(uuid, integer, uuid, integer) from public, anon, service_role;
 grant execute on function public.stage_candidate(uuid, uuid, uuid, integer, text) to authenticated;
 grant execute on function public.reconcile_stage_candidate(uuid, uuid, uuid, integer, text) to authenticated;
+grant execute on function public.unstage_candidate(uuid, integer, uuid, integer) to authenticated;
+grant execute on function public.reconcile_unstage_candidate(uuid, integer, uuid, integer) to authenticated;
 revoke create on schema internal from griddo_writer;
 revoke create on schema public from griddo_writer;
