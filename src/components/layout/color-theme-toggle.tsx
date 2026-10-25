@@ -4,17 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Palette } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { COLOR_THEMES, useColorThemeStore } from "@/stores/color-theme-store";
+import { COLOR_THEMES } from "@/lib/color-themes";
+import { useColorThemeStore } from "@/stores/color-theme-store";
 
 const THEME_LABELS: Record<(typeof COLOR_THEMES)[number], string> = {
   "griddo": "GridDO",
-  "tiny-desk": "Tiny Desk",
   "neumorphism": "New Morphism",
   "claymorphism": "3D Clay",
-  "origami": "Origami",
-  "terminal": "Terminal",
   "retro-mac": "Retro Mac",
-  "graphite": "Graphite",
 };
 
 export function ColorThemeToggle() {

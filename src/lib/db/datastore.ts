@@ -391,6 +391,12 @@ export async function getDataStore(): Promise<DataStore> {
   }
 
   const dataStoreModule = await import("@/lib/db/indexeddb");
-  cachedDataStore = dataStoreModule.indexedDBStore;
+  let dataStore: DataStore = dataStoreModule.indexedDBStore;
+  if (process.env.NODE_ENV === "development") {
+    // Development state switch (feedback F30): wrap whichever store is returned.
+    const { withDevInjection } = await import("@/lib/dev/state-switch");
+    dataStore = withDevInjection(dataStore);
+  }
+  cachedDataStore = dataStore;
   return cachedDataStore;
 }

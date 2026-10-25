@@ -2,31 +2,12 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-export const COLOR_THEMES = [
-  "griddo",
-  "tiny-desk",
-  "neumorphism",
-  "claymorphism",
-  "origami",
-  "terminal",
-  "retro-mac",
-  "graphite",
-] as const;
-
-export type ColorThemeId = (typeof COLOR_THEMES)[number];
-
-const DEFAULT_THEME: ColorThemeId = "griddo";
-
-export const COLOR_THEME_PERSISTENCE_KEY = "griddo-color-theme";
-
-export function isValidColorTheme(value: unknown): value is ColorThemeId {
-  return (COLOR_THEMES as ReadonlyArray<unknown>).includes(value);
-}
-
-export function validateColorTheme(value: unknown): ColorThemeId {
-  return isValidColorTheme(value) ? value : DEFAULT_THEME;
-}
+import {
+  COLOR_THEME_PERSISTENCE_KEY,
+  DEFAULT_COLOR_THEME,
+  validateColorTheme,
+  type ColorThemeId,
+} from "@/lib/color-themes";
 
 interface ColorThemeState {
   colorTheme: ColorThemeId;
@@ -36,7 +17,7 @@ interface ColorThemeState {
 export const useColorThemeStore = create<ColorThemeState>()(
   persist(
     (set) => ({
-      colorTheme: DEFAULT_THEME,
+      colorTheme: DEFAULT_COLOR_THEME,
       setColorTheme: (theme) => set({ colorTheme: validateColorTheme(theme) }),
     }),
     {

@@ -25,8 +25,12 @@ vi.mock("@/components/ui/dialog", () => ({
   DialogTitle: MockDiv,
 }));
 
+const calendarData = vi.hoisted(() => ({
+  nodes: [] as Array<{ id: string; title: string }>,
+}));
+
 vi.mock("@/hooks/use-calendar-data", () => ({
-  useCalendarData: () => ({ nodes: [] }),
+  useCalendarData: () => ({ nodes: calendarData.nodes }),
 }));
 
 const capturedSelectorProps = vi.hoisted(() => ({
@@ -44,6 +48,7 @@ const { CreateBitDialog } = await import("@/components/grid/create-bit-dialog");
 
 beforeEach(() => {
   capturedSelectorProps.onChange = undefined;
+  calendarData.nodes = [];
 });
 
 afterEach(() => {
@@ -173,5 +178,125 @@ describe("CreateBitDialog", () => {
         }),
       );
     });
+  });
+  it("submits the selected parent's title with its id", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    calendarData.nodes = [
+      { id: "node-w", title: "Other" },
+      { id: "node-x", title: "Projects" },
+    ];
+
+    render(
+      <CreateBitDialog
+        onOpenChange={vi.fn()}
+        onSubmit={onSubmit}
+        open={true}
+        requireParent={true}
+      />,
+    );
+
+    act(() => {
+      capturedSelectorProps.onChange?.("node-x");
+    });
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Test Bit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Bit" }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ parentId: "node-x", parentTitle: "Projects" }),
+      );
+    });
+  });
+
+  it("submits a null parent title when the selected parent is not in the node list", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateBitDialog
+        onOpenChange={vi.fn()}
+        onSubmit={onSubmit}
+        open={true}
+        requireParent={true}
+      />,
+    );
+
+    act(() => {
+      capturedSelectorProps.onChange?.("node-x");
+    });
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Test Bit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Bit" }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ parentId: "node-x", parentTitle: null }),
+      );
+    });
+  });
+
+  it("sends no parent fields when requireParent is not set", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateBitDialog
+        defaultParentId="node-x"
+        onOpenChange={vi.fn()}
+        onSubmit={onSubmit}
+        open={true}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Test Bit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Bit" }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const values = onSubmit.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(values).not.toHaveProperty("parentId");
+    expect(values).not.toHaveProperty("parentTitle");
+  });
+
+  it("stays open with the typed title when the submit leaves an error", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const onOpenChange = vi.fn();
+    const reason = "“Projects” has no empty cell. Move or delete an item to make room.";
+
+    const { rerender } = render(
+      <CreateBitDialog
+        defaultParentId="node-x"
+        onOpenChange={onOpenChange}
+        onSubmit={onSubmit}
+        open={true}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Test Bit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Bit" }));
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <CreateBitDialog
+        defaultParentId="node-x"
+        error={reason}
+        onOpenChange={onOpenChange}
+        onSubmit={onSubmit}
+        open={true}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(reason);
+    expect(screen.getByLabelText("Title")).toHaveValue("Test Bit");
+    expect(screen.getByRole("button", { name: "Create Bit" })).toBeEnabled();
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 });

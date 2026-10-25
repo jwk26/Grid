@@ -116,4 +116,41 @@ describe("CreateNodeDialog", () => {
       );
     });
   });
+  it("stays open with the typed title when the submit leaves an error", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const onOpenChange = vi.fn();
+    const reason = "“Home” has no empty cell. Move or delete an item to make room.";
+
+    const { rerender } = render(
+      <CreateNodeDialog
+        level={0}
+        onOpenChange={onOpenChange}
+        onSubmit={onSubmit}
+        open={true}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Plan launch" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Node" }));
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <CreateNodeDialog
+        error={reason}
+        level={0}
+        onOpenChange={onOpenChange}
+        onSubmit={onSubmit}
+        open={true}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(reason);
+    expect(screen.getByLabelText("Title")).toHaveValue("Plan launch");
+    expect(screen.getByRole("button", { name: "Create Node" })).toBeEnabled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
 });

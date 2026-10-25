@@ -18,7 +18,8 @@ Execution plan mode: scaled
 > Tasks 166–172 and 171A are accepted `[x]` and Phase 34 is closed; Tasks
 > 209–212 are accepted `[x]` and Phase 41 is closed (2026-10-16); Tasks
 > 173–179 and repair Tasks 176A and 179A are accepted `[x]` and Phase 35 is
-> closed (2026-10-20); Tasks 180–208 and Phases 36–40 are retired as
+> closed (2026-10-20); Tasks 241–244 are accepted `[x]` and Phase 49 is closed
+> (2026-10-24); Tasks 180–208 and Phases 36–40 are retired as
 > superseded (feedback F28, promotion ②), their text in
 > [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
 > Phases 32–33 remain reserved.
@@ -140,9 +141,9 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 35 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20). The SaaS lane (Phases 42–48) and the feedback lane (Phases 49–50) run next and may be open at the same time. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 are bound to Task 241, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 is bound to Task 229 and MI-23 is absorbed by Tasks 228 and 234. |
+| Execution lifecycle | Phase 49 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24). The SaaS lane (Phases 42–48) runs next; the feedback lane continues with Phase 50 after Phase 45. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 is bound to Task 229 and MI-23 is absorbed by Tasks 228 and 234. |
 | SaaS conversion | `PLANNED / UNSTARTED` | Phase 42 waits only for closed phases; later phases follow [the phase waits](#lanes-and-phase-waits). Docker Desktop must be installed before Task 213. Promotion ② merges before `/run-phase 42`, because Tasks 215, 219, 220, 227–229 and 235–237 carry its F34 cell-picking rule. |
-| Feedback lane | `PLANNED / UNSTARTED` | Phase 49 waits for no phase and runs beside Phases 42–44; Phase 50 waits for Phases 49 and 45 ([the phase waits](#lanes-and-phase-waits)). |
+| Feedback lane | `IN PROGRESS` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); its mi-1, mi-2 and mi-3 are bound to Task 248. Phase 50 waits for Phase 45 ([the phase waits](#lanes-and-phase-waits)). |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
 | Headless/base UI | Tasks 127–163 accepted | Task 163 integration and bounded R01/I01 corrections are included in the Phase 31 Final Close transaction. Original task evidence is retained; correction/candidate evidence is separate. |
@@ -246,7 +247,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 46 | Planned / unstarted | [Dexie removal](#phase-46--dexie-removal) | 230 | Phase 45 close/main sync. |
 | Phase 47 | Planned / unstarted | [Feel and resilience](#phase-47--feel-and-resilience) | 231–234 | Phase 46 and Phase 49 close/main sync. |
 | Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 | Phase 47 close/main sync. |
-| Phase 49 | Planned / unstarted | [Feedback lane, part 1: theme set, status primitives, toasts](#phase-49--theme-set-status-primitives-and-toasts) | 241–244 | None; runs beside Phases 42–44. Phases 45 and 47 wait for its close/main sync. |
+| Phase 49 | Completed | [Feedback lane, part 1: theme set, status primitives, toasts](execution-plan/archive/phase-49.md) | 241–244 | Accepted and archived (2026-10-24); ISSUE-20-01 and MI-13 resolved in Task 241; mi-1, mi-2 and mi-3 bound to Task 248 in `Issues_Deferred.md`. Phases 45 and 47 no longer wait for it. |
 | Phase 50 | Planned / unstarted | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](#phase-50--inbox-status-breadcrumb-reveal-and-last-scratch) | 245–250 | Phase 49 and Phase 45 close/main sync; runs beside Phases 46–48; does not block Phase 48; closes before the theme stage. |
 | Phases 36–40 | Retired (feedback F28, 2026-10-22) | [Terminal, Claymorphism + Origami, GridDO + Tiny Desk, Graphite, and the Task 208 campaign gate](execution-plan/archive/phases-36-40-retired.md) | 180–208 | Retired as superseded; never runnable. Numbers are not reused. |
 
@@ -3217,158 +3218,13 @@ Phase 48 and closes before the theme stage.
   the [writer register](#shared-file-writer-register-and-mutex-policy); the lane
   that merges second resolves conflicts when it merges `main`.
 
-## Phase 49 — Theme Set, Status Primitives And Toasts
+## Phase 49 — Completed / Archived
 
-Waits for: none (runs beside Phases 42–44). Holds what the SaaS phases need
-before Phase 45 and Phase 47: the four-theme set, the looks, the status
-primitives and the toast position and colour (F33).
-
-### Task 241: [ ] Reduce the color themes to four
-
-**Files and actions:**
-- `src/lib/color-themes.ts` (new, non-client): the theme ids
-  (`griddo`, `neumorphism`, `claymorphism`, `retro-mac`), the default and the
-  storage key, the one list the store and the no-flash script read
-  (ISSUE-20-01).
-- `src/stores/color-theme-store.ts` and test: read the shared list; a persisted
-  removed id falls back to `griddo` through the existing validation.
-- `src/app/layout.tsx`: build the no-flash script from the shared list; drop
-  Playfair Display and VT323.
-- `src/components/layout/color-theme-toggle.tsx`: four options.
-- `src/app/globals.css`: remove the `tiny-desk`, `origami`, `terminal` and
-  `graphite` blocks and swatch variables, including their Inbox/Triage
-  realization rules.
-- Tests that enumerate themes (`theme-transition.test.ts`,
-  `sidebar.test.tsx`, `inbox-triage-theme-realization.test.tsx`,
-  `triage-workspace.test.tsx`, `hierarchy-explorer.test.tsx`,
-  `breakdown-panel.test.tsx` and any other found by search): drop the removed
-  themes.
-
-**Dependencies:** this phase's lifecycle gate.
-
-**Authority:** F28; SaaS S40; Phase 35 MI-13; ISSUE-20-01; CLAUDE.md
-Architecture 8; DESIGN_TOKENS §Color Theme System.
-
-**Observable acceptance:** the picker shows four themes; a reload with a stored
-`terminal` id shows `griddo` with no flash; the four themes look as before;
-no theme context under `src/` names a removed theme (the `tiny-desk`,
-`origami` and `graphite` ids, a `terminal` color-theme id or
-`data-color-theme` selector, `--font-playfair`, `--font-vt323`, Playfair
-Display, VT323); the Inbox `terminal` operation phase is unrelated and stays;
-from this task on no test or check covers the removed themes.
-
-**Verification:** gate; that scoped search returns nothing under `src/`;
-browser checkpoint of the four themes, light and dark.
-
-**Commit message:** `refactor(theme): reduce the color themes to four`.
-
-### Task 242: [ ] Record the feedback and SaaS surface decisions `DP-FB-01` and `DP-SAAS-01`
-
-**Files and actions:** a served HTML option sheet in `griddo`, with
-`retro-mac` and `neumorphism` spot-checks and Korean explanations, rendering
-every surface of DESIGN_TOKENS `DP-FB-01` and `DP-SAAS-01` together, with
-shapes copied from the realized theme CSS, not from base components; record the
-user's choices in DESIGN_TOKENS §Feedback Status Surfaces and §SaaS App-State
-Surfaces, including the `:root` values of the status tokens. The sheet is
-scratch, not committed.
-
-**Dependencies:** Task 241.
-
-**Authority:** F03, F07, F09, F12, F15, F21–F24, F29, F33; SaaS S27, S40;
-DESIGN_TOKENS `DP-FB-01`, `DP-SAAS-01`.
-
-**Observable acceptance:** the user's choice for each surface of both
-prerequisites is recorded and committed; no implementation file changes.
-
-**Verification:** `git diff --check`; the user confirms the recorded text.
-
-**Commit message:** `docs(design): record DP-FB-01 and DP-SAAS-01`.
-
-### Task 243: [ ] Add the status primitives and the development state switch
-
-**Files and actions:**
-- `src/lib/constants.ts`: `DISPLAY_DELAY_MS = 300` (D7; reuse it if Task 217
-  added it first).
-- `src/hooks/use-display-delay.ts` and test: whether a pending or reconciling
-  presentation is visible yet; restarts on a new phase; never reads or changes
-  command state (F02).
-- `src/components/feedback/status-icon.tsx` and test: `pending`, `unknown`,
-  `reconciling`, `problem`; the delayed rotating loader, static under reduced
-  motion; `?`; `!`; the `data-status-emphasis` helper for `?` and `!` only
-  (F03).
-- `src/components/feedback/status-tooltip.tsx` and test: hover and keyboard
-  focus, one at a time, no controls, `aria-describedby`, static display (F09).
-- A visually hidden polite status region for the success announcements of
-  F04, in `src/components/feedback/`.
-- `src/app/globals.css`: the status tokens with the `DP-FB-01` values (light
-  and dark, on `:root`) and the `data-feedback-role` styles.
-- `src/lib/dev/state-switch.ts`, `src/components/dev/state-switch-panel.tsx`
-  and test: a development-only store and panel that force, per item, delayed
-  pending, reconciling, unknown, not applied, rejected, conflict, integrity and
-  editor offline over the current Inbox operation projections, and show each
-  primitive in each state; it also injects outcomes at the `DataStore`
-  boundary, through a development-only wrapper that `getDataStore()` in
-  `src/lib/db/datastore.ts` applies to whichever store it returns (delay the
-  next calls of a command kind, or make them return
-  unknown, not applied, rejected or conflict), so the real recovery paths run
-  end to end without stopping the shared local Supabase; mounted only when
-  `NODE_ENV` is `development`.
-
-**Dependencies:** Task 242.
-
-**Authority:** F02, F03, F04, F09, F15, F30; SPEC §Item status presentation,
-§Development state switch; DESIGN_TOKENS §Feedback Status Surfaces.
-
-**Observable acceptance:** a result faster than 300ms shows nothing; a slower
-one shows the loader at 300ms; reconciling keeps `?` and then the loader; the
-loader is static under reduced motion; only one tooltip shows at a time and it
-describes its item; the switch forces each state on the current Inbox items,
-and an injected unknown or not-applied outcome runs the real `Check again` or
-`Retry` path; the production build contains no switch code.
-
-**Verification:** gate; `expert` review (delay hook, switch isolation); a
-search of the production build output for the switch; browser checkpoint of
-the primitives and forced states in the themes.
-
-**Commit message:** `feat(feedback): add the status primitives and the development state switch`.
-
-### Task 244: [ ] Move and recolour the toasts and keep full-Grid create dialogs open
-
-**Files and actions:**
-- `src/app/providers.tsx`: the `sonner` Toaster at the top-left of the work
-  area, right of the sidebar; at most three visible; kinds styled through the
-  status tokens with the ✓, `!` and `wifi-off` icons instead of `richColors`
-  (F12, F15).
-- `src/hooks/use-toast-anchor.ts` and test: the stack's offset, below the fixed
-  breadcrumb on Grid pages and at the breadcrumb row elsewhere (Task 248
-  extends it to the revealed breadcrumb); translucent and pointer-transparent
-  while a Node or Bit is dragged.
-- `src/app/globals.css`: `toast-stack` and `toast` roles.
-- `src/lib/copy/feedback.ts` (created here if Task 228 has not created it):
-  the create-dialog sentence of SPEC §Feedback copy.
-- `src/components/layout/grid-runtime.tsx` and the Node and Bit create dialogs
-  it opens, with `grid-runtime.test.tsx`: when the target Grid has no empty
-  cell, the dialog stays open with the typed title and shows the inline error,
-  at every level, L0 included; no toast (F16).
-
-**Dependencies:** Task 243.
-
-**Authority:** F12, F15, F16 (create dialog); SPEC §Toasts, §Feedback copy;
-DESIGN_TOKENS `toast-stack`, `toast`; `DP-FB-01`.
-
-**Observable acceptance:** toasts appear at the top-left of the work area,
-below the breadcrumb on Grid pages and at the top-left on the Inbox, Calendar
-and Trash; their hues are blended and their icons differ by kind; at most three
-show; during a drag the stack is translucent and a drop on a cell under it
-works; a full-Grid create keeps the dialog, the title and the reason at L0 and
-below, including a Bit created from L0 into a full parent (the reason names
-that parent), with no toast. The kept toasts' texts are unchanged (Task 232 aligns
-them).
-
-**Verification:** gate; browser checkpoint in the themes, including a drag
-under the stack and full-Grid creates of a Node and a Bit at L0 and at L1.
-
-**Commit message:** `feat(feedback): move and recolour the toasts and keep full-grid create dialogs open`.
+Feedback-lane Tasks 241–244 are accepted. Their task contracts and
+completion-time scope are in
+[the Phase 49 archive](execution-plan/archive/phase-49.md). Carried items
+mi-1, mi-2 and mi-3 are in [Issues_Deferred.md](issues/Issues_Deferred.md)
+and bound to Task 248 (Phase 50), whose entry below carries them.
 
 ## Phase 50 — Inbox Status, Breadcrumb Reveal And Last Scratch
 
@@ -3532,12 +3388,29 @@ are judged under real latency (SPEC §Write feel).
   (F12).
 - `src/app/globals.css`: `home-button`, `breadcrumb-reveal`,
   `breadcrumb-drop-target`.
+- Drag cancel (Phase 49 mi-3): `src/hooks/use-dnd.ts` and its test gain a
+  cancel handler that clears `activeItem` and the drag state `handleDragEnd`
+  clears, without a write; the `DndContext` in `grid-runtime.tsx` and in
+  `src/app/calendar/layout.tsx` wire it to `onDragCancel`, so an
+  `Esc`-cancelled drag no longer leaves the cards dimmed, the scroll wrapper
+  clipped or the breadcrumb drag-styled or revealed.
+- Calendar (Phase 49 mi-1, mi-2), `src/app/calendar/layout.tsx` with
+  `calendar-node-creation.test.tsx`, `calendar-bit-creation.test.tsx` and a
+  drag-flag test:
+  its drags set and clear the toast anchor store's drag flag on start, end and
+  cancel, as `grid-runtime.tsx` does, so the stack is translucent and
+  pointer-transparent over the Pool and the unschedule zone; its Node and Bit
+  create dialogs show the create-dialog sentence of SPEC §Feedback copy
+  (`createDialogNoEmptyCell` in `src/lib/copy/feedback.ts`; the target is
+  `Home` for a Node, the chosen parent for a Bit) instead of
+  `No empty cells available in the root grid.` and
+  `No empty cells available in the parent node.`
 
 **Dependencies:** Task 247.
 
-**Authority:** F12, F21–F25; SPEC §Breadcrumb reveal and Home button;
-DESIGN_TOKENS §Feedback Status Surfaces, §Motion Language, Sidebar,
-Breadcrumbs.
+**Authority:** F12, F16 (create dialog), F21–F25; Phase 49 mi-1, mi-2, mi-3;
+SPEC §Breadcrumb reveal and Home button, §Feedback copy; DESIGN_TOKENS
+§Feedback Status Surfaces, §Motion Language, Sidebar, Breadcrumbs.
 
 **Observable acceptance:** Home sits at the top on every route and reveals the
 breadcrumb only on a Node's Grid; the breadcrumb shows for 3 seconds on entry,
@@ -3550,10 +3423,15 @@ also after client navigation; in edit mode with the breadcrumb shown, one `Esc`
 hides the breadcrumb and a second exits edit mode; Home with an Add draft open
 shows the departure sheet; the user
 rechecks that the deadline is visible
-only while the breadcrumb is shown (F25).
+only while the breadcrumb is shown (F25); after an `Esc`-cancelled drag on a
+Grid or the Calendar the cards, the breadcrumb and the toast stack return to
+their resting state; during a Calendar drag the toast stack is translucent;
+a full-Grid create from the Calendar keeps the dialog with the same sentence
+as the Grid pages.
 
 **Verification:** gate; `expert` review (reveal state machine, `Esc` order,
-DnD pass-through, focus order); browser checkpoint with mouse and keyboard.
+DnD pass-through and drag cancel, focus order); browser checkpoint with mouse
+and keyboard, including an `Esc`-cancelled drag on a Grid and on the Calendar.
 
 **Commit message:** `feat(shell): add the Home button and the breadcrumb reveal`.
 
@@ -3710,20 +3588,20 @@ This register covers every implementation/test path declared by two or more task
 | `feedback-status` | `src/components/feedback/*`; `src/hooks/use-display-delay.ts` and tests | 243 creates; 232 (group-3 loader), 245–248 consume |
 | `color-theme` | `src/lib/color-themes.ts`; `src/stores/color-theme-store.ts` and test; `src/components/layout/color-theme-toggle.tsx`; `src/app/layout.tsx` | 241; 239 (`layout.tsx` metadata) |
 | `grid-shell` | `src/components/layout/grid-runtime.tsx`; `src/components/layout/breadcrumbs.tsx`; `src/components/layout/breadcrumb-deadline.tsx`; `src/components/grid/grid-view.tsx`; `src/hooks/use-grid-actions.ts`; `src/lib/grid-dnd.ts` and their tests | 244 (`grid-runtime.tsx`), 248, 249, and any SaaS task that names one of them |
-| `toast-anchor` | `src/hooks/use-toast-anchor.ts` and test | 244 creates; 248 extends |
+| `toast-anchor` | `src/hooks/use-toast-anchor.ts` and test; `src/stores/toast-anchor-store.ts` | 244 creates; 248 extends |
 | `reserved-cells` | `src/lib/utils/breadcrumb-zone.ts` (the static top-left block) | 227, 228 read it; 249 deletes it and stops passing it from `supabase-store.ts` and `session.ts` |
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 42 / Task 213 (SaaS lane) and Phase 49 / Task 241 (feedback lane), which may run at the same time. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** the SaaS lane continues in Phase 42 (Tasks 213–218); the feedback lane continues with Phase 50 / Task 245 after the Phase 45 close. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers:** Phase 51 / Task 251. Planned Phases 42–50 and
   Tasks 213–250 are allocated; retired Phases 36–40 and Tasks 180–208 keep
   their numbers; none may be reused for another meaning.
-- Graph reconciliation: 85 accepted tasks (101–163 plus 105A, 166–172, 171A,
-  173–179 plus 176A and 179A, and 209–212), twelve completed archives (Phases
-  23–31, 34, 35 and 41), two historical unaccepted transfer records (164/165),
-  29 retired tasks (180–208) in retired Phases 36–40, 28 unaccepted tasks
-  (213–240) in Phases 42–48, 10 unaccepted tasks (241–250) in Phases 49–50, and
-  two reserved phases (32–33).
+- Graph reconciliation: 89 accepted tasks (101–163 plus 105A, 166–172, 171A,
+  173–179 plus 176A and 179A, 209–212, and 241–244), thirteen completed
+  archives (Phases 23–31, 34, 35, 41 and 49), two historical unaccepted
+  transfer records (164/165), 29 retired tasks (180–208) in retired Phases
+  36–40, 28 unaccepted tasks (213–240) in Phases 42–48, 6 unaccepted tasks
+  (245–250) in Phase 50, and two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.
