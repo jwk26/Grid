@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Client } from "pg";
 import { beforeAll, describe, expect, it } from "vitest";
 import { baseEntities } from "@/lib/db/boundary-cases";
-import { scratchBreakdownToRow } from "@/lib/db/row-mapping";
+import { scratchBreakdownToRow, stagedCandidateToRow } from "@/lib/db/row-mapping";
 import type { ScratchBreakdown } from "@/lib/db/schema";
 import { assertChangeSet, type Envelope as ChangeEnvelope } from "./helpers/change-set";
 import { expectDbError, insertRow, withActor } from "./helpers/db";
@@ -29,6 +29,16 @@ const reconcileAdd = (db: Client, id: string, scratch: string, version: number, 
   call(db, "reconcile_add_breakdown", [id, scratch, version, content]);
 const saveTitle = (db: Client, scratch: string, version: number, base: string, title: string) =>
   call(db, "save_scratch_title", [scratch, version, base, title]);
+const save = (db: Client, id: string, version: number, base: [string, number], next: [string, number]) =>
+  call(db, "save_breakdown", [id, version, base[0], base[1], next[0], next[1]]);
+const reconcileSave = (db: Client, id: string, version: number, base: [string, number], next: [string, number]) =>
+  call(db, "reconcile_save_breakdown", [id, version, base[0], base[1], next[0], next[1]]);
+const del = (db: Client, id: string, version: number, scratch: string, scratchVersion: number) =>
+  call(db, "delete_breakdown", [id, version, scratch, scratchVersion]);
+const reconcileDel = (db: Client, id: string, version: number, scratch: string, scratchVersion: number) =>
+  call(db, "reconcile_delete_breakdown", [id, version, scratch, scratchVersion]);
+const stage = (db: Client, scratch: string, source: string, u = user) =>
+  insertRow(db, "staged_candidates", stagedCandidateToRow({ ...baseEntities.stagedCandidate, id: randomUUID(), scratchBitId: scratch, sourceBreakdownId: source }, u.id));
 const reconcileTitle = (db: Client, scratch: string, version: number, base: string, title: string) =>
   call(db, "reconcile_save_scratch_title", [scratch, version, base, title]);
 
@@ -195,7 +205,7 @@ describe("reconcile_add_breakdown", () => {
       const id = randomUUID();
       await add(db, id, t.scratch, 5);
       // The confirmed Delete: the row is gone and the Scratch advanced again.
-      await owner(() => sql(db, "delete from app.scratch_breakdowns where id = $1; update app.bits set version = version + 1 where id = $2", [id, t.scratch]));
+      expect(await del(db, id, 1, t.scratch, 6)).toMatchObject({ status: "applied" });
       expect(await reconcileAdd(db, id, t.scratch, 5)).toMatchObject({ status: "conflict" });
       expect(await rowCount(db, t.scratch)).toBe(0);
     });
@@ -295,6 +305,254 @@ describe("reconcile_save_scratch_title", () => {
   });
 });
 
+describe("save_breakdown", () => {
+  it("updates content and order once and increments only the row version", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(() => seedRow(db, t.scratch, { id, content: "Idea", order: 0, version: 3 }));
+      const envelope = await save(db, id, 3, ["Idea", 0], ["Better", 2]);
+      expect(envelope).toMatchObject({ status: "applied", result: { id } });
+      expect(await breakdown(db, id)).toMatchObject({ content: "Better", order: 2, version: 4, consumed_at: null });
+      expect(await stored(db, "bits", t.scratch)).toMatchObject({ version: 5, mtime: 7 });
+      expect(envelope.changes.scratch_breakdowns?.upserted[0]).toMatchObject({ id, version: 4 });
+    });
+  });
+
+  it("returns already_applied for the intended values at the next version, without a write", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(() => seedRow(db, t.scratch, { id, version: 3 }));
+      await save(db, id, 3, ["Idea", 0], ["Better", 2]);
+      expect(await save(db, id, 3, ["Idea", 0], ["Better", 2])).toMatchObject({ status: "already_applied" });
+      expect(await breakdown(db, id)).toMatchObject({ version: 4 });
+    });
+  });
+
+  it("rejects a save that changes nothing with invalid_input", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(() => seedRow(db, t.scratch, { id }));
+      expect(await save(db, id, 1, ["Idea", 0], ["Idea", 0])).toMatchObject({ status: "rejected", rejection: { code: "invalid_input" } });
+      expect(await breakdown(db, id)).toMatchObject({ version: 1 });
+    });
+  });
+
+  it.each([
+    ["the version", 2, ["Idea", 0]],
+    ["the base content", 1, ["Old", 0]],
+    ["the base order", 1, ["Idea", 3]],
+  ] as const)("is a conflict when %s differs, and writes nothing", async (_label, version, base) => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(() => seedRow(db, t.scratch, { id }));
+      const envelope = await save(db, id, version, [base[0], base[1]], ["Better", 1]);
+      expect(envelope.status).toBe("conflict");
+      expect(envelope.changes.scratch_breakdowns?.upserted[0]).toMatchObject({ id, content: "Idea", version: 1 });
+      expect(await breakdown(db, id)).toMatchObject({ content: "Idea", order: 0, version: 1 });
+    });
+  });
+
+  it("rejects a staged row without unstaging it or changing either record", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(async () => {
+        await seedRow(db, t.scratch, { id });
+        await stage(db, t.scratch, id);
+      });
+      const envelope = await save(db, id, 1, ["Idea", 0], ["Better", 1]);
+      expect(envelope).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      expect(envelope.changes.staged_candidates?.upserted).toHaveLength(1);
+      expect(await breakdown(db, id)).toMatchObject({ content: "Idea", version: 1 });
+      expect((await db.query("select count(*) as n from app.staged_candidates")).rows[0].n).toBe("1");
+    });
+  });
+
+  it.each([
+    ["consumed", "update app.scratch_breakdowns set consumed_at = 9 where id = $1"],
+    ["under a trashed Scratch", "update app.bits set deleted_at = 5 where id = (select scratch_bit_id from app.scratch_breakdowns where id = $1)"],
+    ["under an archived Scratch", "update app.bits set archived_at = 5 where id = (select scratch_bit_id from app.scratch_breakdowns where id = $1)"],
+  ] as const)("rejects a row that is %s with invalid_target", async (_label, statement) => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(async () => {
+        await seedRow(db, t.scratch, { id });
+        await sql(db, statement, [id]);
+      });
+      expect(await save(db, id, 1, ["Idea", 0], ["Better", 1])).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      expect(await breakdown(db, id)).toMatchObject({ content: "Idea", version: 1 });
+    });
+  });
+
+  it("rejects a missing row with not_found and a missing account with account_missing", async () => {
+    await withActor(A(), async (db, owner) => {
+      await setup(db, owner);
+      expect(await save(db, randomUUID(), 1, ["a", 0], ["b", 0])).toMatchObject({ rejection: { code: "not_found" }, changes: {} });
+    });
+    await withActor(A(), async (db) => {
+      expect(await save(db, randomUUID(), 1, ["a", 0], ["b", 0])).toMatchObject({ rejection: { code: "account_missing" } });
+    });
+  });
+
+  it("fails with a CHECK error and writes nothing for empty content", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(() => seedRow(db, t.scratch, { id }));
+      expect(await expectDbError(() => save(db, id, 1, ["Idea", 0], ["", 0]))).toBe("23514");
+    });
+  });
+});
+
+describe("reconcile_save_breakdown", () => {
+  it("classifies not_applied, already_applied and conflict, and reports a candidate as conflict", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(() => seedRow(db, t.scratch, { id }));
+      expect(await reconcileSave(db, id, 1, ["Idea", 0], ["Better", 1])).toMatchObject({ status: "not_applied" });
+      await save(db, id, 1, ["Idea", 0], ["Better", 1]);
+      expect(await reconcileSave(db, id, 1, ["Idea", 0], ["Better", 1])).toMatchObject({ status: "already_applied" });
+      expect(await reconcileSave(db, id, 1, ["Idea", 0], ["Different", 1])).toMatchObject({ status: "conflict" });
+      await owner(() => stage(db, t.scratch, id));
+      const staged = await reconcileSave(db, id, 1, ["Idea", 0], ["Better", 1]);
+      expect(staged.status).toBe("conflict");
+      expect(staged.changes.staged_candidates?.upserted).toHaveLength(1);
+    });
+    await withActor(A(), async (db) => {
+      expect(await reconcileSave(db, randomUUID(), 1, ["a", 0], ["b", 0])).toMatchObject({ status: "rejected", rejection: { code: "account_missing" } });
+    });
+  });
+});
+
+describe("delete_breakdown", () => {
+  it("hard-deletes the row and increments the Scratch version once", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      const other = randomUUID();
+      await owner(async () => {
+        await seedRow(db, t.scratch, { id, version: 2 });
+        await seedRow(db, t.scratch, { id: other, order: 1 });
+      });
+      const envelope = await del(db, id, 2, t.scratch, 5);
+      expect(envelope).toMatchObject({ status: "applied", result: { id } });
+      expect(await breakdown(db, id)).toBeUndefined();
+      expect(await breakdown(db, other)).toMatchObject({ version: 1 });
+      expect(await stored(db, "bits", t.scratch)).toMatchObject({ version: 6, mtime: 7 });
+      expect(envelope.changes.scratch_breakdowns).toEqual({ upserted: [], deleted: [id] });
+    });
+  });
+
+  it("returns already_applied once it ran, without a second increment", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(() => seedRow(db, t.scratch, { id }));
+      await del(db, id, 1, t.scratch, 5);
+      expect(await del(db, id, 1, t.scratch, 5)).toMatchObject({ status: "already_applied" });
+      expect(await stored(db, "bits", t.scratch)).toMatchObject({ version: 6 });
+    });
+  });
+
+  it("is a conflict for a wrong row or Scratch version, and writes nothing", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(() => seedRow(db, t.scratch, { id }));
+      expect(await del(db, id, 2, t.scratch, 5)).toMatchObject({ status: "conflict" });
+      expect(await del(db, id, 1, t.scratch, 4)).toMatchObject({ status: "conflict" });
+      expect(await breakdown(db, id)).toMatchObject({ version: 1 });
+      expect(await stored(db, "bits", t.scratch)).toMatchObject({ version: 5 });
+    });
+  });
+
+  it("rejects a staged row without cascading the candidate or deleting the row", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(async () => {
+        await seedRow(db, t.scratch, { id });
+        await stage(db, t.scratch, id);
+      });
+      const envelope = await del(db, id, 1, t.scratch, 5);
+      expect(envelope).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      expect(envelope.changes.staged_candidates?.upserted).toHaveLength(1);
+      expect(await breakdown(db, id)).toMatchObject({ version: 1 });
+      expect((await db.query("select count(*) as n from app.staged_candidates")).rows[0].n).toBe("1");
+    });
+  });
+
+  it("rejects a consumed row, a row of another Scratch and an inactive Scratch", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const consumed = randomUUID();
+      const foreign = randomUUID();
+      const second = await owner(async () => {
+        const s = await addBit(db, user.id, { parentId: t.inbox, x: 1, y: 0, version: 5 });
+        await seedRow(db, t.scratch, { id: consumed, consumedAt: 9 });
+        await seedRow(db, s, { id: foreign });
+        return s;
+      });
+      expect(await del(db, consumed, 1, t.scratch, 5)).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      expect(await del(db, foreign, 1, t.scratch, 5)).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      await owner(() => sql(db, "update app.bits set deleted_at = 5 where id = $1", [second]));
+      expect(await del(db, foreign, 1, second, 5)).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      expect(await breakdown(db, foreign)).toMatchObject({ version: 1 });
+      expect(await stored(db, "bits", t.scratch)).toMatchObject({ version: 5 });
+    });
+  });
+
+  it("rejects a missing row with not_found and a missing account with account_missing", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      expect(await del(db, randomUUID(), 1, t.scratch, 5)).toMatchObject({ status: "rejected", rejection: { code: "not_found" } });
+      expect(await del(db, randomUUID(), 1, randomUUID(), 5)).toMatchObject({ rejection: { code: "not_found" }, changes: {} });
+    });
+    await withActor(A(), async (db) => {
+      expect(await del(db, randomUUID(), 1, randomUUID(), 5)).toMatchObject({ rejection: { code: "account_missing" } });
+    });
+  });
+});
+
+describe("reconcile_delete_breakdown", () => {
+  it("classifies not_applied, already_applied and conflict", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(() => seedRow(db, t.scratch, { id }));
+      expect(await reconcileDel(db, id, 1, t.scratch, 5)).toMatchObject({ status: "not_applied" });
+      await del(db, id, 1, t.scratch, 5);
+      expect(await reconcileDel(db, id, 1, t.scratch, 5)).toMatchObject({ status: "already_applied" });
+      await owner(() => sql(db, "update app.bits set version = 9 where id = $1", [t.scratch]));
+      expect(await reconcileDel(db, id, 1, t.scratch, 5)).toMatchObject({ status: "conflict" });
+    });
+  });
+
+  it("a staged row reconciles as conflict, and a later Add of another row does not make a Delete look done", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const id = randomUUID();
+      await owner(async () => {
+        await seedRow(db, t.scratch, { id });
+        await stage(db, t.scratch, id);
+      });
+      const staged = await reconcileDel(db, id, 1, t.scratch, 5);
+      expect(staged.status).toBe("conflict");
+      expect(staged.changes.staged_candidates?.upserted).toHaveLength(1);
+    });
+    await withActor(A(), async (db) => {
+      expect(await reconcileDel(db, randomUUID(), 1, randomUUID(), 5)).toMatchObject({ status: "rejected", rejection: { code: "account_missing" } });
+    });
+  });
+});
+
+
 describe("cross-account and change set", () => {
   it("leaves another account's rows untouched and sees nothing of them", async () => {
     await withActor(A(), async (db, owner) => {
@@ -307,6 +565,10 @@ describe("cross-account and change set", () => {
       expect(await saveTitle(db, theirs.scratch, 5, "Scratch", "Mine now")).toMatchObject({ rejection: { code: "not_found" }, changes: {} });
       expect(await reconcileAdd(db, theirRow, theirs.scratch, 5, "Theirs")).toMatchObject({ status: "conflict", changes: {} });
       expect(await reconcileTitle(db, theirs.scratch, 5, "Scratch", "Mine now")).toMatchObject({ status: "conflict", changes: {} });
+      expect(await save(db, theirRow, 1, ["Theirs", 0], ["Mine now", 0])).toMatchObject({ rejection: { code: "not_found" }, changes: {} });
+      expect(await del(db, theirRow, 1, theirs.scratch, 5)).toMatchObject({ rejection: { code: "not_found" }, changes: {} });
+      expect(await reconcileSave(db, theirRow, 1, ["Theirs", 0], ["Mine now", 0])).toMatchObject({ status: "conflict", changes: {} });
+      expect(await reconcileDel(db, theirRow, 1, theirs.scratch, 5)).toMatchObject({ status: "conflict", changes: {} });
       expect(await owner(() => stored(db, "bits", theirs.scratch))).toMatchObject({ title: "Scratch", version: 5 });
       expect(await owner(() => breakdown(db, theirRow))).toMatchObject({ content: "Theirs", version: 1 });
     });
@@ -337,6 +599,26 @@ describe("cross-account and change set", () => {
       await run(() => saveTitle(db, t.scratch, 1, "Renamed", "Other"));
       await run(() => reconcileAdd(db, id, t.scratch, 5));
       await run(() => reconcileTitle(db, t.scratch, 6, "Scratch", "Renamed"));
+      const row = randomUUID();
+      const staged = randomUUID();
+      await owner(async () => {
+        await seedRow(db, t.scratch, { id: row, order: 5 });
+        await seedRow(db, t.scratch, { id: staged, order: 6 });
+        await stage(db, t.scratch, staged);
+      });
+      await run(() => save(db, row, 1, ["Idea", 5], ["Better", 5]));
+      await run(() => save(db, row, 1, ["Idea", 5], ["Better", 5]));
+      await run(() => save(db, row, 1, ["Idea", 5], ["Idea", 5]));
+      await run(() => save(db, staged, 1, ["Idea", 6], ["Better", 6]));
+      await run(() => save(db, randomUUID(), 1, ["a", 0], ["b", 0]));
+      await run(() => reconcileSave(db, row, 1, ["Idea", 5], ["Better", 5]));
+      await run(() => reconcileSave(db, staged, 1, ["Idea", 6], ["Better", 6]));
+      await run(() => del(db, staged, 1, t.scratch, 7));
+      await run(() => del(db, row, 2, t.scratch, 7));
+      await run(() => reconcileDel(db, row, 2, t.scratch, 7));
+      await run(() => del(db, row, 2, t.scratch, 7));
+      await run(() => del(db, row, 2, t.scratch, 7));
+      await run(() => reconcileDel(db, row, 2, t.scratch, 7));
     });
   });
 });

@@ -168,6 +168,9 @@ isOneToOne: false
 "create_node":
 { Args: { "p_id": string,"p_values": Json }; Returns: Json
                            },
+"delete_breakdown":
+{ Args: { "p_expected_version": number,"p_id": string,"p_scratch_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
 "delete_chunk":
 { Args: { "p_id": string }; Returns: Json
                            },
@@ -192,6 +195,12 @@ isOneToOne: false
 "reconcile_add_breakdown":
 { Args: { "p_breakdown_id": string,"p_content": string,"p_scratch_expected_version": number,"p_scratch_id": string }; Returns: Json
                            },
+"reconcile_delete_breakdown":
+{ Args: { "p_expected_version": number,"p_id": string,"p_scratch_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
+"reconcile_save_breakdown":
+{ Args: { "p_base_content": string,"p_base_order": number,"p_content": string,"p_expected_version": number,"p_id": string,"p_order": number }; Returns: Json
+                           },
 "reconcile_save_scratch_title":
 { Args: { "p_base_title": string,"p_expected_version": number,"p_scratch_id": string,"p_title": string }; Returns: Json
                            },
@@ -203,6 +212,9 @@ isOneToOne: false
                            },
 "restore_node":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"save_breakdown":
+{ Args: { "p_base_content": string,"p_base_order": number,"p_content": string,"p_expected_version": number,"p_id": string,"p_order": number }; Returns: Json
                            },
 "save_scratch_title":
 { Args: { "p_base_title": string,"p_expected_version": number,"p_scratch_id": string,"p_title": string }; Returns: Json

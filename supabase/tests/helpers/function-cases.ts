@@ -250,4 +250,20 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
     crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
     changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
   },
+  save_breakdown: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  delete_breakdown: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  reconcile_save_breakdown: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  reconcile_delete_breakdown: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
 };
