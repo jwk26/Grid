@@ -222,6 +222,7 @@ describe("update_chunk", () => {
       expect(await stored(db, "nodes", p)).toMatchObject({ version: 1, mtime: bit.mtime });
       expect(envelope.changes.chunks?.upserted).toEqual([await stored(db, "chunks", c3)]);
       expect(envelope.changes.bits?.upserted).toEqual([bit]);
+      expect(envelope.changes.nodes?.upserted).toEqual([await stored(db, "nodes", p)]);
     });
   });
 
@@ -267,6 +268,8 @@ describe("update_chunk", () => {
       expect(Number(bit.mtime)).toBeGreaterThan(NOW);
       expect(Number((await stored(db, "nodes", p)).mtime)).toBeGreaterThan(NOW);
       expect(await stored(db, "chunks", c1)).toMatchObject({ title: "renamed", time: 5_000, description: "d" });
+      expect(envelope.changes.bits?.upserted).toEqual([bit]);
+      expect(envelope.changes.nodes?.upserted).toEqual([await stored(db, "nodes", p)]);
     });
   });
 
@@ -364,6 +367,8 @@ describe("delete_chunk", () => {
       const bit = await stored(db, "bits", b);
       expect(bit).toMatchObject({ status: "complete", version: 2 });
       expect(await stored(db, "nodes", p)).toMatchObject({ version: 1, mtime: bit.mtime });
+      expect(envelope.changes.bits?.upserted).toEqual([bit]);
+      expect(envelope.changes.nodes?.upserted).toEqual([await stored(db, "nodes", p)]);
     });
   });
 
@@ -510,7 +515,12 @@ describe("change set (S31)", () => {
   it("before + changes equals after for create, update, extension, delete, reorder and rejections", async () => {
     await withActor(authed(), async (db, owner) => {
       const { b, c1, c2, c3 } = await setup(db, owner);
-      const run = (fn: () => Promise<Envelope>) => assertChangeSet(db, user.id, fn as unknown as () => Promise<ChangeEnvelope>);
+      // One transaction shares one timestamp, so reset the mtimes before every call: a parent
+      // row left out of `changes` must show as a difference.
+      const run = async (fn: () => Promise<Envelope>) => {
+        await owner(() => sql(db, "update app.nodes set mtime = 1; update app.bits set mtime = 1"));
+        return assertChangeSet(db, user.id, fn as unknown as () => Promise<ChangeEnvelope>);
+      };
       await run(() => createChunk(db, { title: "n", parent_id: b, order: 3 }));
       await run(() => updateChunk(db, c1, { title: "edited" }));
       await run(() => updateChunk(db, c1, { status: "complete" }));

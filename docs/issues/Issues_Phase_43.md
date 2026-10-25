@@ -12,8 +12,8 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 ## Task 219 — Port the Node, Bit and Chunk write functions
 
 ### Current state
-- Status: In Progress
-- Next: Stage 3 (ported scenarios)
+- Status: Implemented, awaiting acceptance
+- Next: user acceptance of Task 219
 - Open: none
 
 ### Log
@@ -58,3 +58,13 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 - Please check: (1) the `table: "bits"` choice above; (2) the parity finding on checking a Chunk of a hand-completed Bit; (3) `reorder_chunks` taking the full ordered id list.
 - Unresolved: none. Stage 1 and Stage 2 are committed.
 - Review applied (Stage 2, 2026-10-25): (1) `reorder_chunks` with a list that is not the Bit's Chunks returns `invalid_input` with the Bit's current Chunks in `upserted` and the listed ids that are not among them in `deleted`; test with a Chunk added and one deleted in another tab, before + changes equals after. (2) The Bit extension that does not fit the Bit's Node is rejected with `table: "nodes"` (the Note above on `table: "bits"` for that case is superseded; a Chunk time past the Bit's deadline stays `bits`). (3) Hook 3 as amended in 7f9444e: `internal.settle_bit` now takes a mode (`create`, `check`, `uncheck`, `delete`, or none); a check or delete never returns a `complete` Bit to `active`; tests for a check and for deletes (including the last Chunk) on a hand-completed Bit. The "parity finding" in the Stage 2 checkpoint is superseded by this decision. `pnpm test:db` 485/485.
+- Review (expert, 2026-10-25, task finish): no blocking finding. SQL checklist, lock order (advisory Grid → Node → Bit → Chunk, no cycle found), lifecycle invariants, NULL handling, Hooks 1–3, 8, 12 and the limit numbers hold. Findings: (1) Medium, test gap: the S31 change-set tests run in one transaction, so a parent row left out of `changes` hides behind the shared timestamp → fixed: the change-set tests reset every `mtime` before each call, and the `update_chunk` / `delete_chunk` tests assert the Bit and Node rows in `changes`. (2) Low: when a Bit moves while a Chunk write waits, `internal.lock_bit_and_node` retries by locking the new Node while it holds the Bit, so a rare `40P01` is possible; it ends as a failed write, same class as the Stage 1 Note and Task 217 L4 — recorded, not changed. (3) Low, parity: the Calendar answer in `update_chunk` also sets the Bit's `deadline_all_day` to the Chunk's `time_all_day`; Dexie (`use-dnd.ts`) set only `deadline`, leaving an all-day Bit all-day with a timed deadline — kept, since it is the consistent result; say if you want `deadline` only.
+- Note: SCHEMA §Locks and the work plan say create locks the parent `for share`; the functions use `for update` (stricter, serializes with edits of the same parent).
+- Decision needed (Low): finding 3 above.
+
+### Checkpoint (Stage 3 and task finish)
+- Changed: `supabase/tests/ported-scenarios.db.test.ts` (14 cases: `revision`, `deadline-hierarchy`, create/update scenarios of `indexeddb.test.ts`; the map to the Stage 1/2 suites for `mtime-cascade`, `auto-completion`, `grid-uniqueness` is in its header); S31 tests hardened (see expert finding 1).
+- Verified: full gate — `git diff --check origin/main...HEAD`, `pnpm test` 2177/2177, `pnpm test:db` 499/499 (rerun after the test changes), `pnpm lint` (0 errors, 11 existing warnings), `pnpm typecheck`, `pnpm build`. `coverage.db.test.ts` and `types.db.test.ts` pass. MI-1 did not recur. The hardened change-set tests were not mutation-checked (no migration was changed to drop a row).
+- Task summary: ten functions (`create_node`, `create_bit`, `update_bit`, `create_chunk`, `update_chunk`, `delete_chunk`, `reorder_chunks` and the internal helpers) in two migrations; `update_node` untouched. Migrations are local only; Task 218's production run applies them when you approve (CLAUDE.md Production).
+- Please check: (1) the Calendar-answer parity note (expert finding 3); (2) the two Notes above (`40P01`, `for update` vs `for share`) are acceptable; (3) the porting map in the header of `ported-scenarios.db.test.ts` covers what you expected from the plan.
+- Unresolved: none.

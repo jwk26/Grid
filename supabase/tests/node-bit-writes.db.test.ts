@@ -600,7 +600,12 @@ describe("change set (S31)", () => {
   it("before + changes equals after for creates, edits, moves, an extension and rejections", async () => {
     await withActor(authed(), async (db, owner) => {
       const { p, b, other, archive } = await setup(db, owner);
-      const run = (fn: () => Promise<Envelope>) => assertChangeSet(db, user.id, fn as unknown as () => Promise<ChangeEnvelope>);
+      // One transaction shares one timestamp, so reset the mtimes before every call: a parent
+      // row left out of `changes` must show as a difference.
+      const run = async (fn: () => Promise<Envelope>) => {
+        await owner(() => db.query("update app.nodes set mtime = 1"));
+        return assertChangeSet(db, user.id, fn as unknown as () => Promise<ChangeEnvelope>);
+      };
       await run(() => createNode(db, { ...NODE, parent_id: p, x: 1, y: 1 }));
       await run(() => createNode(db, { ...NODE, x: 3, y: 3 })); // cell_taken
       await run(() => createBit(db, { title: "b", icon: "i", parent_id: p, x: 2, y: 2 }));
