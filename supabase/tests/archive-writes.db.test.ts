@@ -250,6 +250,27 @@ describe("unarchive_node", () => {
     });
   });
 
+  it("restores a Bit and a Node exactly 5000 ms from its Node's archive time, and keeps ones outside the window", async () => {
+    await withActor(A(), async (db, owner) => {
+      await owner(() => account(db, user.id));
+      const n = await owner(() => node(db, { x: 3, y: 3, archivedAt: T, version: 2 }));
+      const b1 = await owner(() => bit(db, { parentId: n, x: 0, y: 0, archivedAt: T, version: 2 }));
+      const b2 = await owner(() => bit(db, { parentId: n, x: 1, y: 0, archivedAt: T - 10_000, version: 2 }));
+      const b3 = await owner(() => bit(db, { parentId: n, x: 2, y: 0, archivedAt: T + 5000, version: 2 }));
+      const b4 = await owner(() => bit(db, { parentId: n, x: 3, y: 0, archivedAt: T + 5001, version: 2 }));
+      const c1 = await owner(() => node(db, { parentId: n, level: 1, x: 0, y: 1, archivedAt: T - 5000, version: 2 }));
+      const c2 = await owner(() => node(db, { parentId: n, level: 1, x: 1, y: 1, archivedAt: T - 5001, version: 2 }));
+      expect(await unNode(db, n)).toMatchObject({ status: "applied" });
+      for (const id of [b1, b3]) expect(await stored(db, "bits", id)).toMatchObject({ archived_at: null, version: 3 });
+      for (const id of [b2, b4]) expect(await stored(db, "bits", id)).toMatchObject({ version: 2 });
+      expect((await stored(db, "bits", b2)).archived_at).not.toBeNull();
+      expect((await stored(db, "bits", b4)).archived_at).not.toBeNull();
+      expect(await stored(db, "nodes", c1)).toMatchObject({ archived_at: null, version: 3 });
+      expect(await stored(db, "nodes", c2)).toMatchObject({ version: 2 });
+      expect((await stored(db, "nodes", c2)).archived_at).not.toBeNull();
+    });
+  });
+
   it("moves to the nearest free cell when the original is taken or reserved", async () => {
     await withActor(A(), async (db, owner) => {
       await owner(() => account(db, user.id));
