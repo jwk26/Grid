@@ -14,7 +14,7 @@ export type Table = { upserted: Row[]; deleted: string[] };
 export type Envelope = {
   status: string;
   result: unknown;
-  changes: { nodes?: Table; bits?: Table; chunks?: Table };
+  changes: { nodes?: Table; bits?: Table; chunks?: Table; scratch_breakdowns?: Table; staged_candidates?: Table };
   rejection?: { code: string; table?: string; limit?: number };
 };
 export type Owner = <R>(run: () => Promise<R>) => Promise<R>;

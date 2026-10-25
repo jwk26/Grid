@@ -77,8 +77,8 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 ## Task 220 — Port the lifecycle write functions
 
 ### Current state
-- Status: In Progress
-- Next: Stage 3 (permanent delete) checkpoint
+- Status: Awaiting User Decision
+- Next: Stage 3 (permanent delete) acceptance
 - Open: none
 
 ### Log
@@ -122,3 +122,13 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 - Review applied (Stage 2, 2026-10-25): (1) the Bit branch of `internal.restore_tree` returns `parent_inactive` only when the Bit's other-state timestamp is null (Stage 1 migration, local only). Test with real calls: `soft_delete_bit(b)`, `archive_node(N)`, `restore_bit(b)` is `applied` with `b` archived and not trashed, then `unarchive_node(N)` brings `b` back live. Mutation check: with the old branch the test fails; reverted to the fix. (2) The Stage 2 Note now reads "system Node". `pnpm test:db` 565/565, `typecheck` pass.
 - Decision: Stage 2 accepted with the review above (user, 2026-10-25).
 
+### Checkpoint (Stage 3 — Permanent delete)
+- Changed: `supabase/migrations/20261031000000_hard_delete_writes.sql` (`hard_delete_node`, `hard_delete_bit`, `empty_trash`, `cleanup_expired_trash`; internal `trash_node_roots`, `trash_bit_roots`, `closure_ids`, `purge_nodes`, `lock_purge`, `purge`, `purge_changes`); `supabase/tests/hard-delete-writes.db.test.ts` (21 cases); `helpers/lifecycle.ts` (`Envelope` lists the Breakdown and candidate tables); `function-cases.ts`; `database.types.ts` regenerated.
+- Verified: `pnpm test:db` 586/586, `pnpm typecheck`, `pnpm lint` (0 errors, 11 existing warnings), `git diff --check origin/main...HEAD` (the one finding was a blank line at the end of this ledger, fixed). `pnpm test` and `pnpm build` run at the task finish (no `src` code changed).
+- Design: one `internal.purge()` deletes in the order candidates, Breakdowns, Chunks, Bits, Nodes (one statement per table) and touches the surviving parent Nodes (mtime, version kept); `changes` carries `deleted` ids per table and the touched parents as upserted rows (`internal.changes` itself is unchanged; `purge_changes` adds the `deleted` lists). `lock_purge` locks the trashed closure plus the parents in one statement ordered by id, recomputes under the locks and starts over when the set grew, then the Bits; hard delete of one item reuses `lock_tree` / `lock_bit_and_node`.
+- Decisions applied: `integrity_cleanup_required` dropped (not ported: `scratch-aggregate-hard-delete` cases 2–3); a live Node or Bit, and a system Node, are `invalid_target` with nothing written. `cleanup_expired_trash` uses the transaction time and a strict `<` (exactly 30 days is kept) and writes `accounts.last_visit_at` before anything else, also when nothing expired.
+- Ported: `cascade-hard-delete` (closure with Chunks, Scratch source and candidate, rollback), `auto-cleanup` (retention window, closures, standalone expired Bit, fresh items and versions untouched, rollback), `scratch-aggregate-hard-delete` (complete aggregate, unrelated Scratch kept whole). The rollback cases run a trigger that refuses the last step (Node delete) and check that the Chunks and Bits deleted before it are back (`empty_trash`, savepoint).
+- Concurrency (real sessions, both orders): Empty Trash vs `restore_node` (restored and kept, or deleted and the restore is `not_found`); `hard_delete_node` vs `restore_bit` under it (`invalid_target` or `not_found`); `hard_delete_bit` vs `restore_bit`; `hard_delete_bit` vs `create_chunk` (the create is `parent_inactive` or `not_found`, no Chunk is left); `cleanup_expired_trash` vs `restore_bit` of an expired Bit (kept).
+- Note: `create_chunk` refuses a trashed Bit, so "a Chunk added during a hard delete" cannot end with an orphan Chunk; the case above shows both orders.
+- Please check: (1) a live item is `invalid_target` for `hard_delete_*` (Dexie allowed it); (2) `empty_trash` and `cleanup_expired_trash` return `result: {nodes, bits}` counts, and the client reads the deleted ids from `changes`.
+- Unresolved: none.

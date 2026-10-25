@@ -184,4 +184,44 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "before + changes equals after for archive, unarchive, no-ops and rejections",
     },
   },
+  hard_delete_node: {
+    crossAccount: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "leaves another account's rows untouched",
+    },
+    changeSet: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
+    },
+  },
+  hard_delete_bit: {
+    crossAccount: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "leaves another account's rows untouched",
+    },
+    changeSet: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
+    },
+  },
+  empty_trash: {
+    crossAccount: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "leaves another account's rows untouched",
+    },
+    changeSet: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
+    },
+  },
+  cleanup_expired_trash: {
+    crossAccount: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "leaves another account's rows untouched",
+    },
+    changeSet: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
+    },
+  },
 };

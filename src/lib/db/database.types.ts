@@ -153,6 +153,9 @@ isOneToOne: false
 "archive_node":
 { Args: { "p_id": string }; Returns: Json
                            },
+"cleanup_expired_trash":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "create_bit":
 { Args: { "p_id": string,"p_values": Json }; Returns: Json
                            },
@@ -165,11 +168,20 @@ isOneToOne: false
 "delete_chunk":
 { Args: { "p_id": string }; Returns: Json
                            },
+"empty_trash":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "ensure_account":
 { Args: { "p_reserved_cells"?: Json }; Returns: Json
                            },
 "get_snapshot":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"hard_delete_bit":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"hard_delete_node":
+{ Args: { "p_id": string }; Returns: Json
                            },
 "reorder_chunks":
 { Args: { "p_bit_id": string,"p_chunk_ids": (string)[] }; Returns: Json
