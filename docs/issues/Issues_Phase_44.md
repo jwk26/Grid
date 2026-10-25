@@ -11,8 +11,8 @@ Start: drift D1 fixed in the plan (Task 224: the Archive descriptor conformance 
 ## Task 221 — Port the Breakdown and Scratch title commands
 
 ### Current state
-- Status: In Progress
-- Next: Stage 3 acceptance (concurrency cases and the full gate); then Finish (expert review)
+- Status: Implemented, awaiting acceptance
+- Next: Task 221 acceptance
 - Open: none
 
 ### Log
@@ -36,3 +36,10 @@ Start: drift D1 fixed in the plan (Task 224: the Archive descriptor conformance 
 - Task note for Task 224 (agent, to confirm at finish): Add ∥ Trash Scratch moves here; `trash_scratch` must lock the Scratch with `internal.lock_bit_and_node` as the Breakdown commands do.
 - Review (advisory, 2026-10-25, Stage 3): approve with changes. Stage 2 review applied (301–304); the nine concurrency cases wait on a real lock (`race` + `waitForLockWait`); full gate green, MI-1 did not recur. Apply: (1) port the two Dexie atomicity scenarios of `inbox-operations.test.ts` ("rolls the row insert/delete back when the real transaction fails before the Scratch revision write") with the failing-trigger precedent of `hard-delete-writes.db.test.ts` (a `before update` trigger on `app.bits` that raises): `add_breakdown` and `delete_breakdown` end in the error, the row is absent (Add) or still present (Delete), and the Scratch version is unchanged; (2) port "reads every authoritative store from one read-only transaction snapshot" as a catalog case: each `reconcile_*` is `language sql`, `stable` and `security invoker` (`pg_proc`), one list that Tasks 222–224 extend. Not applied: none. Then Finish (`expert` review).
 - Decision: Stage 3 accepted (user, 2026-10-25). Review items applied: (1) the two Dexie atomicity scenarios (a failing `before update` trigger on `app.bits`; Add leaves no row, Delete keeps the row, the Scratch version unchanged); (2) a catalog case that every `reconcile_*` is `language sql`, `stable`, `security invoker` with an empty `search_path`, one list for Tasks 222–224 to extend.
+
+### Checkpoint
+- Changed: `supabase/migrations/20261033000000_breakdown_commands.sql` (`add_breakdown`, `save_scratch_title`, `save_breakdown`, `delete_breakdown`, their four `reconcile_*` functions, internal `active_inbox_scratch` and `inbox_changes`); `supabase/tests/breakdown-commands.db.test.ts` (new, 59 cases); `supabase/tests/helpers/function-cases.ts`; regenerated `database.types.ts`. No `src` change.
+- Verified: `git diff --check origin/main...HEAD`, `pnpm test` 2177/2177 (output saved; MI-1 did not recur), `pnpm test:db` 672/672 after a reset, `pnpm lint` (0 errors, 11 existing warnings), `pnpm typecheck`, `pnpm build`. Concurrency (nine cases on a real lock wait), atomicity (failing trigger), guest and real limits, cross-account, change-set and the "ambiguous Add, then confirmed Delete" case are in the new suite.
+- Please check: (1) the rejection codes I chose where SCHEMA names none: `not_found`, `invalid_target`, `invalid_input`; (2) a Delete of an absent row is `already_applied` when the Scratch is at `scratchExpectedVersion + 1`, as the Dexie postcondition says; (3) Add does not touch the Scratch `mtime`.
+- Unresolved: none.
+- Review: `expert` (SQL checklist), no blocking finding; Dexie classification, grants, lock order and ABA hold. (1) Low: `save_breakdown` did not check that the row it re-read after the lock still belongs to the locked Scratch (an id deleted and re-added under another Scratch while the Save waited) → fixed: it raises 40001 as `lock_bit_and_node` does. (2) Low: a `reconcile_*` with a null argument could classify `already_applied` or `not_applied` where the command raises 22023 → fixed: it classifies `conflict` (one test). Phase 45 note, no change: a `delete_breakdown` / `reconcile_delete_breakdown` `already_applied` envelope carries no `deleted` id, so the client must refetch after an unknown outcome (S32) rather than apply only `changes`. Also: the Phase 43 note that concurrent Adds may pass the limit by one does not apply, since every Add locks the single Inbox Node.

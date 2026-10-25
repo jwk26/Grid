@@ -778,6 +778,16 @@ describe("atomicity and definitions", () => {
     });
   });
 
+  it("a reconcile with a null argument is a conflict, where the command raises 22023", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      expect(await call(db, "reconcile_delete_breakdown", [null, 1, t.scratch, 4])).toMatchObject({ status: "conflict" });
+      expect(await call(db, "reconcile_add_breakdown", [null, t.scratch, 5, "Idea"])).toMatchObject({ status: "conflict" });
+      expect(await call(db, "reconcile_save_scratch_title", [t.scratch, 5, null, "x"])).toMatchObject({ status: "conflict" });
+      expect(await call(db, "reconcile_save_breakdown", [null, 1, "a", 0, "b", 0])).toMatchObject({ status: "conflict" });
+    });
+  });
+
   // Tasks 222–224 add their reconcile functions to this list.
   const RECONCILE_FUNCTIONS = [
     "reconcile_add_breakdown",

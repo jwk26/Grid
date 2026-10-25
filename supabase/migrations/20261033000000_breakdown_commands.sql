@@ -151,6 +151,7 @@ create function public.reconcile_add_breakdown(
     verdict as (
       select case
         when not acct.ok then 'account_missing'
+        when p_breakdown_id is null or p_scratch_id is null or p_scratch_expected_version is null or p_content is null then 'conflict'
         when act.ok and exists (select 1 from br where br.scratch_bit_id = p_scratch_id and br.content = p_content
                                   and br.consumed_at is null and br.version = 1)
              and exists (select 1 from sc where sc.version = p_scratch_expected_version + 1) then 'already_applied'
@@ -246,6 +247,7 @@ create function public.reconcile_save_scratch_title(
     verdict as (
       select case
         when not acct.ok then 'account_missing'
+        when p_scratch_id is null or p_expected_version is null or p_base_title is null or p_title is null then 'conflict'
         when act.ok and exists (select 1 from sc where sc.title = p_title and sc.version = p_expected_version + 1) then 'already_applied'
         when act.ok and exists (select 1 from sc where sc.title = p_base_title and sc.version = p_expected_version) then 'not_applied'
         else 'conflict'
@@ -303,6 +305,10 @@ begin
     return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'not_found'));
   end if;
   select * into v_row from app.scratch_breakdowns where id = p_id and user_id = v_user for update;
+  if v_row.scratch_bit_id is distinct from v_scratch_id and v_row.id is not null then
+    -- The id was deleted and added again under another Scratch between the unlocked read and the lock.
+    raise exception 'could not settle the lock set of Breakdown %', p_id using errcode = '40001';
+  end if;
   if v_row.id is null then
     return internal.envelope('rejected', null, internal.inbox_changes(jsonb_build_array(to_jsonb(v_scratch))),
                              jsonb_build_object('code', 'not_found'));
@@ -361,6 +367,7 @@ create function public.reconcile_save_breakdown(
     verdict as (
       select case
         when not acct.ok then 'account_missing'
+        when p_id is null or p_expected_version is null or p_base_content is null or p_base_order is null or p_content is null or p_order is null then 'conflict'
         when act.ok and not exists (select 1 from cand)
              and exists (select 1 from br where br.consumed_at is null and br.version = p_expected_version + 1
                            and br.content = p_content and br."order" = p_order) then 'already_applied'
@@ -466,6 +473,7 @@ create function public.reconcile_delete_breakdown(
     verdict as (
       select case
         when not acct.ok then 'account_missing'
+        when p_id is null or p_expected_version is null or p_scratch_id is null or p_scratch_expected_version is null then 'conflict'
         when act.ok and not exists (select 1 from br) and not exists (select 1 from cand)
              and exists (select 1 from sc where sc.version = p_scratch_expected_version + 1) then 'already_applied'
         when act.ok and not exists (select 1 from cand)
