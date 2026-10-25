@@ -1296,10 +1296,12 @@ When any of these actions occur, reset `mtime = Date.now()` on the affected item
 | Edit title, description, or properties of a Bit | That Bit |
 | Complete or uncomplete a Chunk | Parent Bit **AND** parent Node (two-level cascade) |
 | Add or remove a Chunk from a Bit | Parent Bit **AND** parent Node |
+| Edit a Chunk's title or time | Parent Bit **AND** parent Node |
 | Add or remove a child Node or Bit from a Node | That parent Node |
 | Complete or uncomplete a Bit | That Bit **AND** parent Node |
 
-**Does NOT reset mtime:** Opening/viewing an item, repositioning on the grid.
+**Does NOT reset mtime:** Opening/viewing an item, repositioning on the grid,
+reordering Chunks (`reorder_chunks()` writes only `order`; user, 2026-10-25).
 
 `mtime` cascades and monotonic `version` are separate. A direct durable
 mutation of a Node/Bit advances its own version; a parent touched only because
@@ -1336,6 +1338,27 @@ When a Chunk's status changes to `"complete"`:
 When a Chunk's status changes back to `"incomplete"`:
 1. If parent Bit was `"complete"` → set `bit.status = "active"`.
 2. Apply mtime cascade (Hook 1).
+
+Sticky force-complete: when a Chunk is unchecked and its Bit is `"complete"`
+with two or more Chunks now incomplete, the Bit was completed by hand and stays
+`"complete"`; with one incomplete Chunk it was auto-completed and returns to
+`"active"`.
+
+Which writes recompute the Bit's status (user, 2026-10-25; today Dexie
+recomputes on every `updateChunk`, so a Chunk title edit or a reorder returns
+a hand-completed Bit to `"active"`; this replaces that behavior):
+
+- A Chunk status change, a Chunk create and a Chunk delete recompute it as
+  `updateBitCompletionAndCascade` does: every Chunk complete (at least one
+  Chunk) → `"complete"`; on an uncheck the sticky rule above; otherwise
+  `"active"`.
+- A Chunk title or time edit does not recompute it; it only touches `mtime`
+  (Hook 1).
+- `reorder_chunks()` writes only `order`: no status, no `mtime`, no version.
+- The Bit's `version` advances only when its status changes (Hook 12). Every
+  Chunk write function locks the parent Bit `for update` before it reads the
+  sibling Chunks, so two concurrent checks of the last two incomplete Chunks
+  end with the Bit `"complete"`.
 
 > **`scratchBreakdowns` exclusion:** Breakdown rows live in a dedicated store, not as Chunks — they do **not** participate in this hook. Placing/consuming breakdown rows never triggers Bit auto-completion.
 
