@@ -705,7 +705,12 @@ a limit is `rejected` with no write.
 (Hook 15 eligibility re-run inside the transaction; exact submitted candidate
 set); ported `archive-scratch-command`, `archive-scratch-recovery` and
 `trash-scratch-command` scenarios; every SCHEMA conformance case in
-`supabase/tests/conformance.db.test.ts`.
+`supabase/tests/conformance.db.test.ts`. The Archive descriptor case is split:
+the database suite proves that reload reconciliation reads Scratch and
+postcondition state with no operation table; the fail-closed dispatch when
+`sessionStorage` cannot store the descriptor is browser-side and stays covered
+by `src/hooks/use-archive-scratch.test.ts` in `pnpm test` (Phase 44 start
+drift D1).
 
 **Dependencies:** Task 223.
 
