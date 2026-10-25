@@ -104,4 +104,44 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "returns the caller's rows in all five tables and nothing of another account",
     },
   },
+  soft_delete_node: {
+    crossAccount: {
+      file: "trash-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "trash-writes.db.test.ts",
+      title: "before + changes equals after for trash, restore, no-ops and rejections",
+    },
+  },
+  soft_delete_bit: {
+    crossAccount: {
+      file: "trash-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "trash-writes.db.test.ts",
+      title: "before + changes equals after for trash, restore, no-ops and rejections",
+    },
+  },
+  restore_node: {
+    crossAccount: {
+      file: "trash-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "trash-writes.db.test.ts",
+      title: "before + changes equals after for trash, restore, no-ops and rejections",
+    },
+  },
+  restore_bit: {
+    crossAccount: {
+      file: "trash-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "trash-writes.db.test.ts",
+      title: "before + changes equals after for trash, restore, no-ops and rejections",
+    },
+  },
 };

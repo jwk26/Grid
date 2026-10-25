@@ -168,6 +168,18 @@ isOneToOne: false
 "reorder_chunks":
 { Args: { "p_bit_id": string,"p_chunk_ids": (string)[] }; Returns: Json
                            },
+"restore_bit":
+{ Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"restore_node":
+{ Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"soft_delete_bit":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"soft_delete_node":
+{ Args: { "p_id": string }; Returns: Json
+                           },
 "update_bit":
 { Args: { "p_changes": Json,"p_extend_parent"?: boolean,"p_id": string }; Returns: Json
                            },
