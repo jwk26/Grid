@@ -1,7 +1,8 @@
 -- Task 220, Stage 1: public.soft_delete_node(), soft_delete_bit(), restore_node() and restore_bit()
 -- (SCHEMA Hooks 1, 4, 5, 8 and 12), with the lifecycle helpers Stage 2 (archive) reuses.
 --
--- Locks (SCHEMA §Locks): a function that places items takes the advisory lock of every Grid it
+-- Locks (SCHEMA §Locks): a restore locks the tree of the topmost ancestor in the same state
+-- (internal.lock_restore). A function that places items takes the advisory lock of every Grid it
 -- places in, in ascending key order, then the row locks: Nodes of its tree ordered by id (the
 -- subtree and the ancestor chain, in one statement), then the Bits of the subtree. The set is
 -- computed again once the locks are held and the locking starts over when it grew.
@@ -92,6 +93,49 @@ begin
      where b.user_id = p_user and b.parent_id = any (internal.subtree_ids(p_user, p_root))
      order by b.id for update
   ) locked;
+end
+$$;
+
+-- The topmost Node of the chain of p_node that is in the state (trashed for p_deleted, otherwise
+-- archived), going up through ancestors that are in it; p_node itself when its parent is not.
+create function internal.top_in_state(p_user uuid, p_node uuid, p_deleted boolean) returns uuid
+  language plpgsql stable security invoker set search_path = ''
+  as $$
+declare
+  v_top uuid := p_node;
+  v_walk uuid;
+  v_n app.nodes;
+begin
+  select parent_id into v_walk from app.nodes where id = p_node and user_id = p_user;
+  while v_walk is not null loop
+    select * into v_n from app.nodes where id = v_walk and user_id = p_user;
+    exit when not found;
+    exit when (case when p_deleted then v_n.deleted_at else v_n.archived_at end) is null;
+    v_top := v_n.id;
+    v_walk := v_n.parent_id;
+  end loop;
+  return v_top;
+end
+$$;
+
+-- Locks what a restore of p_node writes: the tree of the topmost ancestor in the same state (its
+-- subtree, which holds the same-window siblings, its chain, the Grids and the Bits), and checks
+-- the topmost ancestor again under the locks, starting over when it changed.
+create function internal.lock_restore(p_user uuid, p_node uuid, p_deleted boolean) returns void
+  language plpgsql volatile security invoker set search_path = ''
+  as $$
+declare
+  v_top uuid;
+  v_attempt integer;
+begin
+  for v_attempt in 1 .. 3 loop
+    v_top := internal.top_in_state(p_user, p_node, p_deleted);
+    perform internal.lock_tree(p_user, v_top, true);
+    exit when internal.top_in_state(p_user, p_node, p_deleted) = v_top;
+    if v_attempt = 3 then
+      raise exception 'could not settle the restore lock set of Node %', p_node using errcode = '40001';
+    end if;
+  end loop;
 end
 $$;
 
@@ -286,6 +330,8 @@ alter function internal.subtree_ids(uuid, uuid) owner to griddo_writer;
 alter function internal.ancestor_ids(uuid, uuid) owner to griddo_writer;
 alter function internal.lock_grids_of(uuid, uuid[]) owner to griddo_writer;
 alter function internal.lock_tree(uuid, uuid, boolean) owner to griddo_writer;
+alter function internal.top_in_state(uuid, uuid, boolean) owner to griddo_writer;
+alter function internal.lock_restore(uuid, uuid, boolean) owner to griddo_writer;
 alter function internal.node_rows(uuid, uuid[]) owner to griddo_writer;
 alter function internal.bit_rows(uuid, uuid[]) owner to griddo_writer;
 alter function internal.restore_tree(uuid, uuid, boolean, jsonb, bigint, uuid) owner to griddo_writer;
@@ -293,6 +339,8 @@ revoke all on function internal.subtree_ids(uuid, uuid) from public;
 revoke all on function internal.ancestor_ids(uuid, uuid) from public;
 revoke all on function internal.lock_grids_of(uuid, uuid[]) from public;
 revoke all on function internal.lock_tree(uuid, uuid, boolean) from public;
+revoke all on function internal.top_in_state(uuid, uuid, boolean) from public;
+revoke all on function internal.lock_restore(uuid, uuid, boolean) from public;
 revoke all on function internal.node_rows(uuid, uuid[]) from public;
 revoke all on function internal.bit_rows(uuid, uuid[]) from public;
 revoke all on function internal.restore_tree(uuid, uuid, boolean, jsonb, bigint, uuid) from public;
@@ -300,6 +348,8 @@ grant execute on function internal.subtree_ids(uuid, uuid) to griddo_writer;
 grant execute on function internal.ancestor_ids(uuid, uuid) to griddo_writer;
 grant execute on function internal.lock_grids_of(uuid, uuid[]) to griddo_writer;
 grant execute on function internal.lock_tree(uuid, uuid, boolean) to griddo_writer;
+grant execute on function internal.top_in_state(uuid, uuid, boolean) to griddo_writer;
+grant execute on function internal.lock_restore(uuid, uuid, boolean) to griddo_writer;
 grant execute on function internal.node_rows(uuid, uuid[]) to griddo_writer;
 grant execute on function internal.bit_rows(uuid, uuid[]) to griddo_writer;
 grant execute on function internal.restore_tree(uuid, uuid, boolean, jsonb, bigint, uuid) to griddo_writer;
@@ -432,7 +482,7 @@ begin
     return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'not_found'));
   end if;
 
-  perform internal.lock_tree(v_user, p_id, true);
+  perform internal.lock_restore(v_user, p_id, true);
   select * into v_node from app.nodes where id = p_id and user_id = v_user;
   if not found then
     return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'not_found'));
@@ -485,7 +535,7 @@ begin
     if not found then
       return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'not_found'));
     end if;
-    perform internal.lock_tree(v_user, v_parent, true);
+    perform internal.lock_restore(v_user, v_parent, true);
     select * into v_bit from app.bits where id = p_id and user_id = v_user;
     if not found then
       return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'not_found'));

@@ -77,8 +77,8 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 ## Task 220 — Port the lifecycle write functions
 
 ### Current state
-- Status: Awaiting User Decision
-- Next: Stage 1 (trash) acceptance
+- Status: In Progress
+- Next: Stage 2 (archive) checkpoint
 - Open: none
 
 ### Log
@@ -103,3 +103,7 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 - Please check: (1) the `parent_inactive` rule and the top-first ancestor restore match your intent; (2) the Dexie deviation in the Note above.
 - Unresolved: none.
 
+- Review (advisory, 2026-10-25, Stage 1 checkpoint): approve with changes. Work-plan review items (1), (2), (4)–(7) hold in the SQL and the tests; the SQL checklist holds for the four functions. Apply: (1) the restore lock set covers what the restore writes: find the topmost ancestor in the same state from an unlocked read, `lock_tree` that ancestor (its subtree, its chain, the Grids and Bits), then check the chain again under the locks; today `lock_tree(p_root)` leaves out the same-window siblings of an auto-restored ancestor (their rows, the Bits of the ancestors and the siblings' Grids), against the advisory-lock order and the Nodes-by-id rule, so a `40P01` against an id-ordered caller such as Stage 3's `empty_trash` is possible; test: in an open transaction after `restore_node(G)` with R trashed above C → G and a sibling S under R, another connection's `pg_try_advisory_xact_lock` on S's Grid key returns false (fails today); (2) remove the raw-`update` case "a create into a Node that is being trashed" at `node-bit-writes.db.test.ts:747` (Task 219 note), now covered by real `soft_delete_node` calls in `trash-writes.db.test.ts`; (3) a Note, no change: a `lock_tree` retry can take a Grid key below one it already holds, so a rare `40P01` is possible; it ends as a failed write (same class as Task 217 L4). Not applied: none.
+- Decision: the `parent_inactive` rule and the top-first ancestor restore are accepted; a Node inside the 5 s window is restored only when its parent is restored or active (deviation from Dexie, which restored it under a Node left trashed) (user, 2026-10-25).
+- Review applied (Stage 1, 2026-10-25): (1) `internal.lock_restore` finds the topmost ancestor in the same state from an unlocked read, runs `lock_tree` on it (its subtree with the same-window siblings, its chain, the Grids and the Bits) and checks the topmost ancestor again under the locks; `restore_node` and `restore_bit` use it. New test: after `restore_node(G)` with R trashed above C, a second connection's `pg_try_advisory_xact_lock` on the Grid keys of S, R, C and L0 returns false. Mutation check: with `lock_restore` locking only the called Node the test fails; reverted, the migration is unchanged from the applied state. (2) The raw-`update` case "a create into a Node that is being trashed" is removed from `node-bit-writes.db.test.ts` (covered by the real `soft_delete_node` cases). (3) Noted, no change: a `lock_tree` retry can take a Grid key below one it already holds, so a rare `40P01` is possible; it ends as a failed write (same class as Task 217 L4). `pnpm test:db` 532/532, `typecheck` pass.
+- Decision: Stage 1 accepted with the review above (user, 2026-10-25).

@@ -2,9 +2,9 @@ import { randomUUID } from "node:crypto";
 import type { Client } from "pg";
 import { beforeAll, describe, expect, it } from "vitest";
 import { assertChangeSet, type Envelope as ChangeEnvelope } from "./helpers/change-set";
-import { withActor } from "./helpers/db";
+import { connect, withActor } from "./helpers/db";
 import {
-  account, addBit, addNode, authed, call, committed, race, sql, stored, uuid, type Envelope, type Owner,
+  account, addBit, addNode, authed, call, committed, openSession, race, sql, stored, uuid, type Envelope, type Owner,
 } from "./helpers/lifecycle";
 import { createTestUser, type TestUser } from "./helpers/users";
 
@@ -553,6 +553,42 @@ describe("concurrency (S30)", () => {
       expect(second.status).toBe("applied");
       expect((await row("bits", b1)).deleted_at).toBeNull();
       expect((await row("bits", b2)).deleted_at).toBeNull();
+    } finally {
+      await owner.end();
+    }
+  }, 30_000);
+
+  it("restore_node(G) under a trashed R holds the Grid locks of R's subtree and its siblings, not only G's", async () => {
+    const { u, owner, node, bit } = await committed("tr-locks");
+    try {
+      const r = await node({ x: 3, y: 3, deletedAt: T });
+      const c = await node({ parentId: r, level: 1, x: 1, y: 1, deletedAt: T });
+      const g = await node({ parentId: c, level: 2, x: 2, y: 2, deletedAt: T });
+      const s = await node({ parentId: r, level: 1, x: 5, y: 5, deletedAt: T });
+      await bit({ parentId: s, x: 0, y: 0, deletedAt: T });
+      const a = await openSession(u);
+      const probe = await connect();
+      try {
+        expect((await restoreNode(a, g)).status).toBe("applied");
+        // The Grid keys are those of lock_grid(): the sibling S's own Grid and R's Grid (L0 for R's parent).
+        for (const grid of [s, r, c]) {
+          const { rows } = await probe.query(
+            "select pg_try_advisory_xact_lock(hashtextextended('grid:' || $1::text || ':' || $2::text, 0)) as got",
+            [u.id, grid],
+          );
+          expect(rows[0].got).toBe(false);
+          await probe.query("rollback").catch(() => undefined);
+        }
+        const { rows: l0 } = await probe.query(
+          "select pg_try_advisory_xact_lock(hashtextextended('grid:' || $1::text || ':L0', 0)) as got",
+          [u.id],
+        );
+        expect(l0[0].got).toBe(false);
+      } finally {
+        await a.query("rollback").catch(() => undefined);
+        await a.end();
+        await probe.end();
+      }
     } finally {
       await owner.end();
     }

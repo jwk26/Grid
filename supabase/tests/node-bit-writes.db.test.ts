@@ -744,34 +744,6 @@ describe("concurrency (S30)", () => {
     }
   }, 30_000);
 
-  it("a create into a Node that is being trashed: parent_inactive after the wait", async () => {
-    const { u, owner, node } = await committed("nb-trash");
-    try {
-      const p = await node({ x: 3, y: 3 });
-      const trasher = await connect();
-      const creator = await open(u);
-      const watcher = await connect();
-      try {
-        await trasher.query("begin");
-        await trasher.query("select id from app.nodes where id = $1 for update", [p]);
-        await trasher.query("update app.nodes set deleted_at = 5 where id = $1", [p]);
-        const pending = createBit(creator, { title: "a", icon: "i", parent_id: p, x: 1, y: 1 });
-        await waitForLockWait(watcher, "create_bit");
-        await trasher.query("commit");
-        expect((await pending).rejection).toEqual({ code: "parent_inactive" });
-        await creator.query("commit");
-      } finally {
-        await trasher.query("rollback").catch(() => undefined);
-        await creator.query("rollback").catch(() => undefined);
-        await trasher.end();
-        await creator.end();
-        await watcher.end();
-      }
-    } finally {
-      await owner.end();
-    }
-  }, 30_000);
-
   it("two update_bit calls on Bits of one Node (one extending the parent) end without a deadlock", async () => {
     const { u, owner, node, bit } = await committed("nb-lock");
     try {
