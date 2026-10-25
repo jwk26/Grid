@@ -794,6 +794,7 @@ describe("atomicity and definitions", () => {
     "reconcile_save_scratch_title",
     "reconcile_save_breakdown",
     "reconcile_delete_breakdown",
+    "reconcile_stage_candidate",
   ];
 
   it("every reconcile function is one stable SQL statement run as the caller, so it reads one point in time", async () => {

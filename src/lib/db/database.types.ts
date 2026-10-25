@@ -204,6 +204,9 @@ isOneToOne: false
 "reconcile_save_scratch_title":
 { Args: { "p_base_title": string,"p_expected_version": number,"p_scratch_id": string,"p_title": string }; Returns: Json
                            },
+"reconcile_stage_candidate":
+{ Args: { "p_candidate_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json
+                           },
 "reorder_chunks":
 { Args: { "p_bit_id": string,"p_chunk_ids": (string)[] }; Returns: Json
                            },
@@ -224,6 +227,9 @@ isOneToOne: false
                            },
 "soft_delete_node":
 { Args: { "p_id": string }; Returns: Json
+                           },
+"stage_candidate":
+{ Args: { "p_candidate_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json
                            },
 "unarchive_bit":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json

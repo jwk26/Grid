@@ -224,6 +224,26 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
     },
   },
+  stage_candidate: {
+    crossAccount: {
+      file: "stage-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "stage-commands.db.test.ts",
+      title: "before + changes equals after for Stage and its rejections",
+    },
+  },
+  reconcile_stage_candidate: {
+    crossAccount: {
+      file: "stage-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "stage-commands.db.test.ts",
+      title: "before + changes equals after for Stage and its rejections",
+    },
+  },
   promote_bit_to_node: {
     crossAccount: {
       file: "promote-bit.db.test.ts",
