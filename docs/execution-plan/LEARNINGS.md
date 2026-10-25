@@ -123,6 +123,10 @@
 
 **Apply envelope rows by version, not by arrival.** Two writes to different records of one account can answer out of commit order, and a cascade (a move that changes a descendant's `level`) makes the older answer carry an older copy of the newer record. Ignore an upserted row whose `version` is lower than the base row's; apply an equal one. *(Phase 42, Task 217, MI-6)*
 
+**Change-set tests that run in one transaction can hide a missing row.** Every write in one test transaction shares `now()`, so a parent row a function forgot to return in `changes` already carries the expected `mtime` and the "before + changes = after" check still passes. Reset the `mtime` values before each call, and prove the test by dropping the row from the function once (it must fail). *(Phase 43, Task 219)*
+
+**`supabase db advisors` is not the dashboard Security Advisor.** The CLI reported no security issue on production while the dashboard lists `authenticated_security_definer_function_executable` for each client write function. A phase close that checks for new Advisor warnings reads the dashboard list. *(Phase 43 close)*
+
 ---
 
 ## Workflow / Process
@@ -154,3 +158,5 @@
 **Prove dev-only code is out of the production build with a non-vacuous search.** Gate the import behind `process.env.NODE_ENV === "development"` with a dynamic import, put a unique marker string in the dev-only module, then search the production output (`.next/static`, `.next/server`) for it and confirm the dev output does contain it. Source maps may still quote the gating source; executable chunks must not. *(Phase 49, Task 243)*
 
 **Run `git diff --check` over the branch, not the working tree.** Bare `git diff --check` sees only uncommitted changes, so whitespace in an already committed file passes every task gate and fails at phase close (`git diff --check origin/main...HEAD`). Run the range form in task gates. *(Phase 42 close)*
+
+**Write a parity deviation into the canonical hook when it is decided.** Task 220's lifecycle decisions (refusals, the `archived_at` rule, `parent_inactive`, idempotent `applied`) were recorded in the ledger only, so SCHEMA's hooks still described Dexie at phase close and had to be reconciled there. A decision that changes a hook's behavior goes into SCHEMA in the same commit as the code. *(Phase 43 close)*
