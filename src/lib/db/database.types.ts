@@ -156,6 +156,12 @@ isOneToOne: false
 "archive_node":
 { Args: { "p_id": string }; Returns: Json
                            },
+"archive_scratch":
+{ Args: { "p_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
+"classify_archive_scratch_recovery":
+{ Args: { "p_expected_version": number,"p_scratch_id": string,"p_started_at": number }; Returns: Json
+                           },
 "cleanup_expired_trash":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },

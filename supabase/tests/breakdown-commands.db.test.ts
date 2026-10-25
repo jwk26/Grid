@@ -800,6 +800,7 @@ describe("atomicity and definitions", () => {
     "reconcile_place_direct_breakdown",
     "reconcile_undo_staged_placement",
     "reconcile_undo_direct_placement",
+    "classify_archive_scratch_recovery", // Archive's reconcile (Task 224), not named reconcile_*
   ];
 
   it("every reconcile function is one stable SQL statement run as the caller, so it reads one point in time", async () => {
@@ -808,7 +809,8 @@ describe("atomicity and definitions", () => {
       const { rows } = await db.query(
         `select p.proname, l.lanname, p.provolatile, p.prosecdef, p.proconfig
            from pg_proc p join pg_language l on l.oid = p.prolang
-          where p.pronamespace = 'public'::regnamespace and p.proname like 'reconcile\_%'
+          where p.pronamespace = 'public'::regnamespace
+            and (p.proname like 'reconcile\_%' or p.proname = 'classify_archive_scratch_recovery')
           order by p.proname`,
       );
       expect(rows.map((r) => r.proname)).toEqual([...RECONCILE_FUNCTIONS].sort());
