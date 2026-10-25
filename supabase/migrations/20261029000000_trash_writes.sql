@@ -219,7 +219,11 @@ begin
       end if;
     end if;
   elsif p_bit is not null
-        and (case when p_deleted then v_n.archived_at else v_n.deleted_at end) is not null then
+        and (case when p_deleted then v_n.archived_at else v_n.deleted_at end) is not null
+        and (select case when p_deleted then b.archived_at else b.deleted_at end
+               from app.bits b where b.id = p_bit and b.user_id = p_user) is null then
+    -- The Bit would come back live under a Node in the other state; a Bit that is also in the
+    -- other state only moves between the two and is not refused.
     return jsonb_build_object('rejection', 'parent_inactive');
   end if;
 

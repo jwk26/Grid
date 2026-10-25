@@ -416,6 +416,23 @@ describe("restore_bit", () => {
     });
   });
 
+  it("restores a Bit that is also archived with its archived Node: it only moves to the archive, and comes back live with the Node", async () => {
+    await withActor(A(), async (db, owner) => {
+      await owner(() => account(db, user.id));
+      const n = await owner(() => node(db, { x: 3, y: 3 }));
+      const b = await owner(() => bit(db, { parentId: n, x: 0, y: 0 }));
+      await softBit(db, b);
+      expect(await call(db, "archive_node", [n])).toMatchObject({ status: "applied" });
+      const restored = await restoreBit(db, b);
+      expect(restored).toMatchObject({ status: "applied" });
+      const row = await stored(db, "bits", b);
+      expect(row.deleted_at).toBeNull();
+      expect(row.archived_at).not.toBeNull();
+      expect(await call(db, "unarchive_node", [n])).toMatchObject({ status: "applied" });
+      expect(await stored(db, "bits", b)).toMatchObject({ deleted_at: null, archived_at: null });
+    });
+  });
+
   it("returns not_found (missing and another account's Bit) and account_missing", async () => {
     await withActor(A(), async (db, owner) => {
       await owner(() => account(db, user.id));

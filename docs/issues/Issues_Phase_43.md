@@ -77,8 +77,8 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 ## Task 220 — Port the lifecycle write functions
 
 ### Current state
-- Status: Awaiting User Decision
-- Next: Stage 2 (archive) acceptance
+- Status: In Progress
+- Next: Stage 3 (permanent delete) checkpoint
 - Open: none
 
 ### Log
@@ -113,7 +113,12 @@ Start: drift D1 fixed in the plan (Task 219's `update_node` system-Node show pla
 - Verified: `pnpm test:db` 564/564, `pnpm typecheck`, `pnpm lint` (0 errors, 11 existing warnings), `git diff --check origin/main...HEAD`. `pnpm test` and `pnpm build` run at the task finish (no `src` code changed).
 - Review items applied: (3) the archive cascade sets `archived_at` only where it is null (trashed descendants still get it); test with real calls (archive the child, archive the root, unarchive the root, the child and its Bit stay archived at their own time); mutation check: dropping `and archived_at is null` from `archive_node` fails exactly that test, reverted. (5) `parent_inactive` for an unarchive under a trashed parent; ancestors in the same state come back top first with their windows and same-window siblings (tested). (6) `unarchive_bit` of an Inbox Scratch keeps (0,0). (7) `grid_full` writes nothing (Node and Bit). Concurrency: archive vs create in a descendant Grid (the Bit is archived with it, or the create is `parent_inactive`), archive vs a Node moved into the subtree, `unarchive_node(A)` vs `unarchive_bit` under A (no `40P01`), unarchive vs create into the original cell (both orders), `archive_bit` vs `update_bit`.
 - Ported from `archive.test.ts`: shared timestamp and versions, system Node refused, only the target Bit, Inbox Scratch refused without mutation, same-window restore with an independently archived descendant kept, parent chain restore, no `deleted_at` change, the Bit-under-a-still-archived-Node regression. `archive-sweep.test.ts` is client reads except its two `createNode` cases (a cell held only by an archived or hidden Node is free), which `node-bit-writes.db.test.ts` already covers.
-- Note (deviation from Dexie): `archive_node` of an Inbox-parented or system item is `invalid_target` instead of a thrown error; `archive_bit` of a Scratch likewise (the Archive Scratch command is Phase 44).
+- Note (deviation from Dexie): `archive_node` of a system Node is `invalid_target` instead of a thrown error; `archive_bit` of an Inbox Scratch likewise (the Archive Scratch command is Phase 44).
 - Please check: (1) the archive cascade now leaves an independently archived descendant at its own time (Dexie overwrote it); (2) the unarchive rules match the trash restore rules of Stage 1.
 - Unresolved: none.
+
+- Review (advisory, 2026-10-25, Stage 1 review and Stage 2 checkpoint): approve with changes. Stage 1 review applied as recorded (`internal.lock_restore`, the advisory-lock test with its mutation check, the raw case removed). Stage 2: the archive pair follows Stage 1, the unarchive pair shares `lock_restore` and `restore_tree`; `archived_at is null` (mutation-checked), system Node and Scratch refused, (0,0) kept, five concurrency cases; SQL checklist holds. Apply: (1) the Bit branch of `internal.restore_tree` (`elsif p_bit …`) returns `parent_inactive` only when the Bit would come back live, that is when the Bit's other-state timestamp is null, as the Node branch already does for the top Node; reachable today: trash a Bit, archive its Node (the Bit gets `archived_at`), restore the Bit from Trash (the Trash list shows every trashed row) is `parent_inactive` although the Bit only returns to the archive; test with real calls: `soft_delete_bit(b)`, `archive_node(N)`, `restore_bit(b)` is `applied` with `b` archived, then `unarchive_node(N)` brings `b` back live; the fix edits the Stage 1 migration (local only); (2) the Stage 2 Note reads "`archive_node` of a system Node" (the code checks only `system_role`; an Inbox-parented Node cannot exist, `create_node` refuses it). Not applied: none.
+- Decision: an independently archived descendant keeps its own `archived_at` and stays archived when the root is unarchived (Dexie overwrote it); the unarchive rules are the Stage 1 restore rules (user, 2026-10-25).
+- Review applied (Stage 2, 2026-10-25): (1) the Bit branch of `internal.restore_tree` returns `parent_inactive` only when the Bit's other-state timestamp is null (Stage 1 migration, local only). Test with real calls: `soft_delete_bit(b)`, `archive_node(N)`, `restore_bit(b)` is `applied` with `b` archived and not trashed, then `unarchive_node(N)` brings `b` back live. Mutation check: with the old branch the test fails; reverted to the fix. (2) The Stage 2 Note now reads "system Node". `pnpm test:db` 565/565, `typecheck` pass.
+- Decision: Stage 2 accepted with the review above (user, 2026-10-25).
 
