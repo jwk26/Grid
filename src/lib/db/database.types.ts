@@ -147,11 +147,71 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "ensure_account":
+            "archive_bit":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"archive_node":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"cleanup_expired_trash":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"create_bit":
+{ Args: { "p_id": string,"p_values": Json }; Returns: Json
+                           },
+"create_chunk":
+{ Args: { "p_id": string,"p_values": Json }; Returns: Json
+                           },
+"create_node":
+{ Args: { "p_id": string,"p_values": Json }; Returns: Json
+                           },
+"delete_chunk":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"empty_trash":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"ensure_account":
 { Args: { "p_reserved_cells"?: Json }; Returns: Json
                            },
 "get_snapshot":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"hard_delete_bit":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"hard_delete_node":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"promote_bit_to_node":
+{ Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"reorder_chunks":
+{ Args: { "p_bit_id": string,"p_chunk_ids": (string)[] }; Returns: Json
+                           },
+"restore_bit":
+{ Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"restore_node":
+{ Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"soft_delete_bit":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"soft_delete_node":
+{ Args: { "p_id": string }; Returns: Json
+                           },
+"unarchive_bit":
+{ Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"unarchive_node":
+{ Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"update_bit":
+{ Args: { "p_changes": Json,"p_extend_parent"?: boolean,"p_id": string }; Returns: Json
+                           },
+"update_chunk":
+{ Args: { "p_changes": Json,"p_extend_parent"?: boolean,"p_id": string }; Returns: Json
                            },
 "update_node":
 { Args: { "p_changes": Json,"p_id": string,"p_reserved_cells"?: Json }; Returns: Json

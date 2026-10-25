@@ -28,10 +28,210 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "before + changes equals after for an edit, a no-op, a move and a rejection",
     },
   },
+  create_node: {
+    crossAccount: {
+      file: "node-bit-writes.db.test.ts",
+      title: "a duplicate id fails and leaves the existing row unchanged",
+    },
+    changeSet: {
+      file: "node-bit-writes.db.test.ts",
+      title: "before + changes equals after for creates, edits, moves, an extension and rejections",
+    },
+  },
+  create_bit: {
+    crossAccount: {
+      file: "node-bit-writes.db.test.ts",
+      title: "a duplicate id fails and leaves the existing row unchanged",
+    },
+    changeSet: {
+      file: "node-bit-writes.db.test.ts",
+      title: "before + changes equals after for creates, edits, moves, an extension and rejections",
+    },
+  },
+  update_bit: {
+    crossAccount: {
+      file: "node-bit-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "node-bit-writes.db.test.ts",
+      title: "before + changes equals after for creates, edits, moves, an extension and rejections",
+    },
+  },
+  create_chunk: {
+    crossAccount: {
+      file: "chunk-writes.db.test.ts",
+      title: "a create with an id another account holds fails and leaves that Chunk unchanged",
+    },
+    changeSet: {
+      file: "chunk-writes.db.test.ts",
+      title: "before + changes equals after for create, update, extension, delete, reorder and rejections",
+    },
+  },
+  update_chunk: {
+    crossAccount: {
+      file: "chunk-writes.db.test.ts",
+      title: "leaves another account's Chunks untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "chunk-writes.db.test.ts",
+      title: "before + changes equals after for create, update, extension, delete, reorder and rejections",
+    },
+  },
+  delete_chunk: {
+    crossAccount: {
+      file: "chunk-writes.db.test.ts",
+      title: "leaves another account's Chunks untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "chunk-writes.db.test.ts",
+      title: "before + changes equals after for create, update, extension, delete, reorder and rejections",
+    },
+  },
+  reorder_chunks: {
+    crossAccount: {
+      file: "chunk-writes.db.test.ts",
+      title: "leaves another account's Chunks untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "chunk-writes.db.test.ts",
+      title: "before + changes equals after for create, update, extension, delete, reorder and rejections",
+    },
+  },
   get_snapshot: {
     crossAccount: {
       file: "snapshot.db.test.ts",
       title: "returns the caller's rows in all five tables and nothing of another account",
+    },
+  },
+  soft_delete_node: {
+    crossAccount: {
+      file: "trash-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "trash-writes.db.test.ts",
+      title: "before + changes equals after for trash, restore, no-ops and rejections",
+    },
+  },
+  soft_delete_bit: {
+    crossAccount: {
+      file: "trash-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "trash-writes.db.test.ts",
+      title: "before + changes equals after for trash, restore, no-ops and rejections",
+    },
+  },
+  restore_node: {
+    crossAccount: {
+      file: "trash-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "trash-writes.db.test.ts",
+      title: "before + changes equals after for trash, restore, no-ops and rejections",
+    },
+  },
+  restore_bit: {
+    crossAccount: {
+      file: "trash-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "trash-writes.db.test.ts",
+      title: "before + changes equals after for trash, restore, no-ops and rejections",
+    },
+  },
+  archive_node: {
+    crossAccount: {
+      file: "archive-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "archive-writes.db.test.ts",
+      title: "before + changes equals after for archive, unarchive, no-ops and rejections",
+    },
+  },
+  archive_bit: {
+    crossAccount: {
+      file: "archive-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "archive-writes.db.test.ts",
+      title: "before + changes equals after for archive, unarchive, no-ops and rejections",
+    },
+  },
+  unarchive_node: {
+    crossAccount: {
+      file: "archive-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "archive-writes.db.test.ts",
+      title: "before + changes equals after for archive, unarchive, no-ops and rejections",
+    },
+  },
+  unarchive_bit: {
+    crossAccount: {
+      file: "archive-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "archive-writes.db.test.ts",
+      title: "before + changes equals after for archive, unarchive, no-ops and rejections",
+    },
+  },
+  hard_delete_node: {
+    crossAccount: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "leaves another account's rows untouched",
+    },
+    changeSet: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
+    },
+  },
+  hard_delete_bit: {
+    crossAccount: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "leaves another account's rows untouched",
+    },
+    changeSet: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
+    },
+  },
+  empty_trash: {
+    crossAccount: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "leaves another account's rows untouched",
+    },
+    changeSet: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
+    },
+  },
+  cleanup_expired_trash: {
+    crossAccount: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "leaves another account's rows untouched",
+    },
+    changeSet: {
+      file: "hard-delete-writes.db.test.ts",
+      title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
+    },
+  },
+  promote_bit_to_node: {
+    crossAccount: {
+      file: "promote-bit.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "promote-bit.db.test.ts",
+      title: "before + changes equals after for promotions and rejections",
     },
   },
 };

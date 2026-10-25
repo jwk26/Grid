@@ -20,6 +20,7 @@ Execution plan mode: scaled
 > 173–179 and repair Tasks 176A and 179A are accepted `[x]` and Phase 35 is
 > closed (2026-10-20); Tasks 241–244 are accepted `[x]` and Phase 49 is closed
 > (2026-10-24); Tasks 213–218 are accepted `[x]` and Phase 42 is closed
+> (2026-10-25); Tasks 219–220 are accepted `[x]` and Phase 43 is closed
 > (2026-10-25); Tasks 180–208 and Phases 36–40 are retired as
 > superseded (feedback F28, promotion ②), their text in
 > [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
@@ -142,8 +143,8 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 42 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25). The SaaS lane continues with Phase 43; the feedback lane continues with Phase 50 after Phase 45. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 is bound to Task 229 and MI-23 is absorbed by Tasks 228 and 234. |
-| SaaS conversion | `IN PROGRESS` | Phase 42 (Tasks 213–218) closed and archived (2026-10-25); MI-1 is a Phase 43 gate watch and MI-8 is bound to Task 240. Phase 43 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
+| Execution lifecycle | Phase 43 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25). The SaaS lane continues with Phase 44; the feedback lane continues with Phase 50 after Phase 45. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 is bound to Task 229 and MI-23 is absorbed by Tasks 228 and 234. |
+| SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25); Phase 43's migrations are on production. MI-1 is a Phase 44 gate watch and MI-8 is bound to Task 240. Phase 44 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
 | Feedback lane | `IN PROGRESS` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); its mi-1, mi-2 and mi-3 are bound to Task 248. Phase 50 waits for Phase 45 ([the phase waits](#lanes-and-phase-waits)). |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
@@ -242,7 +243,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 41 | Completed | [Scratch Trash and post-Phase-34 Inbox corrections](execution-plan/archive/phase-41.md) (ran before Phase 35) | 209–212 | Accepted and archived; MI-2 closed as Dropped (user, 2026-10-22; the Terminal theme leaves). |
 | Phase 35 | Completed | [Neumorphism regional realization](execution-plan/archive/phase-35.md) | 173–179 + 176A + 179A | Accepted and archived; MI-19 bound to Task 229, MI-23 absorbed by Tasks 228 and 234, MI-13 to Task 241, MI-14 to Task 250, MI-21 to Tasks 245–246. |
 | Phase 42 | Completed | [Database foundation, end-to-end slice and early production](execution-plan/archive/phase-42.md) | 213–218 | Accepted and archived (2026-10-25); MI-1 deferred to the Phase 43 gate watch and MI-8 bound to Task 240 in `Issues_Deferred.md`. Phase 43 may start. |
-| Phase 43 | Planned / unstarted | [Ordinary write functions](#phase-43--ordinary-write-functions) | 219–220 | Phase 42 close/main sync. |
+| Phase 43 | Completed | [Ordinary write functions](execution-plan/archive/phase-43.md) | 219–220 | Accepted and archived (2026-10-25); migrations on production; MI-1 deferred to the Phase 44 gate watch in `Issues_Deferred.md`. Phase 44 may start. |
 | Phase 44 | Planned / unstarted | [Inbox/Triage command functions](#phase-44--inboxtriage-command-functions) | 221–224 | Phase 43 close/main sync. |
 | Phase 45 | Planned / unstarted | [Client switch](#phase-45--client-switch) | 225–229 | Phase 44 and Phase 49 close/main sync; implements the S43 (4) zone-migration no-op. |
 | Phase 46 | Planned / unstarted | [Dexie removal](#phase-46--dexie-removal) | 230 | Phase 45 close/main sync. |
@@ -617,75 +618,16 @@ Advisory notes for Tasks 219, 226, 235 and 238 are in
 [the Phase 42 ledger](issues/Issues_Phase_42.md) (Task 217 and Task 218
 logs); each task reads its notes at its start.
 
-## Phase 43 — Ordinary Write Functions
+## Phase 43 — Completed / Archived
 
-### Task 219: [ ] Port the Node, Bit and Chunk write functions
-
-**Files and actions:**
-- Migrations: `create_node`, `update_node` (extended from Task 217 where
-  needed, including system-Node `hiddenFromGrid` with first-free-cell
-  placement on show through `internal.pick_free_cell` and
-  `p_reserved_cells`), `create_bit`, `update_bit` (with the parent deadline
-  extension, Hook 2), `create_chunk`, `update_chunk` (with the parent Bit
-  extension for the Calendar answer, Hook 2), `delete_chunk`, `reorder_chunks`
-  (one call for a Chunk reorder); Hooks
-  1, 2, 3, 8 and 12; lifecycle and Grid locks; account limits with
-  `account_limit` and `rejection.limit` (S37); parent-change moves take the
-  client's cell and refuse
-  a taken one (S43 (3)); system-managed fields stay unsettable from create
-  paths.
-- `supabase/tests/`: ported scenarios from `mtime-cascade`,
-  `deadline-hierarchy`, `auto-completion`, `grid-uniqueness`, `revision` and
-  the create/update parts of `indexeddb.test.ts`; limits per table, real and
-  guest; two creates into one cell.
-
-**Dependencies:** Phase 42 Final Close and `main` sync; this phase's lifecycle
-gate; production limits confirmed by Task 218.
-
-**Authority:** S08, S12, S15 (last write wins), S30, S37, S43 (3); SCHEMA
-Hooks 1–3, 8, 12, §Database Functions.
-
-**Observable acceptance:** every ported scenario passes against the functions;
-every function passes its cross-account, concurrency and change-set cases;
-`coverage.db.test.ts` passes.
-
-**Verification:** full gate; `expert` review with the SQL checklist.
-
-**Commit message:** `feat(db): port the node, bit and chunk write functions`.
-
-### Task 220: [ ] Port the lifecycle write functions
-
-**Files and actions:**
-- Migrations: `soft_delete_node`, `soft_delete_bit`, `restore_node`,
-  `restore_bit` (Hooks 4–5, the Inbox sentinel rule), `archive_node`,
-  `archive_bit`, `unarchive_node`, `unarchive_bit` (Hooks 10–11),
-  `hard_delete_node`, `hard_delete_bit` (Hook 6, candidates before sources),
-  `empty_trash()` (one transaction), `cleanup_expired_trash()` (Hook 7, and it
-  records the visit), `promote_bit_to_node` (Hook 9, with the Node and Bit
-  account limits); closure `for update` and
-  parent `for share` locks; `restore_*`, `unarchive_*` and
-  `promote_bit_to_node` take `p_reserved_cells` and choose every relocated or
-  new cell through `internal.pick_free_cell` (feedback F34), with the
-  cell-picking cases in their suites, including the promotion's new chunk Bits
-  (first free cell in row-major order, skipping the reserved block).
-- `supabase/tests/`: ported scenarios from `cascade-delete`, `cascade-restore`,
-  `cascade-hard-delete`, `auto-cleanup`, `archive`, `archive-sweep`,
-  `promotion` and `scratch-aggregate-hard-delete`; trashing a Node while a Bit
-  is created in a descendant Grid; Empty Trash failure deletes nothing.
-
-**Dependencies:** Task 219.
-
-**Authority:** S08, S15, S18, S30; SCHEMA Hooks 4–11, §Locks; user additions
-(2026-10-22).
-
-**Observable acceptance:** as Task 219, plus: no live item ever ends under a
-trashed, archived or deleted Node in the concurrency case;
-`cleanup_expired_trash()` advances `last_visit_at`.
-
-**Verification:** full gate; `expert` review with the SQL checklist; no new
-Security Advisor warning at phase close.
-
-**Commit message:** `feat(db): port the lifecycle write functions`.
+SaaS-lane Tasks 219–220 are accepted. Their task contracts and
+completion-time scope are in
+[the Phase 43 archive](execution-plan/archive/phase-43.md). The six
+migrations are on production (2026-10-25). Carried item MI-1 (a Phase 44
+gate watch) is in [Issues_Deferred.md](issues/Issues_Deferred.md). Advisory
+notes for Tasks 221 and 227 are in
+[the Phase 43 ledger](issues/Issues_Phase_43.md) (Task 220 log); each task
+reads its notes at its start.
 
 ## Phase 44 — Inbox/Triage Command Functions
 

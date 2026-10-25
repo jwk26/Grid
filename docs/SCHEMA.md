@@ -1124,7 +1124,11 @@ type WriteEnvelope<Result> = {
   the client converter maps them.
 - The client changes its snapshot base only from `changes` and from refetches
   (S32).
-- Ordinary writes use the same envelope, with `applied` or `rejected`.
+- Ordinary writes use the same envelope, with `applied` or `rejected`. A
+  soft delete, restore, archive or unarchive of an item already in the target
+  state returns `applied` with no write and no version change, and the item's
+  current rows in `changes`. An update of a trashed or archived item is
+  applied (user, 2026-10-25).
 - `rejection.limit` carries the limit number with `account_limit`, because
   the numbers differ for guests and live only on the server.
 - `rejection.code` names the rule: `account_limit`, `cell_taken`,
@@ -1165,24 +1169,27 @@ checks the locked rows again after it holds them (S30; user, 2026-10-22):
 - **Lifecycle.** A function that trashes, archives or permanently deletes a
   Node locks every Node of its cascade closure `for update` before it writes.
   A function that creates an item in a Grid, or moves or restores an item into
-  one, locks that Grid's parent Node `for share` and then requires it to be
-  active. Whichever comes second waits and then sees the other's result, so a
-  live item can never end up under a trashed, archived or deleted Node. A
-  restore that brings back trashed ancestors locks that ancestor chain
-  `for update`. A Node parent change locks, in one statement ordered by id,
+  one, locks that Grid's parent Node `for update` (it writes the parent's
+  `mtime` under Hook 1, so a shared lock would only be upgraded later; Task
+  219, user 2026-10-25) and then requires it to be active. Whichever comes
+  second waits and then sees the other's result, so a live item can never
+  end up under a trashed, archived or deleted Node. A restore that brings
+  back trashed ancestors locks that ancestor chain `for update`. A Node
+  parent change locks, in one statement ordered by id,
   the moved Node's subtree and the target parent's ancestor chain (the target
   parent included) `for update`, then checks the cycle, depth and activity
   rules of Hook 8 on the locked rows, so two moves that would together form a
   cycle or a Node below level 2 cannot both pass (user, 2026-10-23).
 - **Cells.** Cell writes (create, move, restore with relocation, placement,
   promotion, system-Node normalization) also take a transaction-scoped advisory
-  lock per target Grid: account plus parent, with L0 as its own key. Two
-  `for share` locks do not block each other, so this lock is what keeps two
-  creates out of one cell.
+  lock per target Grid: account plus parent, with L0 as its own key; at L0,
+  where there is no parent row to lock, it alone keeps two creates out of one
+  cell.
 - **Inbox.** Inbox commands lock their Scratch Bit row `for update`.
 - **Account.** `ensure_account()` locks the account row.
 - **Order.** A function that needs several locks takes the advisory lock first,
-  then row locks in a fixed order, so two functions cannot deadlock.
+  then row locks in a fixed order (Nodes ordered by id, then Bits, then
+  Chunks), so two functions cannot deadlock.
 - **Planned deletes** delete staged candidates before their source rows.
 - System Node inserts use `on conflict do nothing` on the partial unique index.
 - Tests fire concurrent calls: two creates into one cell (one is `rejected`);
@@ -1296,10 +1303,12 @@ When any of these actions occur, reset `mtime = Date.now()` on the affected item
 | Edit title, description, or properties of a Bit | That Bit |
 | Complete or uncomplete a Chunk | Parent Bit **AND** parent Node (two-level cascade) |
 | Add or remove a Chunk from a Bit | Parent Bit **AND** parent Node |
+| Edit a Chunk's title or time | Parent Bit **AND** parent Node |
 | Add or remove a child Node or Bit from a Node | That parent Node |
 | Complete or uncomplete a Bit | That Bit **AND** parent Node |
 
-**Does NOT reset mtime:** Opening/viewing an item, repositioning on the grid.
+**Does NOT reset mtime:** Opening/viewing an item, repositioning on the grid,
+reordering Chunks (`reorder_chunks()` writes only `order`; user, 2026-10-25).
 
 `mtime` cascades and monotonic `version` are separate. A direct durable
 mutation of a Node/Bit advances its own version; a parent touched only because
@@ -1321,6 +1330,7 @@ Hard rule: **a child's deadline/time cannot exceed its parent's deadline.** Enfo
    - Yes → Extend parent deadline to accommodate child.
    - No → Cancel the action. Child retains previous value.
    - In the Postgres target, Yes is one write: the child's update function takes the parent extension and writes both in one transaction.
+   - The Calendar answer (`update_chunk()` extending the Bit) sets the Bit's `deadline_all_day` to the Chunk's `time_all_day` together with `deadline`. An extension that does not fit the Bit's Node is `rejected` with `deadline_exceeds_parent` (`table: "nodes"`), and nothing is written (user, 2026-10-25).
 
 2. **Parent deadline shortened** → Find all children whose deadline/time exceeds the new parent deadline. Mark each as conflicting. Surface per-item: blur + "Modify timeline" overlay with check/x icon buttons.
    - Check → Open item for date editing.
@@ -1336,6 +1346,30 @@ When a Chunk's status changes to `"complete"`:
 When a Chunk's status changes back to `"incomplete"`:
 1. If parent Bit was `"complete"` → set `bit.status = "active"`.
 2. Apply mtime cascade (Hook 1).
+
+Sticky force-complete: when a Chunk is unchecked and its Bit is `"complete"`
+with two or more Chunks now incomplete, the Bit was completed by hand and stays
+`"complete"`; with one incomplete Chunk it was auto-completed and returns to
+`"active"`.
+
+Which writes recompute the Bit's status (user, 2026-10-25; today Dexie
+recomputes on every `updateChunk`, so a Chunk title edit or a reorder returns
+a hand-completed Bit to `"active"`; this replaces that behavior):
+
+- A Chunk status change, a Chunk create and a Chunk delete recompute it:
+  every Chunk complete (at least one Chunk) → `"complete"`; on an uncheck the
+  sticky rule above; a create → `"active"` (new work); a check or a delete
+  never returns a `"complete"` Bit to `"active"`, so a hand-completed Bit
+  stays `"complete"` (user, 2026-10-25; Dexie's
+  `updateBitCompletionAndCascade` returned it to `"active"`); otherwise
+  `"active"`.
+- A Chunk title or time edit does not recompute it; it only touches `mtime`
+  (Hook 1).
+- `reorder_chunks()` writes only `order`: no status, no `mtime`, no version.
+- The Bit's `version` advances only when its status changes (Hook 12). Every
+  Chunk write function locks the parent Bit `for update` before it reads the
+  sibling Chunks, so two concurrent checks of the last two incomplete Chunks
+  end with the Bit `"complete"`.
 
 > **`scratchBreakdowns` exclusion:** Breakdown rows live in a dedicated store, not as Chunks — they do **not** participate in this hook. Placing/consuming breakdown rows never triggers Bit auto-completion.
 
@@ -1361,6 +1395,10 @@ restore uses Hook 5, except that an Inbox-parented Bit is never relocated by
 occupancy: it keeps its `x = 0, y = 0` sentinel (Hook 8 exemption) even when
 other active Scratches exist. Restore recreates no candidate.
 
+In the Postgres target `soft_delete_node()` of a system Node and
+`soft_delete_bit()` of an Inbox Scratch return `rejected` with
+`invalid_target` (user, 2026-10-25).
+
 ### 5. Cascade Restore
 
 When a **Node** is restored (`deletedAt = null`):
@@ -1372,6 +1410,13 @@ When a **Bit** is restored (`deletedAt = null`):
 1. If parent Node is trashed → auto-restore parent Node (and its parent chain if needed).
 2. If original `(x, y)` is occupied → BFS nearest-empty-cell.
 
+In the Postgres target only ancestors in the same lifecycle state are restored
+automatically, each with its own same-window members. A restore that would
+make an item live under an archived parent returns `rejected` with
+`parent_inactive`; a Bit that is also archived returns to the archive instead,
+so its restore is applied (Hook 11 mirrors this for unarchive under a trashed
+parent; user, 2026-10-25).
+
 ### 6. Cascade Hard-Delete (Permanent)
 
 When a Node or Bit is permanently deleted from trash:
@@ -1382,6 +1427,14 @@ If a permanent-delete closure still owns Scratch Breakdown sources and their
 staged candidates, delete the candidates and then the sources in the same
 planned aggregate transaction (the candidate's foreign key refuses the other
 order). A candidate cannot lack its source (S18).
+
+In the Postgres target the delete order is staged candidates, Scratch
+Breakdowns, Chunks, Bits, Nodes, and each surviving parent Node gets `mtime`
+(version kept). `hard_delete_node()` and `hard_delete_bit()` of a live item or
+a system Node return `rejected` with `invalid_target`; no orphan state exists,
+so there is no `integrity_cleanup_required` result. `empty_trash()` and
+`cleanup_expired_trash()` return the deleted Node and Bit counts in `result`
+and the deleted ids in `changes` (user, 2026-10-25).
 
 ### 7. Trash Auto-Cleanup
 
@@ -1432,13 +1485,25 @@ When a Bit is promoted to a Node:
 2. For each Chunk in the Bit: create a new Bit inside the new Node. Map `chunk.title` → `bit.title`, `chunk.time` → `bit.deadline`, `chunk.timeAllDay` → `bit.deadlineAllDay`. Auto-place via BFS.
 3. Delete the original Bit and its Chunks.
 
+In the Postgres target (`promote_bit_to_node()`, user, 2026-10-25): the new
+Node takes the Bit's cell; each Chunk, in `order`, becomes a Bit with its
+status and description carried, placed in the first free cell in row-major
+order outside the reserved cells ([Cell picking](#internal-functions));
+the server generates every new id and returns the new Node's id in
+`result.id`. The account limits apply to the counts after the call (Nodes
++ 1; Bits + Chunks − 1). A trashed or archived Bit, or a Node that would be
+below level 2, is `invalid_target`; an inactive parent is `parent_inactive`;
+Chunks that do not fit are `grid_full`; each writes nothing. A Bit title over
+the Node limit (100) fails with the CHECK error (S16); Task 227 stops the
+client from offering Promote for it.
+
 ### 10. Archive Cascade
 
 System nodes (`systemRole !== null`) **cannot** be archived — the UI must not offer "Archive" for them.
 
 When a **Node** is archived:
 1. Create one shared timestamp: `const archiveTimestamp = Date.now()`.
-2. Set `archivedAt = archiveTimestamp` on the Node and all descendant Nodes and Bits (same cascade pattern as Hook 4). The single shared timestamp lets restore identify cascade members.
+2. Set `archivedAt = archiveTimestamp` on the Node and on every descendant Node and Bit whose `archivedAt` is null (same cascade pattern as Hook 4; trashed descendants included). An independently archived descendant keeps its own `archivedAt`, so it stays archived when the root is unarchived (user, 2026-10-25; Dexie overwrote it). The single shared timestamp lets restore identify cascade members.
 3. Chunks become inaccessible via the archived parent Bit (no update needed).
 
 When a **Bit** is archived:
@@ -1448,6 +1513,9 @@ For Inbox/Triage Scratch Archive, the generic Bit path is wrapped by the
 `Archive Scratch` command: exact eligibility is checked in the same
 transaction and the Scratch's `version` increments. Archive is not hard
 delete; `scratchBreakdowns` and any history required for restore remain.
+In the Postgres target `archive_node()` of a system Node and `archive_bit()`
+of an Inbox Scratch return `rejected` with `invalid_target`, and
+`unarchive_bit()` of an Inbox Scratch keeps its `x = 0, y = 0` sentinel.
 
 Completion never triggers this hook — archive is a manual lifecycle action and completion stays purely computed (see nodes/bits Completion notes). Completed-but-unarchived items remain on the grid.
 
