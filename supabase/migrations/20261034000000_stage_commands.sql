@@ -210,7 +210,13 @@ begin
 
   select scratch_bit_id into v_scratch_id from app.scratch_breakdowns where id = p_source_id and user_id = v_user;
   if v_scratch_id is null then
-    -- No source: the candidate cannot exist either (foreign key), so the Stage was undone or never ran.
+    -- No source. A candidate of that id can still exist on another source (invalid_target, as Dexie
+    -- checks it first); otherwise the Stage was undone or never ran. Unlocked read, no write.
+    select * into v_cur from app.staged_candidates where id = p_candidate_id and user_id = v_user;
+    if v_cur.id is not null then
+      return internal.envelope('rejected', null, internal.inbox_changes('[]', '[]', jsonb_build_array(to_jsonb(v_cur))),
+                               jsonb_build_object('code', 'invalid_target'));
+    end if;
     return internal.envelope('conflict', null, '{}');
   end if;
   v_scratch := internal.lock_bit_and_node(v_user, v_scratch_id);
@@ -222,10 +228,15 @@ begin
     -- The id was deleted and added again under another Scratch between the unlocked read and the lock.
     raise exception 'could not settle the lock set of Breakdown %', p_source_id using errcode = '40001';
   end if;
+  select * into v_cur from app.staged_candidates where id = p_candidate_id and user_id = v_user;
   if v_src.id is null then
+    -- Deleted while this call waited for the lock: same verdict as the unlocked branch above.
+    if v_cur.id is not null then
+      return internal.envelope('rejected', null, internal.inbox_changes('[]', '[]', jsonb_build_array(to_jsonb(v_cur))),
+                               jsonb_build_object('code', 'invalid_target'));
+    end if;
     return internal.envelope('conflict', null, internal.inbox_changes(jsonb_build_array(to_jsonb(v_scratch))));
   end if;
-  select * into v_cur from app.staged_candidates where id = p_candidate_id and user_id = v_user;
   select * into v_by_src from app.staged_candidates where source_breakdown_id = p_source_id and user_id = v_user;
   select coalesce(jsonb_agg(to_jsonb(c)), '[]'::jsonb) into v_cands
     from app.staged_candidates c

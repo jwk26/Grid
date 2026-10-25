@@ -247,7 +247,7 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
   unstage_candidate: {
     crossAccount: {
       file: "stage-commands.db.test.ts",
-      title: "leaves another account's rows untouched and sees nothing of them",
+      title: "is refused for another account's candidate and source, with nothing of theirs in changes",
     },
     changeSet: {
       file: "stage-commands.db.test.ts",
@@ -257,7 +257,7 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
   reconcile_unstage_candidate: {
     crossAccount: {
       file: "stage-commands.db.test.ts",
-      title: "leaves another account's rows untouched and sees nothing of them",
+      title: "is refused for another account's candidate and source, with nothing of theirs in changes",
     },
     changeSet: {
       file: "stage-commands.db.test.ts",

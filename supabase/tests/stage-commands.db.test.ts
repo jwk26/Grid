@@ -6,7 +6,7 @@ import { scratchBreakdownToRow, stagedCandidateToRow } from "@/lib/db/row-mappin
 import type { ScratchBreakdown, StagedCandidate } from "@/lib/db/schema";
 import { assertChangeSet, type Envelope as ChangeEnvelope } from "./helpers/change-set";
 import { expectDbError, insertRow, withActor } from "./helpers/db";
-import { account, addBit, addNode, authed, call, sql, stored, type Envelope, type Owner, type Row } from "./helpers/lifecycle";
+import { account, addBit, addNode, authed, call, committed, race, sql, stored, type Envelope, type Owner, type Row } from "./helpers/lifecycle";
 import { createTestUser, type TestUser } from "./helpers/users";
 
 // The Stage and Unstage commands (Task 222), ported from the Dexie scenarios in
@@ -414,7 +414,12 @@ describe("unstage_candidate", () => {
       const t = await staged(db, owner);
       const other = randomUUID();
       await owner(() => seedRow(db, t.scratch, { id: other }));
-      expect(await unstage(db, t.cand, 1, randomUUID(), 2)).toMatchObject({ status: "conflict", changes: {} });
+      // A missing source with a candidate of that id elsewhere is invalid_target; with none it is a conflict.
+      const missing = await unstage(db, t.cand, 1, randomUUID(), 2);
+      expect(missing).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      expect(missing.changes.staged_candidates?.upserted[0]).toMatchObject({ id: t.cand });
+      expect(missing.changes.scratch_breakdowns).toBeUndefined();
+      expect(await unstage(db, randomUUID(), 1, randomUUID(), 2)).toMatchObject({ status: "conflict", changes: {} });
       const wrong = await unstage(db, t.cand, 1, other, 2);
       expect(wrong).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
       expect(wrong.changes.staged_candidates?.upserted[0]).toMatchObject({ id: t.cand });
@@ -550,4 +555,120 @@ describe("atomicity (Stage and Unstage)", () => {
       expect(await source(db, src)).toMatchObject({ version: 2 });
     });
   });
+});
+
+describe("concurrency (S30)", () => {
+  // A committed Inbox with one Scratch (version 5) and one source at version 1, optionally staged.
+  async function fresh(label: string, staged = false) {
+    const c = await committed(label);
+    const inbox = await c.node({ systemRole: "inbox", x: 8, y: 8 });
+    const scratch = await c.bit({ parentId: inbox, title: "Scratch", x: 0, y: 0, version: 5 });
+    const src = randomUUID();
+    const cand = randomUUID();
+    await insertRow(c.owner, "scratch_breakdowns", scratchBreakdownToRow({ ...baseEntities.scratchBreakdown, id: src, scratchBitId: scratch, version: 1 }, c.u.id));
+    if (staged) {
+      await insertRow(c.owner, "staged_candidates", stagedCandidateToRow({ ...baseEntities.stagedCandidate, id: cand, scratchBitId: scratch, sourceBreakdownId: src }, c.u.id));
+    }
+    return { ...c, scratch, src, cand };
+  }
+  const statuses = (a: Envelope, b: Envelope) => [a.status, b.status];
+  const rowOf = async (owner: Client, table: string, id: string) =>
+    (await owner.query(`select to_jsonb(r.*) as r from app.${table} r where id = $1`, [id])).rows[0]?.r;
+  const count = async (owner: Client, src: string) =>
+    Number((await owner.query("select count(*) as n from app.staged_candidates where source_breakdown_id = $1", [src])).rows[0].n);
+
+  it("two Stages with the same candidate id: the second sees the committed candidate as already_applied", async () => {
+    const t = await fresh("stg-race-same");
+    try {
+      const [first, second] = await race(t.u, (db) => stage(db, t.cand, t.scratch, t.src, 1), (db) => stage(db, t.cand, t.scratch, t.src, 1), "stage_candidate");
+      expect(statuses(first, second)).toEqual(["applied", "already_applied"]);
+      expect(await rowOf(t.owner, "scratch_breakdowns", t.src)).toMatchObject({ version: 2 });
+      expect(await count(t.owner, t.src)).toBe(1);
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it("two Stages of one source with different candidate ids: one applied, the second rejected, the source advanced once", async () => {
+    const t = await fresh("stg-race-diff");
+    try {
+      const [first, second] = await race(t.u, (db) => stage(db, randomUUID(), t.scratch, t.src, 1), (db) => stage(db, randomUUID(), t.scratch, t.src, 1), "stage_candidate");
+      expect(statuses(first, second)).toEqual(["applied", "rejected"]);
+      expect(second.rejection?.code).toBe("invalid_target");
+      expect(await rowOf(t.owner, "scratch_breakdowns", t.src)).toMatchObject({ version: 2 });
+      expect(await count(t.owner, t.src)).toBe(1);
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it("two Unstages of one candidate: the second is already_applied, the source advanced once", async () => {
+    const t = await fresh("stg-race-unstage", true);
+    try {
+      const [first, second] = await race(t.u, (db) => unstage(db, t.cand, 1, t.src, 1), (db) => unstage(db, t.cand, 1, t.src, 1), "unstage_candidate");
+      expect(statuses(first, second)).toEqual(["applied", "already_applied"]);
+      expect(await rowOf(t.owner, "scratch_breakdowns", t.src)).toMatchObject({ version: 2 });
+      expect(await count(t.owner, t.src)).toBe(0);
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it("Unstage then Stage on the original source version: the Stage is a conflict and nothing is recreated", async () => {
+    const t = await fresh("stg-race-us", true);
+    try {
+      const [first, second] = await race(t.u, (db) => unstage(db, t.cand, 1, t.src, 1), (db) => stage(db, t.cand, t.scratch, t.src, 1), "stage_candidate");
+      expect(statuses(first, second)).toEqual(["applied", "conflict"]);
+      expect(await rowOf(t.owner, "scratch_breakdowns", t.src)).toMatchObject({ version: 2 });
+      expect(await count(t.owner, t.src)).toBe(0);
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it.each([true, false])("Save and Stage on one source version (Save first: %s)", async (saveFirst) => {
+    const t = await fresh(`stg-race-save-${saveFirst}`);
+    try {
+      const doSave = (db: Client) => call(db, "save_breakdown", [t.src, 1, "Idea", 0, "Better", 0]);
+      const doStage = (db: Client) => stage(db, t.cand, t.scratch, t.src, 1);
+      const [first, second] = saveFirst ? await race(t.u, doSave, doStage, "stage_candidate") : await race(t.u, doStage, doSave, "save_breakdown");
+      if (saveFirst) {
+        // Stage after Save: the source version moved, so a conflict and no candidate.
+        expect(statuses(first, second)).toEqual(["applied", "conflict"]);
+        expect(await count(t.owner, t.src)).toBe(0);
+        expect(await rowOf(t.owner, "scratch_breakdowns", t.src)).toMatchObject({ content: "Better", version: 2 });
+      } else {
+        // Save after Stage: the candidate is present, so the Save is rejected and the content is unchanged.
+        expect(first.status).toBe("applied");
+        expect(second).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+        expect(await count(t.owner, t.src)).toBe(1);
+        expect(await rowOf(t.owner, "scratch_breakdowns", t.src)).toMatchObject({ content: "Idea", version: 2 });
+      }
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
+
+  it.each([true, false])("Delete and Stage on one source version (Delete first: %s)", async (deleteFirst) => {
+    const t = await fresh(`stg-race-del-${deleteFirst}`);
+    try {
+      const doDel = (db: Client) => call(db, "delete_breakdown", [t.src, 1, t.scratch, 5]);
+      const doStage = (db: Client) => stage(db, t.cand, t.scratch, t.src, 1);
+      const [first, second] = deleteFirst ? await race(t.u, doDel, doStage, "stage_candidate") : await race(t.u, doStage, doDel, "delete_breakdown");
+      if (deleteFirst) {
+        // The source is gone, so the Stage finds nothing.
+        expect(first.status).toBe("applied");
+        expect(second).toMatchObject({ status: "rejected", rejection: { code: "not_found" } });
+        expect(await rowOf(t.owner, "scratch_breakdowns", t.src)).toBeUndefined();
+        expect(await count(t.owner, t.src)).toBe(0);
+      } else {
+        expect(first.status).toBe("applied");
+        expect(second).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+        expect(await rowOf(t.owner, "scratch_breakdowns", t.src)).toMatchObject({ version: 2 });
+        expect(await count(t.owner, t.src)).toBe(1);
+      }
+    } finally {
+      await t.owner.end();
+    }
+  }, 30_000);
 });
