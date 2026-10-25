@@ -28,6 +28,36 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "before + changes equals after for an edit, a no-op, a move and a rejection",
     },
   },
+  create_node: {
+    crossAccount: {
+      file: "node-bit-writes.db.test.ts",
+      title: "a duplicate id fails and leaves the existing row unchanged",
+    },
+    changeSet: {
+      file: "node-bit-writes.db.test.ts",
+      title: "before + changes equals after for creates, edits, moves, an extension and rejections",
+    },
+  },
+  create_bit: {
+    crossAccount: {
+      file: "node-bit-writes.db.test.ts",
+      title: "a duplicate id fails and leaves the existing row unchanged",
+    },
+    changeSet: {
+      file: "node-bit-writes.db.test.ts",
+      title: "before + changes equals after for creates, edits, moves, an extension and rejections",
+    },
+  },
+  update_bit: {
+    crossAccount: {
+      file: "node-bit-writes.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "node-bit-writes.db.test.ts",
+      title: "before + changes equals after for creates, edits, moves, an extension and rejections",
+    },
+  },
   get_snapshot: {
     crossAccount: {
       file: "snapshot.db.test.ts",
