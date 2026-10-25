@@ -1165,24 +1165,27 @@ checks the locked rows again after it holds them (S30; user, 2026-10-22):
 - **Lifecycle.** A function that trashes, archives or permanently deletes a
   Node locks every Node of its cascade closure `for update` before it writes.
   A function that creates an item in a Grid, or moves or restores an item into
-  one, locks that Grid's parent Node `for share` and then requires it to be
-  active. Whichever comes second waits and then sees the other's result, so a
-  live item can never end up under a trashed, archived or deleted Node. A
-  restore that brings back trashed ancestors locks that ancestor chain
-  `for update`. A Node parent change locks, in one statement ordered by id,
+  one, locks that Grid's parent Node `for update` (it writes the parent's
+  `mtime` under Hook 1, so a shared lock would only be upgraded later; Task
+  219, user 2026-10-25) and then requires it to be active. Whichever comes
+  second waits and then sees the other's result, so a live item can never
+  end up under a trashed, archived or deleted Node. A restore that brings
+  back trashed ancestors locks that ancestor chain `for update`. A Node
+  parent change locks, in one statement ordered by id,
   the moved Node's subtree and the target parent's ancestor chain (the target
   parent included) `for update`, then checks the cycle, depth and activity
   rules of Hook 8 on the locked rows, so two moves that would together form a
   cycle or a Node below level 2 cannot both pass (user, 2026-10-23).
 - **Cells.** Cell writes (create, move, restore with relocation, placement,
   promotion, system-Node normalization) also take a transaction-scoped advisory
-  lock per target Grid: account plus parent, with L0 as its own key. Two
-  `for share` locks do not block each other, so this lock is what keeps two
-  creates out of one cell.
+  lock per target Grid: account plus parent, with L0 as its own key; at L0,
+  where there is no parent row to lock, it alone keeps two creates out of one
+  cell.
 - **Inbox.** Inbox commands lock their Scratch Bit row `for update`.
 - **Account.** `ensure_account()` locks the account row.
 - **Order.** A function that needs several locks takes the advisory lock first,
-  then row locks in a fixed order, so two functions cannot deadlock.
+  then row locks in a fixed order (Nodes ordered by id, then Bits, then
+  Chunks), so two functions cannot deadlock.
 - **Planned deletes** delete staged candidates before their source rows.
 - System Node inserts use `on conflict do nothing` on the partial unique index.
 - Tests fire concurrent calls: two creates into one cell (one is `rejected`);

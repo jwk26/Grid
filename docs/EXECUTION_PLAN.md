@@ -2308,7 +2308,7 @@ every function passes its cross-account, concurrency and change-set cases;
   `empty_trash()` (one transaction), `cleanup_expired_trash()` (Hook 7, and it
   records the visit), `promote_bit_to_node` (Hook 9, with the Node and Bit
   account limits); closure `for update` and
-  parent `for share` locks; `restore_*`, `unarchive_*` and
+  parent `for update` locks (SCHEMA §Locks); `restore_*`, `unarchive_*` and
   `promote_bit_to_node` take `p_reserved_cells` and choose every relocated or
   new cell through `internal.pick_free_cell` (feedback F34), with the
   cell-picking cases in their suites, including the promotion's new chunk Bits
