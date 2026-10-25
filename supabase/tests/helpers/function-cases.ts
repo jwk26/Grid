@@ -58,6 +58,46 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "before + changes equals after for creates, edits, moves, an extension and rejections",
     },
   },
+  create_chunk: {
+    crossAccount: {
+      file: "chunk-writes.db.test.ts",
+      title: "a create with an id another account holds fails and leaves that Chunk unchanged",
+    },
+    changeSet: {
+      file: "chunk-writes.db.test.ts",
+      title: "before + changes equals after for create, update, extension, delete, reorder and rejections",
+    },
+  },
+  update_chunk: {
+    crossAccount: {
+      file: "chunk-writes.db.test.ts",
+      title: "leaves another account's Chunks untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "chunk-writes.db.test.ts",
+      title: "before + changes equals after for create, update, extension, delete, reorder and rejections",
+    },
+  },
+  delete_chunk: {
+    crossAccount: {
+      file: "chunk-writes.db.test.ts",
+      title: "leaves another account's Chunks untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "chunk-writes.db.test.ts",
+      title: "before + changes equals after for create, update, extension, delete, reorder and rejections",
+    },
+  },
+  reorder_chunks: {
+    crossAccount: {
+      file: "chunk-writes.db.test.ts",
+      title: "leaves another account's Chunks untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "chunk-writes.db.test.ts",
+      title: "before + changes equals after for create, update, extension, delete, reorder and rejections",
+    },
+  },
   get_snapshot: {
     crossAccount: {
       file: "snapshot.db.test.ts",

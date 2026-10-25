@@ -150,8 +150,14 @@ isOneToOne: false
             "create_bit":
 { Args: { "p_id": string,"p_values": Json }; Returns: Json
                            },
+"create_chunk":
+{ Args: { "p_id": string,"p_values": Json }; Returns: Json
+                           },
 "create_node":
 { Args: { "p_id": string,"p_values": Json }; Returns: Json
+                           },
+"delete_chunk":
+{ Args: { "p_id": string }; Returns: Json
                            },
 "ensure_account":
 { Args: { "p_reserved_cells"?: Json }; Returns: Json
@@ -159,7 +165,13 @@ isOneToOne: false
 "get_snapshot":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
+"reorder_chunks":
+{ Args: { "p_bit_id": string,"p_chunk_ids": (string)[] }; Returns: Json
+                           },
 "update_bit":
+{ Args: { "p_changes": Json,"p_extend_parent"?: boolean,"p_id": string }; Returns: Json
+                           },
+"update_chunk":
 { Args: { "p_changes": Json,"p_extend_parent"?: boolean,"p_id": string }; Returns: Json
                            },
 "update_node":
