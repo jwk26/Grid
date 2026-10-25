@@ -29,6 +29,9 @@ type Place = {
 const args = (p: Place) => [p.result, p.scratch, p.source, p.sourceVersion, p.type, p.title, p.target, p.path, p.x, p.y, p.cand, p.candVersion];
 const placeStaged = (db: Client, p: Place) => call(db, "place_staged_candidate", args(p));
 const reconcileStaged = (db: Client, p: Place) => call(db, "reconcile_place_staged_candidate", args(p));
+const directArgs = (p: Place) => args(p).slice(0, 10);
+const placeDirect = (db: Client, p: Place) => call(db, "place_direct_breakdown", directArgs(p));
+const reconcileDirect = (db: Client, p: Place) => call(db, "reconcile_place_direct_breakdown", directArgs(p));
 
 const sourceRow = async (db: Client, id: string): Promise<Row | undefined> =>
   (await db.query("select to_jsonb(r.*) as r from app.scratch_breakdowns r where id = $1", [id])).rows[0]?.r;
@@ -279,6 +282,187 @@ describe("stage_candidate and delete_breakdown with a Scratch that is not an act
       await owner(() => sql(db, "update app.bits set archived_at = 200 where id = $1", [t.scratch]));
       expect(await call(db, "stage_candidate", [randomUUID(), t.scratch, randomUUID(), 1, "bit"])).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
       expect(await call(db, "delete_breakdown", [randomUUID(), 1, t.scratch, 5])).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+    });
+  });
+});
+
+describe("target pre-read (both placements)", () => {
+  const both: [string, (db: Client, p: Place) => Promise<Envelope>][] = [["staged", placeStaged], ["direct", placeDirect]];
+  it.each(both)("%s: the Inbox Node as target is invalid_target with no write", async (_l, place) => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const before = await counts(db);
+      expect(await place(db, { ...t.place, target: t.inbox, path: [t.inbox] })).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      expect(await counts(db)).toEqual(before);
+      expect(await sourceRow(db, t.src)).toMatchObject({ version: 3, consumed_at: null });
+    });
+  });
+  it.each(both)("%s: a missing target is invalid_target, and conflict when the source version also changed", async (_l, place) => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const missing = { ...t.place, target: randomUUID(), path: [] as string[] };
+      const before = await counts(db);
+      expect(await place(db, missing)).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      expect(await place(db, { ...missing, sourceVersion: 1 })).toMatchObject({ status: "conflict" });
+      expect(await counts(db)).toEqual(before);
+    });
+  });
+});
+
+describe("place_direct_breakdown", () => {
+  it.each([["node", null], ["node", "target"], ["bit", "target"]] as const)(
+    "creates a stable direct %s result in %s with the placement defaults and the complete postcondition",
+    async (type, where) => {
+      await withActor(A(), async (db, owner) => {
+        const t = await setup(db, owner, { type, content: type === "node" ? "Existing source" : "Idea" });
+        await owner(() => sql(db, "delete from app.staged_candidates where id = $1", [t.cand]));
+        const target = where === null ? null : t.target;
+        const p: Place = { ...t.place, type, target, path: target ? [t.target] : [] };
+        expect(await reconcileDirect(db, p)).toMatchObject({ status: "not_applied", changes: { scratch_breakdowns: { upserted: [{ id: t.src, version: 3, consumed_at: null }] } } });
+        const applied = await placeDirect(db, p);
+        expect(applied).toMatchObject({ status: "applied", result: { id: p.result } });
+        const row = await stored(db, type === "node" ? "nodes" : "bits", p.result);
+        expect(row).toMatchObject({ title: p.title, parent_id: target, x: 2, y: 3, version: 1, deleted_at: null, archived_at: null });
+        expect(row.created_at).toBe(row.mtime);
+        expect(await sourceRow(db, t.src)).toMatchObject({ version: 4, consumed_at: row.created_at });
+        if (target) expect(await stored(db, "nodes", t.target)).toMatchObject({ mtime: row.created_at, version: 1 });
+        expect(applied.changes.staged_candidates).toBeUndefined();
+        const committed = await counts(db);
+        expect(await placeDirect(db, p)).toMatchObject({ status: "already_applied" });
+        expect(await reconcileDirect(db, p)).toMatchObject({ status: "already_applied" });
+        expect(await counts(db)).toEqual(committed);
+      });
+    },
+  );
+
+  it("rejects a source that owns a candidate, returning that candidate, and writes nothing", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const before = await counts(db);
+      const envelope = await placeDirect(db, t.place);
+      expect(envelope).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" }, changes: { staged_candidates: { upserted: [{ id: t.cand }] } } });
+      expect(await counts(db)).toEqual(before);
+      expect(await reconcileDirect(db, t.place)).toMatchObject({ status: "conflict" });
+    });
+  });
+
+  it.each([
+    ["a title that differs from the source content", { title: "Other" }, "invalid_input"],
+    ["Home with a nonempty path", { type: "node", target: null, path: ["x"] }, "invalid_target"],
+    ["a Bit at Home", { type: "bit", target: null, path: [] }, "invalid_target"],
+    ["a cell outside the grid", { x: 18 }, "invalid_input"],
+  ] as const)("rejects %s without truncation or an alternate target", async (_l, patch, code) => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      await owner(() => sql(db, "delete from app.staged_candidates where id = $1", [t.cand]));
+      const p = { ...t.place, ...patch, path: "path" in patch ? (patch.path as unknown as string[]).map(() => t.target) : t.place.path } as Place;
+      const before = await counts(db);
+      expect(await placeDirect(db, p)).toMatchObject({ status: "rejected", rejection: { code } });
+      expect(await counts(db)).toEqual(before);
+    });
+  });
+
+  it.each([
+    ["a Node title above 100", "node", "n".repeat(101)],
+    ["a Bit title above 200", "bit", "b".repeat(201)],
+  ] as const)("rejects %s", async (_l, type, title) => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner, { type, content: title });
+      await owner(() => sql(db, "delete from app.staged_candidates where id = $1", [t.cand]));
+      const p: Place = { ...t.place, type, title, target: type === "node" ? null : t.target, path: type === "node" ? [] : [t.target] };
+      expect(await placeDirect(db, p)).toMatchObject({ status: "rejected", rejection: { code: "invalid_input" } });
+    });
+  });
+
+  it("keeps Dexie's decision order: version, state and target rejections", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      await owner(() => sql(db, "delete from app.staged_candidates where id = $1", [t.cand]));
+      expect(await placeDirect(db, { ...t.place, sourceVersion: 1 })).toMatchObject({ status: "conflict" });
+      expect(await placeDirect(db, { ...t.place, source: randomUUID() })).toMatchObject({ status: "rejected", rejection: { code: "not_found" } });
+      await owner(() => sql(db, "update app.scratch_breakdowns set consumed_at = 5 where id = $1", [t.src]));
+      expect(await placeDirect(db, t.place)).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      await owner(() => sql(db, "update app.scratch_breakdowns set consumed_at = null where id = $1", [t.src]));
+      await owner(() => addBit(db, user.id, { parentId: t.target, x: 2, y: 3 }));
+      expect(await placeDirect(db, t.place)).toMatchObject({ status: "rejected", rejection: { code: "cell_taken" } });
+      await owner(() => sql(db, "update app.bits set archived_at = 9 where parent_id = $1", [t.target]));
+      expect(await placeDirect(db, t.place)).toMatchObject({ status: "applied" });
+    });
+  });
+
+  it("an inactive Scratch still reconciles already_applied after placement, and rejects a new one", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      await owner(() => sql(db, "delete from app.staged_candidates where id = $1", [t.cand]));
+      expect(await placeDirect(db, t.place)).toMatchObject({ status: "applied" });
+      await owner(() => sql(db, "update app.bits set archived_at = 300 where id = $1", [t.scratch]));
+      expect(await reconcileDirect(db, t.place)).toMatchObject({ status: "already_applied" });
+      expect(await placeDirect(db, { ...t.place, result: randomUUID(), sourceVersion: 4 })).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+    });
+  });
+
+  it("is invalid_target for a Scratch outside the Inbox, account_missing without an account, 22023 for null arguments", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      const plain = await owner(() => addBit(db, user.id, { parentId: t.target, x: 4, y: 4 }));
+      expect(await placeDirect(db, { ...t.place, scratch: plain })).toMatchObject({ status: "rejected", rejection: { code: "invalid_target" } });
+      expect(await reconcileDirect(db, { ...t.place, title: null as unknown as string })).toMatchObject({ status: "conflict" });
+    });
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      await expect(placeDirect(db, { ...t.place, x: null as unknown as number })).rejects.toThrow(/every argument/);
+    });
+    await withActor(authed(stranger), async (db) => {
+      const p: Place = { result: randomUUID(), scratch: randomUUID(), source: randomUUID(), sourceVersion: 1, type: "bit", title: "x", target: null, path: [], x: 0, y: 0, cand: randomUUID(), candVersion: 1 };
+      expect(await placeDirect(db, p)).toMatchObject({ status: "rejected", rejection: { code: "account_missing" } });
+      expect(await reconcileDirect(db, p)).toMatchObject({ status: "rejected", rejection: { code: "account_missing" } });
+    });
+  });
+
+  it("a late original placement reconciles conflict after the source was restored", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      await owner(() => sql(db, "delete from app.staged_candidates where id = $1", [t.cand]));
+      expect(await placeDirect(db, t.place)).toMatchObject({ status: "applied" });
+      await owner(async () => {
+        await sql(db, "delete from app.bits where id = $1", [t.place.result]);
+        await sql(db, "update app.scratch_breakdowns set consumed_at = null, version = 5 where id = $1", [t.src]);
+      });
+      expect(await reconcileDirect(db, t.place)).toMatchObject({ status: "conflict" });
+      expect(await placeDirect(db, t.place)).toMatchObject({ status: "conflict" });
+    });
+  });
+});
+
+describe("cross-account and change set (direct placement)", () => {
+  it("leaves another account's rows untouched and sees nothing of them", async () => {
+    await withActor(A(), async (db, owner) => {
+      const mine = await setup(db, owner);
+      const theirs = await setup(db, owner, {}, stranger);
+      expect(await placeDirect(db, { ...theirs.place, result: randomUUID() })).toMatchObject({ status: "rejected", rejection: { code: "not_found" }, changes: {} });
+      expect(await reconcileDirect(db, theirs.place)).toMatchObject({ status: "conflict", changes: {} });
+      const withTheirSource = await placeDirect(db, { ...mine.place, source: theirs.src });
+      expect(withTheirSource).toMatchObject({ status: "rejected", rejection: { code: "not_found" } });
+      expect(JSON.stringify(withTheirSource.changes)).not.toContain(theirs.src);
+      const withTheirTarget = await placeDirect(db, { ...mine.place, target: theirs.target, path: [theirs.target] });
+      expect(JSON.stringify(withTheirTarget.changes)).not.toContain(theirs.target);
+      expect(await owner(() => sourceRow(db, theirs.src))).toMatchObject({ version: 3, consumed_at: null });
+      expect(await owner(() => stored(db, "nodes", theirs.target))).toMatchObject({ mtime: 100 });
+    });
+  });
+
+  it("before + changes equals after for direct placements, reconciles and their rejections", async () => {
+    await withActor(A(), async (db, owner) => {
+      const t = await setup(db, owner);
+      await owner(() => sql(db, "delete from app.staged_candidates where id = $1", [t.cand]));
+      const run = (fn: () => Promise<Envelope>) => assertChangeSet(db, user.id, fn as unknown as () => Promise<ChangeEnvelope>);
+      await run(() => reconcileDirect(db, t.place));
+      await run(() => placeDirect(db, { ...t.place, x: 99 }));
+      await run(() => placeDirect(db, { ...t.place, title: "Other" }));
+      await run(() => placeDirect(db, t.place));
+      await run(() => placeDirect(db, t.place));
+      await run(() => reconcileDirect(db, t.place));
+      await run(() => placeDirect(db, { ...t.place, result: randomUUID(), sourceVersion: 4 }));
     });
   });
 });

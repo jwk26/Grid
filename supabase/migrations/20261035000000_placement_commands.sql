@@ -397,7 +397,8 @@ begin
     return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, p_candidate_id),
                              jsonb_build_object('code', 'invalid_input'));
   end if;
-  if not internal.placement_target_ok(v_user, p_target_parent_id, p_expected_ancestor_ids, p_result_type) then
+  -- A target missing at the unlocked pre-read stays invalid: its Grid lock was not taken.
+  if not v_lock_grid or not internal.placement_target_ok(v_user, p_target_parent_id, p_expected_ancestor_ids, p_result_type) then
     return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, p_candidate_id),
                              jsonb_build_object('code', 'invalid_target'));
   end if;
@@ -555,10 +556,304 @@ create function public.reconcile_place_staged_candidate(
   $$;
 
 -- ---------------------------------------------------------------------------------------------
+-- place_direct_breakdown(p_result_id, p_scratch_id, p_source_id, p_source_expected_version,
+--   p_result_type, p_title, p_target_parent_id, p_expected_ancestor_ids, p_x, p_y,
+--   (no candidate: a source that owns one is rejected, and the title must equal the source content)
+-- Creates the result at the given cell, consumes the source (consumed_at = the result's created_at,
+-- version + 1), deletes the candidate and touches the target Node's mtime. Decision order is Dexie's:
+-- the complete postcondition is already_applied; a result id that exists, a source version or a
+-- candidate identity or version mismatch is conflict; then the rejections; the account limit is the
+-- last check before the write.
+create function public.place_direct_breakdown(
+  p_result_id uuid, p_scratch_id uuid, p_source_id uuid, p_source_expected_version integer,
+  p_result_type text, p_title text, p_target_parent_id uuid, p_expected_ancestor_ids uuid[],
+  p_x integer, p_y integer
+) returns jsonb
+  language plpgsql volatile security definer set search_path = ''
+  as $$
+declare
+  v_user uuid := internal.uid();
+  v_now bigint := internal.now_ms();
+  v_inbox uuid;
+  v_tgt app.nodes;
+  v_lock_grid boolean := true;
+  v_scratch app.bits;
+  v_src app.scratch_breakdowns;
+  v_bysrc app.staged_candidates;
+  v_rn app.nodes;
+  v_rb app.bits;
+  v_created bigint;
+  v_limit integer;
+  v_max integer;
+  v_new jsonb;
+  v_par jsonb;
+  v_srcnew jsonb;
+begin
+  if v_user is null then
+    raise exception 'not authenticated' using errcode = '28000';
+  end if;
+  if p_result_id is null or p_scratch_id is null or p_source_id is null or p_source_expected_version is null
+     or p_result_type is null or p_result_type not in ('node', 'bit') or p_title is null
+     or p_expected_ancestor_ids is null or p_x is null or p_y is null
+     then
+    raise exception 'place_direct_breakdown needs every argument (a null target parent is Home) and a node or bit result type'
+      using errcode = '22023';
+  end if;
+  if not exists (select 1 from app.accounts where user_id = v_user) then
+    return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'account_missing'));
+  end if;
+
+  select id into v_inbox from app.nodes where user_id = v_user and system_role = 'inbox';
+  if v_inbox is null then
+    return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'not_found'));
+  end if;
+  -- The Grid lock first. A target that is missing or a system Node is rejected later without it.
+  if p_target_parent_id is not null then
+    select * into v_tgt from app.nodes where id = p_target_parent_id and user_id = v_user;
+    v_lock_grid := v_tgt.id is not null and v_tgt.system_role is null;
+  end if;
+  if v_lock_grid then
+    perform internal.lock_grid(v_user, p_target_parent_id);
+  end if;
+  perform 1 from app.nodes
+   where user_id = v_user and id in (v_inbox, case when v_lock_grid then p_target_parent_id end)
+   order by id for update;
+
+  select * into v_scratch from app.bits where id = p_scratch_id and user_id = v_user;
+  if v_scratch.id is null then
+    return internal.envelope('rejected', null, '{}', jsonb_build_object('code', 'not_found'));
+  end if;
+  if v_scratch.parent_id <> v_inbox then
+    return internal.envelope('rejected', null, internal.inbox_changes(jsonb_build_array(to_jsonb(v_scratch))),
+                             jsonb_build_object('code', 'invalid_target'));
+  end if;
+  select * into v_scratch from app.bits where id = p_scratch_id and user_id = v_user for update;
+  if v_scratch.id is null or v_scratch.parent_id <> v_inbox then
+    raise exception 'could not settle the lock set of Bit %', p_scratch_id using errcode = '40001';
+  end if;
+
+  select * into v_src from app.scratch_breakdowns where id = p_source_id and user_id = v_user for update;
+  select * into v_bysrc from app.staged_candidates where source_breakdown_id = p_source_id and user_id = v_user;
+  select * into v_rn from app.nodes where id = p_result_id and user_id = v_user;
+  select * into v_rb from app.bits where id = p_result_id and user_id = v_user;
+  select * into v_tgt from app.nodes where id = p_target_parent_id and user_id = v_user;
+
+  -- The complete postcondition: the exact result, the source consumed at its created_at at expected + 1,
+  -- the candidate absent by id and by source.
+  if p_result_type = 'node' then
+    if v_rn.id is not null and v_rb.id is null and v_rn.title = p_title and v_rn.parent_id is not distinct from p_target_parent_id
+       and v_rn.x = p_x and v_rn.y = p_y and v_rn.version = 1 and not v_rn.past_deadline_dismissed
+       and v_rn.deleted_at is null and v_rn.archived_at is null and v_rn.system_role is null and not v_rn.hidden_from_grid
+       and v_rn.deadline is null and not v_rn.deadline_all_day and v_rn.color = 'hsl(210, 80%, 55%)' and v_rn.icon = 'Folder'
+       and v_rn.created_at = v_rn.mtime and v_rn.level = cardinality(p_expected_ancestor_ids) then
+      v_created := v_rn.created_at;
+    end if;
+  elsif v_rb.id is not null and v_rn.id is null and p_target_parent_id is not null and v_rb.title = p_title
+        and v_rb.parent_id = p_target_parent_id and v_rb.x = p_x and v_rb.y = p_y and v_rb.version = 1
+        and not v_rb.past_deadline_dismissed and v_rb.deleted_at is null and v_rb.archived_at is null
+        and v_rb.description = '' and v_rb.icon = 'ListTodo' and v_rb.deadline is null and not v_rb.deadline_all_day
+        and v_rb.priority is null and v_rb.status = 'active' and v_rb.created_at = v_rb.mtime then
+    v_created := v_rb.created_at;
+  end if;
+  if v_created is not null and v_src.id is not null and v_src.scratch_bit_id = p_scratch_id
+     and v_src.version = p_source_expected_version + 1 and v_src.consumed_at = v_created
+     and v_bysrc.id is null then
+    return internal.envelope('already_applied', jsonb_build_object('id', p_result_id),
+                             internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null));
+  end if;
+
+  if v_rn.id is not null or v_rb.id is not null then
+    return internal.envelope('conflict', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null));
+  end if;
+  if v_src.id is null then
+    return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null),
+                             jsonb_build_object('code', 'not_found'));
+  end if;
+  if not internal.active_inbox_scratch(v_user, v_scratch) or v_src.scratch_bit_id <> p_scratch_id or v_src.consumed_at is not null then
+    return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null),
+                             jsonb_build_object('code', 'invalid_target'));
+  end if;
+  if v_src.version <> p_source_expected_version then
+    return internal.envelope('conflict', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null));
+  end if;
+  if v_bysrc.id is not null then
+    return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null),
+                             jsonb_build_object('code', 'invalid_target'));
+  end if;
+  if p_title <> v_src.content then
+    return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null),
+                             jsonb_build_object('code', 'invalid_input'));
+  end if;
+
+  v_max := case p_result_type when 'node' then 100 else 200 end;
+  if length(p_title) < 1 or length(p_title) > v_max then
+    return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null),
+                             jsonb_build_object('code', 'invalid_input'));
+  end if;
+  -- A target missing at the unlocked pre-read stays invalid: its Grid lock was not taken.
+  if not v_lock_grid or not internal.placement_target_ok(v_user, p_target_parent_id, p_expected_ancestor_ids, p_result_type) then
+    return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null),
+                             jsonb_build_object('code', 'invalid_target'));
+  end if;
+  if p_x < 0 or p_x > 17 or p_y < 0 or p_y > 8 then
+    return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null),
+                             jsonb_build_object('code', 'invalid_input'));
+  end if;
+  if internal.cell_taken(v_user, p_target_parent_id, p_x, p_y) then
+    return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null),
+                             jsonb_build_object('code', 'cell_taken'));
+  end if;
+  v_limit := internal.limit_reached(v_user, case p_result_type when 'node' then 'nodes' else 'bits' end);
+  if v_limit is not null then
+    return internal.envelope('rejected', null, internal.placement_view(v_user, p_scratch_id, p_result_id, p_source_id, null),
+                             jsonb_build_object('code', 'account_limit', 'table', case p_result_type when 'node' then 'nodes' else 'bits' end, 'limit', v_limit));
+  end if;
+
+  if p_result_type = 'node' then
+    insert into app.nodes (id, user_id, title, color, icon, deadline, deadline_all_day, mtime, created_at, version,
+                           parent_id, level, x, y, past_deadline_dismissed)
+    values (p_result_id, v_user, p_title, 'hsl(210, 80%, 55%)', 'Folder', null, false, v_now, v_now, 1,
+            p_target_parent_id, coalesce(v_tgt.level + 1, 0), p_x, p_y, false)
+    returning to_jsonb(app.nodes.*) into v_new;
+  else
+    insert into app.bits (id, user_id, title, description, icon, deadline, deadline_all_day, priority, status,
+                          mtime, created_at, version, parent_id, x, y, past_deadline_dismissed)
+    values (p_result_id, v_user, p_title, '', 'ListTodo', null, false, null, 'active',
+            v_now, v_now, 1, p_target_parent_id, p_x, p_y, false)
+    returning to_jsonb(app.bits.*) into v_new;
+  end if;
+  if p_target_parent_id is not null then
+    update app.nodes set mtime = v_now where id = p_target_parent_id and user_id = v_user
+    returning to_jsonb(app.nodes.*) into v_par;
+  end if;
+  update app.scratch_breakdowns set consumed_at = v_now, version = version + 1 where id = p_source_id and user_id = v_user
+  returning to_jsonb(app.scratch_breakdowns.*) into v_srcnew;
+
+  return internal.envelope('applied', jsonb_build_object('id', p_result_id),
+    internal.inbox_changes(
+      p_bits => case when p_result_type = 'bit' then jsonb_build_array(v_new) else '[]'::jsonb end,
+      p_breakdowns => jsonb_build_array(v_srcnew),
+      p_nodes => (case when p_result_type = 'node' then jsonb_build_array(v_new) else '[]'::jsonb end)
+                 || (case when v_par is null then '[]'::jsonb else jsonb_build_array(v_par) end)));
+end
+$$;
+
+-- Read-only classification of place_direct_breakdown: already_applied (the complete postcondition),
+-- not_applied (no result, the source unconsumed at the expected version, no candidate, and
+-- every validity rule of the command except the account limit holds), else conflict.
+create function public.reconcile_place_direct_breakdown(
+  p_result_id uuid, p_scratch_id uuid, p_source_id uuid, p_source_expected_version integer,
+  p_result_type text, p_title text, p_target_parent_id uuid, p_expected_ancestor_ids uuid[],
+  p_x integer, p_y integer
+) returns jsonb
+  language sql stable security invoker set search_path = ''
+  as $$
+    with recursive u as (select (select auth.uid()) as id),
+    acct as (select exists (select 1 from app.accounts a, u where a.user_id = u.id) as ok),
+    sc as (select b.* from app.bits b, u where b.user_id = u.id and b.id = p_scratch_id),
+    src as (select r.* from app.scratch_breakdowns r, u where r.user_id = u.id and r.id = p_source_id),
+    bysrc as (select c.* from app.staged_candidates c, u where c.user_id = u.id and c.source_breakdown_id = p_source_id),
+    rn as (select n.* from app.nodes n, u where n.user_id = u.id and n.id = p_result_id),
+    rb as (select b.* from app.bits b, u where b.user_id = u.id and b.id = p_result_id),
+    act as (
+      select exists (
+        select 1 from sc join app.nodes n on n.user_id = sc.user_id and n.id = sc.parent_id
+         where sc.deleted_at is null and sc.archived_at is null
+           and n.system_role = 'inbox' and n.deleted_at is null and n.archived_at is null
+      ) as ok
+    ),
+    chain(id, parent_id, level, depth, ok) as (
+      select n.id, n.parent_id, n.level, 1,
+             (n.deleted_at is null and n.archived_at is null and n.system_role is null and not n.hidden_from_grid)
+        from app.nodes n, u where n.user_id = u.id and n.id = p_target_parent_id
+      union all
+      select n.id, n.parent_id, n.level, c.depth + 1,
+             (n.deleted_at is null and n.archived_at is null and n.system_role is null and not n.hidden_from_grid)
+        from chain c join app.nodes n on n.id = c.parent_id, u
+       where n.user_id = u.id and c.depth < 4
+    ),
+    tgt as (
+      select case when p_target_parent_id is null then p_result_type = 'node' and cardinality(p_expected_ancestor_ids) = 0
+        else coalesce((
+          select bool_and(ok)
+             and count(*) = cardinality(p_expected_ancestor_ids)
+             and (select parent_id from chain order by depth desc limit 1) is null
+             and (select array_agg(id order by depth desc) from chain) = p_expected_ancestor_ids
+             and bool_and(level = (select count(*) from chain) - depth)
+             and (p_result_type = 'bit' or (select level from chain where depth = 1) < 2)
+            from chain), false)
+        end as ok
+    ),
+    -- created_at of the result when it is exactly what this placement creates
+    mres as (
+      select rn.created_at from rn
+       where p_result_type = 'node' and not exists (select 1 from rb)
+         and rn.title = p_title and rn.parent_id is not distinct from p_target_parent_id and rn.x = p_x and rn.y = p_y
+         and rn.version = 1 and not rn.past_deadline_dismissed and rn.deleted_at is null and rn.archived_at is null
+         and rn.system_role is null and not rn.hidden_from_grid and rn.deadline is null and not rn.deadline_all_day
+         and rn.color = 'hsl(210, 80%, 55%)' and rn.icon = 'Folder' and rn.created_at = rn.mtime
+         and rn.level = cardinality(p_expected_ancestor_ids)
+      union all
+      select rb.created_at from rb
+       where p_result_type = 'bit' and not exists (select 1 from rn) and p_target_parent_id is not null
+         and rb.title = p_title and rb.parent_id = p_target_parent_id and rb.x = p_x and rb.y = p_y
+         and rb.version = 1 and not rb.past_deadline_dismissed and rb.deleted_at is null and rb.archived_at is null
+         and rb.description = '' and rb.icon = 'ListTodo' and rb.deadline is null and not rb.deadline_all_day
+         and rb.priority is null and rb.status = 'active' and rb.created_at = rb.mtime
+    ),
+    verdict as (
+      select case
+        when not acct.ok then 'account_missing'
+        when p_result_id is null or p_scratch_id is null or p_source_id is null or p_source_expected_version is null
+             or p_result_type is null or p_result_type not in ('node', 'bit') or p_title is null
+             or p_expected_ancestor_ids is null or p_x is null or p_y is null
+             then 'conflict'
+        when exists (select 1 from mres, src where src.scratch_bit_id = p_scratch_id
+                       and src.version = p_source_expected_version + 1 and src.consumed_at = mres.created_at)
+             and not exists (select 1 from bysrc) then 'already_applied'
+        when not exists (select 1 from rn) and not exists (select 1 from rb) and act.ok
+             and exists (select 1 from src where src.scratch_bit_id = p_scratch_id and src.consumed_at is null
+                           and src.version = p_source_expected_version)
+             and not exists (select 1 from bysrc) and exists (select 1 from src where src.content = p_title)
+             and length(p_title) between 1 and (case p_result_type when 'node' then 100 else 200 end)
+             and tgt.ok
+             and p_x between 0 and 17 and p_y between 0 and 8
+             and not exists (select 1 from app.nodes n, u where n.user_id = u.id and n.parent_id is not distinct from p_target_parent_id
+                               and n.x = p_x and n.y = p_y and n.deleted_at is null and n.archived_at is null
+                               and (p_target_parent_id is not null or not n.hidden_from_grid))
+             and not exists (select 1 from app.bits b, u where b.user_id = u.id and p_target_parent_id is not null
+                               and b.parent_id = p_target_parent_id and b.x = p_x and b.y = p_y
+                               and b.deleted_at is null and b.archived_at is null) then 'not_applied'
+        else 'conflict'
+      end as s
+      from acct, act, tgt
+    )
+    select case when verdict.s = 'account_missing'
+      then jsonb_build_object('status', 'rejected', 'result', null, 'changes', '{}'::jsonb,
+                              'rejection', jsonb_build_object('code', 'account_missing'))
+      else jsonb_build_object('status', verdict.s, 'result', null, 'changes', coalesce((select jsonb_object_agg(t.k, t.v) from (values
+        ('nodes', case when exists (select 1 from rn) then jsonb_build_object('upserted', (select jsonb_agg(to_jsonb(rn)) from rn), 'deleted', '[]'::jsonb) end),
+        ('bits', case when exists (select 1 from sc union all select 1 from rb)
+           then jsonb_build_object('upserted', (select jsonb_agg(to_jsonb(w)) from (select * from sc union select * from rb) w), 'deleted', '[]'::jsonb) end),
+        ('scratch_breakdowns', case when exists (select 1 from src) then jsonb_build_object('upserted', (select jsonb_agg(to_jsonb(src)) from src), 'deleted', '[]'::jsonb) end),
+        ('staged_candidates', case when exists (select 1 from bysrc)
+           then jsonb_build_object('upserted', (select jsonb_agg(to_jsonb(bysrc)) from bysrc), 'deleted', '[]'::jsonb) end)
+      ) as t(k, v) where t.v is not null), '{}'::jsonb))
+    end
+    from verdict
+  $$;
+
+
+-- ---------------------------------------------------------------------------------------------
 alter function public.place_staged_candidate(uuid, uuid, uuid, integer, text, text, uuid, uuid[], integer, integer, uuid, integer) owner to griddo_writer;
 revoke all on function public.place_staged_candidate(uuid, uuid, uuid, integer, text, text, uuid, uuid[], integer, integer, uuid, integer) from public, anon, service_role;
 revoke all on function public.reconcile_place_staged_candidate(uuid, uuid, uuid, integer, text, text, uuid, uuid[], integer, integer, uuid, integer) from public, anon, service_role;
 grant execute on function public.place_staged_candidate(uuid, uuid, uuid, integer, text, text, uuid, uuid[], integer, integer, uuid, integer) to authenticated;
 grant execute on function public.reconcile_place_staged_candidate(uuid, uuid, uuid, integer, text, text, uuid, uuid[], integer, integer, uuid, integer) to authenticated;
+alter function public.place_direct_breakdown(uuid, uuid, uuid, integer, text, text, uuid, uuid[], integer, integer) owner to griddo_writer;
+revoke all on function public.place_direct_breakdown(uuid, uuid, uuid, integer, text, text, uuid, uuid[], integer, integer) from public, anon, service_role;
+revoke all on function public.reconcile_place_direct_breakdown(uuid, uuid, uuid, integer, text, text, uuid, uuid[], integer, integer) from public, anon, service_role;
+grant execute on function public.place_direct_breakdown(uuid, uuid, uuid, integer, text, text, uuid, uuid[], integer, integer) to authenticated;
+grant execute on function public.reconcile_place_direct_breakdown(uuid, uuid, uuid, integer, text, text, uuid, uuid[], integer, integer) to authenticated;
 revoke create on schema internal from griddo_writer;
 revoke create on schema public from griddo_writer;

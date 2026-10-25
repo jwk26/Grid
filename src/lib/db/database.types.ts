@@ -189,6 +189,9 @@ isOneToOne: false
 "hard_delete_node":
 { Args: { "p_id": string }; Returns: Json
                            },
+"place_direct_breakdown":
+{ Args: { "p_expected_ancestor_ids": (string)[],"p_result_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string,"p_target_parent_id": string,"p_title": string,"p_x": number,"p_y": number }; Returns: Json
+                           },
 "place_staged_candidate":
 { Args: { "p_candidate_expected_version": number,"p_candidate_id": string,"p_expected_ancestor_ids": (string)[],"p_result_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string,"p_target_parent_id": string,"p_title": string,"p_x": number,"p_y": number }; Returns: Json
                            },
@@ -200,6 +203,9 @@ isOneToOne: false
                            },
 "reconcile_delete_breakdown":
 { Args: { "p_expected_version": number,"p_id": string,"p_scratch_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
+"reconcile_place_direct_breakdown":
+{ Args: { "p_expected_ancestor_ids": (string)[],"p_result_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string,"p_target_parent_id": string,"p_title": string,"p_x": number,"p_y": number }; Returns: Json
                            },
 "reconcile_place_staged_candidate":
 { Args: { "p_candidate_expected_version": number,"p_candidate_id": string,"p_expected_ancestor_ids": (string)[],"p_result_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string,"p_target_parent_id": string,"p_title": string,"p_x": number,"p_y": number }; Returns: Json
