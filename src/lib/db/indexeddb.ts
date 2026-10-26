@@ -65,6 +65,7 @@ import {
   type UpdateNode,
   type UpdateScratchBreakdown,
 } from "@/lib/db/schema";
+import { buildNodeTitlePath, sortChunks, sortGridItems } from "@/lib/db/read-helpers";
 import { findNearestEmptyCell } from "@/lib/utils/bfs";
 import { findItemsInBlockedZone } from "@/lib/utils/breadcrumb-zone";
 import { isDeadlineAfter } from "@/lib/utils/deadline";
@@ -4710,14 +4711,6 @@ function placementCellIsOccupied(
   );
 }
 
-function sortGridItems<T extends { x: number; y: number }>(items: T[]): T[] {
-  return [...items].sort((left, right) => left.y - right.y || left.x - right.x);
-}
-
-function sortChunks(items: Chunk[]): Chunk[] {
-  return [...items].sort((left, right) => left.order - right.order);
-}
-
 function touchesNodeMtime(update: Partial<MutableNodeInput>): boolean {
   return Object.keys(update).some((key) => !["parentId", "x", "y"].includes(key));
 }
@@ -4829,26 +4822,6 @@ function collectDescendantNodeIds(rootId: string, allNodes: Node[]): string[] {
 
   visit(rootId);
   return result;
-}
-
-function buildNodeTitlePath(
-  parentId: string | null,
-  nodesById: Map<string, Node>,
-): string[] {
-  const path: string[] = [];
-  let currentId = parentId;
-
-  while (currentId) {
-    const current = nodesById.get(currentId);
-    if (!current) {
-      break;
-    }
-
-    path.unshift(current.title);
-    currentId = current.parentId;
-  }
-
-  return path;
 }
 
 function isDefined<T>(value: T | null | undefined): value is T {

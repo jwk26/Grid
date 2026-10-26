@@ -67,4 +67,22 @@ describe("liveRead helper", () => {
     await vi.waitFor(() => expect(observer.error).toHaveBeenCalledWith(failure));
     expect(observer.next).not.toHaveBeenCalled();
   });
+
+  it("reports a rejected getDataStore() through error, and not after an unsubscribe", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/db/indexeddb", () => {
+      throw new Error("store unavailable");
+    });
+    const { liveRead } = await import("@/lib/db/datastore");
+    const observer = { next: vi.fn(), error: vi.fn() };
+    liveRead(async () => 1).subscribe(observer);
+    await vi.waitFor(() => expect(observer.error).toHaveBeenCalledTimes(1));
+    expect(observer.next).not.toHaveBeenCalled();
+
+    const closed = { next: vi.fn(), error: vi.fn() };
+    liveRead(async () => 1).subscribe(closed).unsubscribe();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(closed.error).not.toHaveBeenCalled();
+    vi.doUnmock("@/lib/db/indexeddb");
+  });
 });
