@@ -7,7 +7,7 @@ Carried over: none. For reference only: MI-19 (Task 229) and MI-23 (Tasks 228, 2
 
 - Plan fix (user, 2026-10-22): Task 213 adds `!.env.local.example` to `.gitignore`, because the existing `.env*` pattern ignores the example file.
 - Decision (user, 2026-10-22): SaaS DECISION S06 corrected. The repository is named Grid (`jwk26/Grid`); the package name stays `griddo` (private package, internal name rule).
-- MI-1 [Deferred → Phase 43 gate watch] (user, 2026-10-25): the first baseline `pnpm test` run after a fresh install failed one test (1821/1822); the failing test was not captured, and the next three runs passed 1822/1822. Cause unknown. Next: if a gate run fails again, record the test name here; the user decides whether to drop this item. Second occurrence (Task 216 final gate, 2026-10-23): one test failed (2012/2013), name not captured, next run 2013/2013 (duplicate MI-5 closed into this item). From Task 216 on the gate saves the `pnpm test` output to a file, so a failing test's name is kept.
+- MI-1 [Closed at the Phase 44 close; no recurrence in the Phase 43 and Phase 44 gates] [Deferred → Phase 43, then Phase 44 gate watch] (user, 2026-10-25): the first baseline `pnpm test` run after a fresh install failed one test (1821/1822); the failing test was not captured, and the next three runs passed 1822/1822. Cause unknown. Next: if a gate run fails again, record the test name here; the user decides whether to drop this item. Second occurrence (Task 216 final gate, 2026-10-23): one test failed (2012/2013), name not captured, next run 2013/2013 (duplicate MI-5 closed into this item). From Task 216 on the gate saves the `pnpm test` output to a file, so a failing test's name is kept.
 
 ## Task 213 — Add local Supabase and the `pnpm test:db` gate
 

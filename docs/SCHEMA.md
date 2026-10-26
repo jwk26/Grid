@@ -1075,6 +1075,71 @@ function (S31). Every function follows the SQL function checklist in
   `updateChunk`; Hook 2), and the Chunk reorder in Bit detail
   (`reorder_chunks()`; today one `updateChunk` call per Chunk).
 
+### Inbox/Triage command functions
+
+Phase 44 (Tasks 221–224; user, 2026-10-25 and 2026-10-26). Each row of the
+[atomic command matrix](#atomic-command-matrix) is one write function, and
+Undo is two, one per provenance:
+
+| Command | Write function | Reconcile function |
+|---|---|---|
+| Add Breakdown | `add_breakdown` | `reconcile_add_breakdown` |
+| Save Scratch title | `save_scratch_title` | `reconcile_save_scratch_title` |
+| Save Breakdown content/order | `save_breakdown` | `reconcile_save_breakdown` |
+| Delete Breakdown | `delete_breakdown` | `reconcile_delete_breakdown` |
+| Stage | `stage_candidate` | `reconcile_stage_candidate` |
+| Unstage | `unstage_candidate` | `reconcile_unstage_candidate` |
+| Place staged candidate | `place_staged_candidate` | `reconcile_place_staged_candidate` |
+| Place direct row | `place_direct_breakdown` | `reconcile_place_direct_breakdown` |
+| Undo placement | `undo_staged_placement`, `undo_direct_placement` | `reconcile_undo_staged_placement`, `reconcile_undo_direct_placement` |
+| Archive Scratch | `archive_scratch` | `classify_archive_scratch_recovery` |
+| Trash Scratch | `trash_scratch` | `reconcile_trash_scratch` |
+
+- **Arguments.** No function takes the `operationId`; the client keeps it for
+  correlation, since there is no operation table. `archive_scratch` takes no
+  caller assertion: the operation coordinator rechecks the Add draft and the
+  title editor before dispatch. `trash_scratch` takes the confirmed set as a
+  jsonb array of `{candidate_id, candidate_expected_version,
+  source_breakdown_id, source_expected_version}`. The Undo functions take the
+  complete snake_case rows from the placement's `changes` (the result, the
+  source as placed and, for a staged Undo, the candidate as before placement),
+  compared with `user_id` dropped on both sides; a Node result is told by its
+  `level` key.
+- **Results.** A write's `result` is `{id}`: the new row for Add, the
+  candidate for Stage and Unstage, the result for a placement, the Scratch for
+  Archive and Trash; Undo's is null. A reconcile returns the envelope with a
+  null `result` and the current rows in `changes`.
+  `classify_archive_scratch_recovery(p_scratch_id, p_expected_version,
+  p_started_at bigint)` returns `applied`, `not_applied` or `conflict`
+  (`unknown` stays on the client); it compares the client's `startedAt` with
+  the server's `archived_at`.
+- **Reconcile functions** are one `language sql` `stable` `security invoker`
+  statement, reject only `account_missing`, and classify a null or malformed
+  argument as `conflict` where the write function raises `22023`. Only the
+  two Undo reconciles return `rejected` (`invalid_target`, for an inactive,
+  missing or non-Inbox Scratch), as the matrix requires.
+- **Rejection codes.** `not_found`: no Scratch (Add, Save Scratch title,
+  Archive, Undo) or no row (Save, Delete), no Scratch or source (Stage,
+  placement). `invalid_target`: a Scratch outside the Inbox or inactive, a
+  staged, consumed or other-Scratch row, a source staged under another id, an
+  Unstage candidate of another source, a direct source that owns a candidate, an unreachable placement target, a
+  Scratch ineligible for Archive. `invalid_input`: a save that changes
+  nothing, a placement title past its limit (counted in UTF-16 units, as the
+  column check) or a direct title that differs from the source content, a cell
+  outside the grid. `cell_taken` and `account_limit` (with `table` and
+  `limit`) as for ordinary writes; Add and placement check the account limit
+  after every other rule, and their reconciles do not check it.
+- **Differences from Dexie.** Delete, Stage, placement, Undo, Archive and
+  Trash check right after locking the Scratch the client names that it is a
+  child of the Inbox Node, before they lock any source or candidate row, so a
+  Bit outside the Inbox sent as the Scratch cannot reorder the locks. So an
+  active ordinary Bit at a wrong version is `rejected` from `archive_scratch`
+  (Dexie: `conflict`), and Stage with an inactive Scratch and a missing source
+  is `invalid_target` (placement keeps the Dexie order: `not_found`). The
+  Trash postcondition also requires each submitted source to belong to the
+  Scratch. A Delete, Unstage or Trash `already_applied` envelope carries no
+  deleted id, so after an unknown outcome the client refetches (S32).
+
 ### Internal functions
 
 The `internal` schema holds the shared helpers (cell check and occupancy,
@@ -1135,8 +1200,9 @@ type WriteEnvelope<Result> = {
   `grid_full`, `not_found`, `invalid_target` (a move into a descendant, a Bit
   onto Home, a system-Node rule; for Nodes see Hook 8), `invalid_input` (a malformed
   `p_reserved_cells`), `parent_inactive`, `deadline_exceeds_parent`,
-  `account_deleting` (deletion fallback only), `account_missing`, and the
-  existing Inbox command reasons. A rule the function does not check, such as a CHECK
+  `account_deleting` (deletion fallback only) and `account_missing`; the
+  Inbox/Triage commands use these codes as
+  [Inbox/Triage command functions](#inboxtriage-command-functions) lists. A rule the function does not check, such as a CHECK
   violation, ends the call with an error, which the client treats as a failed
   write (S16).
 - Test (S31): for every function, the snapshot before the call plus the
