@@ -153,10 +153,15 @@ export const ChunkPool = forwardRef<ChunkPoolHandle, ChunkPoolProps>(
       if (oldIndex === -1 || newIndex === -1) return;
 
       const reordered = arrayMove(allChunks, oldIndex, newIndex);
-      await reorderChunks(
-        bitId,
-        reordered.map((chunk) => chunk.id),
-      );
+      try {
+        await reorderChunks(
+          bitId,
+          reordered.map((chunk) => chunk.id),
+        );
+      } catch {
+        // The list no longer matches the Bit's Chunks (another tab added or removed one): nothing
+        // was written, and the live list shows the current order.
+      }
     }
 
     return (

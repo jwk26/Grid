@@ -42,6 +42,18 @@ describe("supabase calls", () => {
     await expect(callUpdateNode(client, "id-1", { x: 1 })).rejects.toBeInstanceOf(UnknownOutcomeError);
   });
 
+  it.each([408, 502, 503, 504])("a gateway answer of %i is an unknown outcome, not a failed write", async (status) => {
+    const { client } = clientWith({ data: null, error: { message: "Bad Gateway" }, status });
+    await expect(callUpdateNode(client, "id-1", { x: 1 })).rejects.toBeInstanceOf(UnknownOutcomeError);
+  });
+
+  it.each([400, 401, 409, 500])("an answer of %i is a failed write", async (status) => {
+    const { client } = clientWith({ data: null, error: { message: "nope" }, status });
+    const error = await callUpdateNode(client, "id-1", { x: 1 }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(UnknownOutcomeError);
+  });
+
   it("the reserved block is the top-left 3x2 cells", () => {
     expect(BREADCRUMB_RESERVED_CELLS).toHaveLength(6);
     expect(BREADCRUMB_RESERVED_CELLS.every((c) => c.x <= 2 && c.y <= 1)).toBe(true);

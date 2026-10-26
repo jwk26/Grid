@@ -51,10 +51,12 @@ const view = (w: World) => w.snapshot.getState().view;
 const version = (w: World, table: "bits" | "scratchBreakdowns" | "stagedCandidates", id: string) =>
   (view(w)[table].get(id) as { version: number }).version;
 
-async function oneCall<T>(w: World, name: string, action: () => Promise<T>): Promise<T> {
+// `name` is the one request; an already_applied placement or Undo carries no deleted id, so its
+// answer is followed by a refetch (`name` then `get_snapshot`).
+async function oneCall<T>(w: World, name: string | string[], action: () => Promise<T>): Promise<T> {
   w.calls.length = 0;
   const result = await action();
-  expect(w.calls).toEqual([name]);
+  expect(w.calls).toEqual(Array.isArray(name) ? name : [name]);
   return result;
 }
 
@@ -145,7 +147,7 @@ describe("Stage, Unstage, placement, Undo, Archive and Trash", () => {
     };
     const placed = await oneCall(w, "place_staged_candidate", () => w.store.placeStagedCandidate(placeCommand));
     expect(placed).toMatchObject({ status: "applied", result: { id: placeCommand.resultId, parentId: w.target }, source: { consumedAt: expect.any(Number) }, candidate: null });
-    expect((await oneCall(w, "reconcile_place_staged_candidate", () => w.store.reconcileStagedPlacement(placeCommand))).status).toBe("already_applied");
+    expect((await oneCall(w, ["reconcile_place_staged_candidate", "get_snapshot"], () => w.store.reconcileStagedPlacement(placeCommand))).status).toBe("already_applied");
 
     // The Undo input is the candidate as it was before the placement removed it.
     const candidateBefore = beforePlacement;
@@ -159,7 +161,7 @@ describe("Stage, Unstage, placement, Undo, Archive and Trash", () => {
     expect(undone.status).toBe("applied");
     expect(view(w).bits.has(placeCommand.resultId)).toBe(false);
     expect(view(w).stagedCandidates.get(restage.candidateId)).toMatchObject({ lifecycle: "staged" });
-    expect((await oneCall(w, "reconcile_undo_staged_placement", () => w.store.reconcileStagedPlacementUndo(undoStaged))).status).toBe("already_applied");
+    expect((await oneCall(w, ["reconcile_undo_staged_placement", "get_snapshot"], () => w.store.reconcileStagedPlacementUndo(undoStaged))).status).toBe("already_applied");
 
     // The same for a direct row: place it, then Undo with the row as placed.
     const directSource = await w.source(scratchId, "Direct", 1);
@@ -181,7 +183,7 @@ describe("Stage, Unstage, placement, Undo, Archive and Trash", () => {
     expect(directPlaced.status).toBe("applied");
     const undoDirect = { operationId: randomUUID(), resultSnapshot: directPlaced.result!, sourceSnapshot: directPlaced.source! };
     expect((await oneCall(w, "undo_direct_placement", () => w.store.undoDirectPlacement(undoDirect))).status).toBe("applied");
-    expect((await oneCall(w, "reconcile_undo_direct_placement", () => w.store.reconcileDirectPlacementUndo(undoDirect))).status).toBe("already_applied");
+    expect((await oneCall(w, ["reconcile_undo_direct_placement", "get_snapshot"], () => w.store.reconcileDirectPlacementUndo(undoDirect))).status).toBe("already_applied");
   });
 
   it("Archive and its recovery classification", async () => {
@@ -203,7 +205,7 @@ describe("Stage, Unstage, placement, Undo, Archive and Trash", () => {
     };
     const placed = await oneCall(w, "place_direct_breakdown", () => w.store.placeDirectBreakdown(placeDirect));
     expect(placed).toMatchObject({ status: "applied", candidate: null });
-    expect((await oneCall(w, "reconcile_place_direct_breakdown", () => w.store.reconcileDirectPlacement(placeDirect))).status).toBe("already_applied");
+    expect((await oneCall(w, ["reconcile_place_direct_breakdown", "get_snapshot"], () => w.store.reconcileDirectPlacement(placeDirect))).status).toBe("already_applied");
 
     const startedAt = Date.now() - 1_000;
     const archive = {

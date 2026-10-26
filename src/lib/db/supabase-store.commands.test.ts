@@ -117,6 +117,28 @@ describe("the request each command sends", () => {
   });
 });
 
+describe("an already_applied answer carries no deleted id", () => {
+  it("placement and Undo refetch before they answer, as Delete, Unstage and Trash do", async () => {
+    const { rpc, store, snapshot } = setup(() => ok({ status: "already_applied" }));
+    await snapshot.load();
+    const refetch = vi.spyOn(snapshot, "refetch");
+    const source = { ...baseEntities.scratchBreakdown, id: SOURCE, scratchBitId: SCRATCH };
+    await store.reconcileStagedPlacement({ ...placement, candidateId: CANDIDATE, candidateExpectedVersion: 2 });
+    await store.reconcileDirectPlacement(placement);
+    await store.reconcileDirectPlacementUndo({ operationId: OP, resultSnapshot: { ...baseEntities.bit, id: RESULT }, sourceSnapshot: source });
+    expect(rpc).toHaveBeenCalledTimes(3);
+    expect(refetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("an applied or not_applied answer does not refetch", async () => {
+    const { store, snapshot } = setup(() => ok({ status: "not_applied" }));
+    await snapshot.load();
+    const refetch = vi.spyOn(snapshot, "refetch");
+    await store.reconcileDirectPlacement(placement);
+    expect(refetch).not.toHaveBeenCalled();
+  });
+});
+
 describe("rejections", () => {
   it("an account_limit rejection reaches Add and placement results with its table and limit", async () => {
     const limit = { code: "account_limit", table: "bits", limit: 300 };

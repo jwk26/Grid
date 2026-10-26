@@ -634,8 +634,8 @@ export function createSupabaseStore(
   // `rejected`, `conflict` and `not_applied` included. An API error or an unknown outcome throws:
   // the hooks mark the operation `unknown` and reconcile from a throw, so nothing is resent here.
   // Result rows are the current rows of the snapshot after the envelope's `changes` reached the
-  // base. A Delete, Unstage or Trash that was already applied carries no deleted id, so those
-  // answers refetch first (S32).
+  // base. A Delete, Unstage, Trash, placement or Undo that was already applied carries no deleted id
+  // (the candidate, the Scratch's rows or the placed result), so those answers refetch first (S32).
 
   const runCommand = async (key: string, fn: commandCalls.FunctionCall): Promise<Envelope> => {
     const outcome = await snapshot.command({ key, send: () => callWrite(client(), fn.name, fn.args) });
@@ -806,35 +806,51 @@ export function createSupabaseStore(
     },
     placeStagedCandidate: async (command) => {
       const parsed = stagedPlacementCommandSchema.parse(command);
-      return placementResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.placeStagedCall(parsed)));
+      const envelope = await runCommand(scratchKey(parsed.scratchBitId), commandCalls.placeStagedCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return placementResult(parsed, envelope);
     },
     reconcileStagedPlacement: async (command) => {
       const parsed = stagedPlacementCommandSchema.parse(command);
-      return placementResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileStagedPlacementCall(parsed)));
+      const envelope = await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileStagedPlacementCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return placementResult(parsed, envelope);
     },
     placeDirectBreakdown: async (command) => {
       const parsed = directPlacementCommandSchema.parse(command);
-      return placementResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.placeDirectCall(parsed)));
+      const envelope = await runCommand(scratchKey(parsed.scratchBitId), commandCalls.placeDirectCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return placementResult(parsed, envelope);
     },
     reconcileDirectPlacement: async (command) => {
       const parsed = directPlacementCommandSchema.parse(command);
-      return placementResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileDirectPlacementCall(parsed)));
+      const envelope = await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileDirectPlacementCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return placementResult(parsed, envelope);
     },
     undoStagedPlacement: async (command) => {
       const parsed = stagedPlacementUndoCommandSchema.parse(command);
-      return undoResult(parsed, await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.undoStagedCall(parsed)));
+      const envelope = await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.undoStagedCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return undoResult(parsed, envelope);
     },
     reconcileStagedPlacementUndo: async (command) => {
       const parsed = stagedPlacementUndoCommandSchema.parse(command);
-      return undoResult(parsed, await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.reconcileStagedUndoCall(parsed)));
+      const envelope = await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.reconcileStagedUndoCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return undoResult(parsed, envelope);
     },
     undoDirectPlacement: async (command) => {
       const parsed = directPlacementUndoCommandSchema.parse(command);
-      return undoResult(parsed, await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.undoDirectCall(parsed)));
+      const envelope = await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.undoDirectCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return undoResult(parsed, envelope);
     },
     reconcileDirectPlacementUndo: async (command) => {
       const parsed = directPlacementUndoCommandSchema.parse(command);
-      return undoResult(parsed, await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.reconcileDirectUndoCall(parsed)));
+      const envelope = await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.reconcileDirectUndoCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return undoResult(parsed, envelope);
     },
     archiveScratch: async (command) => {
       const parsed = archiveScratchCommandSchema.parse(command);

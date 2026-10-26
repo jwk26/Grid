@@ -635,3 +635,57 @@ describe("SnapshotStore: commands without a pending effect (Task 227)", () => {
     expect(store.getState().view.nodes.size).toBe(0);
   });
 });
+
+describe("SnapshotStore: a write that waits in the chain has its own timeout (Task 227 review)", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  async function loadedFake() {
+    const fetchSnapshot = vi.fn<() => Promise<unknown>>(async () => snapshotOf([nodeRow(NODE_ID, { x: 0 })]));
+    const store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+    await store.load();
+    return store;
+  }
+
+  it("a command behind a request that never ends ends as an unsent error after two timeouts", async () => {
+    const store = await loadedFake();
+    void store.command({ key: "k", send: () => new Promise<Envelope>(() => undefined) });
+    const sendSecond = vi.fn(async () => applied([]));
+    const second = store.command({ key: "k", send: sendSecond });
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(sendSecond).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    const outcome = await second;
+    expect(outcome.outcome).toBe("error");
+    expect(sendSecond).not.toHaveBeenCalled();
+  });
+
+  it("an effect write that timed out in the queue leaves the view and the pending list, and is never sent later", async () => {
+    const store = await loadedFake();
+    const first = deferred<Envelope>();
+    void store.command({ key: `nodes:${NODE_ID}`, send: () => first.promise });
+    const sendSecond = vi.fn(async () => applied([nodeRow(NODE_ID, { x: 7, version: 3 })]));
+    const second = store.write({ effect: move(NODE_ID, 7), send: sendSecond });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(nodeX(store)).toBe(7);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect((await second).outcome).toBe("error");
+    expect(nodeX(store)).toBe(0);
+    expect(store.getState().pending).toEqual([]);
+    first.resolve(applied([]));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sendSecond).not.toHaveBeenCalled();
+  });
+
+  it("a queued write that reaches its turn before the timeout is sent as before", async () => {
+    const store = await loadedFake();
+    const first = deferred<Envelope>();
+    void store.command({ key: "k", send: () => first.promise });
+    const sendSecond = vi.fn(async () => applied([]));
+    const second = store.command({ key: "k", send: sendSecond });
+    await vi.advanceTimersByTimeAsync(5_000);
+    first.resolve(applied([]));
+    expect((await second).outcome).toBe("applied");
+    expect(sendSecond).toHaveBeenCalledTimes(1);
+  });
+});

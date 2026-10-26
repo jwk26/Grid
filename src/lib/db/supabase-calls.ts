@@ -35,6 +35,11 @@ export async function fetchSnapshotValue(client: GriddoSupabaseClient): Promise<
 export type Functions = Database["public"]["Functions"];
 export type Args<Name extends keyof Functions> = Functions[Name]["Args"];
 
+// Statuses that say the request may have reached the database without an answer coming back: no
+// response at all (0), a request timeout (408) and a gateway that lost the upstream (502, 503,
+// 504). A rule violation or a database error has its own status and is a definite failure.
+const NO_ANSWER_STATUSES: ReadonlySet<number> = new Set([0, 408, 502, 503, 504]);
+
 // One call, one function (SCHEMA §Exposed functions). An API error is thrown, so the store
 // treats it as a failed write; a request that got no response is an unknown outcome.
 // postgrest-js reports that case as an error with status 0 instead of throwing, and the write
@@ -49,7 +54,9 @@ export async function callWrite(
     args: Record<string, unknown>,
   ) => Promise<{ data: unknown; error: { message: string } | null; status: number }>;
   const { data, error, status } = await rpc.call(client, name, args);
-  if (error && status === 0) throw new UnknownOutcomeError(`${name} got no response: ${error.message}`);
+  if (error && NO_ANSWER_STATUSES.has(status)) {
+    throw new UnknownOutcomeError(`${name} got no answer (${status}): ${error.message}`);
+  }
   if (error) throw new Error(`${name} failed: ${error.message}`);
   return data as unknown as Envelope;
 }

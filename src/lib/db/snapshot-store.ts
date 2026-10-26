@@ -333,10 +333,30 @@ export class SnapshotStore {
     this.pending = [...this.pending, entry];
     if (effect) this.publish();
 
+    // A write that waits behind an earlier one has its own deadline from the moment it queued: the
+    // earlier request gets its full timeout and then as long again to end. If it still has not
+    // ended, this write ends as an error that was never sent (no write, so not an unknown
+    // outcome), leaves the list, and is skipped when its turn comes.
+    let queueTimer: ReturnType<typeof setTimeout> | undefined;
+    const expired = previous
+      ? new Promise<WriteOutcome>((resolve) => {
+          queueTimer = setTimeout(() => {
+            if (entry.state !== "queued") return;
+            this.pending = this.pending.filter((item) => item.id !== entry.id);
+            if (effect) this.publish();
+            resolve({ outcome: "error", error: new Error("The write timed out before it was sent") });
+          }, 2 * this.requestTimeoutMs);
+        })
+      : null;
+
     const started = previous
-      ? previous.then(() => this.send(entry, sendRequest))
+      ? previous.then(() => {
+          clearTimeout(queueTimer);
+          return this.send(entry, sendRequest);
+        })
       : Promise.resolve(this.send(entry, sendRequest));
-    const run = started.then((sent) => sent.outcome);
+    const answered = started.then((sent) => sent.outcome);
+    const run = expired ? Promise.race([answered, expired]) : answered;
     // The next write to this record waits for the request itself to end, not for the timeout: a
     // later write cannot overtake a timed-out one on the server.
     const tail: Promise<unknown> = started.then((sent) => sent.done).finally(() => {
