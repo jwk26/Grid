@@ -57,7 +57,7 @@ export function TrashList({ items }: { items: TrashItems }) {
 
   async function handleEmptyTrash() {
     try {
-      await emptyTrash(sortedTopLevelNodes, sortedStandaloneBits);
+      await emptyTrash();
       toast.success("Trash emptied.");
     } catch {
       toast.error("Unable to empty trash.");

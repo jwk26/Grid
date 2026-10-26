@@ -16,10 +16,15 @@ export function useChunkActions() {
     await dataStore.updateChunk(id, data);
   }, []);
 
+  const reorderChunks = useCallback(async (bitId: string, chunkIds: readonly string[]): Promise<void> => {
+    const dataStore = await getDataStore();
+    await dataStore.reorderChunks(bitId, chunkIds);
+  }, []);
+
   const deleteChunk = useCallback(async (id: string): Promise<void> => {
     const dataStore = await getDataStore();
     await dataStore.deleteChunk(id);
   }, []);
 
-  return { createChunk, updateChunk, deleteChunk };
+  return { createChunk, updateChunk, reorderChunks, deleteChunk };
 }

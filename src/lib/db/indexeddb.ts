@@ -24,6 +24,7 @@ import type {
   SaveBreakdownResult,
   SaveScratchTitleCommand,
   SaveScratchTitleResult,
+  ExtendParentOption,
   LiveObservable,
   ScratchArchiveEligibility,
   StageCandidateCommand,
@@ -820,6 +821,19 @@ export class IndexedDBDataStore implements DataStore {
     });
   }
 
+  async emptyTrash(): Promise<AggregateHardDeleteResult> {
+    return this.write(async () => {
+      const [nodes, bits] = await Promise.all([
+        this.database.nodes.toArray(),
+        this.database.bits.toArray(),
+      ]);
+      return this.deletePlannedAggregate(
+        new Set(nodes.filter((node) => node.deletedAt !== null).map(({ id }) => id)),
+        new Set(bits.filter((bit) => bit.deletedAt !== null).map(({ id }) => id)),
+      );
+    });
+  }
+
   async cleanupExpiredTrash(): Promise<AggregateHardDeleteResult> {
     return this.write(async () => {
       const expirationCutoff = Date.now() - TRASH_RETENTION_DAYS * 86_400_000;
@@ -909,7 +923,7 @@ export class IndexedDBDataStore implements DataStore {
     return bit;
   }
 
-  async updateBit(id: string, data: UpdateBit): Promise<void> {
+  async updateBit(id: string, data: UpdateBit, options?: ExtendParentOption): Promise<void> {
     const parsed = updateBitSchema.parse(data);
 
     await this.write(async () => {
@@ -935,12 +949,20 @@ export class IndexedDBDataStore implements DataStore {
         });
       }
 
-      await this.assertBitDeadlineFitsParent(
-        next.parentId,
-        next.deadline,
-        next.deadlineAllDay,
-        existing.id,
-      );
+      // Hook 2: a deadline past the parent's fails, unless the caller answered "update the parent
+      // too": then the parent takes the Bit's deadline in this same write.
+      let extendedParent: Node | null = null;
+      try {
+        await this.assertBitDeadlineFitsParent(
+          next.parentId,
+          next.deadline,
+          next.deadlineAllDay,
+          existing.id,
+        );
+      } catch (error) {
+        if (!(options?.extendParent && error instanceof DeadlineConflictError)) throw error;
+        extendedParent = await this.getRequiredNode(next.parentId);
+      }
 
       const timestamp = Date.now();
       const statusChanged = delta.status !== undefined;
@@ -952,6 +974,17 @@ export class IndexedDBDataStore implements DataStore {
       const mtimeTouched = touchesBitMtime(delta);
 
       await this.database.bits.put(bitSchema.parse(next));
+      if (extendedParent) {
+        await this.database.nodes.put(
+          nodeSchema.parse(
+            incrementVersion({
+              ...extendedParent,
+              deadline: next.deadline,
+              deadlineAllDay: next.deadlineAllDay,
+            }),
+          ),
+        );
+      }
 
       const parentIds = new Set<string>();
 
@@ -2924,9 +2957,13 @@ export class IndexedDBDataStore implements DataStore {
     return chunk;
   }
 
-  async updateChunk(id: string, data: Partial<Chunk>): Promise<void> {
+  async updateChunk(
+    id: string,
+    data: Partial<Chunk>,
+    options?: ExtendParentOption,
+  ): Promise<void> {
     if (this.database instanceof GridDODatabase && !this.hasAmbientWriteTransaction()) {
-      return this.write(() => this.updateChunk(id, data));
+      return this.write(() => this.updateChunk(id, data, options));
     }
 
     const existing = await this.getRequiredChunk(id);
@@ -2934,7 +2971,24 @@ export class IndexedDBDataStore implements DataStore {
     const bit = await this.getRequiredBit(existing.parentId);
     const next = { ...existing, ...parsed };
 
-    await this.assertChunkTimeFitsBit(bit, next.time, next.timeAllDay);
+    // Hook 2: a time past the Bit's deadline fails, unless the caller answered "update the
+    // parent too": the Bit then takes the Chunk's time as its deadline, and that must fit the Node.
+    const exceedsBit =
+      next.time !== null &&
+      bit.deadline !== null &&
+      isDeadlineAfter(next.time, next.timeAllDay, bit.deadline, bit.deadlineAllDay);
+    const extendBit = exceedsBit && options?.extendParent === true;
+    if (extendBit) {
+      const node = await this.getRequiredNode(bit.parentId);
+      if (
+        node.deadline !== null &&
+        isDeadlineAfter(next.time as number, next.timeAllDay, node.deadline, node.deadlineAllDay)
+      ) {
+        throw new Error("Chunk time cannot exceed parent node deadline");
+      }
+    } else {
+      await this.assertChunkTimeFitsBit(bit, next.time, next.timeAllDay);
+    }
 
     const timestamp = Date.now();
     // Detect uncheck: complete → incomplete triggers sticky force-complete rule
@@ -2942,9 +2996,40 @@ export class IndexedDBDataStore implements DataStore {
 
     await this.write(async () => {
       await this.database.chunks.put(chunkSchema.parse(next));
+      if (extendBit) {
+        await this.database.bits.put(
+          bitSchema.parse(
+            incrementVersion({
+              ...bit,
+              deadline: next.time,
+              deadlineAllDay: next.timeAllDay,
+              mtime: timestamp,
+            }),
+          ),
+        );
+      }
       await this.updateBitCompletionAndCascade(bit.id, timestamp, {
         stickyIfForceCompleted: isUnchecking,
+        versionAlreadyBumped: extendBit,
       });
+    });
+  }
+
+  async reorderChunks(bitId: string, chunkIds: readonly string[]): Promise<void> {
+    await this.write(async () => {
+      await this.getRequiredBit(bitId);
+      const chunks = await this.getChunks(bitId);
+      const current = new Set(chunks.map((chunk) => chunk.id));
+      if (chunkIds.length !== current.size || new Set(chunkIds).size !== chunkIds.length || !chunkIds.every((chunkId) => current.has(chunkId))) {
+        throw new Error("Chunk order must list exactly the Bit's Chunks");
+      }
+      const byId = new Map(chunks.map((chunk) => [chunk.id, chunk]));
+      for (const [index, chunkId] of chunkIds.entries()) {
+        const chunk = byId.get(chunkId) as Chunk;
+        if (chunk.order !== index) {
+          await this.database.chunks.put(chunkSchema.parse({ ...chunk, order: index }));
+        }
+      }
     });
   }
 
@@ -4059,6 +4144,8 @@ export class IndexedDBDataStore implements DataStore {
        * If 2+ chunks are incomplete, the Bit was force-completed → keep complete.
        */
       stickyIfForceCompleted?: boolean;
+      /** The caller already counted this call's version bump on the Bit (a deadline extension). */
+      versionAlreadyBumped?: boolean;
     },
   ): Promise<void> {
     const [bit, chunks] = await Promise.all([
@@ -4086,7 +4173,7 @@ export class IndexedDBDataStore implements DataStore {
       mtime: timestamp,
     };
     await this.database.bits.put(
-      nextStatus === bit.status ? nextBit : incrementVersion(nextBit),
+      nextStatus === bit.status || options?.versionAlreadyBumped ? nextBit : incrementVersion(nextBit),
     );
     await this.touchNodeIds([bit.parentId], timestamp);
   }

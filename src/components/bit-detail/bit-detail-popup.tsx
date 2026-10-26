@@ -39,6 +39,7 @@ import { DeadlineConflictModal } from "@/components/shared/deadline-conflict-mod
 import { useBitDetailActions } from "@/hooks/use-bit-detail-actions";
 import { useBitDetail } from "@/hooks/use-bit-detail";
 import { bitDetailPopupVariants } from "@/lib/animations/layout";
+import { NODE_TITLE_MAX_LENGTH } from "@/lib/constants";
 import { NODE_ICON_MAP, NODE_ICON_NAMES } from "@/lib/constants/node-icons";
 import { cn } from "@/lib/utils";
 import type { Bit } from "@/types";
@@ -106,7 +107,7 @@ function ParentDeadlineRow({
 }
 
 export function BitDetailPopup() {
-  const { updateBit, updateNode, softDeleteBit, promoteBitToNode } = useBitDetailActions();
+  const { updateBit, softDeleteBit, promoteBitToNode } = useBitDetailActions();
   const { bit, chunks, parentNode, isOpen, close } = useBitDetail();
   const [localTitle, setLocalTitle] = useState("");
   const [localDescription, setLocalDescription] = useState("");
@@ -197,14 +198,14 @@ export function BitDetailPopup() {
     if (!bit || !parentNode || !pendingDeadlineConflict) return;
 
     try {
-      await updateNode(parentNode.id, {
-        deadline: pendingDeadlineConflict.deadline,
-        deadlineAllDay: pendingDeadlineConflict.deadlineAllDay,
-      });
-      await updateBit(bit.id, {
-        deadline: pendingDeadlineConflict.deadline,
-        deadlineAllDay: pendingDeadlineConflict.deadlineAllDay,
-      });
+      await updateBit(
+        bit.id,
+        {
+          deadline: pendingDeadlineConflict.deadline,
+          deadlineAllDay: pendingDeadlineConflict.deadlineAllDay,
+        },
+        { extendParent: true },
+      );
       setPendingDeadlineConflict(null);
     } catch {
       toast.error("Unable to update deadlines.");
@@ -234,6 +235,8 @@ export function BitDetailPopup() {
   const hasChunks = chunks.length > 0;
   const canPromote =
     hasChunks &&
+    bit !== null &&
+    bit.title.length <= NODE_TITLE_MAX_LENGTH &&
     parentNode !== null &&
     parentNode.systemRole !== "inbox" &&
     parentNode.level < 2;

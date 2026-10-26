@@ -46,6 +46,7 @@ const WRITE_KEYS: Record<WriteKey, true> = {
   restoreNode: true,
   hardDeleteNode: true,
   cleanupExpiredTrash: true,
+  emptyTrash: true,
   createBit: true,
   updateBit: true,
   softDeleteBit: true,
@@ -90,6 +91,7 @@ const WRITE_KEYS: Record<WriteKey, true> = {
   createChunk: true,
   updateChunk: true,
   deleteChunk: true,
+  reorderChunks: true,
   promoteBitToNode: true,
   runBreadcrumbZoneMigration: true,
 };

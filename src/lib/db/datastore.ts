@@ -246,6 +246,12 @@ export type LiveObservable<T> = {
   subscribe(observer: LiveObserver<T>): LiveSubscription;
 };
 
+/**
+ * The answer to a deadline conflict (SCHEMA Hook 2): the call also extends the parent record's
+ * deadline (a Bit's Node, a Chunk's Bit) in the same write, instead of failing.
+ */
+export type ExtendParentOption = Readonly<{ extendParent?: boolean }>;
+
 export interface DataStore {
   /**
    * Re-runs `read` against this store on every data change and emits each
@@ -261,6 +267,8 @@ export interface DataStore {
   softDeleteNode(id: string): Promise<void>;
   restoreNode(id: string): Promise<void>;
   hardDeleteNode(id: string): Promise<AggregateHardDeleteResult>;
+  /** Permanently deletes every trashed Node closure and trashed Bit in one write (Hook 6). */
+  emptyTrash(): Promise<AggregateHardDeleteResult>;
   cleanupExpiredTrash(): Promise<AggregateHardDeleteResult>;
 
   getAllActiveNodes(): Promise<Node[]>;
@@ -271,7 +279,7 @@ export interface DataStore {
   getBitsForNode(nodeId: string): Promise<Bit[]>;
   getAllActiveBits(): Promise<Bit[]>;
   createBit(data: CreateBit): Promise<Bit>;
-  updateBit(id: string, data: UpdateBit): Promise<void>;
+  updateBit(id: string, data: UpdateBit, options?: ExtendParentOption): Promise<void>;
   softDeleteBit(id: string): Promise<void>;
   restoreBit(id: string): Promise<void>;
   hardDeleteBit(id: string): Promise<AggregateHardDeleteResult>;
@@ -373,7 +381,9 @@ export interface DataStore {
   // --- Chunks ---
   getChunks(bitId: string): Promise<Chunk[]>;
   createChunk(data: CreateChunk): Promise<Chunk>;
-  updateChunk(id: string, data: Partial<Chunk>): Promise<void>;
+  updateChunk(id: string, data: Partial<Chunk>, options?: ExtendParentOption): Promise<void>;
+  /** Writes `order` 0..n-1 in the given sequence; the list must be exactly the Bit's Chunks. */
+  reorderChunks(bitId: string, chunkIds: readonly string[]): Promise<void>;
   deleteChunk(id: string): Promise<void>;
 
   // --- Queries ---
