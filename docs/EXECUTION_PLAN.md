@@ -698,7 +698,7 @@ a limit is `rejected` with no write.
 
 **Commit message:** `feat(db): port the placement and undo commands`.
 
-### Task 224: [ ] Port the Archive and Trash Scratch commands and close the conformance cases
+### Task 224: [x] Port the Archive and Trash Scratch commands and close the conformance cases
 
 **Files and actions:** migrations for `archive_scratch`,
 `classify_archive_scratch_recovery`, `trash_scratch`, `reconcile_trash_scratch`

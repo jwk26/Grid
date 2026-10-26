@@ -137,8 +137,8 @@ Start: drift D1 fixed in the plan (Task 224: the Archive descriptor conformance 
 ## Task 224 — Port the Archive and Trash Scratch commands and close the conformance cases
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 224 acceptance
+- Status: Accepted
+- Next: Phase 44 close (/end-phase)
 - Open: none
 
 ### Log
@@ -172,3 +172,6 @@ Start: drift D1 fixed in the plan (Task 224: the Archive descriptor conformance 
 - Please check: (1) the agent choices listed in the Task 227 note above; (2) the `+ 1` overflow at version 2147483647 (`22003`), unchanged from Tasks 221–223.
 - Unresolved: none.
 - Review: `expert` (SQL checklist), no blocking finding; Archive ∥ Unstage missing from the matrix → fixed (this commit).
+- Review (advisory, 2026-10-26, task finish): approve. Acceptance holds: every SCHEMA conformance case passes in `conformance.db.test.ts` (Stage 3 review applied: the Bit and Node `mtime` move while both versions stay); the ported Dexie scenarios, cross-account and change-set (Stages 1–2); 13 concurrency cases on real lock waits in both orders, including Archive ∥ Undo, Add ∥ Trash, the Save-after-purge guard and the `expert`'s Archive ∥ Unstage; the local Security Advisor shows no issue, within the accepted rule (8e520b4); `expert` review with no blocking finding. `pnpm test:db` 898/898 after a reset on a78bfa6 and `git diff --check origin/main...HEAD` rerun by the advisory (the earlier full run predated the Archive ∥ Unstage case). Please check (1) and (2): agreed, no change. Apply: the Task 227 note below, which adds to the agent's. Not applied: none.
+- Task 227 note (advisory, 2026-10-26, adds to the agent's above): an applied Archive's `changes` hold only the Scratch (the Inbox is untouched); an applied Trash's hold the Inbox Node, the Scratch, the sources and the deleted candidate ids; `rejected`/`conflict` `changes` hold the current rows (Archive: the Scratch, its rows and candidates; Trash: the Scratch, its current candidates and the current and submitted sources), so a stale tab converges from `changes`; a Trash `already_applied` envelope and every reconcile carry no deleted candidate id, so after an unknown outcome the client refetches (S32); an Unstage that waits on a Trash of its Scratch returns `already_applied`, because the Trash had the Unstage effect (Dexie parity), so the client takes the Scratch lifecycle from the snapshot or a refetch, not from the Unstage result.
+- Decision: Task 224 accepted (user, 2026-10-26).
