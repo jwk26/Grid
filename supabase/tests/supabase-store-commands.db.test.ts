@@ -289,4 +289,3 @@ describe("commands that send nothing", () => {
     expect(w.calls).toEqual([]);
   });
 });
-
