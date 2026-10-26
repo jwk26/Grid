@@ -1,6 +1,5 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TriagePlacementCommand } from "@/hooks/use-triage-placement";
 import type { TriageOperationLock } from "@/hooks/use-triage-operation-lock";
@@ -9,6 +8,7 @@ import {
   type DirectPlacementUndoCommand,
   type PlacementUndoResult,
   type StagedPlacementUndoCommand,
+  liveRead,
 } from "@/lib/db/datastore";
 import type { RepositoryOperationStatus } from "@/lib/db/schema";
 import type { ScratchBreakdown, StagedCandidate } from "@/lib/db/schema";
@@ -219,7 +219,7 @@ function observeUndoTruth(
     publish(new Map());
     return () => undefined;
   }
-  const subscription = liveQuery(async () => {
+  const subscription = liveRead(async () => {
     const scratchIds = [...new Set(entries.map((entry) => entry.source.scratchBitId))];
     // An unreadable owner is left unknown; it never hides the Undo truth.
     const owners = new Map<string, OwningScratchLifecycle>();

@@ -3,15 +3,13 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Bit, Chunk, Node } from "@/types";
 
-const liveQueryMock = vi.hoisted(() => vi.fn());
+const liveReadMock = vi.hoisted(() => vi.fn());
 const getDataStoreMock = vi.hoisted(() => vi.fn());
-
-vi.mock("dexie", () => ({
-  liveQuery: liveQueryMock,
-}));
 
 vi.mock("@/lib/db/datastore", () => ({
   getDataStore: getDataStoreMock,
+  liveRead: (read: (store: unknown) => Promise<unknown>) =>
+    liveReadMock(() => getDataStoreMock().then(read)),
 }));
 
 const { useCalendarData } = await import("@/hooks/use-calendar-data");
@@ -117,7 +115,7 @@ describe("useCalendarData", () => {
       getBits: vi.fn(async (parentId: string) => (parentId === childNode.id ? [bit] : [])),
       getChunks: vi.fn(async (bitId: string) => (bitId === bit.id ? [chunk] : [])),
     });
-    liveQueryMock.mockImplementation((query: () => Promise<unknown>) => ({
+    liveReadMock.mockImplementation((query: () => Promise<unknown>) => ({
       subscribe: ({ next }: { next: (value: unknown) => void }) => {
         void query().then(next);
         return { unsubscribe: vi.fn() };

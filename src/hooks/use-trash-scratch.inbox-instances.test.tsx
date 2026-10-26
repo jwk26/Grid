@@ -10,31 +10,35 @@ import { useTrashScratch, type TrashScratchSnapshot } from "./use-trash-scratch"
 const getDataStoreMock = vi.hoisted(() => vi.fn());
 const liveQueryRuns = vi.hoisted(() => [] as Array<() => Promise<void>>);
 
-vi.mock("@/lib/db/datastore", () => ({
-  getDataStore: async () => {
+vi.mock("@/lib/db/datastore", () => {
+  const getDataStore = async () => {
     const dataStore = await getDataStoreMock();
     return {
       getArchivedItems: async () => ({ nodes: [], bits: [] }),
       ...dataStore,
     };
-  },
-}));
-vi.mock("dexie", () => ({
-  liveQuery: (query: () => Promise<unknown>) => ({
-    subscribe: (observer: { next: (value: unknown) => void; error: (error: unknown) => void }) => {
-      const run = async () => {
-        try {
-          observer.next(await query());
-        } catch (error) {
-          observer.error(error);
-        }
+  };
+  return {
+    getDataStore,
+    liveRead: (read: (store: unknown) => Promise<unknown>) => {
+      const query = () => getDataStore().then(read);
+      return {
+        subscribe: (observer: { next: (value: unknown) => void; error: (error: unknown) => void }) => {
+          const run = async () => {
+            try {
+              observer.next(await query());
+            } catch (error) {
+              observer.error(error);
+            }
+          };
+          liveQueryRuns.push(run);
+          void run();
+          return { unsubscribe: vi.fn() };
+        },
       };
-      liveQueryRuns.push(run);
-      void run();
-      return { unsubscribe: vi.fn() };
     },
-  }),
-}));
+  };
+});
 
 const INBOX = "inbox";
 

@@ -1,8 +1,7 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getDataStore } from "@/lib/db/datastore";
+import { getDataStore, liveRead } from "@/lib/db/datastore";
 import {
   runGridExplorerSearch,
   searchGridExplorer,
@@ -198,8 +197,7 @@ export function useGridExplorerSearch(
   useEffect(() => {
     mountedRef.current = true;
     let revision = 0;
-    const subscription = liveQuery(async () => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore) => {
       const [nodes, bits] = await Promise.all([
         dataStore.getAllActiveNodes(),
         dataStore.getAllActiveBits(),

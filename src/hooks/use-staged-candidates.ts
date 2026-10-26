@@ -1,6 +1,5 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getDataStore,
@@ -10,6 +9,7 @@ import {
   type StageCandidateResult,
   type UnstageCandidateCommand,
   type UnstageCandidateResult,
+  liveRead,
 } from "@/lib/db/datastore";
 import type {
   ScratchBreakdown,
@@ -181,6 +181,7 @@ export function useStagedCandidates(
 
   useEffect(() => {
     // Operation projections belong only to the currently selected Scratch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOperations([]);
     setHeldState([]);
     snapshotRef.current = null;
@@ -190,13 +191,14 @@ export function useStagedCandidates(
 
     if (scratchBitId === null) return;
 
-    const subscription = liveQuery(async (): Promise<CandidateSnapshot> => {
+    const subscription = liveRead(async (dataStore): Promise<CandidateSnapshot> => {
       const generation = ++generationRef.current;
-      const { db } = await import("@/lib/db/indexeddb");
-      const [candidates, sources] = await Promise.all([
-        db.stagedCandidates.where("scratchBitId").equals(scratchBitId).toArray(),
-        db.scratchBreakdowns.where("scratchBitId").equals(scratchBitId).toArray(),
+      const [candidates, allSources] = await Promise.all([
+        dataStore.getStagedCandidates(scratchBitId),
+        dataStore.getAllScratchBreakdowns(),
       ]);
+      // `id` order, as the table scan this replaces returned them.
+      const sources = allSources.filter((row) => row.scratchBitId === scratchBitId);
       return { scratchBitId, generation, candidates, sources };
     }).subscribe({
       next: (value) => {

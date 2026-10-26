@@ -1,6 +1,5 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import {
   createContext,
   useCallback,
@@ -20,6 +19,7 @@ import {
   type SaveBreakdownResult,
   type SaveScratchTitleCommand,
   type SaveScratchTitleResult,
+  liveRead,
 } from "@/lib/db/datastore";
 import type {
   RepositoryOperationStatus,
@@ -243,8 +243,7 @@ export function useScratchBreakdowns(
   useEffect(() => {
     if (scratchBitId === null) return;
 
-    const subscription = liveQuery(async () => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore) => {
       const [rows, archiveEligibility] = await Promise.all([
         dataStore.getScratchBreakdowns(scratchBitId),
         dataStore.getScratchArchiveEligibility(scratchBitId),

@@ -1,4 +1,4 @@
-import Dexie, { type DexieOptions, type Table } from "dexie";
+import Dexie, { liveQuery, type DexieOptions, type Table } from "dexie";
 import { z } from "zod";
 import { GRID_COLS, GRID_ROWS, TRASH_RETENTION_DAYS } from "@/lib/constants";
 import type {
@@ -24,6 +24,7 @@ import type {
   SaveBreakdownResult,
   SaveScratchTitleCommand,
   SaveScratchTitleResult,
+  LiveObservable,
   ScratchArchiveEligibility,
   StageCandidateCommand,
   StageCandidateResult,
@@ -593,6 +594,10 @@ export class IndexedDBDataStore implements DataStore {
     private readonly database: DatabaseLike,
     private readonly onTransactionCheckpoint?: IndexedDBTransactionCheckpointHook,
   ) {}
+
+  liveRead<T>(read: (store: DataStore) => Promise<T>): LiveObservable<T> {
+    return liveQuery(() => read(this));
+  }
 
   async getNode(id: string): Promise<Node | undefined> {
     return this.database.nodes.get(id);
@@ -2790,6 +2795,19 @@ export class IndexedDBDataStore implements DataStore {
     return all
       .filter((row) => row.scratchBitId === scratchBitId)
       .sort((left, right) => left.order - right.order);
+  }
+
+  async getAllScratchBreakdowns(): Promise<ScratchBreakdown[]> {
+    return this.requireScratchBreakdowns().toArray();
+  }
+
+  async getStagedCandidates(scratchBitId: string): Promise<StagedCandidate[]> {
+    const all = await this.requireStagedCandidates().toArray();
+    return all.filter((candidate) => candidate.scratchBitId === scratchBitId);
+  }
+
+  async getAllStagedCandidates(): Promise<StagedCandidate[]> {
+    return this.requireStagedCandidates().toArray();
   }
 
   async updateScratchBreakdown(

@@ -1,10 +1,9 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useCallback, useEffect, useState } from "react";
 import {
-  getDataStore,
   type ScratchArchiveEligibility,
+  liveRead,
 } from "@/lib/db/datastore";
 import type { ScratchTitleBlockerSnapshot } from "@/hooks/use-scratch-breakdowns";
 
@@ -60,8 +59,7 @@ export function useCanArchiveScratch(
 
   useEffect(() => {
     if (scratchId === null) return;
-    const subscription = liveQuery(async () => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore) => {
       return {
         scratchId,
         eligibility: await dataStore.getScratchArchiveEligibility(scratchId),

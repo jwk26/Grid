@@ -7,14 +7,12 @@ import type { Bit } from "@/lib/db/schema";
 import { useExternalScratchRemovalData } from "./use-external-scratch-removal-data";
 
 const getDataStoreMock = vi.hoisted(() => vi.fn());
-const liveQueryMock = vi.hoisted(() => vi.fn());
+const liveReadMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/datastore", () => ({
   getDataStore: getDataStoreMock,
-}));
-
-vi.mock("dexie", () => ({
-  liveQuery: liveQueryMock,
+  liveRead: (read: (store: unknown) => Promise<unknown>) =>
+    liveReadMock(() => getDataStoreMock().then(read)),
 }));
 
 type Observer = {
@@ -62,7 +60,7 @@ describe("useExternalScratchRemovalData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     subscriptions.length = 0;
-    liveQueryMock.mockImplementation((query: () => Promise<unknown>) => ({
+    liveReadMock.mockImplementation((query: () => Promise<unknown>) => ({
       subscribe: (observer: Observer) => {
         const subscription = { query, observer, unsubscribe: vi.fn() };
         subscriptions.push(subscription);

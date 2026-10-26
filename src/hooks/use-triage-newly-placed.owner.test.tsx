@@ -17,12 +17,9 @@ vi.mock("@/lib/db/datastore", () => ({
     reconcileDirectPlacementUndo: reconcileMock,
     reconcileStagedPlacementUndo: reconcileMock,
   }),
-}));
-
-vi.mock("dexie", () => ({
-  liveQuery: (query: () => Promise<unknown>) => ({
+  liveRead: (read: (store: unknown) => Promise<unknown>) => ({
     subscribe: (observer: { next: (value: unknown) => void; error: (error: unknown) => void }) => {
-      void query().then(observer.next).catch(observer.error);
+      void read(undefined).then(observer.next).catch(observer.error);
       return { unsubscribe: vi.fn() };
     },
   }),

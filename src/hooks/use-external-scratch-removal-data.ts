@@ -1,6 +1,5 @@
-import { liveQuery } from "dexie";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getDataStore } from "@/lib/db/datastore";
+import { getDataStore, liveRead } from "@/lib/db/datastore";
 import type { Bit } from "@/lib/db/schema";
 
 export type ExternalScratchRemovalLifecycle = "archive" | "delete";
@@ -82,8 +81,7 @@ export function useExternalScratchRemovalData({
   useEffect(() => {
     if (selectedScratchId === null) return;
     const scratchId = selectedScratchId;
-    const subscription = liveQuery(async () => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore) => {
       return dataStore.getBit(scratchId);
     }).subscribe({
       next: (scratch) => {

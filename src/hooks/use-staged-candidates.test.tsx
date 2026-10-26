@@ -14,39 +14,26 @@ import type {
 import { useStagedCandidates } from "./use-staged-candidates";
 
 const getDataStoreMock = vi.hoisted(() => vi.fn());
-const liveQueryMock = vi.hoisted(() => vi.fn());
+const liveReadMock = vi.hoisted(() => vi.fn());
 const candidateRows = vi.hoisted(() => [] as StagedCandidate[]);
 const sourceRows = vi.hoisted(() => [] as ScratchBreakdown[]);
 
 vi.mock("@/lib/db/datastore", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/db/datastore")>();
-  return { ...original, getDataStore: getDataStoreMock };
+  return {
+    ...original,
+    getDataStore: getDataStoreMock,
+    liveRead: (read: (store: unknown) => Promise<unknown>) =>
+      liveReadMock(() => read(readStore)),
+  };
 });
 
-vi.mock("@/lib/db/indexeddb", () => ({
-  db: {
-    stagedCandidates: {
-      where: () => ({
-        equals: (scratchBitId: string) => ({
-          toArray: async () =>
-            candidateRows.filter((row) => row.scratchBitId === scratchBitId),
-        }),
-      }),
-    },
-    scratchBreakdowns: {
-      where: () => ({
-        equals: (scratchBitId: string) => ({
-          toArray: async () =>
-            sourceRows.filter((row) => row.scratchBitId === scratchBitId),
-        }),
-      }),
-    },
-  },
-}));
-
-vi.mock("dexie", () => ({
-  liveQuery: liveQueryMock,
-}));
+// The reads the hook's live read makes; the command methods come from getDataStoreMock.
+const readStore = {
+  getStagedCandidates: async (scratchBitId: string) =>
+    candidateRows.filter((row) => row.scratchBitId === scratchBitId),
+  getAllScratchBreakdowns: async () => sourceRows,
+};
 
 type LiveQueryObserver = {
   next: (value: unknown) => void;
@@ -198,7 +185,7 @@ describe("useStagedCandidates", () => {
     subscriptions.length = 0;
     dataStore = createDataStore();
     getDataStoreMock.mockResolvedValue(dataStore);
-    liveQueryMock.mockImplementation((query: () => Promise<unknown>) => {
+    liveReadMock.mockImplementation((query: () => Promise<unknown>) => {
       const subscription: LiveQuerySubscription = {
         query,
         unsubscribe: vi.fn(),
@@ -222,11 +209,11 @@ describe("useStagedCandidates", () => {
     expect(result.current.unresolvedCandidates).toEqual([]);
     expect(result.current.counts.authoritative).toBe(0);
     expect(result.current.eligibility.archiveCandidateClear).toBe(true);
-    expect(liveQueryMock).not.toHaveBeenCalled();
+    expect(liveReadMock).not.toHaveBeenCalled();
   });
 
   it("projects readiness only after the selected Scratch receives its matching authoritative snapshot", async () => {
-    liveQueryMock.mockImplementation((query: () => Promise<unknown>) => {
+    liveReadMock.mockImplementation((query: () => Promise<unknown>) => {
       const subscription: LiveQuerySubscription = {
         query,
         unsubscribe: vi.fn(),
@@ -442,7 +429,7 @@ describe("useStagedCandidates", () => {
     }>();
     dataStore.stageCandidate.mockReturnValue(pending.promise);
     dataStore.reconcileStageCandidate.mockReturnValue(reconciling.promise);
-    liveQueryMock.mockImplementationOnce((query: () => Promise<unknown>) => {
+    liveReadMock.mockImplementationOnce((query: () => Promise<unknown>) => {
       const subscription: LiveQuerySubscription = {
         query,
         unsubscribe: vi.fn(),
@@ -774,7 +761,7 @@ describe("useStagedCandidates", () => {
 
   describe("post-terminal presentation hold", () => {
     function installManualSubscription() {
-      liveQueryMock.mockImplementation((query: () => Promise<unknown>) => {
+      liveReadMock.mockImplementation((query: () => Promise<unknown>) => {
         const subscription: LiveQuerySubscription = {
           query,
           unsubscribe: vi.fn(),

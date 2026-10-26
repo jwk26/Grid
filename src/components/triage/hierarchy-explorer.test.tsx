@@ -49,17 +49,13 @@ const undoRepository = vi.hoisted(() => ({
 vi.mock("@/lib/db/datastore", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/db/datastore")>()),
   getDataStore: vi.fn(async () => undoRepository),
-}));
-
-vi.mock("dexie", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("dexie")>()),
-  liveQuery: (query: () => Promise<unknown>) => ({
+  liveRead: (read: (store: unknown) => Promise<unknown>) => ({
     subscribe: ({ next, error }: {
       next: (value: unknown) => void;
       error?: (reason: unknown) => void;
     }) => {
       let active = true;
-      void query().then(
+      void read(undoRepository).then(
         (value) => {
           if (active) next(value);
         },

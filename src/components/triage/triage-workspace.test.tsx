@@ -154,9 +154,14 @@ vi.mock("@/hooks/use-inbox", () => ({
   useInbox: useInboxMock,
 }));
 
-vi.mock("@/lib/db/datastore", () => ({
-  getDataStore: getDataStoreMock,
-}));
+vi.mock("@/lib/db/datastore", async () => {
+  const { liveQuery } = await import("dexie");
+  return {
+    getDataStore: getDataStoreMock,
+    liveRead: (read: (store: unknown) => Promise<unknown>) =>
+      liveQuery(() => getDataStoreMock().then(read)),
+  };
+});
 
 vi.mock("@/components/triage/scratch-pool", async () => {
   const { useTriageStore } = await import("@/stores/triage-store");

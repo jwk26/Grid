@@ -234,7 +234,25 @@ export type AggregateHardDeleteResult =
       candidates: StagedCandidate[];
     };
 
+export type LiveObserver<T> = {
+  next?: (value: T) => void;
+  error?: (error: unknown) => void;
+};
+
+export type LiveSubscription = { unsubscribe(): void };
+
+/** The subscribe shape of Dexie's `liveQuery`, so hooks never import `dexie`. */
+export type LiveObservable<T> = {
+  subscribe(observer: LiveObserver<T>): LiveSubscription;
+};
+
 export interface DataStore {
+  /**
+   * Re-runs `read` against this store on every data change and emits each
+   * result. The first result is emitted without waiting for a change.
+   */
+  liveRead<T>(read: (store: DataStore) => Promise<T>): LiveObservable<T>;
+
   // --- Nodes ---
   getNode(id: string): Promise<Node | undefined>;
   getNodes(parentId: string | null): Promise<Node[]>;
@@ -287,6 +305,12 @@ export interface DataStore {
   // --- Scratch Breakdowns ---
   createScratchBreakdown(data: CreateScratchBreakdown): Promise<ScratchBreakdown>;
   getScratchBreakdowns(scratchBitId: string): Promise<ScratchBreakdown[]>;
+  /** Every Breakdown row of the account, in `id` order. */
+  getAllScratchBreakdowns(): Promise<ScratchBreakdown[]>;
+  /** Staged Candidates of one Scratch, in `id` order. */
+  getStagedCandidates(scratchBitId: string): Promise<StagedCandidate[]>;
+  /** Every staged Candidate of the account, in `id` order. */
+  getAllStagedCandidates(): Promise<StagedCandidate[]>;
   updateScratchBreakdown(id: string, data: UpdateScratchBreakdown): Promise<void>;
   markScratchBreakdownConsumed(id: string): Promise<void>;
   unconsumeScratchBreakdown(id: string): Promise<void>;
@@ -381,6 +405,35 @@ export interface DataStore {
     parentId: string | null,
     blockedCells: Set<string>,
   ): Promise<{ relocated: number }>;
+}
+
+/**
+ * `DataStore.liveRead` on the current store. Hooks import this; the store is
+ * resolved on subscribe, and unsubscribing before it resolves subscribes nothing.
+ */
+export function liveRead<T>(read: (store: DataStore) => Promise<T>): LiveObservable<T> {
+  return {
+    subscribe(observer) {
+      let closed = false;
+      let inner: LiveSubscription | null = null;
+      getDataStore().then(
+        (store) => {
+          if (closed) return;
+          inner = store.liveRead(read).subscribe(observer);
+        },
+        (error: unknown) => {
+          if (!closed) observer.error?.(error);
+        },
+      );
+      return {
+        unsubscribe() {
+          closed = true;
+          inner?.unsubscribe();
+          inner = null;
+        },
+      };
+    },
+  };
 }
 
 let cachedDataStore: DataStore | null = null;

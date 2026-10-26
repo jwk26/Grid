@@ -9,15 +9,13 @@ import { describe, expect, it, vi } from "vitest";
 import { getUrgencyLevel } from "@/lib/utils/urgency";
 import type { UrgencyLevel } from "@/types";
 
-const liveQueryMock = vi.hoisted(() => vi.fn());
+const liveReadMock = vi.hoisted(() => vi.fn());
 const getDataStoreMock = vi.hoisted(() => vi.fn());
-
-vi.mock("dexie", () => ({
-  liveQuery: liveQueryMock,
-}));
 
 vi.mock("@/lib/db/datastore", () => ({
   getDataStore: getDataStoreMock,
+  liveRead: (read: (store: unknown) => Promise<unknown>) =>
+    liveReadMock(() => getDataStoreMock().then(read)),
 }));
 
 const { useGlobalUrgency } = await import("@/hooks/use-global-urgency");
@@ -88,7 +86,7 @@ describe("useGlobalUrgency — urgency computation", () => {
         },
       ]),
     });
-    liveQueryMock.mockImplementation((query: () => Promise<unknown>) => ({
+    liveReadMock.mockImplementation((query: () => Promise<unknown>) => ({
       subscribe: ({ next }: { next: (value: unknown) => void }) => {
         void query().then(next);
         return { unsubscribe: vi.fn() };

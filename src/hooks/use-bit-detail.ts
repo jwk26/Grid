@@ -1,9 +1,8 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getDataStore } from "@/lib/db/datastore";
+import { liveRead } from "@/lib/db/datastore";
 import type { Bit, Chunk, Node } from "@/types";
 
 type BitDetailState = {
@@ -39,8 +38,7 @@ export function useBitDetail(): {
       return;
     }
 
-    const subscription = liveQuery(async () => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore) => {
       const [bit, chunks] = await Promise.all([
         dataStore.getBit(bitId),
         dataStore.getChunks(bitId),
