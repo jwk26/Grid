@@ -708,7 +708,7 @@ this task.
 
 **Commit message:** `refactor(hooks): move reads to liveRead and the snapshot`.
 
-### Task 227: [ ] Send every write as a database function call
+### Task 227: [x] Send every write as a database function call
 
 **Files and actions:**
 - `src/lib/db/supabase-store.ts`: every production `DataStore` write method
