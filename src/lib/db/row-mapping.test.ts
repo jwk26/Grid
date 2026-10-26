@@ -3,10 +3,15 @@ import { baseEntities } from "@/lib/db/boundary-cases";
 import {
   accountFromRow,
   accountToRow,
+  bitCreateToRow,
   bitFromRow,
+  bitPatchToRow,
   bitToRow,
+  chunkCreateToRow,
   chunkFromRow,
+  chunkPatchToRow,
   chunkToRow,
+  nodeCreateToRow,
   nodeFromRow,
   nodePatchToRow,
   nodeToRow,
@@ -104,5 +109,44 @@ describe("row mapping", () => {
       } as never;
       expect(nodePatchToRow(patch)).toEqual({ x: 4 });
     });
+  });
+});
+
+describe("write value converters (Task 227)", () => {
+  it("a Node create drops the server-owned level and keeps null", () => {
+    const row = nodeCreateToRow({
+      title: "N", color: "hsl(1, 2%, 3%)", icon: "Folder", x: 1, y: 2,
+      deadline: null, deadlineAllDay: false, parentId: null, level: 0,
+    } as never);
+    expect(row).toEqual({
+      title: "N", color: "hsl(1, 2%, 3%)", icon: "Folder", x: 1, y: 2,
+      deadline: null, deadline_all_day: false, parent_id: null,
+    });
+  });
+
+  it("a Bit create carries no status or version", () => {
+    const row = bitCreateToRow({
+      title: "B", icon: "Box", parentId: "p", x: 0, y: 0, description: "", deadline: null, deadlineAllDay: false,
+      priority: null, status: "complete", version: 9,
+    } as never);
+    expect(Object.keys(row).sort()).toEqual(
+      ["deadline", "deadline_all_day", "description", "icon", "parent_id", "priority", "title", "x", "y"],
+    );
+  });
+
+  it("a Bit patch leaves undefined keys out and drops id, version and lifecycle", () => {
+    const row = bitPatchToRow({ title: "T", deadline: null, version: 3, deletedAt: 1, id: "x" } as never);
+    expect(row).toEqual({ title: "T", deadline: null });
+  });
+
+  it("a Chunk patch never carries order or the parent", () => {
+    const row = chunkPatchToRow({ time: 5, timeAllDay: true, order: 2, parentId: "p" } as never);
+    expect(row).toEqual({ time: 5, time_all_day: true });
+  });
+
+  it("a Chunk create carries order and the parent", () => {
+    expect(
+      chunkCreateToRow({ title: "C", parentId: "b", order: 3, description: "", time: null, timeAllDay: false }),
+    ).toEqual({ title: "C", parent_id: "b", order: 3, description: "", time: null, time_all_day: false });
   });
 });

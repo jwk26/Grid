@@ -4,14 +4,58 @@ import type {
   ScratchArchiveEligibility,
 } from "@/lib/db/datastore";
 import { buildNodeTitlePath, sortChunks, sortGridItems } from "@/lib/db/read-helpers";
-import type { AccountView, SnapshotStore } from "@/lib/db/snapshot-store";
-import type { Bit, Chunk, Node, ScratchBreakdown, StagedCandidate } from "@/lib/db/schema";
+import {
+  bitCreateToRow,
+  bitFromRow,
+  bitPatchToRow,
+  chunkCreateToRow,
+  chunkFromRow,
+  chunkPatchToRow,
+  nodeCreateToRow,
+  nodeFromRow,
+} from "@/lib/db/row-mapping";
+import type { AccountView, ChangeRow, Envelope, SnapshotStore } from "@/lib/db/snapshot-store";
+import {
+  chunkSchema,
+  createBitSchema,
+  createChunkSchema,
+  createNodeSchema,
+  updateBitSchema,
+  updateNodeSchema,
+  type Bit,
+  type Chunk,
+  type Node,
+  type ScratchBreakdown,
+  type StagedCandidate,
+} from "@/lib/db/schema";
+import {
+  callById,
+  callCleanupExpiredTrash,
+  callCreateBit,
+  callCreateChunk,
+  callCreateNode,
+  callDeleteChunk,
+  callEmptyTrash,
+  callEnsureAccount,
+  callReorderChunks,
+  callUpdateBit,
+  callUpdateChunk,
+  callUpdateNode,
+  callWithReserved,
+} from "@/lib/db/supabase-calls";
+import { getSupabaseClient, type GriddoSupabaseClient } from "@/lib/db/supabase-client";
+import {
+  DeadlineConflictError,
+  WriteOutcomeUnknownError,
+  WriteRejectedError,
+} from "@/lib/db/write-errors";
 import { isDeadlineAfter } from "@/lib/utils/deadline";
 
 // The DataStore over the account snapshot (SPEC Architecture Decisions 2 and 19). Task 226 is
 // the read side: every read is answered in memory over the snapshot view with SCHEMA Key
 // Queries semantics. Results come back in the order the Dexie store returns them: primary-key
-// `id` order, then the same sort where the Dexie read sorts. Writes arrive in Task 227.
+// `id` order, then the same sort where the Dexie read sorts. Task 227 Stage 2 adds the ordinary
+// writes (one call each, server-confirmed); the Inbox/Triage commands follow in Stage 3.
 
 type ReadKey =
   | "liveRead"
@@ -36,31 +80,40 @@ type ReadKey =
   | "getGridOccupancy"
   | "getChildDeadlineConflicts";
 
+type OrdinaryWriteKey =
+  | "createNode"
+  | "updateNode"
+  | "softDeleteNode"
+  | "restoreNode"
+  | "hardDeleteNode"
+  | "cleanupExpiredTrash"
+  | "emptyTrash"
+  | "createBit"
+  | "updateBit"
+  | "softDeleteBit"
+  | "restoreBit"
+  | "hardDeleteBit"
+  | "archiveNode"
+  | "archiveBit"
+  | "unarchiveNode"
+  | "unarchiveBit"
+  | "ensureSystemNodes"
+  | "createChunk"
+  | "updateChunk"
+  | "deleteChunk"
+  | "reorderChunks"
+  | "promoteBitToNode";
+
 type WriteKey = Exclude<keyof DataStore, ReadKey>;
 
-// Listing every write as a key makes the compiler fail here when DataStore gains a method.
-const WRITE_KEYS: Record<WriteKey, true> = {
-  createNode: true,
-  updateNode: true,
-  softDeleteNode: true,
-  restoreNode: true,
-  hardDeleteNode: true,
-  cleanupExpiredTrash: true,
-  emptyTrash: true,
-  createBit: true,
-  updateBit: true,
-  softDeleteBit: true,
-  restoreBit: true,
-  hardDeleteBit: true,
-  archiveNode: true,
-  archiveBit: true,
-  unarchiveNode: true,
-  unarchiveBit: true,
+// The writes Task 227 Stage 3 still has to send (the Inbox/Triage commands and the writes only
+// tests call). Listing each one as a key makes the compiler fail here when DataStore gains a
+// method that neither Stage 2's ordinary writes nor this list covers.
+const PENDING_WRITE_KEYS: Record<Exclude<WriteKey, OrdinaryWriteKey>, true> = {
   archiveScratch: true,
   classifyArchiveScratchRecovery: true,
   trashScratch: true,
   reconcileTrashScratch: true,
-  ensureSystemNodes: true,
   createScratchBreakdown: true,
   updateScratchBreakdown: true,
   markScratchBreakdownConsumed: true,
@@ -88,11 +141,6 @@ const WRITE_KEYS: Record<WriteKey, true> = {
   reconcileStagedPlacementUndo: true,
   undoDirectPlacement: true,
   reconcileDirectPlacementUndo: true,
-  createChunk: true,
-  updateChunk: true,
-  deleteChunk: true,
-  reorderChunks: true,
-  promoteBitToNode: true,
   runBreadcrumbZoneMigration: true,
 };
 
@@ -113,7 +161,42 @@ function byId<T extends { id: string }>(rows: ReadonlyMap<string, T>): T[] {
 const isActive = (row: { deletedAt: number | null; archivedAt: number | null }) =>
   row.deletedAt === null && row.archivedAt === null;
 
-export function createSupabaseStore(snapshot: SnapshotStore): DataStore {
+// The function each ordinary write method calls (SCHEMA §Exposed functions); a test checks that
+// the method sends exactly one request to it.
+export const WRITE_FUNCTION: Record<OrdinaryWriteKey, string> = {
+  createNode: "create_node",
+  updateNode: "update_node",
+  softDeleteNode: "soft_delete_node",
+  restoreNode: "restore_node",
+  hardDeleteNode: "hard_delete_node",
+  cleanupExpiredTrash: "cleanup_expired_trash",
+  emptyTrash: "empty_trash",
+  createBit: "create_bit",
+  updateBit: "update_bit",
+  softDeleteBit: "soft_delete_bit",
+  restoreBit: "restore_bit",
+  hardDeleteBit: "hard_delete_bit",
+  archiveNode: "archive_node",
+  archiveBit: "archive_bit",
+  unarchiveNode: "unarchive_node",
+  unarchiveBit: "unarchive_bit",
+  ensureSystemNodes: "ensure_account",
+  createChunk: "create_chunk",
+  updateChunk: "update_chunk",
+  deleteChunk: "delete_chunk",
+  reorderChunks: "reorder_chunks",
+  promoteBitToNode: "promote_bit_to_node",
+};
+
+// Methods that still throw "not supported" (Stage 3 of Task 227 and Phase 46).
+export const UNSENT_WRITE_METHODS = Object.keys(PENDING_WRITE_KEYS);
+
+const chunkUpdateSchema = chunkSchema.omit({ id: true, parentId: true }).partial();
+
+export function createSupabaseStore(
+  snapshot: SnapshotStore,
+  getClient: () => GriddoSupabaseClient = getSupabaseClient,
+): DataStore {
   const view = (): AccountView => snapshot.getState().view;
   const nodes = () => byId(view().nodes);
   const bits = () => byId(view().bits);
@@ -297,13 +380,179 @@ export function createSupabaseStore(snapshot: SnapshotStore): DataStore {
       ),
   };
 
-  const writes = Object.fromEntries(
-    (Object.keys(WRITE_KEYS) as WriteKey[]).map((key) => [
+  // --- Ordinary writes (Task 227): one action, one call, server-confirmed ---------------------
+
+  const client = () => getClient();
+
+  type Rejected = { label: string; id?: string; chunk?: boolean };
+
+  // A `rejected` envelope becomes the error callers already match: `GRID_FULL` (restore),
+  // `DeadlineConflictError` (a Bit or Node past its parent's deadline), `<Label> not found: <id>`.
+  // Any other code is a WriteRejectedError carrying it.
+  const rejectionError = (envelope: Envelope, about: Rejected): Error => {
+    const rejection = envelope.rejection ?? { code: "rejected" };
+    switch (rejection.code) {
+      case "grid_full":
+        return new WriteRejectedError("GRID_FULL", rejection);
+      case "not_found":
+        return new WriteRejectedError(`${about.label} not found: ${about.id ?? ""}`, rejection);
+      case "deadline_exceeds_parent":
+        if (about.chunk) {
+          return new WriteRejectedError(
+            rejection.table === "nodes"
+              ? "Chunk time cannot exceed parent node deadline"
+              : "Chunk time cannot exceed parent bit deadline",
+            rejection,
+          );
+        }
+        return new DeadlineConflictError("child_exceeds_parent", about.id ? [about.id] : []);
+      default:
+        return new WriteRejectedError(rejection.code, rejection);
+    }
+  };
+
+  // Sends one call as a command on `key` and returns its envelope when it was applied. A rejection,
+  // an error or an unknown outcome throws; an unknown outcome is never resent, the snapshot store
+  // refetches (S16).
+  const send = async (
+    key: string,
+    call: (client: GriddoSupabaseClient) => Promise<Envelope>,
+    about: Rejected,
+  ): Promise<Envelope> => {
+    const outcome = await snapshot.command({ key, send: () => call(client()) });
+    switch (outcome.outcome) {
+      case "applied":
+        return outcome.envelope as Envelope;
+      case "rejected":
+        throw rejectionError(outcome.envelope as Envelope, about);
+      case "error":
+        throw outcome.error instanceof Error ? outcome.error : new Error(String(outcome.error));
+      case "unknown":
+        throw new WriteOutcomeUnknownError();
+    }
+  };
+
+  const upserted = (envelope: Envelope, table: keyof Envelope["changes"], id: string): ChangeRow => {
+    const row = envelope.changes[table]?.upserted.find((candidate) => candidate.id === id);
+    if (!row) throw new Error(`The ${table} change set has no row ${id}`);
+    return row;
+  };
+
+  const nodeAbout = (id: string): Rejected => ({ label: "Node", id });
+  const bitAbout = (id: string): Rejected => ({ label: "Bit", id });
+  const chunkAbout = (id: string): Rejected => ({ label: "Chunk", id, chunk: true });
+
+  const ordinary: Pick<DataStore, OrdinaryWriteKey> = {
+    createNode: async (data) => {
+      const parsed = createNodeSchema.parse(data);
+      const id = crypto.randomUUID();
+      const envelope = await send(`nodes:${id}`, (c) => callCreateNode(c, id, nodeCreateToRow(parsed)), nodeAbout(id));
+      return nodeFromRow(upserted(envelope, "nodes", id) as never);
+    },
+    updateNode: async (id, data) => {
+      const parsed = updateNodeSchema.parse(data);
+      await send(`nodes:${id}`, (c) => callUpdateNode(c, id, parsed), nodeAbout(id));
+    },
+    softDeleteNode: async (id) => {
+      await send(`nodes:${id}`, (c) => callById(c, "soft_delete_node", id), nodeAbout(id));
+    },
+    restoreNode: async (id) => {
+      await send(`nodes:${id}`, (c) => callWithReserved(c, "restore_node", id), nodeAbout(id));
+    },
+    hardDeleteNode: async (id) => {
+      await send(`nodes:${id}`, (c) => callById(c, "hard_delete_node", id), nodeAbout(id));
+      return { status: "deleted" };
+    },
+    archiveNode: async (id) => {
+      await send(`nodes:${id}`, (c) => callById(c, "archive_node", id), nodeAbout(id));
+    },
+    unarchiveNode: async (id) => {
+      await send(`nodes:${id}`, (c) => callWithReserved(c, "unarchive_node", id), nodeAbout(id));
+    },
+    cleanupExpiredTrash: async () => {
+      await send("account", callCleanupExpiredTrash, { label: "Account" });
+      return { status: "deleted" };
+    },
+    emptyTrash: async () => {
+      await send("account", callEmptyTrash, { label: "Account" });
+      return { status: "deleted" };
+    },
+    ensureSystemNodes: async () => {
+      await send("account", callEnsureAccount, { label: "Account" }).catch((error: unknown) => {
+        if (error instanceof Error && error.message === "GRID_FULL") {
+          throw new WriteRejectedError("GRID_FULL: Cannot place a system node — no L0 cell available", (error as WriteRejectedError).rejection);
+        }
+        throw error;
+      });
+    },
+    createBit: async (data) => {
+      const parsed = createBitSchema.parse(data);
+      const id = crypto.randomUUID();
+      const envelope = await send(`bits:${id}`, (c) => callCreateBit(c, id, bitCreateToRow(parsed)), bitAbout(id));
+      return bitFromRow(upserted(envelope, "bits", id) as never);
+    },
+    updateBit: async (id, data, options) => {
+      const parsed = updateBitSchema.parse(data);
+      await send(
+        `bits:${id}`,
+        (c) => callUpdateBit(c, id, bitPatchToRow(parsed), options?.extendParent === true),
+        bitAbout(id),
+      );
+    },
+    softDeleteBit: async (id) => {
+      await send(`bits:${id}`, (c) => callById(c, "soft_delete_bit", id), bitAbout(id));
+    },
+    restoreBit: async (id) => {
+      await send(`bits:${id}`, (c) => callWithReserved(c, "restore_bit", id), bitAbout(id));
+    },
+    hardDeleteBit: async (id) => {
+      await send(`bits:${id}`, (c) => callById(c, "hard_delete_bit", id), bitAbout(id));
+      return { status: "deleted" };
+    },
+    archiveBit: async (id) => {
+      await send(`bits:${id}`, (c) => callById(c, "archive_bit", id), bitAbout(id));
+    },
+    unarchiveBit: async (id) => {
+      await send(`bits:${id}`, (c) => callWithReserved(c, "unarchive_bit", id), bitAbout(id));
+    },
+    createChunk: async (data) => {
+      const parsed = createChunkSchema.parse(data);
+      const id = crypto.randomUUID();
+      const envelope = await send(`chunks:${id}`, (c) => callCreateChunk(c, id, chunkCreateToRow(parsed)), chunkAbout(id));
+      return chunkFromRow(upserted(envelope, "chunks", id) as never);
+    },
+    updateChunk: async (id, data, options) => {
+      const parsed = chunkUpdateSchema.parse(data);
+      if (parsed.order !== undefined) {
+        throw new Error("A Chunk's order changes only through reorderChunks");
+      }
+      await send(
+        `chunks:${id}`,
+        (c) => callUpdateChunk(c, id, chunkPatchToRow(parsed), options?.extendParent === true),
+        chunkAbout(id),
+      );
+    },
+    deleteChunk: async (id) => {
+      await send(`chunks:${id}`, (c) => callDeleteChunk(c, id), chunkAbout(id));
+    },
+    reorderChunks: async (bitId, chunkIds) => {
+      await send(`bits:${bitId}`, (c) => callReorderChunks(c, bitId, chunkIds), bitAbout(bitId));
+    },
+    promoteBitToNode: async (bitId) => {
+      const envelope = await send(`bits:${bitId}`, (c) => callWithReserved(c, "promote_bit_to_node", bitId), bitAbout(bitId));
+      const nodeId = (envelope.result as { id?: string } | null)?.id;
+      if (!nodeId) throw new Error("promote_bit_to_node returned no Node id");
+      return nodeFromRow(upserted(envelope, "nodes", nodeId) as never);
+    },
+  };
+
+  const pending = Object.fromEntries(
+    (Object.keys(PENDING_WRITE_KEYS) as Array<keyof typeof PENDING_WRITE_KEYS>).map((key) => [
       key,
       () => Promise.reject(new Error(`${key} is not supported by the Supabase store yet`)),
     ]),
-  ) as unknown as Pick<DataStore, WriteKey>;
+  ) as unknown as Pick<DataStore, keyof typeof PENDING_WRITE_KEYS>;
 
-  const store: DataStore = { ...writes, ...reads };
+  const store: DataStore = { ...pending, ...ordinary, ...reads };
   return store;
 }

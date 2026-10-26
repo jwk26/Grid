@@ -1,6 +1,7 @@
 import Dexie, { liveQuery, type DexieOptions, type Table } from "dexie";
 import { z } from "zod";
 import { GRID_COLS, GRID_ROWS, TRASH_RETENTION_DAYS } from "@/lib/constants";
+import { DeadlineConflictError } from "@/lib/db/write-errors";
 import type {
   AddBreakdownCommand,
   AddBreakdownResult,
@@ -169,21 +170,7 @@ const SYSTEM_NODE_SEEDS: Record<SystemNodeRole, Pick<Node, "title" | "icon" | "c
   },
 };
 
-/**
- * Thrown when a deadline write would violate the parent–child deadline constraint.
- * Consumers can catch this and surface DeadlineConflictModal or DeadlineConflictOverlay.
- */
-export class DeadlineConflictError extends Error {
-  constructor(
-    /** "child_exceeds_parent" — bit/chunk deadline > parent deadline */
-    public readonly conflictType: "child_exceeds_parent",
-    /** IDs of the conflicting items */
-    public readonly conflictingIds: string[],
-  ) {
-    super("Deadline conflict");
-    this.name = "DeadlineConflictError";
-  }
-}
+export { DeadlineConflictError };
 
 type IndexedDBMigrationStore = "nodes" | "bits" | "scratchBreakdowns";
 type IndexedDBMigrationReason =
