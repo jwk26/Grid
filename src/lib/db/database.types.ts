@@ -225,6 +225,9 @@ isOneToOne: false
 "reconcile_stage_candidate":
 { Args: { "p_candidate_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json
                            },
+"reconcile_trash_scratch":
+{ Args: { "p_candidates": Json,"p_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
 "reconcile_undo_direct_placement":
 { Args: { "p_result": Json,"p_source": Json }; Returns: Json
                            },
@@ -257,6 +260,9 @@ isOneToOne: false
                            },
 "stage_candidate":
 { Args: { "p_candidate_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json
+                           },
+"trash_scratch":
+{ Args: { "p_candidates": Json,"p_expected_version": number,"p_scratch_id": string }; Returns: Json
                            },
 "unarchive_bit":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json

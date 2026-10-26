@@ -394,4 +394,12 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
     crossAccount: { file: "archive-scratch-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
     changeSet: { file: "archive-scratch-commands.db.test.ts", title: "before + changes equals after for Archive, recovery and their rejections" },
   },
+  trash_scratch: {
+    crossAccount: { file: "trash-scratch-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "trash-scratch-commands.db.test.ts", title: "before + changes equals after for Trash Scratch, its reconcile and their rejections" },
+  },
+  reconcile_trash_scratch: {
+    crossAccount: { file: "trash-scratch-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "trash-scratch-commands.db.test.ts", title: "before + changes equals after for Trash Scratch, its reconcile and their rejections" },
+  },
 };

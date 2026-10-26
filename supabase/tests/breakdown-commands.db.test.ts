@@ -800,6 +800,7 @@ describe("atomicity and definitions", () => {
     "reconcile_place_direct_breakdown",
     "reconcile_undo_staged_placement",
     "reconcile_undo_direct_placement",
+    "reconcile_trash_scratch",
     "classify_archive_scratch_recovery", // Archive's reconcile (Task 224), not named reconcile_*
   ];
 
