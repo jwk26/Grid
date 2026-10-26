@@ -29,8 +29,8 @@ Baseline gate (2026-10-26): `git diff --check`, `pnpm test` (2177), `pnpm test:d
 ## Task 226 — Move reads to the snapshot and replace the live queries
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 226 acceptance
+- Status: Accepted
+- Next: Task 227
 - Open: none
 
 ### Log
@@ -44,6 +44,8 @@ Baseline gate (2026-10-26): `git diff --check`, `pnpm test` (2177), `pnpm test:d
 - Review (advisory, 2026-10-26, Stage 2): approve. Checked: all 20 reads run over `state.view` in Dexie's order (`id`, then the Dexie sort); `getScratchArchiveEligibility` ports `readScratchArchiveState` line for line; the shared fixture compares every read with `toEqual`, order included, over the agreed edge cases; not written failing first, but shown able to fail by two deliberate breaks, recorded honestly; `liveRead` meets the four agreed rules, and a read torn by a mid-read view change is always superseded by the run that change starts; the store hands out shared record objects where Dexie gave fresh copies, and no hook or component mutates a returned record; Stage 2 tests pass (21). Apply: none. Not applied: none. For the finish review: Task 227 note (live Undo reconcile per change) and Task 228 note (`liveRead` is silent while the snapshot is not `ready`, so the frame unmounts data hooks then).
 - Decision: Stage 2 accepted (user, 2026-10-26).
 - Task 227 notes (expert review, 2026-10-26): `use-triage-newly-placed` runs `reconcile*` inside its live read, so each view change becomes a server call once the Supabase store is live; `liveRead` emits for the pending view too, so an optimistic hide followed by a rollback can read as `restore` or `remote-arrival` in the `use-inbox` pool diff (not reachable while writes are server-confirmed). Task 228 note: `liveRead` sends nothing while the snapshot is not `ready` (reset, rejected, failed), so the frame must unmount the data hooks in those states.
+- Review (advisory, 2026-10-26, task finish): approve with changes. Checked: commits `3fc7deb`, `debddcf`, `204514d` (split per stage, content as planned); `typecheck`, `pnpm test` (2199) and `git diff --check` rerun and pass; `pnpm test:db` before the last fix is enough since it touches no SQL; the per-view sort cache is safe because `SnapshotStore` replaces maps instead of mutating published ones, and no read returns the cached array itself. Apply: (1) the second item of the expert's Task 227 notes (pending-view rollback read as `restore`/`remote-arrival`) belongs to Task 231, carried as the Task 231 note below. Not applied: none.
+- Task 231 note (advisory, 2026-10-26): `liveRead` emits for the pending view, so an optimistic hide of an Inbox Scratch followed by a rollback can read as `restore` or `remote-arrival` in the `use-inbox` pool diff (`use-inbox.ts:216-221`). Task 231 checks whether any group 1 or 2 write reaches an Inbox Bit (Scratch writes are server-confirmed Inbox commands today, so likely none); if one does, add a rollback test for the pool diff.
 
 ### Checkpoint
 - Changed: `DataStore.liveRead` and the `liveRead` helper (`datastore.ts`); Dexie `liveRead` and three reads `getAllScratchBreakdowns`, `getStagedCandidates`, `getAllStagedCandidates` (`indexeddb.ts`); 17 hooks off `dexie`; new `supabase-store.ts` (reads over the snapshot, writes rejected until Task 227) and `read-helpers.ts`; tests moved to `liveRead` mocks, new `datastore.live-read.test.ts` and `supabase-store.test.ts`.

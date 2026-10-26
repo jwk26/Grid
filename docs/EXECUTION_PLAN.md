@@ -671,7 +671,7 @@ section matches SPEC; no implementation file changes.
 
 **Commit message:** `docs(design): confirm DP-SAAS-01`.
 
-### Task 226: [ ] Move reads to the snapshot and replace the live queries
+### Task 226: [x] Move reads to the snapshot and replace the live queries
 
 **Files and actions:**
 - `DataStore.liveRead(read)` in `src/lib/db/datastore.ts`, with a `liveRead`
