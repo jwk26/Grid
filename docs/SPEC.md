@@ -1367,7 +1367,13 @@ Everyday interactions feel as they do today (S09). Writes fall into four groups
   resent write that did commit would increment `version` twice. The client
   refetches the snapshot and keeps or rolls back the change to match the
   server; a rollback shows the failure toast. The Inbox commands keep their own
-  reconcile contract (S16, S26).
+  reconcile contract (S16, S26). An answer with HTTP status 408, 502, 503 or
+  504 counts as no answer, since the request may have reached the database.
+  A write that waits behind an earlier write to the same record (for an Inbox
+  command the same Scratch; for Empty Trash, the Trash cleanup and account
+  preparation the account) and is still unsent `2 × REQUEST_TIMEOUT_MS` after
+  it queued is never sent and ends as a failed write, not an unknown outcome
+  (user, 2026-10-26; Task 227).
 - An Inbox command that would pass an account limit (Breakdown Add, a
   placement result) returns `rejected` with `account_limit`. The Inbox shows it
   as that command's existing rejected state, never as a toast (F11), with the
