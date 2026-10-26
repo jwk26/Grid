@@ -372,6 +372,40 @@ describe("useTriagePlacement — Task 152 atomic foreground owner", () => {
     }
   });
 
+  it("keeps the account_limit reason of a rejected placement and names it its own terminal kind", async () => {
+    const rejection = { code: "account_limit", table: "bits", limit: 300 };
+    const dispatchPlacement = vi.fn(
+      async (): Promise<PlacementResult> => ({
+        operationId: "operation-1",
+        status: "rejected",
+        result: null,
+        source: authoritativeSource(),
+        candidate: null,
+        rejection,
+      }),
+    );
+    const { result } = renderHook(() =>
+      useTriagePlacement({
+        operationLock: makeLock(),
+        createId: vi.fn().mockReturnValueOnce("operation-1").mockReturnValueOnce("result-1"),
+        dispatchPlacement,
+      }),
+    );
+    act(() => {
+      result.current.begin(directRelease);
+      result.current.selectDirectType("bit");
+    });
+    await act(async () => {
+      await result.current.confirm();
+    });
+    expect(result.current.snapshot).toMatchObject({
+      phase: "terminal",
+      terminalStatus: "rejected",
+      terminalKind: "account-limit",
+      rejection,
+    });
+  });
+
   it("retries only authoritative not-applied with the same logical operation and preallocated result ID", async () => {
     const lock = makeLock();
     const dispatchPlacement = vi

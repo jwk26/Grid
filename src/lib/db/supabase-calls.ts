@@ -32,14 +32,14 @@ export async function fetchSnapshotValue(client: GriddoSupabaseClient): Promise<
   return data;
 }
 
-type Functions = Database["public"]["Functions"];
-type Args<Name extends keyof Functions> = Functions[Name]["Args"];
+export type Functions = Database["public"]["Functions"];
+export type Args<Name extends keyof Functions> = Functions[Name]["Args"];
 
 // One call, one function (SCHEMA §Exposed functions). An API error is thrown, so the store
 // treats it as a failed write; a request that got no response is an unknown outcome.
 // postgrest-js reports that case as an error with status 0 instead of throwing, and the write
 // may have committed.
-async function callWrite(
+export async function callWrite(
   client: GriddoSupabaseClient,
   name: keyof Functions,
   args: Record<string, unknown>,

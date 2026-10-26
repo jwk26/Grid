@@ -334,6 +334,27 @@ describe("useScratchBreakdowns", () => {
     ]);
   });
 
+  it("keeps the account_limit rejection on the terminal Add operation", async () => {
+    const command = addCommand();
+    const rejection = { code: "account_limit", table: "scratch_breakdowns", limit: 300 };
+    dataStore.addBreakdown.mockResolvedValue({
+      operationId: command.operationId,
+      status: "rejected",
+      breakdown: null,
+      scratch: null,
+      rejection,
+    });
+    const { result } = renderHook(() => useScratchBreakdowns(command.scratchBitId));
+
+    await act(async () => {
+      await result.current.addBreakdown(command);
+    });
+
+    expect(result.current.operations).toEqual([
+      expect.objectContaining({ phase: "terminal", status: "rejected", rejection }),
+    ]);
+  });
+
   it("dispatches and reconciles the authoritative Delete command identity", async () => {
     const command = deleteCommand();
     dataStore.deleteBreakdown.mockRejectedValue(new Error("unknown transport outcome"));

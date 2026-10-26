@@ -240,8 +240,8 @@ describe("snapshot store reads match the Dexie store over the same data", () => 
     expect(await supabase.getBit(SPARE)).toBeDefined();
   });
 
-  it("the Inbox commands are not supported until Task 227 Stage 3", async () => {
-    await expect(supabase.stageCandidate({} as never)).rejects.toThrow("not supported");
+  it("the writes only tests call are not supported (Phase 46 removes them)", async () => {
+    await expect(supabase.createScratchBreakdown({} as never)).rejects.toThrow("not supported");
   });
 });
 

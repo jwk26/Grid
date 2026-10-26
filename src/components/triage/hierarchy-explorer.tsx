@@ -467,6 +467,15 @@ function placementReliabilityCopy(snapshot: TriagePlacementSnapshot) {
   if (snapshot.terminalKind === "not-applied") {
     return placementTemplate(copy.notApplied, snapshot);
   }
+  if (snapshot.terminalKind === "account-limit") {
+    return explorerTemplate(placementTemplate(copy.accountLimit, snapshot), {
+      limit: snapshot.rejection?.limit ?? "",
+      items:
+        snapshot.rejection?.table === "nodes"
+          ? copy.accountLimitItems.nodes
+          : copy.accountLimitItems.bits,
+    });
+  }
   if (snapshot.terminalKind === "stale-source") return copy.staleSource;
   if (snapshot.terminalKind === "stale-target") return copy.staleTarget;
   return null;

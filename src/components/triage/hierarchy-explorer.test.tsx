@@ -2102,6 +2102,28 @@ describe("HierarchyExplorer Task 153 placement reliability rail", () => {
     },
   );
 
+  it.each([
+    ["nodes", "“Project” wasn’t placed. This account has reached its limit of 300 Nodes. Your source is unchanged."],
+    ["bits", "“Project” wasn’t placed. This account has reached its limit of 300 Bits. Your source is unchanged."],
+  ])("shows the account limit reason for a rejected %s placement, with Cancel and no Retry", (table, copy) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    render(
+      <HierarchyExplorer
+        {...defaultProps}
+        placementSnapshot={placementSnapshot({
+          phase: "terminal",
+          resultType: "node",
+          terminalKind: "account-limit",
+          terminalStatus: "rejected",
+          rejection: { code: "account_limit", table, limit: 300 },
+        })}
+      />,
+    );
+    expect(screen.getByRole("status", { name: "Placement status" })).toHaveTextContent(copy);
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+  });
+
   it("announces the edited result title after authoritative success", async () => {
     const placed = createBit({
       id: "result-1",

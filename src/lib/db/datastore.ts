@@ -26,10 +26,17 @@ export type AddBreakdownCommand = RepositoryOperationCommand<{
   content: string;
 }>;
 
+/**
+ * The rule a `rejected` answer names (SCHEMA §Result envelope). Only the Supabase store sets it;
+ * `account_limit` carries `table` and `limit` so the rejected state can show its reason.
+ */
+export type CommandRejection = Readonly<{ code: string; table?: string; limit?: number }>;
+
 export type AddBreakdownResult = RepositoryOperationResult<{
   status: RepositoryOperationStatus;
   breakdown: ScratchBreakdown | null;
   scratch: Bit | null;
+  rejection?: CommandRejection;
 }>;
 
 export type SaveScratchTitleCommand = RepositoryOperationCommand<{
@@ -159,6 +166,7 @@ export type PlacementResult = RepositoryOperationResult<{
   result: Node | Bit | null;
   source: ScratchBreakdown | null;
   candidate: StagedCandidate | null;
+  rejection?: CommandRejection;
 }>;
 
 export type PlacementUndoCommandBase = RepositoryOperationCommand<{

@@ -13,6 +13,7 @@ import {
   getDataStore,
   type AddBreakdownCommand,
   type AddBreakdownResult,
+  type CommandRejection,
   type DeleteBreakdownCommand,
   type DeleteBreakdownResult,
   type SaveBreakdownCommand,
@@ -49,6 +50,8 @@ export type BreakdownOperationProjection = Readonly<{
   breakdownId: string;
   phase: "pending" | "unknown" | "reconciling" | "terminal";
   status?: RepositoryOperationStatus;
+  /** The rule a rejected answer named (`account_limit` shows its reason line). */
+  rejection?: CommandRejection;
   sourceSnapshot?: ScratchBreakdown;
 }>;
 
@@ -726,11 +729,19 @@ export function useScratchBreakdowns(
 
       try {
         const result = await invoke();
-        const status = (result as { status: RepositoryOperationStatus }).status;
+        const { status, rejection } = result as {
+          status: RepositoryOperationStatus;
+          rejection?: CommandRejection;
+        };
         setOperations((current) =>
           current.map((operation) =>
             operation.operationId === command.operationId
-              ? { ...operation, phase: "terminal", status }
+              ? {
+                  ...operation,
+                  phase: "terminal",
+                  status,
+                  ...(rejection === undefined ? {} : { rejection }),
+                }
               : operation,
           ),
         );

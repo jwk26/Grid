@@ -5,6 +5,7 @@ import { SnapshotStore, type Envelope } from "@/lib/db/snapshot-store";
 import { BREADCRUMB_RESERVED_CELLS } from "@/lib/db/supabase-calls";
 import type { GriddoSupabaseClient } from "@/lib/db/supabase-client";
 import {
+  NO_REQUEST_WRITE_METHODS,
   UNSENT_WRITE_METHODS,
   WRITE_FUNCTION,
   createSupabaseStore,
@@ -232,7 +233,7 @@ describe("ordinary writes: an unknown outcome", () => {
 describe("write method coverage", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("every write method is mapped to a function or listed as not sent yet", () => {
+  it("every write method is mapped to a function, sends no request, or is listed as unsupported", () => {
     const { store } = setup(() => ok(applied()));
     const reads = new Set([
       "liveRead", "getNode", "getNodes", "getAllActiveNodes", "getBit", "getBits", "getBitsForNode",
@@ -242,7 +243,7 @@ describe("write method coverage", () => {
       "getChildDeadlineConflicts",
     ]);
     const writes = Object.keys(store).filter((key) => !reads.has(key)).sort();
-    const covered = [...Object.keys(WRITE_FUNCTION), ...UNSENT_WRITE_METHODS].sort();
+    const covered = [...Object.keys(WRITE_FUNCTION), ...NO_REQUEST_WRITE_METHODS, ...UNSENT_WRITE_METHODS].sort();
     expect(covered).toEqual(writes);
     expect(Object.keys(WRITE_FUNCTION).filter((key) => UNSENT_WRITE_METHODS.includes(key))).toEqual([]);
   });

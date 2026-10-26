@@ -2,6 +2,34 @@ import Dexie, { liveQuery, type DexieOptions, type Table } from "dexie";
 import { z } from "zod";
 import { GRID_COLS, GRID_ROWS, TRASH_RETENTION_DAYS } from "@/lib/constants";
 import { DeadlineConflictError } from "@/lib/db/write-errors";
+import {
+  addBreakdownCommandSchema,
+  saveScratchTitleCommandSchema,
+  saveBreakdownCommandSchema,
+  deleteBreakdownCommandSchema,
+  stageCandidateCommandSchema,
+  unstageCandidateCommandSchema,
+  confirmedCandidateOrphanCleanupCommandSchema,
+  stagedPlacementCommandSchema,
+  directPlacementCommandSchema,
+  stagedPlacementUndoCommandSchema,
+  directPlacementUndoCommandSchema,
+  archiveScratchCommandSchema,
+  trashScratchCommandSchema,
+  trashScratchResultSchema,
+  addBreakdownResultSchema,
+  saveScratchTitleResultSchema,
+  saveBreakdownResultSchema,
+  deleteBreakdownResultSchema,
+  stageCandidateResultSchema,
+  unstageCandidateResultSchema,
+  confirmedCandidateOrphanCleanupResultSchema,
+  placementResultSchema,
+  placementUndoResultSchema,
+  scratchArchiveEligibilitySchema,
+  archiveScratchResultSchema,
+  archiveScratchRecoveryResultSchema,
+} from "@/lib/db/command-schemas";
 import type {
   AddBreakdownCommand,
   AddBreakdownResult,
@@ -45,8 +73,6 @@ import {
   createNodeSchema,
   nodeSchema,
   pendingOperationRecoverySchema,
-  repositoryOperationIdSchema,
-  repositoryOperationStatusSchema,
   scratchBreakdownSchema,
   stagedCandidateSchema,
   updateBitSchema,
@@ -194,243 +220,6 @@ const BIT_PERSISTED_FIELDS = bitSchema.keyof().options;
 const BREAKDOWN_PERSISTED_FIELDS = scratchBreakdownSchema.keyof().options;
 
 const chunkUpdateSchema = chunkSchema.omit({ id: true, parentId: true }).partial();
-const commandVersionSchema = z.number().int().min(1);
-
-const addBreakdownCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  breakdownId: z.string().uuid(),
-  scratchBitId: z.string().uuid(),
-  scratchExpectedVersion: commandVersionSchema,
-  content: z.string().min(1).max(1000),
-}).strict();
-
-const saveScratchTitleCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  scratchBitId: z.string().uuid(),
-  expectedVersion: commandVersionSchema,
-  baseTitle: z.string().min(1).max(200),
-  title: z.string().min(1).max(200),
-}).strict();
-
-const saveBreakdownCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  breakdownId: z.string().uuid(),
-  expectedVersion: commandVersionSchema,
-  baseContent: z.string().min(1).max(1000),
-  baseOrder: z.number().int().min(0),
-  content: z.string().min(1).max(1000),
-  order: z.number().int().min(0),
-}).strict();
-
-const deleteBreakdownCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  breakdownId: z.string().uuid(),
-  expectedVersion: commandVersionSchema,
-  scratchBitId: z.string().uuid(),
-  scratchExpectedVersion: commandVersionSchema,
-}).strict();
-
-const stageCandidateCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  candidateId: z.string().uuid(),
-  scratchBitId: z.string().uuid(),
-  sourceBreakdownId: z.string().uuid(),
-  sourceExpectedVersion: commandVersionSchema,
-  resultType: z.enum(["node", "bit"]),
-}).strict();
-
-const unstageCandidateCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  candidateId: z.string().uuid(),
-  candidateExpectedVersion: commandVersionSchema,
-  sourceBreakdownId: z.string().uuid(),
-  sourceExpectedVersion: commandVersionSchema,
-}).strict();
-
-const confirmedCandidateOrphanProofSchema = z.discriminatedUnion("status", [
-  z.object({
-    status: z.literal("confirmed"),
-    cause: z.enum(["source_deleted", "source_tombstoned"]),
-    sourceBreakdownId: z.string().uuid(),
-  }).strict(),
-  z.object({
-    status: z.literal("unresolved"),
-    reason: z.enum(["cache_miss", "offline", "delayed_subscription"]),
-  }).strict(),
-  z.object({
-    status: z.literal("planned_aggregate"),
-    sourceBreakdownId: z.string().uuid(),
-  }).strict(),
-]);
-
-const confirmedCandidateOrphanCleanupCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  auditEventId: z.string().uuid(),
-  candidateId: z.string().uuid(),
-  candidateExpectedVersion: commandVersionSchema,
-  sourceBreakdownId: z.string().uuid(),
-  scratchBitId: z.string().uuid(),
-  resultType: z.enum(["node", "bit"]),
-  proof: confirmedCandidateOrphanProofSchema,
-}).strict();
-
-const placementCommandShape = {
-  operationId: repositoryOperationIdSchema,
-  resultId: z.string().uuid(),
-  scratchBitId: z.string().uuid(),
-  sourceBreakdownId: z.string().uuid(),
-  sourceExpectedVersion: commandVersionSchema,
-  resultType: z.enum(["node", "bit"]),
-  title: z.string().min(1).max(1000),
-  targetParentId: z.string().uuid().nullable(),
-  expectedAncestorIds: z.array(z.string().uuid()),
-  x: z.number().int(),
-  y: z.number().int(),
-};
-
-const stagedPlacementCommandSchema = z.object({
-  ...placementCommandShape,
-  candidateId: z.string().uuid(),
-  candidateExpectedVersion: commandVersionSchema,
-}).strict();
-
-const directPlacementCommandSchema = z.object(placementCommandShape).strict();
-
-const placementUndoCommandShape = {
-  operationId: repositoryOperationIdSchema,
-  resultSnapshot: z.union([nodeSchema, bitSchema]),
-  sourceSnapshot: scratchBreakdownSchema,
-};
-
-const stagedPlacementUndoCommandSchema = z.object({
-  ...placementUndoCommandShape,
-  candidateSnapshot: stagedCandidateSchema,
-}).strict();
-
-const directPlacementUndoCommandSchema = z.object(placementUndoCommandShape).strict();
-
-const archiveScratchCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  scratchBitId: z.string().uuid(),
-  expectedVersion: commandVersionSchema,
-  callerAssertion: z.object({
-    addDraftClear: z.literal(true),
-    titleBlockerClear: z.literal(true),
-  }).strict(),
-}).strict();
-
-const trashScratchCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  scratchBitId: z.string().uuid(),
-  expectedVersion: commandVersionSchema,
-  candidates: z.array(z.object({
-    candidateId: z.string().uuid(),
-    candidateExpectedVersion: commandVersionSchema,
-    sourceBreakdownId: z.string().uuid(),
-    sourceExpectedVersion: commandVersionSchema,
-  }).strict()).refine(
-    (items) =>
-      new Set(items.map((item) => item.candidateId)).size === items.length &&
-      new Set(items.map((item) => item.sourceBreakdownId)).size === items.length,
-    "Trash Scratch candidates must be a set",
-  ),
-}).strict();
-
-const trashScratchResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  scratch: bitSchema.nullable(),
-  candidates: z.array(stagedCandidateSchema),
-}).strict();
-
-const addBreakdownResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  breakdown: scratchBreakdownSchema.nullable(),
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const saveScratchTitleResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const saveBreakdownResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  breakdown: scratchBreakdownSchema.nullable(),
-  candidate: stagedCandidateSchema.nullable(),
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const deleteBreakdownResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  breakdown: scratchBreakdownSchema.nullable(),
-  candidate: stagedCandidateSchema.nullable(),
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const stageCandidateResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  candidate: stagedCandidateSchema.nullable(),
-  source: scratchBreakdownSchema.nullable(),
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const unstageCandidateResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  candidate: stagedCandidateSchema.nullable(),
-  source: scratchBreakdownSchema.nullable(),
-}).strict();
-
-const confirmedCandidateOrphanCleanupResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  candidate: stagedCandidateSchema.nullable(),
-  source: scratchBreakdownSchema.nullable(),
-  auditEvent: candidateOrphanAuditEventSchema.nullable(),
-}).strict();
-
-const placementResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  result: z.union([nodeSchema, bitSchema]).nullable(),
-  source: scratchBreakdownSchema.nullable(),
-  candidate: stagedCandidateSchema.nullable(),
-}).strict();
-
-const placementUndoResultSchema = placementResultSchema;
-
-const scratchArchiveEligibilitySchema = z.object({
-  eligible: z.boolean(),
-  scratch: bitSchema.nullable(),
-  consumedCount: z.number().int().min(0),
-  unconsumedCount: z.number().int().min(0),
-  stagedCandidateCount: z.number().int().min(0),
-}).strict();
-
-const archiveScratchResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const archiveScratchRecoveryResultSchema = z.union([
-  z.object({
-    operationId: repositoryOperationIdSchema,
-    status: z.enum(["applied", "not_applied", "conflict"]),
-    scratch: bitSchema.nullable(),
-  }).strict(),
-  z.object({
-    operationId: repositoryOperationIdSchema,
-    outcome: z.literal("unknown"),
-  }).strict(),
-]);
-
 export class GridDODatabase extends Dexie {
   nodes!: Table<Node, string>;
   bits!: Table<Bit, string>;

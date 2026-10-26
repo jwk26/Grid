@@ -1,7 +1,42 @@
+import {
+  addBreakdownCommandSchema,
+  archiveScratchCommandSchema,
+  deleteBreakdownCommandSchema,
+  directPlacementCommandSchema,
+  directPlacementUndoCommandSchema,
+  saveBreakdownCommandSchema,
+  saveScratchTitleCommandSchema,
+  stageCandidateCommandSchema,
+  stagedPlacementCommandSchema,
+  stagedPlacementUndoCommandSchema,
+  trashScratchCommandSchema,
+  unstageCandidateCommandSchema,
+} from "@/lib/db/command-schemas";
 import type {
+  AddBreakdownCommand,
+  AddBreakdownResult,
+  ArchiveScratchCommand,
+  ArchiveScratchResult,
+  ConfirmedCandidateOrphanCleanupResult,
   DataStore,
+  DeleteBreakdownCommand,
+  DeleteBreakdownResult,
+  DirectPlacementCommand,
+  DirectPlacementUndoCommand,
   LiveObservable,
+  PlacementResult,
+  PlacementUndoResult,
+  SaveBreakdownCommand,
+  SaveBreakdownResult,
+  SaveScratchTitleCommand,
+  SaveScratchTitleResult,
   ScratchArchiveEligibility,
+  StageCandidateCommand,
+  StageCandidateResult,
+  TrashScratchCommand,
+  TrashScratchResult,
+  UnstageCandidateCommand,
+  UnstageCandidateResult,
 } from "@/lib/db/datastore";
 import { buildNodeTitlePath, sortChunks, sortGridItems } from "@/lib/db/read-helpers";
 import {
@@ -15,12 +50,14 @@ import {
   nodeFromRow,
 } from "@/lib/db/row-mapping";
 import type { AccountView, ChangeRow, Envelope, SnapshotStore } from "@/lib/db/snapshot-store";
+import * as commandCalls from "@/lib/db/supabase-command-calls";
 import {
   chunkSchema,
   createBitSchema,
   createChunkSchema,
   createNodeSchema,
   updateBitSchema,
+  pendingOperationRecoverySchema,
   updateNodeSchema,
   type Bit,
   type Chunk,
@@ -30,6 +67,7 @@ import {
 } from "@/lib/db/schema";
 import {
   callById,
+  callWrite,
   callCleanupExpiredTrash,
   callCreateBit,
   callCreateChunk,
@@ -104,44 +142,50 @@ type OrdinaryWriteKey =
   | "reorderChunks"
   | "promoteBitToNode";
 
+type CommandWriteKey =
+  | "archiveScratch"
+  | "classifyArchiveScratchRecovery"
+  | "trashScratch"
+  | "reconcileTrashScratch"
+  | "addBreakdown"
+  | "reconcileAddBreakdown"
+  | "saveScratchTitle"
+  | "reconcileSaveScratchTitle"
+  | "saveBreakdown"
+  | "reconcileSaveBreakdown"
+  | "deleteBreakdown"
+  | "reconcileDeleteBreakdown"
+  | "stageCandidate"
+  | "reconcileStageCandidate"
+  | "unstageCandidate"
+  | "reconcileUnstageCandidate"
+  | "placeStagedCandidate"
+  | "reconcileStagedPlacement"
+  | "placeDirectBreakdown"
+  | "reconcileDirectPlacement"
+  | "undoStagedPlacement"
+  | "reconcileStagedPlacementUndo"
+  | "undoDirectPlacement"
+  | "reconcileDirectPlacementUndo";
+
+// Writes that send no request: the confirmed-orphan command cannot happen under foreign keys (S18),
+// and the breadcrumb-zone migration is client-only until Task 249 (S43 (4)).
+type NoRequestWriteKey =
+  | "cleanupConfirmedCandidateOrphan"
+  | "reconcileConfirmedCandidateOrphanCleanup"
+  | "runBreadcrumbZoneMigration";
+
 type WriteKey = Exclude<keyof DataStore, ReadKey>;
 
-// The writes Task 227 Stage 3 still has to send (the Inbox/Triage commands and the writes only
-// tests call). Listing each one as a key makes the compiler fail here when DataStore gains a
-// method that neither Stage 2's ordinary writes nor this list covers.
-const PENDING_WRITE_KEYS: Record<Exclude<WriteKey, OrdinaryWriteKey>, true> = {
-  archiveScratch: true,
-  classifyArchiveScratchRecovery: true,
-  trashScratch: true,
-  reconcileTrashScratch: true,
+// The writes only tests call; Phase 46 removes them from the interface. Listing each one as a key
+// makes the compiler fail here when DataStore gains a method that neither an ordinary write, a
+// command nor this list covers.
+const PENDING_WRITE_KEYS: Record<Exclude<WriteKey, OrdinaryWriteKey | CommandWriteKey | NoRequestWriteKey>, true> = {
   createScratchBreakdown: true,
   updateScratchBreakdown: true,
   markScratchBreakdownConsumed: true,
   unconsumeScratchBreakdown: true,
   deleteScratchBreakdown: true,
-  addBreakdown: true,
-  reconcileAddBreakdown: true,
-  saveScratchTitle: true,
-  reconcileSaveScratchTitle: true,
-  saveBreakdown: true,
-  reconcileSaveBreakdown: true,
-  deleteBreakdown: true,
-  reconcileDeleteBreakdown: true,
-  stageCandidate: true,
-  reconcileStageCandidate: true,
-  unstageCandidate: true,
-  reconcileUnstageCandidate: true,
-  cleanupConfirmedCandidateOrphan: true,
-  reconcileConfirmedCandidateOrphanCleanup: true,
-  placeStagedCandidate: true,
-  reconcileStagedPlacement: true,
-  placeDirectBreakdown: true,
-  reconcileDirectPlacement: true,
-  undoStagedPlacement: true,
-  reconcileStagedPlacementUndo: true,
-  undoDirectPlacement: true,
-  reconcileDirectPlacementUndo: true,
-  runBreadcrumbZoneMigration: true,
 };
 
 type SearchResult = Awaited<ReturnType<DataStore["searchAll"]>>[number];
@@ -163,7 +207,7 @@ const isActive = (row: { deletedAt: number | null; archivedAt: number | null }) 
 
 // The function each ordinary write method calls (SCHEMA §Exposed functions); a test checks that
 // the method sends exactly one request to it.
-export const WRITE_FUNCTION: Record<OrdinaryWriteKey, string> = {
+export const WRITE_FUNCTION: Record<OrdinaryWriteKey | CommandWriteKey, string> = {
   createNode: "create_node",
   updateNode: "update_node",
   softDeleteNode: "soft_delete_node",
@@ -186,10 +230,48 @@ export const WRITE_FUNCTION: Record<OrdinaryWriteKey, string> = {
   deleteChunk: "delete_chunk",
   reorderChunks: "reorder_chunks",
   promoteBitToNode: "promote_bit_to_node",
+  addBreakdown: "add_breakdown",
+  reconcileAddBreakdown: "reconcile_add_breakdown",
+  saveScratchTitle: "save_scratch_title",
+  reconcileSaveScratchTitle: "reconcile_save_scratch_title",
+  saveBreakdown: "save_breakdown",
+  reconcileSaveBreakdown: "reconcile_save_breakdown",
+  deleteBreakdown: "delete_breakdown",
+  reconcileDeleteBreakdown: "reconcile_delete_breakdown",
+  stageCandidate: "stage_candidate",
+  reconcileStageCandidate: "reconcile_stage_candidate",
+  unstageCandidate: "unstage_candidate",
+  reconcileUnstageCandidate: "reconcile_unstage_candidate",
+  placeStagedCandidate: "place_staged_candidate",
+  reconcileStagedPlacement: "reconcile_place_staged_candidate",
+  placeDirectBreakdown: "place_direct_breakdown",
+  reconcileDirectPlacement: "reconcile_place_direct_breakdown",
+  undoStagedPlacement: "undo_staged_placement",
+  reconcileStagedPlacementUndo: "reconcile_undo_staged_placement",
+  undoDirectPlacement: "undo_direct_placement",
+  reconcileDirectPlacementUndo: "reconcile_undo_direct_placement",
+  archiveScratch: "archive_scratch",
+  classifyArchiveScratchRecovery: "classify_archive_scratch_recovery",
+  trashScratch: "trash_scratch",
+  reconcileTrashScratch: "reconcile_trash_scratch",
 };
 
-// Methods that still throw "not supported" (Stage 3 of Task 227 and Phase 46).
+export const NO_REQUEST_WRITE_METHODS: readonly string[] = [
+  "cleanupConfirmedCandidateOrphan",
+  "reconcileConfirmedCandidateOrphanCleanup",
+  "runBreadcrumbZoneMigration",
+];
+
+// Methods that throw "not supported" until Phase 46 removes them.
 export const UNSENT_WRITE_METHODS = Object.keys(PENDING_WRITE_KEYS);
+
+const orphanRejected = (operationId: string): ConfirmedCandidateOrphanCleanupResult => ({
+  operationId,
+  status: "rejected",
+  candidate: null,
+  source: null,
+  auditEvent: null,
+});
 
 const chunkUpdateSchema = chunkSchema.omit({ id: true, parentId: true }).partial();
 
@@ -546,6 +628,253 @@ export function createSupabaseStore(
     },
   };
 
+  // --- Inbox/Triage commands (Task 227): one function, one request; reconciles read only -------
+  //
+  // A command answers with its result, never a throw, for every status the function returns,
+  // `rejected`, `conflict` and `not_applied` included. An API error or an unknown outcome throws:
+  // the hooks mark the operation `unknown` and reconcile from a throw, so nothing is resent here.
+  // Result rows are the current rows of the snapshot after the envelope's `changes` reached the
+  // base. A Delete, Unstage or Trash that was already applied carries no deleted id, so those
+  // answers refetch first (S32).
+
+  const runCommand = async (key: string, fn: commandCalls.FunctionCall): Promise<Envelope> => {
+    const outcome = await snapshot.command({ key, send: () => callWrite(client(), fn.name, fn.args) });
+    switch (outcome.outcome) {
+      case "applied":
+      case "rejected":
+        return outcome.envelope as Envelope;
+      case "error":
+        throw outcome.error instanceof Error ? outcome.error : new Error(String(outcome.error));
+      case "unknown":
+        throw new WriteOutcomeUnknownError();
+    }
+  };
+
+  const scratchKey = (scratchBitId: string) => `scratch:${scratchBitId}`;
+  const sourceKey = (sourceId: string) => {
+    const owner = view().scratchBreakdowns.get(sourceId)?.scratchBitId;
+    return owner ? scratchKey(owner) : `source:${sourceId}`;
+  };
+
+  const refetchIfAlreadyApplied = async (envelope: Envelope) => {
+    if (envelope.status === "already_applied") await snapshot.refetch();
+  };
+
+  const candidateOfSource = (sourceId: string): StagedCandidate | null => {
+    for (const candidate of view().stagedCandidates.values()) {
+      if (candidate.sourceBreakdownId === sourceId) return candidate;
+    }
+    return null;
+  };
+  const rejectionOf = (envelope: Envelope) => (envelope.rejection ? { rejection: envelope.rejection } : {});
+
+  const addResult = (operationId: string, command: AddBreakdownCommand, envelope: Envelope): AddBreakdownResult => ({
+    operationId,
+    status: envelope.status,
+    breakdown: view().scratchBreakdowns.get(command.breakdownId) ?? null,
+    scratch: view().bits.get(command.scratchBitId) ?? null,
+    ...rejectionOf(envelope),
+  });
+  const titleResult = (command: SaveScratchTitleCommand, envelope: Envelope): SaveScratchTitleResult => ({
+    operationId: command.operationId,
+    status: envelope.status,
+    scratch: view().bits.get(command.scratchBitId) ?? null,
+  });
+  const saveResult = (command: SaveBreakdownCommand, envelope: Envelope): SaveBreakdownResult => {
+    const breakdown = view().scratchBreakdowns.get(command.breakdownId) ?? null;
+    return {
+      operationId: command.operationId,
+      status: envelope.status,
+      breakdown,
+      candidate: candidateOfSource(command.breakdownId),
+      scratch: breakdown ? (view().bits.get(breakdown.scratchBitId) ?? null) : null,
+    };
+  };
+  const deleteResult = (command: DeleteBreakdownCommand, envelope: Envelope): DeleteBreakdownResult => ({
+    operationId: command.operationId,
+    status: envelope.status,
+    breakdown: view().scratchBreakdowns.get(command.breakdownId) ?? null,
+    candidate: candidateOfSource(command.breakdownId),
+    scratch: view().bits.get(command.scratchBitId) ?? null,
+  });
+  const stageResult = (command: StageCandidateCommand, envelope: Envelope): StageCandidateResult => ({
+    operationId: command.operationId,
+    status: envelope.status,
+    candidate: view().stagedCandidates.get(command.candidateId) ?? candidateOfSource(command.sourceBreakdownId),
+    source: view().scratchBreakdowns.get(command.sourceBreakdownId) ?? null,
+    scratch: view().bits.get(command.scratchBitId) ?? null,
+  });
+  const unstageResult = (command: UnstageCandidateCommand, envelope: Envelope): UnstageCandidateResult => ({
+    operationId: command.operationId,
+    status: envelope.status,
+    candidate: view().stagedCandidates.get(command.candidateId) ?? null,
+    source: view().scratchBreakdowns.get(command.sourceBreakdownId) ?? null,
+  });
+  const placementResult = (
+    command: DirectPlacementCommand & { candidateId?: string },
+    envelope: Envelope,
+  ): PlacementResult => ({
+    operationId: command.operationId,
+    status: envelope.status,
+    result: view().nodes.get(command.resultId) ?? view().bits.get(command.resultId) ?? null,
+    source: view().scratchBreakdowns.get(command.sourceBreakdownId) ?? null,
+    candidate: command.candidateId
+      ? (view().stagedCandidates.get(command.candidateId) ?? null)
+      : candidateOfSource(command.sourceBreakdownId),
+    ...rejectionOf(envelope),
+  });
+  const undoResult = (
+    command: DirectPlacementUndoCommand & { candidateSnapshot?: StagedCandidate },
+    envelope: Envelope,
+  ): PlacementUndoResult => ({
+    operationId: command.operationId,
+    status: envelope.status,
+    result: view().nodes.get(command.resultSnapshot.id) ?? view().bits.get(command.resultSnapshot.id) ?? null,
+    source: view().scratchBreakdowns.get(command.sourceSnapshot.id) ?? null,
+    candidate: command.candidateSnapshot ? (view().stagedCandidates.get(command.candidateSnapshot.id) ?? null) : null,
+  });
+  const archiveResult = (command: ArchiveScratchCommand, envelope: Envelope): ArchiveScratchResult => ({
+    operationId: command.operationId,
+    status: envelope.status,
+    scratch: view().bits.get(command.scratchBitId) ?? null,
+  });
+  const trashResult = (command: TrashScratchCommand, envelope: Envelope): TrashScratchResult => ({
+    operationId: command.operationId,
+    status: envelope.status,
+    scratch: view().bits.get(command.scratchBitId) ?? null,
+    candidates: [...view().stagedCandidates.values()]
+      .filter((candidate) => candidate.scratchBitId === command.scratchBitId)
+      .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)),
+  });
+
+  const commands: Pick<DataStore, CommandWriteKey | NoRequestWriteKey> = {
+    addBreakdown: async (command) => {
+      const parsed = addBreakdownCommandSchema.parse(command);
+      return addResult(parsed.operationId, parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.addBreakdownCall(parsed)));
+    },
+    reconcileAddBreakdown: async (command) => {
+      const parsed = addBreakdownCommandSchema.parse(command);
+      return addResult(parsed.operationId, parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileAddBreakdownCall(parsed)));
+    },
+    saveScratchTitle: async (command) => {
+      const parsed = saveScratchTitleCommandSchema.parse(command);
+      return titleResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.saveScratchTitleCall(parsed)));
+    },
+    reconcileSaveScratchTitle: async (command) => {
+      const parsed = saveScratchTitleCommandSchema.parse(command);
+      return titleResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileSaveScratchTitleCall(parsed)));
+    },
+    saveBreakdown: async (command) => {
+      const parsed = saveBreakdownCommandSchema.parse(command);
+      return saveResult(parsed, await runCommand(sourceKey(parsed.breakdownId), commandCalls.saveBreakdownCall(parsed)));
+    },
+    reconcileSaveBreakdown: async (command) => {
+      const parsed = saveBreakdownCommandSchema.parse(command);
+      return saveResult(parsed, await runCommand(sourceKey(parsed.breakdownId), commandCalls.reconcileSaveBreakdownCall(parsed)));
+    },
+    deleteBreakdown: async (command) => {
+      const parsed = deleteBreakdownCommandSchema.parse(command);
+      const envelope = await runCommand(scratchKey(parsed.scratchBitId), commandCalls.deleteBreakdownCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return deleteResult(parsed, envelope);
+    },
+    reconcileDeleteBreakdown: async (command) => {
+      const parsed = deleteBreakdownCommandSchema.parse(command);
+      const envelope = await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileDeleteBreakdownCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return deleteResult(parsed, envelope);
+    },
+    stageCandidate: async (command) => {
+      const parsed = stageCandidateCommandSchema.parse(command);
+      return stageResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.stageCandidateCall(parsed)));
+    },
+    reconcileStageCandidate: async (command) => {
+      const parsed = stageCandidateCommandSchema.parse(command);
+      return stageResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileStageCandidateCall(parsed)));
+    },
+    unstageCandidate: async (command) => {
+      const parsed = unstageCandidateCommandSchema.parse(command);
+      const envelope = await runCommand(sourceKey(parsed.sourceBreakdownId), commandCalls.unstageCandidateCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return unstageResult(parsed, envelope);
+    },
+    reconcileUnstageCandidate: async (command) => {
+      const parsed = unstageCandidateCommandSchema.parse(command);
+      const envelope = await runCommand(sourceKey(parsed.sourceBreakdownId), commandCalls.reconcileUnstageCandidateCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return unstageResult(parsed, envelope);
+    },
+    placeStagedCandidate: async (command) => {
+      const parsed = stagedPlacementCommandSchema.parse(command);
+      return placementResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.placeStagedCall(parsed)));
+    },
+    reconcileStagedPlacement: async (command) => {
+      const parsed = stagedPlacementCommandSchema.parse(command);
+      return placementResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileStagedPlacementCall(parsed)));
+    },
+    placeDirectBreakdown: async (command) => {
+      const parsed = directPlacementCommandSchema.parse(command);
+      return placementResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.placeDirectCall(parsed)));
+    },
+    reconcileDirectPlacement: async (command) => {
+      const parsed = directPlacementCommandSchema.parse(command);
+      return placementResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileDirectPlacementCall(parsed)));
+    },
+    undoStagedPlacement: async (command) => {
+      const parsed = stagedPlacementUndoCommandSchema.parse(command);
+      return undoResult(parsed, await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.undoStagedCall(parsed)));
+    },
+    reconcileStagedPlacementUndo: async (command) => {
+      const parsed = stagedPlacementUndoCommandSchema.parse(command);
+      return undoResult(parsed, await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.reconcileStagedUndoCall(parsed)));
+    },
+    undoDirectPlacement: async (command) => {
+      const parsed = directPlacementUndoCommandSchema.parse(command);
+      return undoResult(parsed, await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.undoDirectCall(parsed)));
+    },
+    reconcileDirectPlacementUndo: async (command) => {
+      const parsed = directPlacementUndoCommandSchema.parse(command);
+      return undoResult(parsed, await runCommand(scratchKey(parsed.sourceSnapshot.scratchBitId), commandCalls.reconcileDirectUndoCall(parsed)));
+    },
+    archiveScratch: async (command) => {
+      const parsed = archiveScratchCommandSchema.parse(command);
+      return archiveResult(parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.archiveScratchCall(parsed)));
+    },
+    classifyArchiveScratchRecovery: async (recovery) => {
+      const parsed = pendingOperationRecoverySchema.parse(recovery);
+      try {
+        const envelope = await runCommand(scratchKey(parsed.scratchBitId), commandCalls.classifyRecoveryCall(parsed));
+        const status =
+          envelope.status === "applied" || envelope.status === "not_applied" ? envelope.status : "conflict";
+        return {
+          operationId: parsed.operationId,
+          status,
+          scratch: view().bits.get(parsed.scratchBitId) ?? null,
+        };
+      } catch {
+        // No answer is not a classification: the caller keeps the operation unresolved.
+        return { operationId: parsed.operationId, outcome: "unknown" };
+      }
+    },
+    trashScratch: async (command) => {
+      const parsed = trashScratchCommandSchema.parse(command);
+      const envelope = await runCommand(scratchKey(parsed.scratchBitId), commandCalls.trashScratchCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return trashResult(parsed, envelope);
+    },
+    reconcileTrashScratch: async (command) => {
+      const parsed = trashScratchCommandSchema.parse(command);
+      const envelope = await runCommand(scratchKey(parsed.scratchBitId), commandCalls.reconcileTrashScratchCall(parsed));
+      await refetchIfAlreadyApplied(envelope);
+      return trashResult(parsed, envelope);
+    },
+    // The orphan cannot occur under the composite foreign keys (S18): no request.
+    cleanupConfirmedCandidateOrphan: async (command) => orphanRejected(command.operationId),
+    reconcileConfirmedCandidateOrphanCleanup: async (command) => orphanRejected(command.operationId),
+    // The breadcrumb zone stays client-only until Task 249 (S43 (4)).
+    runBreadcrumbZoneMigration: async () => ({ relocated: 0 }),
+  };
+
   const pending = Object.fromEntries(
     (Object.keys(PENDING_WRITE_KEYS) as Array<keyof typeof PENDING_WRITE_KEYS>).map((key) => [
       key,
@@ -553,6 +882,6 @@ export function createSupabaseStore(
     ]),
   ) as unknown as Pick<DataStore, keyof typeof PENDING_WRITE_KEYS>;
 
-  const store: DataStore = { ...pending, ...ordinary, ...reads };
+  const store: DataStore = { ...pending, ...ordinary, ...commands, ...reads };
   return store;
 }
