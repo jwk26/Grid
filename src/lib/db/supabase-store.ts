@@ -96,8 +96,16 @@ const WRITE_KEYS: Record<WriteKey, true> = {
 
 type SearchResult = Awaited<ReturnType<DataStore["searchAll"]>>[number];
 
+// A view's maps are replaced, never mutated, so the sorted copy is cached per map reference and
+// a new view starts with a fresh sort. Callers must not mutate the returned array.
+const sortedById = new WeakMap<ReadonlyMap<string, never>, readonly never[]>();
+
 function byId<T extends { id: string }>(rows: ReadonlyMap<string, T>): T[] {
-  return [...rows.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const cached = sortedById.get(rows as ReadonlyMap<string, never>);
+  if (cached) return cached as unknown as T[];
+  const sorted = [...rows.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  sortedById.set(rows as ReadonlyMap<string, never>, sorted as unknown as readonly never[]);
+  return sorted;
 }
 
 const isActive = (row: { deletedAt: number | null; archivedAt: number | null }) =>
@@ -228,12 +236,12 @@ export function createSupabaseStore(snapshot: SnapshotStore): DataStore {
       byId(view().scratchBreakdowns)
         .filter((row: ScratchBreakdown) => row.scratchBitId === scratchBitId)
         .sort((left, right) => left.order - right.order),
-    getAllScratchBreakdowns: async () => byId(view().scratchBreakdowns),
+    getAllScratchBreakdowns: async () => [...byId(view().scratchBreakdowns)],
     getStagedCandidates: async (scratchBitId) =>
       byId(view().stagedCandidates).filter(
         (candidate: StagedCandidate) => candidate.scratchBitId === scratchBitId,
       ),
-    getAllStagedCandidates: async () => byId(view().stagedCandidates),
+    getAllStagedCandidates: async () => [...byId(view().stagedCandidates)],
     getChunks: async (bitId) => sortChunks(chunks().filter((chunk) => chunk.parentId === bitId)),
     getActiveGridContents: async (parentId) => {
       const [gridNodes, gridBits] = await Promise.all([

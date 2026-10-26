@@ -227,6 +227,19 @@ describe("snapshot store reads match the Dexie store over the same data", () => 
     await done;
   });
 
+  it("keeps sorted results correct across views and safe from caller mutation", async () => {
+    const first = await supabase.getAllScratchBreakdowns();
+    first.length = 0;
+    expect(await supabase.getAllScratchBreakdowns()).toHaveLength(breakdowns.length);
+
+    const rows = snapshotRows();
+    rows.bits = rows.bits.filter((row) => row.id !== SPARE);
+    const next = new SnapshotStore({ fetchSnapshot: async () => rows });
+    await next.load();
+    expect(await createSupabaseStore(next).getBit(SPARE)).toBeUndefined();
+    expect(await supabase.getBit(SPARE)).toBeDefined();
+  });
+
   it("writes are not supported until Task 227", async () => {
     await expect(supabase.softDeleteNode(PROJ_A)).rejects.toThrow("not supported");
   });
