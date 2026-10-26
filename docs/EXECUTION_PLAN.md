@@ -650,7 +650,7 @@ hide in the other. S43 (4) is the plan (feedback F33): F26 ships in Phase 50,
 after this phase, so the Supabase store implements `runBreadcrumbZoneMigration`
 as a no-op and the zone guards stay client-only until Task 249.
 
-### Task 225: [ ] Confirm the SaaS surfaces decision `DP-SAAS-01`
+### Task 225: [x] Confirm the SaaS surfaces decision `DP-SAAS-01`
 
 **Files and actions:** `DP-SAAS-01` was decided in Task 242 (Phase 49) on the
 same option sheet as `DP-FB-01` (feedback F33). Compare the recorded choice in

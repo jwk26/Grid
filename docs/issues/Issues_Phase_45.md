@@ -7,8 +7,8 @@ Baseline gate (2026-10-26): `git diff --check`, `pnpm test` (2177), `pnpm test:d
 ## Task 225 — Confirm the SaaS surfaces decision `DP-SAAS-01`
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 225 acceptance
+- Status: Accepted
+- Next: Task 226 (start with the Task 228 note in the Task 225 log in mind at Task 228)
 - Open: none
 
 ### Log
@@ -16,6 +16,8 @@ Baseline gate (2026-10-26): `git diff --check`, `pnpm test` (2177), `pnpm test:d
 - Review (advisory, 2026-10-26, work plan): approve with changes. Confirmed: no SPEC surface section changed since `01c46c0` (the later SPEC edits are Decisions 17 and 19 and the file table). Apply: (1) step 2 tells the user that account deletion is now the fallback only (Task 218 result; Phase 42 ledger Task 235 note): after `Delete account` the modal shows `Your account will be deleted within 24 hours.`, and signing in again with the same account within 24 hours shows the SA-4 "Account being deleted" frame as the normal path; SA-4 and SA-6 in DESIGN_TOKENS need no change, and the SPEC copy cleanup is left to Task 235; (2) show SA-1 to SA-6 as renders by re-serving the Task 242 option sheet (`/private/tmp/claude-501/-Users-jwk-Documents-grid-phase-49/7b9f82fe-ed08-4ec5-af36-a4944a329026/scratchpad/sheet/`, its `serve.py` pointed at this worktree's dev server), the recorded options only, not a rebuilt sheet. Not applied: none.
 - Stage 1 shown (2026-10-26): Task 242 option sheet re-served at http://localhost:3055/ (`#SA-1` to `#SA-6`) against this worktree's dev server on 3045; the recorded text in DESIGN_TOKENS is the authority, the sheet's green star marks the then-recommendation, not the choice. Told the user the account-deletion fallback note (no change to SA-4 or SA-6). Waiting for the user to confirm or adjust each of SA-1 to SA-6.
 - Decision: SA-1, SA-2 (A), SA-3, SA-5 and SA-6 confirmed as recorded; SA-4 adjusted from A (confirmation-dialog card) to C (text block on the shell background, no card) (user, 2026-10-26). Reflected in the commit `docs(design): confirm DP-SAAS-01`. The sheet's green star on SA-2 C was only the sheet's recommendation; the user's Task 242 choice was A.
+- Review (advisory, 2026-10-26, task finish): approve with changes. Checked: the SA-4 row matches the sheet's option C markup (block, title, reason line, actions; the security check has no reason line, so the widget sits below the title); only that row changed; Tasks 228, 234 and 235 take the `DP-SAAS-01` look and name no card, so the plan needs no edit; servers 3055 and 3045 stopped, no new stash. Apply: (1) the Task 228 note below. Not applied: none.
+- Task 228 note (advisory, 2026-10-26): SA-4 now puts its text straight on the shell background; in `retro-mac` that background is the 4px dot dither (`--triage-frame-background-image`, `globals.css:881`), under which the `text-sm text-muted-foreground` reason line may be hard to read. At the Task 228 checkpoint check the load-failure and session-expired screens in `retro-mac`; if the reason line is hard to read, record an MI for the user's decision instead of adding a backing surface or changing the colors.
 
 ### Checkpoint
 - Changed: `docs/DESIGN_TOKENS.md` §Approved SaaS app-state realization, SA-4 row only.
