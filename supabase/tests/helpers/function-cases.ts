@@ -224,6 +224,126 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "before + changes equals after for hard deletes, Empty Trash, cleanup, no-ops and rejections",
     },
   },
+  stage_candidate: {
+    crossAccount: {
+      file: "stage-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "stage-commands.db.test.ts",
+      title: "before + changes equals after for Stage, Unstage and their rejections",
+    },
+  },
+  reconcile_stage_candidate: {
+    crossAccount: {
+      file: "stage-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "stage-commands.db.test.ts",
+      title: "before + changes equals after for Stage, Unstage and their rejections",
+    },
+  },
+  unstage_candidate: {
+    crossAccount: {
+      file: "stage-commands.db.test.ts",
+      title: "is refused for another account's candidate and source, with nothing of theirs in changes",
+    },
+    changeSet: {
+      file: "stage-commands.db.test.ts",
+      title: "before + changes equals after for Stage, Unstage and their rejections",
+    },
+  },
+  reconcile_unstage_candidate: {
+    crossAccount: {
+      file: "stage-commands.db.test.ts",
+      title: "is refused for another account's candidate and source, with nothing of theirs in changes",
+    },
+    changeSet: {
+      file: "stage-commands.db.test.ts",
+      title: "before + changes equals after for Stage, Unstage and their rejections",
+    },
+  },
+  place_staged_candidate: {
+    crossAccount: {
+      file: "placement-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "placement-commands.db.test.ts",
+      title: "before + changes equals after for placements, reconciles and their rejections",
+    },
+  },
+  reconcile_place_staged_candidate: {
+    crossAccount: {
+      file: "placement-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "placement-commands.db.test.ts",
+      title: "before + changes equals after for placements, reconciles and their rejections",
+    },
+  },  place_direct_breakdown: {
+    crossAccount: {
+      file: "placement-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "placement-commands.db.test.ts",
+      title: "before + changes equals after for direct placements, reconciles and their rejections",
+    },
+  },
+  reconcile_place_direct_breakdown: {
+    crossAccount: {
+      file: "placement-commands.db.test.ts",
+      title: "leaves another account's rows untouched and sees nothing of them",
+    },
+    changeSet: {
+      file: "placement-commands.db.test.ts",
+      title: "before + changes equals after for direct placements, reconciles and their rejections",
+    },
+  },  undo_staged_placement: {
+    crossAccount: {
+      file: "placement-undo.db.test.ts",
+      title: "is refused for another account's rows, with nothing of theirs in changes",
+    },
+    changeSet: {
+      file: "placement-undo.db.test.ts",
+      title: "before + changes equals after for undo placements, reconciles and their rejections",
+    },
+  },
+  undo_direct_placement: {
+    crossAccount: {
+      file: "placement-undo.db.test.ts",
+      title: "is refused for another account's rows, with nothing of theirs in changes",
+    },
+    changeSet: {
+      file: "placement-undo.db.test.ts",
+      title: "before + changes equals after for undo placements, reconciles and their rejections",
+    },
+  },
+  reconcile_undo_staged_placement: {
+    crossAccount: {
+      file: "placement-undo.db.test.ts",
+      title: "is refused for another account's rows, with nothing of theirs in changes",
+    },
+    changeSet: {
+      file: "placement-undo.db.test.ts",
+      title: "before + changes equals after for undo placements, reconciles and their rejections",
+    },
+  },
+  reconcile_undo_direct_placement: {
+    crossAccount: {
+      file: "placement-undo.db.test.ts",
+      title: "is refused for another account's rows, with nothing of theirs in changes",
+    },
+    changeSet: {
+      file: "placement-undo.db.test.ts",
+      title: "before + changes equals after for undo placements, reconciles and their rejections",
+    },
+  },
+
+
   promote_bit_to_node: {
     crossAccount: {
       file: "promote-bit.db.test.ts",
@@ -233,5 +353,53 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       file: "promote-bit.db.test.ts",
       title: "before + changes equals after for promotions and rejections",
     },
+  },
+  add_breakdown: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  save_scratch_title: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  reconcile_add_breakdown: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  reconcile_save_scratch_title: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  save_breakdown: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  delete_breakdown: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  reconcile_save_breakdown: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  reconcile_delete_breakdown: {
+    crossAccount: { file: "breakdown-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "breakdown-commands.db.test.ts", title: "before + changes equals after for the Breakdown commands and rejections" },
+  },
+  archive_scratch: {
+    crossAccount: { file: "archive-scratch-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "archive-scratch-commands.db.test.ts", title: "before + changes equals after for Archive, recovery and their rejections" },
+  },
+  classify_archive_scratch_recovery: {
+    crossAccount: { file: "archive-scratch-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "archive-scratch-commands.db.test.ts", title: "before + changes equals after for Archive, recovery and their rejections" },
+  },
+  trash_scratch: {
+    crossAccount: { file: "trash-scratch-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "trash-scratch-commands.db.test.ts", title: "before + changes equals after for Trash Scratch, its reconcile and their rejections" },
+  },
+  reconcile_trash_scratch: {
+    crossAccount: { file: "trash-scratch-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
+    changeSet: { file: "trash-scratch-commands.db.test.ts", title: "before + changes equals after for Trash Scratch, its reconcile and their rejections" },
   },
 };

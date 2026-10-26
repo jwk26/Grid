@@ -21,7 +21,8 @@ Execution plan mode: scaled
 > closed (2026-10-20); Tasks 241–244 are accepted `[x]` and Phase 49 is closed
 > (2026-10-24); Tasks 213–218 are accepted `[x]` and Phase 42 is closed
 > (2026-10-25); Tasks 219–220 are accepted `[x]` and Phase 43 is closed
-> (2026-10-25); Tasks 180–208 and Phases 36–40 are retired as
+> (2026-10-25); Tasks 221–224 are accepted `[x]` and Phase 44 is closed
+> (2026-10-26); Tasks 180–208 and Phases 36–40 are retired as
 > superseded (feedback F28, promotion ②), their text in
 > [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
 > Phases 32–33 remain reserved.
@@ -143,8 +144,8 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 43 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25). The SaaS lane continues with Phase 44; the feedback lane continues with Phase 50 after Phase 45. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 is bound to Task 229 and MI-23 is absorbed by Tasks 228 and 234. |
-| SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25); Phase 43's migrations are on production. MI-1 is a Phase 44 gate watch and MI-8 is bound to Task 240. Phase 44 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
+| Execution lifecycle | Phase 44 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26). The SaaS lane continues with Phase 45; the feedback lane continues with Phase 50 after Phase 45. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 is bound to Task 229 and MI-23 is absorbed by Tasks 228 and 234. |
+| SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26; the migrations of Phases 42–44 are on production. MI-1 closed at the Phase 44 close (no recurrence); MI-8 is bound to Task 240. Phase 45 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
 | Feedback lane | `IN PROGRESS` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); its mi-1, mi-2 and mi-3 are bound to Task 248. Phase 50 waits for Phase 45 ([the phase waits](#lanes-and-phase-waits)). |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
@@ -244,7 +245,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 35 | Completed | [Neumorphism regional realization](execution-plan/archive/phase-35.md) | 173–179 + 176A + 179A | Accepted and archived; MI-19 bound to Task 229, MI-23 absorbed by Tasks 228 and 234, MI-13 to Task 241, MI-14 to Task 250, MI-21 to Tasks 245–246. |
 | Phase 42 | Completed | [Database foundation, end-to-end slice and early production](execution-plan/archive/phase-42.md) | 213–218 | Accepted and archived (2026-10-25); MI-1 deferred to the Phase 43 gate watch and MI-8 bound to Task 240 in `Issues_Deferred.md`. Phase 43 may start. |
 | Phase 43 | Completed | [Ordinary write functions](execution-plan/archive/phase-43.md) | 219–220 | Accepted and archived (2026-10-25); migrations on production; MI-1 deferred to the Phase 44 gate watch in `Issues_Deferred.md`. Phase 44 may start. |
-| Phase 44 | Planned / unstarted | [Inbox/Triage command functions](#phase-44--inboxtriage-command-functions) | 221–224 | Phase 43 close/main sync. |
+| Phase 44 | Completed | [Inbox/Triage command functions](execution-plan/archive/phase-44.md) | 221–224 | Accepted and archived (2026-10-26); migrations on production; MI-1 closed (no recurrence). Phase 45 may start. |
 | Phase 45 | Planned / unstarted | [Client switch](#phase-45--client-switch) | 225–229 | Phase 44 and Phase 49 close/main sync; implements the S43 (4) zone-migration no-op. |
 | Phase 46 | Planned / unstarted | [Dexie removal](#phase-46--dexie-removal) | 230 | Phase 45 close/main sync. |
 | Phase 47 | Planned / unstarted | [Feel and resilience](#phase-47--feel-and-resilience) | 231–234 | Phase 46 and Phase 49 close/main sync. |
@@ -629,97 +630,16 @@ notes for Tasks 221 and 227 are in
 [the Phase 43 ledger](issues/Issues_Phase_43.md) (Task 220 log); each task
 reads its notes at its start.
 
-## Phase 44 — Inbox/Triage Command Functions
+## Phase 44 — Completed / Archived
 
-Each command keeps the SCHEMA command/result contract. The confirmed-orphan
-command and its audit store are not ported (S18).
-
-### Task 221: [ ] Port the Breakdown and Scratch title commands
-
-**Files and actions:** migrations for `add_breakdown`, `save_scratch_title`,
-`save_breakdown`, `delete_breakdown` and their read-only reconcile functions
-(`reconcile_add_breakdown` and the like), with the Scratch row lock, exact
-`expectedVersion`, the Scratch aggregate version and account limits on Add;
-ported scenarios from `scratch-breakdowns`, `revision` and the Breakdown parts
-of `inbox-operations.test.ts`, including "ambiguous Add, then confirmed Delete,
-reconciles as conflict".
-
-**Dependencies:** Phase 43 Final Close and `main` sync; this phase's lifecycle
-gate.
-
-**Authority:** S08, S30, S37; SCHEMA §Atomic command matrix (Add, Save Scratch
-title, Save, Delete), §Operation reconciliation.
-
-**Observable acceptance:** every ported scenario and conformance case passes;
-cross-account, concurrency and change-set cases pass; a guest at the Breakdown
-limit gets `rejected` with `account_limit`.
-
-**Verification:** full gate; `expert` review with the SQL checklist.
-
-**Commit message:** `feat(db): port the breakdown and scratch title commands`.
-
-### Task 222: [ ] Port the Stage and Unstage commands
-
-**Files and actions:** migrations for `stage_candidate`, `unstage_candidate`
-and their reconcile functions; ported `staged-candidates` and Stage/Unstage
-`inbox-operations` scenarios, including "ambiguous Stage, then confirmed
-Unstage, reconciles as conflict" and "a candidate recreated by Undo cannot
-satisfy the original Stage postcondition"; deleting a staged source is refused
-(S18).
-
-**Dependencies:** Task 221.
-
-**Authority:** SCHEMA §Atomic command matrix (Stage, Unstage), Hook 13.
-
-**Observable acceptance:** as Task 221.
-
-**Verification:** full gate; `expert` review with the SQL checklist.
-
-**Commit message:** `feat(db): port the stage and unstage commands`.
-
-### Task 223: [ ] Port the Placement and Undo commands
-
-**Files and actions:** migrations for `place_staged_candidate`,
-`place_direct_breakdown`, `undo_staged_placement`, `undo_direct_placement`
-and their reconcile functions, with target reachability, type, path, title
-limit, Grid lock and free-cell checks in the same transaction, the
-active-owning-Scratch Undo rule and account limits on the result; ported
-`triage-placement` and `triage-undo` scenarios.
-
-**Dependencies:** Task 222.
-
-**Authority:** SCHEMA §Atomic command matrix (placement, Undo), Hooks 8, 12,
-13.
-
-**Observable acceptance:** as Task 221; a placement into a full target or past
-a limit is `rejected` with no write.
-
-**Verification:** full gate; `expert` review with the SQL checklist.
-
-**Commit message:** `feat(db): port the placement and undo commands`.
-
-### Task 224: [ ] Port the Archive and Trash Scratch commands and close the conformance cases
-
-**Files and actions:** migrations for `archive_scratch`,
-`classify_archive_scratch_recovery`, `trash_scratch`, `reconcile_trash_scratch`
-(Hook 15 eligibility re-run inside the transaction; exact submitted candidate
-set); ported `archive-scratch-command`, `archive-scratch-recovery` and
-`trash-scratch-command` scenarios; every SCHEMA conformance case in
-`supabase/tests/conformance.db.test.ts`.
-
-**Dependencies:** Task 223.
-
-**Authority:** SCHEMA §Atomic command matrix (Archive, Trash Scratch), Hooks
-13–15, conformance cases.
-
-**Observable acceptance:** every conformance case passes, including "ambiguous
-Trash Scratch, then confirmed restore, reconciles as conflict" and "Undo whose
-owning Scratch is trashed or archived is rejected"; no new Security Advisor
-warning at phase close.
-
-**Verification:** full gate; `expert` review with the SQL checklist.
-
-**Commit message:** `feat(db): port the archive and trash scratch commands`.
+SaaS-lane Tasks 221–224 are accepted. Their task contracts and
+completion-time scope are in
+[the Phase 44 archive](execution-plan/archive/phase-44.md). The four
+migrations are on production (2026-10-26). MI-1 closed at this close with no
+recurrence; nothing is carried over. The function contracts are in SCHEMA
+§Database Functions, Inbox/Triage command functions; client-side notes for
+Task 227 are in [the Phase 44 ledger](issues/Issues_Phase_44.md) (the Task
+227 notes in each task log); Task 227 reads them at its start.
 
 ## Phase 45 — Client Switch
 

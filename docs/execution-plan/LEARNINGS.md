@@ -127,6 +127,10 @@
 
 **`supabase db advisors` is not the dashboard Security Advisor.** The CLI reported no security issue on production while the dashboard lists `authenticated_security_definer_function_executable` for each client write function. A phase close that checks for new Advisor warnings reads the dashboard list. *(Phase 43 close)*
 
+**Check a client-named parent's kind before locking its children.** `stage_candidate` and `delete_breakdown` locked the source row before checking that the Bit the client sent as the Scratch was an Inbox Scratch; with an ordinary Bit, the lock order became Grid Node → Bit → row and could deadlock a placement (Inbox → Scratch → row → target). A function that takes a parent id from the client checks the parent's role right after locking it and before locking any child row. *(Phase 44, Tasks 222–223)*
+
+**A guard in SQL is false only when it is not null.** In `reconcile_trash_scratch`, `jsonb_typeof(null) = 'array'` is null, so `when not inputs.ok` was skipped and a null set on a Scratch with no candidates classified `not_applied` or `already_applied`. Wrap a guard built from arguments in `coalesce(…, false)` and test each null argument on a record where the other rules would pass. *(Phase 44, Task 224)*
+
 ---
 
 ## Workflow / Process
@@ -159,4 +163,4 @@
 
 **Run `git diff --check` over the branch, not the working tree.** Bare `git diff --check` sees only uncommitted changes, so whitespace in an already committed file passes every task gate and fails at phase close (`git diff --check origin/main...HEAD`). Run the range form in task gates. *(Phase 42 close)*
 
-**Write a parity deviation into the canonical hook when it is decided.** Task 220's lifecycle decisions (refusals, the `archived_at` rule, `parent_inactive`, idempotent `applied`) were recorded in the ledger only, so SCHEMA's hooks still described Dexie at phase close and had to be reconciled there. A decision that changes a hook's behavior goes into SCHEMA in the same commit as the code. *(Phase 43 close)*
+**Write a parity deviation into the canonical hook when it is decided.** Task 220's lifecycle decisions (refusals, the `archived_at` rule, `parent_inactive`, idempotent `applied`) were recorded in the ledger only, so SCHEMA's hooks still described Dexie at phase close and had to be reconciled there. A decision that changes a hook's behavior goes into SCHEMA in the same commit as the code. *(Phase 43 close; recurred at the Phase 44 close, where the command contract choices stayed in the ledger's Task 227 notes until the close commit)*

@@ -147,11 +147,20 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "archive_bit":
+            "add_breakdown":
+{ Args: { "p_breakdown_id": string,"p_content": string,"p_scratch_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
+"archive_bit":
 { Args: { "p_id": string }; Returns: Json
                            },
 "archive_node":
 { Args: { "p_id": string }; Returns: Json
+                           },
+"archive_scratch":
+{ Args: { "p_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
+"classify_archive_scratch_recovery":
+{ Args: { "p_expected_version": number,"p_scratch_id": string,"p_started_at": number }; Returns: Json
                            },
 "cleanup_expired_trash":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -164,6 +173,9 @@ isOneToOne: false
                            },
 "create_node":
 { Args: { "p_id": string,"p_values": Json }; Returns: Json
+                           },
+"delete_breakdown":
+{ Args: { "p_expected_version": number,"p_id": string,"p_scratch_expected_version": number,"p_scratch_id": string }; Returns: Json
                            },
 "delete_chunk":
 { Args: { "p_id": string }; Returns: Json
@@ -183,8 +195,47 @@ isOneToOne: false
 "hard_delete_node":
 { Args: { "p_id": string }; Returns: Json
                            },
+"place_direct_breakdown":
+{ Args: { "p_expected_ancestor_ids": (string)[],"p_result_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string,"p_target_parent_id": string,"p_title": string,"p_x": number,"p_y": number }; Returns: Json
+                           },
+"place_staged_candidate":
+{ Args: { "p_candidate_expected_version": number,"p_candidate_id": string,"p_expected_ancestor_ids": (string)[],"p_result_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string,"p_target_parent_id": string,"p_title": string,"p_x": number,"p_y": number }; Returns: Json
+                           },
 "promote_bit_to_node":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"reconcile_add_breakdown":
+{ Args: { "p_breakdown_id": string,"p_content": string,"p_scratch_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
+"reconcile_delete_breakdown":
+{ Args: { "p_expected_version": number,"p_id": string,"p_scratch_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
+"reconcile_place_direct_breakdown":
+{ Args: { "p_expected_ancestor_ids": (string)[],"p_result_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string,"p_target_parent_id": string,"p_title": string,"p_x": number,"p_y": number }; Returns: Json
+                           },
+"reconcile_place_staged_candidate":
+{ Args: { "p_candidate_expected_version": number,"p_candidate_id": string,"p_expected_ancestor_ids": (string)[],"p_result_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string,"p_target_parent_id": string,"p_title": string,"p_x": number,"p_y": number }; Returns: Json
+                           },
+"reconcile_save_breakdown":
+{ Args: { "p_base_content": string,"p_base_order": number,"p_content": string,"p_expected_version": number,"p_id": string,"p_order": number }; Returns: Json
+                           },
+"reconcile_save_scratch_title":
+{ Args: { "p_base_title": string,"p_expected_version": number,"p_scratch_id": string,"p_title": string }; Returns: Json
+                           },
+"reconcile_stage_candidate":
+{ Args: { "p_candidate_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json
+                           },
+"reconcile_trash_scratch":
+{ Args: { "p_candidates": Json,"p_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
+"reconcile_undo_direct_placement":
+{ Args: { "p_result": Json,"p_source": Json }; Returns: Json
+                           },
+"reconcile_undo_staged_placement":
+{ Args: { "p_candidate": Json,"p_result": Json,"p_source": Json }; Returns: Json
+                           },
+"reconcile_unstage_candidate":
+{ Args: { "p_candidate_expected_version": number,"p_candidate_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json
                            },
 "reorder_chunks":
 { Args: { "p_bit_id": string,"p_chunk_ids": (string)[] }; Returns: Json
@@ -195,17 +246,38 @@ isOneToOne: false
 "restore_node":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
                            },
+"save_breakdown":
+{ Args: { "p_base_content": string,"p_base_order": number,"p_content": string,"p_expected_version": number,"p_id": string,"p_order": number }; Returns: Json
+                           },
+"save_scratch_title":
+{ Args: { "p_base_title": string,"p_expected_version": number,"p_scratch_id": string,"p_title": string }; Returns: Json
+                           },
 "soft_delete_bit":
 { Args: { "p_id": string }; Returns: Json
                            },
 "soft_delete_node":
 { Args: { "p_id": string }; Returns: Json
                            },
+"stage_candidate":
+{ Args: { "p_candidate_id": string,"p_result_type": string,"p_scratch_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json
+                           },
+"trash_scratch":
+{ Args: { "p_candidates": Json,"p_expected_version": number,"p_scratch_id": string }; Returns: Json
+                           },
 "unarchive_bit":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
                            },
 "unarchive_node":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"undo_direct_placement":
+{ Args: { "p_result": Json,"p_source": Json }; Returns: Json
+                           },
+"undo_staged_placement":
+{ Args: { "p_candidate": Json,"p_result": Json,"p_source": Json }; Returns: Json
+                           },
+"unstage_candidate":
+{ Args: { "p_candidate_expected_version": number,"p_candidate_id": string,"p_source_expected_version": number,"p_source_id": string }; Returns: Json
                            },
 "update_bit":
 { Args: { "p_changes": Json,"p_extend_parent"?: boolean,"p_id": string }; Returns: Json
