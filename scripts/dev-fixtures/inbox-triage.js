@@ -84,7 +84,12 @@ window.griddoFixture = (() => {
     const email = `fixture-${label}@${FIXTURE_DOMAIN}`;
     const kept = storedSession(supabaseUrl);
     if (kept?.user?.email === email && typeof kept.expires_at === "number" && kept.expires_at > Date.now() / 1000 + 120) {
-      return kept;
+      // A local `db reset` empties auth.users but the token still verifies, so ask the server
+      // whether the user exists before reusing it (this call spends no sign-in limit).
+      const alive = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        headers: { apikey: publishableKey, Authorization: `Bearer ${kept.access_token}` },
+      }).catch(() => null);
+      if (alive?.ok) return kept;
     }
     const created = await call(supabaseUrl, "/auth/v1/admin/users", {
       key: serviceKey,

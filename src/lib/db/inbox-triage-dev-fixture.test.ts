@@ -55,7 +55,12 @@ function installBrowser(hostname = "localhost") {
   let userExists = false;
   const answer = (status: number, json: unknown) =>
     ({ ok: status < 300, status, text: async () => JSON.stringify(json) }) as Response;
+  const userAlive = { value: true };
   vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    if (url.endsWith("/auth/v1/user")) {
+      calls.push({ url, headers: init.headers as Record<string, string>, body: {} });
+      return answer(userAlive.value ? 200 : 403, {});
+    }
     const call = {
       url,
       headers: init.headers as Record<string, string>,
@@ -79,7 +84,7 @@ function installBrowser(hostname = "localhost") {
     if (url.endsWith("/rest/v1/rpc/seed_fixture")) return answer(200, SEEDED);
     return answer(404, {});
   });
-  return { store, calls };
+  return { store, calls, userAlive };
 }
 
 beforeEach(() => vi.unstubAllGlobals());
@@ -139,8 +144,26 @@ describe("inbox-triage dev fixture", () => {
     await fixture.seed(KEYS);
     calls.length = 0;
     await fixture.seed({ ...KEYS, overflow: true });
-    expect(calls.map((call) => call.url.replace(URL_LOCAL, ""))).toEqual(["/rest/v1/rpc/seed_fixture"]);
-    expect(calls[0].body.p_scenario).toEqual({ overflow: true });
+    expect(calls.map((call) => call.url.replace(URL_LOCAL, ""))).toEqual([
+      "/auth/v1/user",
+      "/rest/v1/rpc/seed_fixture",
+    ]);
+    expect(calls[1].body.p_scenario).toEqual({ overflow: true });
+  });
+
+  it("signs in again when the stored session's user is gone after a database reset", async () => {
+    const fixture = loadFixture();
+    const { calls, userAlive } = installBrowser();
+    await fixture.seed(KEYS);
+    calls.length = 0;
+    userAlive.value = false;
+    await fixture.seed(KEYS);
+    expect(calls.map((call) => call.url.replace(URL_LOCAL, ""))).toEqual([
+      "/auth/v1/user",
+      "/auth/v1/admin/users",
+      "/auth/v1/token?grant_type=password",
+      "/rest/v1/rpc/seed_fixture",
+    ]);
   });
 
   it("tolerates an existing user and reports a failed seed with the server's text", async () => {

@@ -144,9 +144,9 @@ Baseline gate (2026-10-26): `git diff --check`, `pnpm test` (2177), `pnpm test:d
 ## Task 229 — Seed browser checks through the database and settle MI-19
 
 ### Current state
-- Status: In Progress
-- Next: Stage 3 (MI-19) acceptance
-- Open: Phase 35 MI-19 (this task's), mi-3
+- Status: Implemented, awaiting acceptance
+- Next: Task 229 acceptance
+- Open: mi-3 (deferred by the user to Task 249)
 
 ### Log
 - Work plan: (files) new `supabase/seed.sql` (`dev` schema, `dev.seed_fixture(user_id, scenario)` as `SECURITY DEFINER`, `search_path = ''`, owned by the writer role, `EXECUTE` for `service_role` only; first `ensure_account()` for that user with the 3×2 reserved block, then clears every row except `accounts` and the system Nodes, then inserts the scenario relative to `now`, reusing the account's system Node ids and cells outside x<3,y<2 at every level); `supabase/config.toml` (`api.schemas` gains `dev`); new `supabase/tests/dev-seed.db.test.ts`; `scripts/dev-fixtures/inbox-triage.js` rewritten (signs in as a local test user, calls `dev.seed_fixture` with the local service key, refuses a non-local URL, returns `IDS` and `inboxRoute`; `armFault` and the IndexedDB guard go; `drag.js` unchanged); `src/lib/db/inbox-triage-dev-fixture.test.ts` updated; `use-scratch-lifecycle-handoff.ts` (MI-19) if not moot.
@@ -169,3 +169,12 @@ Baseline gate (2026-10-26): `git diff --check`, `pnpm test` (2177), `pnpm test:d
 - Decision: Phase 35 MI-19 closed (fixed with tests in Stage 3) (user, 2026-10-29).
 - Decision: mi-3 deferred to Task 249: after the zone guards move to the server, check that the 156-Bit Full folder reads as full; until then the header recipe applies (user, 2026-10-29).
 - Stage 3 review applied (2026-10-29): (1) checked, no change: `finishExternalRemoval` (`triage-workspace.tsx:2152`) reads the sort and search from its render closure the same way, but its only await is the in-memory snapshot read, so no input can land in between; it is outside MI-19. (2) the script header now gives the full-grid message recipe (create in the Full folder until the dialog answers no empty cell, filling the block cells the measured breadcrumb leaves open), and the narrower-viewport claim is gone from mi-3. Decision: Stage 3 accepted (user, 2026-10-29).
+- Stage 3 committed `f4e68bd` (accepted 2026-10-29).
+- Review (expert, 2026-10-29, Finish): (1) low — after a local `db reset` (the SaaS lane's `pnpm test:db`), the fixture reused a stored session whose user no longer exists, and `dev.seed_fixture` then failed with `not a fixture test user` until the token expired — fixed: the script asks `GET /auth/v1/user` before reusing a stored session (no sign-in limit spent) and signs in again when it is refused; a test covers it. No other finding: grants, `search_path`, claims scope, the email check, locking and clearing, the local guard and the MI-19 hook change read clean.
+
+### Checkpoint
+- Changed: `supabase/seed.sql` (the local-only `dev.seed_fixture` and helpers), `supabase/config.toml` (`dev` exposed), `supabase/tests/dev-seed.db.test.ts`; `scripts/dev-fixtures/inbox-triage.js` and `src/lib/db/inbox-triage-dev-fixture.test.ts` (seed through the database as a local fixture user); `use-scratch-lifecycle-handoff.ts` and its test (Phase 35 MI-19 fixed).
+- Verified: `git diff --check`, `pnpm test` (2337, then the fixture file again with the reset fix: 6 pass), `pnpm test:db` (942), `pnpm lint` (0 errors, 11 warnings), `pnpm typecheck`, `pnpm build`; the browser run of Stage 2 (seed, reload into the seeded account, a `drag.js` placement that survives a reload, Trash, Archive View, Full folder 156 Bits).
+- Please check: only read the record. The fixture is exercised by the agent; MI-19 is closed by you (done 2026-10-29); mi-3 is deferred to Task 249 and the script header carries the full-grid recipe until then.
+- Unresolved: mi-3 (Full folder offers block cells the measured breadcrumb leaves open; deferred to Task 249).
+- Review: reset-session reuse → fixed (this commit).
