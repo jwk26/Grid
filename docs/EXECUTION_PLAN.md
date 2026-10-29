@@ -744,7 +744,10 @@ notice; a write in flight when the server stops ends in the server's state
 after recovery (unknown-outcome rule).
 
 **Verification:** full gate; `expert` review (state machine); browser
-checkpoint.
+checkpoint. Whichever of this task and the Phase 50 close lands on `main`
+second also checks Task 245A mi-3 in the browser: an editor save left unknown,
+the row deleted in another tab, the refetch invalidates the editor, one
+read-only reconcile is sent, and other Inbox writes work again without reload.
 
 **Commit message:** `feat(sync): add the connection states and the offline gate`.
 
