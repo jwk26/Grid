@@ -632,7 +632,7 @@ describe("useScratchBreakdowns", () => {
     });
     const operationId = lock.activeOperation?.operationId;
     expect(operationId).toBeTruthy();
-    expect(result.current.editor.snapshot).toMatchObject({ phase: "reconciling" });
+    expect(result.current.editor.snapshot).toMatchObject({ phase: "unknown" });
     expect(result.current.editor.titleBlocker).toBe("reconciling");
     expect(lock.release).not.toHaveBeenCalledWith(operationId, expect.anything());
 
@@ -651,6 +651,241 @@ describe("useScratchBreakdowns", () => {
     });
     expect(result.current.editor.titleBlocker).toBe("conflicted");
     expect(lock.release).toHaveBeenCalledWith(operationId, "conflict");
+  });
+
+  it("enters unknown on a thrown save, never resends it, and keeps the lock", async () => {
+    const lock = createOperationLock();
+    dataStore.saveScratchTitle.mockRejectedValue(new Error("request lost"));
+    const { result } = renderHook(() =>
+      useScratchBreakdowns("scratch-1", "DESC", { operationLock: lock }),
+    );
+    const navigate = vi.fn();
+    act(() => {
+      result.current.editor.openScratchTitle(createScratch({ title: "A", version: 3 }));
+      result.current.editor.changeDraft("Mine");
+    });
+    await act(async () => {
+      expect(await result.current.editor.save(navigate)).toBe(false);
+    });
+    expect(result.current.editor.snapshot).toMatchObject({
+      phase: "unknown",
+      draft: "Mine",
+      pendingIntent: false,
+      command: expect.objectContaining({ title: "Mine" }),
+    });
+    expect(result.current.editor.titleBlocker).toBe("reconciling");
+    expect(lock.activeOperation).not.toBeNull();
+
+    // Save, Cancel and edits do nothing in unknown; nothing is resent.
+    await act(async () => {
+      expect(await result.current.editor.save()).toBe(false);
+    });
+    act(() => {
+      expect(result.current.editor.cancel()).toBe(false);
+      result.current.editor.changeDraft("Other");
+    });
+    expect(dataStore.saveScratchTitle).toHaveBeenCalledTimes(1);
+    expect(result.current.editor.snapshot).toMatchObject({
+      phase: "unknown",
+      draft: "Mine",
+    });
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("reconciles from unknown through reconciling, and a throw returns to unknown", async () => {
+    const lock = createOperationLock();
+    dataStore.saveBreakdown.mockRejectedValue(new Error("request lost"));
+    const { result } = renderHook(() =>
+      useScratchBreakdowns("scratch-1", "DESC", { operationLock: lock }),
+    );
+    act(() => {
+      result.current.editor.openBreakdown(
+        createScratchBreakdown({ id: "row-1", content: "A", version: 2 }),
+        false,
+      );
+      result.current.editor.changeDraft("Mine");
+    });
+    await act(async () => void (await result.current.editor.save()));
+    const operationId = lock.activeOperation?.operationId;
+    expect(result.current.editor.snapshot).toMatchObject({ phase: "unknown" });
+
+    let rejectReconcile: (error: Error) => void = () => {};
+    dataStore.reconcileSaveBreakdown.mockImplementationOnce(
+      () => new Promise((_, reject) => (rejectReconcile = reject)),
+    );
+    let pending: Promise<boolean> = Promise.resolve(false);
+    await act(async () => {
+      pending = result.current.editor.reconcile();
+      await vi.waitFor(() =>
+        expect(dataStore.reconcileSaveBreakdown).toHaveBeenCalledTimes(1),
+      );
+    });
+    expect(result.current.editor.snapshot).toMatchObject({ phase: "reconciling" });
+    await act(async () => {
+      rejectReconcile(new Error("still lost"));
+      await pending;
+    });
+    expect(result.current.editor.snapshot).toMatchObject({ phase: "unknown" });
+    expect(lock.activeOperation?.operationId).toBe(operationId);
+
+    dataStore.reconcileSaveBreakdown.mockImplementationOnce(async (command) => ({
+      operationId: command.operationId,
+      status: "not_applied",
+      breakdown: null,
+    }));
+    await act(async () => {
+      expect(await result.current.editor.reconcile()).toBe(false);
+    });
+    expect(result.current.editor.snapshot).toMatchObject({
+      phase: "not_applied",
+      draft: "Mine",
+    });
+    expect(lock.activeOperation).toBeNull();
+    expect(dataStore.saveBreakdown).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes with the applied answer of a reconcile from unknown", async () => {
+    const lock = createOperationLock();
+    dataStore.saveScratchTitle.mockRejectedValue(new Error("request lost"));
+    const { result } = renderHook(() =>
+      useScratchBreakdowns("scratch-1", "DESC", { operationLock: lock }),
+    );
+    act(() => {
+      result.current.editor.openScratchTitle(createScratch({ title: "A", version: 3 }));
+      result.current.editor.changeDraft("Mine");
+    });
+    await act(async () => void (await result.current.editor.save()));
+    dataStore.reconcileSaveScratchTitle.mockImplementationOnce(async (command) => ({
+      operationId: command.operationId,
+      status: "applied",
+      scratch: createScratch({ title: "Mine", version: 4 }),
+    }));
+    await act(async () => {
+      expect(await result.current.editor.reconcile()).toBe(true);
+    });
+    expect(result.current.editor.snapshot).toBeNull();
+    expect(lock.activeOperation).toBeNull();
+  });
+
+  describe("invalidation while a save is unconfirmed (mi-3)", () => {
+    async function openUnknown(lock: ReturnType<typeof createOperationLock>) {
+      dataStore.saveScratchTitle.mockRejectedValue(new Error("request lost"));
+      const hook = renderHook(() =>
+        useScratchBreakdowns("scratch-1", "DESC", { operationLock: lock }),
+      );
+      act(() => {
+        hook.result.current.editor.openScratchTitle(createScratch({ title: "A", version: 3 }));
+        hook.result.current.editor.changeDraft("Mine");
+      });
+      await act(async () => void (await hook.result.current.editor.save()));
+      return hook;
+    }
+
+    it("sends exactly one read-only reconcile when invalidated offline, keeps Close unavailable and offers Check again", async () => {
+      const lock = createOperationLock();
+      const { result } = await openUnknown(lock);
+      dataStore.reconcileSaveScratchTitle.mockRejectedValue(new Error("offline"));
+      await act(async () => {
+        result.current.editor.invalidate();
+        result.current.editor.invalidate();
+      });
+      await act(async () => {});
+      expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(1);
+      expect(dataStore.saveScratchTitle).toHaveBeenCalledTimes(1);
+      expect(result.current.editor.snapshot).toMatchObject({
+        phase: "invalidated",
+        command: expect.objectContaining({ title: "Mine" }),
+        copyableDraft: "Mine",
+      });
+      expect(lock.activeOperation).not.toBeNull();
+      act(() => {
+        expect(result.current.editor.cancel()).toBe(false);
+        result.current.editor.invalidate();
+      });
+      await act(async () => {});
+      expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(1);
+
+      dataStore.reconcileSaveScratchTitle.mockImplementationOnce(async (command) => ({
+        operationId: command.operationId,
+        status: "conflict",
+        scratch: null,
+      }));
+      await act(async () => {
+        await result.current.editor.reconcile();
+      });
+      expect(lock.activeOperation).toBeNull();
+      expect(result.current.editor.snapshot).toMatchObject({
+        phase: "invalidated",
+        command: null,
+      });
+      act(() => {
+        expect(result.current.editor.cancel()).toBe(true);
+      });
+      expect(result.current.editor.snapshot).toBeNull();
+    });
+
+    it("a terminal background answer releases the lock so other writes work again", async () => {
+      const lock = createOperationLock();
+      const { result } = await openUnknown(lock);
+      dataStore.reconcileSaveScratchTitle.mockImplementation(async (command) => ({
+        operationId: command.operationId,
+        status: "conflict",
+        scratch: null,
+      }));
+      await act(async () => {
+        result.current.editor.invalidate();
+      });
+      await act(async () => {});
+      expect(lock.activeOperation).toBeNull();
+      expect(lock.acquire("add", "add-1")).toBe(true);
+      expect(result.current.editor.snapshot).toMatchObject({
+        phase: "invalidated",
+        command: null,
+      });
+    });
+
+    it("invalidation during saving followed by a thrown request takes the same path", async () => {
+      const lock = createOperationLock();
+      let rejectSave: (error: Error) => void = () => {};
+      dataStore.saveScratchTitle.mockImplementation(
+        () => new Promise((_, reject) => (rejectSave = reject)),
+      );
+      const { result } = renderHook(() =>
+        useScratchBreakdowns("scratch-1", "DESC", { operationLock: lock }),
+      );
+      act(() => {
+        result.current.editor.openScratchTitle(createScratch({ title: "A", version: 3 }));
+        result.current.editor.changeDraft("Mine");
+      });
+      await act(async () => {
+        void result.current.editor.save();
+        await vi.waitFor(() => expect(dataStore.saveScratchTitle).toHaveBeenCalledTimes(1));
+      });
+      act(() => result.current.editor.invalidate());
+      expect(result.current.editor.snapshot).toMatchObject({ phase: "invalidated" });
+      expect(dataStore.reconcileSaveScratchTitle).not.toHaveBeenCalled();
+      // Check again waits while the original request is out.
+      await act(async () => {
+        expect(await result.current.editor.reconcile()).toBe(false);
+      });
+      expect(dataStore.reconcileSaveScratchTitle).not.toHaveBeenCalled();
+      dataStore.reconcileSaveScratchTitle.mockImplementation(async (command) => ({
+        operationId: command.operationId,
+        status: "applied",
+        scratch: createScratch({ title: "Mine", version: 4 }),
+      }));
+      await act(async () => {
+        rejectSave(new Error("request lost"));
+      });
+      await act(async () => {});
+      expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(1);
+      expect(dataStore.saveScratchTitle).toHaveBeenCalledTimes(1);
+      expect(lock.activeOperation).toBeNull();
+      expect(result.current.editor.snapshot).toMatchObject({
+        phase: "invalidated",
+        command: null,
+      });
+    });
   });
 
   it("uses only the acknowledged ABA latest version for Use mine and Use latest writes nothing", async () => {

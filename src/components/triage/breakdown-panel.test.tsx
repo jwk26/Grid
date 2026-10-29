@@ -1397,7 +1397,8 @@ describe("BreakdownPanel", () => {
       expect(fireEvent.keyDown(field, { key: "End" })).toBe(true);
       expect(field.selectionStart).toBe(60);
       expect(field).toHaveValue("T".repeat(60));
-      expect(field).toHaveFocus();
+      // Reconciling keeps focus on Check again.
+      if (phase === "saving") expect(field).toHaveFocus();
       expect(editorState.changeDraft).not.toHaveBeenCalled();
       expect(editorState.save).not.toHaveBeenCalled();
       expect(editorState.cancel).not.toHaveBeenCalled();
@@ -1790,7 +1791,7 @@ describe("BreakdownPanel", () => {
       if (phase === "saving" || phase === "reconciling") {
         const field = within(surface as HTMLElement).getByRole("textbox");
         expect(field).toHaveAttribute("readonly");
-        expect(field).toHaveFocus();
+        if (phase === "saving") expect(field).toHaveFocus();
         const sourceSurface = (surface as HTMLElement).closest(
           '[data-triage-layout="fixed-inline-editor"]',
         ) as HTMLElement;
@@ -1803,8 +1804,15 @@ describe("BreakdownPanel", () => {
         );
         // No progress text any more: the status box, then Save and Cancel, both unavailable.
         expect(actions.queryByText(/Saving…|Checking whether/)).toBeNull();
-        expect(actions.getByRole("button", { name: "Save" })).toBeDisabled();
-        expect(actions.getByRole("button", { name: "Cancel" })).toBeDisabled();
+        if (phase === "saving") {
+          expect(actions.getByRole("button", { name: "Save" })).toBeDisabled();
+          expect(actions.getByRole("button", { name: "Cancel" })).toBeDisabled();
+        } else {
+          expect(actions.getByRole("button", { name: "Check again" })).toHaveAttribute(
+            "aria-disabled",
+            "true",
+          );
+        }
       }
       if (phase === "validation") {
         expect(
@@ -2002,7 +2010,7 @@ describe("BreakdownPanel", () => {
   describe("editor item statuses (feedback F05)", () => {
     function openEditor(
       kind: "scratch-title" | "breakdown",
-      phase: "dirty" | "saving" | "reconciling" | "not_applied",
+      phase: "dirty" | "saving" | "unknown" | "reconciling" | "not_applied",
       extra: { pendingIntent?: boolean } = {},
     ) {
       triageStoreState.selectedScratchId = "scratch-1";
@@ -2095,6 +2103,81 @@ describe("BreakdownPanel", () => {
     );
 
     it.each(["scratch-title", "breakdown"] as const)(
+      "%s unknown shows `?` at once with emphasis, the sentence on the field and Check again in place of Save and Cancel",
+      async (kind) => {
+        vi.useFakeTimers();
+        const { slot, actions, field } = openEditor(kind, "unknown");
+        const sentence = "We couldn't confirm whether your changes were saved.";
+        expect(within(slot).getByRole("img", { name: sentence })).toHaveAttribute(
+          "data-glyph",
+          "question",
+        );
+        act(() => vi.advanceTimersByTime(1000));
+        expect(within(slot).getByRole("img", { name: sentence })).toHaveAttribute(
+          "data-glyph",
+          "question",
+        );
+        expect(field).toHaveAttribute("data-status-emphasis");
+        expect(field).toHaveAttribute("readonly");
+        expect(announcementOf("inline-editor-announcement")).toHaveTextContent(sentence);
+        expect(within(actions).queryByRole("button", { name: "Save" })).toBeNull();
+        expect(within(actions).queryByRole("button", { name: "Cancel" })).toBeNull();
+        fireEvent.blur(field);
+        expect(editorState.save).not.toHaveBeenCalled();
+        const check = within(actions).getByRole("button", { name: "Check again" });
+        expect(check).not.toHaveAttribute("aria-disabled");
+        fireEvent.click(check);
+        expect(check).toHaveFocus();
+        expect(editorState.reconcile).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it("moves focus to Check again when the editor enters unknown with focus on the page body", () => {
+      const { view } = openEditor("breakdown", "saving");
+      (document.activeElement as HTMLElement | null)?.blur();
+      editorState.snapshot = { ...editorState.snapshot!, phase: "unknown" };
+      view.rerender(<BreakdownPanel />);
+      expect(screen.getByRole("button", { name: "Check again" })).toHaveFocus();
+    });
+
+    it("announces Saved. once when Check again ends in an applied answer", () => {
+      const { view } = openEditor("breakdown", "reconciling");
+      editorState.snapshot = null;
+      view.rerender(<BreakdownPanel />);
+      expect(screen.getAllByText("Saved.").length).toBeGreaterThan(0);
+    });
+
+    it("offers Check again and no Close in the recovery view while a command is held", () => {
+      openEditor("breakdown", "dirty");
+      editorState.snapshot = {
+        ...editorState.snapshot!,
+        phase: "invalidated",
+        copyableDraft: "Edited text",
+        command: { operationId: "op-1" } as never,
+      };
+      const { unmount } = render(<BreakdownPanel />);
+      const overlay = screen.getAllByTestId("inline-editor-issue-overlay").at(-1) as HTMLElement;
+      expect(within(overlay).getByRole("button", { name: "Close" })).toBeDisabled();
+      fireEvent.click(within(overlay).getByRole("button", { name: "Check again" }));
+      expect(editorState.reconcile).toHaveBeenCalledTimes(1);
+      unmount();
+
+      editorState.snapshot = { ...editorState.snapshot!, command: null };
+      render(<BreakdownPanel />);
+      const settled = screen.getAllByTestId("inline-editor-issue-overlay").at(-1) as HTMLElement;
+      expect(within(settled).queryByRole("button", { name: "Check again" })).toBeNull();
+      expect(within(settled).getByRole("button", { name: "Close" })).toBeEnabled();
+    });
+
+    it("keeps Check again focused and unavailable while reconciling from unknown", () => {
+      const { actions } = openEditor("breakdown", "reconciling");
+      const check = within(actions).getByRole("button", { name: "Check again" });
+      expect(check).toHaveAttribute("aria-disabled", "true");
+      fireEvent.click(check);
+      expect(editorState.reconcile).not.toHaveBeenCalled();
+    });
+
+    it.each(["scratch-title", "breakdown"] as const)(
       "%s not-applied shows `!` with field emphasis, an enabled Save as the retry and no Retry save or overlay",
       (kind) => {
         const { slot, actions, field } = openEditor(kind, "not_applied");
@@ -2134,7 +2217,7 @@ describe("BreakdownPanel", () => {
       );
     });
 
-    it.each(["saving", "reconciling"] as const)(
+    it.each(["saving"] as const)(
       "%s with a pending intent shows the status box and Stay here only",
       (phase) => {
         const { actions } = openEditor("breakdown", phase, { pendingIntent: true });
@@ -2169,7 +2252,7 @@ describe("BreakdownPanel", () => {
     it.each([
       ["delayed-pending", "Saving…", "loader"],
       ["reconciling", "Checking whether your changes were saved…", "question"],
-      ["unknown", "Checking whether your changes were saved…", "question"],
+      ["unknown", "We couldn't confirm whether your changes were saved.", "question"],
       ["not-applied", "Not saved. Your draft is still here.", "exclamation"],
       ["rejected", "Not saved. Your draft is still here.", "exclamation"],
     ] as const)(
@@ -3449,7 +3532,7 @@ describe("BreakdownPanel", () => {
       const field = screen.queryByRole("textbox", { name: "Scratch title" });
       if (field !== null) {
         expect(field.getAttribute("aria-describedby") ?? "").not.toMatch(/:r/);
-        if (phase !== "conflict") expect(field).toHaveFocus();
+        if (phase !== "conflict" && phase !== "reconciling") expect(field).toHaveFocus();
       }
       expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
     },

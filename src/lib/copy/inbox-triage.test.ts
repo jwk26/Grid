@@ -133,6 +133,7 @@ describe("Inbox/Triage core-English copy", () => {
         saving: "Saving…",
         savingBeforeContinuing: "Saving before continuing…",
         notApplied: "Not saved. Your draft is still here.",
+        unknown: "We couldn't confirm whether your changes were saved.",
         reconciling: "Checking whether your changes were saved…",
         saved: "Saved.",
       },

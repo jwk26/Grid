@@ -114,6 +114,7 @@ export type ConditionalEditorPhase =
   | "validation"
   | "saving"
   | "not_applied"
+  | "unknown"
   | "reconciling"
   | "conflict"
   | "invalidated";
@@ -147,6 +148,8 @@ export type ConditionalEditorSnapshot = Readonly<{
     | "active-scratch-fallback"
     | "pending-action";
   command: ConditionalEditorCommand | null;
+  /** A read-only check of an unconfirmed save runs while the editor is invalidated. */
+  checking?: boolean;
 }> | null;
 
 export type ConditionalEditorOptions = Readonly<{
@@ -163,7 +166,9 @@ function getScratchTitleBlocker(
   }
   if (snapshot.phase === "pristine") return "open";
   if (snapshot.phase === "saving") return "saving";
-  if (snapshot.phase === "reconciling") return "reconciling";
+  if (snapshot.phase === "reconciling" || snapshot.phase === "unknown") {
+    return "reconciling";
+  }
   if (snapshot.phase === "conflict") return "conflicted";
   return "dirty";
 }
@@ -174,7 +179,9 @@ function getScratchEditBlocker(
   if (snapshot === null || snapshot.phase === "invalidated") return null;
   if (snapshot.phase === "pristine") return "open";
   if (snapshot.phase === "saving") return "saving";
-  if (snapshot.phase === "reconciling") return "reconciling";
+  if (snapshot.phase === "reconciling" || snapshot.phase === "unknown") {
+    return "reconciling";
+  }
   if (snapshot.phase === "conflict") return "conflicted";
   return "dirty";
 }
@@ -396,6 +403,7 @@ export function useScratchBreakdowns(
       if (
         current === null ||
         current.phase === "saving" ||
+        current.phase === "unknown" ||
         current.phase === "reconciling" ||
         current.phase === "invalidated"
       ) {
@@ -411,12 +419,68 @@ export function useScratchBreakdowns(
     [commitEditorSnapshot],
   );
 
+  // Read-only check of an unconfirmed save for an invalidated editor. An
+  // automatic check runs once per command; Check again runs it on request. A
+  // terminal answer releases the lock and clears the command; a failure keeps
+  // both and stays invalidated.
+  const checkedCommandIdsRef = useRef(new Set<string>());
+  const checkInvalidated = useCallback(
+    async (
+      snapshot: NonNullable<ConditionalEditorSnapshot>,
+      automatic: boolean,
+    ): Promise<boolean> => {
+      const command = snapshot.command;
+      if (command === null) return false;
+      if (automatic) {
+        if (checkedCommandIdsRef.current.has(command.operationId)) return false;
+        checkedCommandIdsRef.current.add(command.operationId);
+      }
+      commitEditorSnapshot({ ...snapshot, checking: true });
+      try {
+        const dataStore = await getDataStore();
+        const result =
+          snapshot.target.kind === "scratch-title"
+            ? await dataStore.reconcileSaveScratchTitle(
+                command as SaveScratchTitleCommand,
+              )
+            : await dataStore.reconcileSaveBreakdown(
+                command as SaveBreakdownCommand,
+              );
+        editorOptions.operationLock?.release(result.operationId, result.status);
+        const latest = editorSnapshotRef.current;
+        if (latest?.phase === "invalidated") {
+          commitEditorSnapshot({ ...latest, command: null, checking: false });
+        }
+        return result.status === "applied" || result.status === "already_applied";
+      } catch {
+        const latest = editorSnapshotRef.current;
+        if (latest?.phase === "invalidated") {
+          commitEditorSnapshot({ ...latest, checking: false });
+        }
+        return false;
+      }
+    },
+    [commitEditorSnapshot, editorOptions.operationLock],
+  );
   const applyEditorResult = useCallback(
     (
       current: NonNullable<ConditionalEditorSnapshot>,
       result: SaveScratchTitleResult | SaveBreakdownResult,
     ): boolean => {
       editorOptions.operationLock?.release(result.operationId, result.status);
+
+      // Invalidated while the answer was pending: the recovery view stays, the
+      // command is settled.
+      if (editorSnapshotRef.current?.phase === "invalidated") {
+        commitEditorSnapshot({
+          ...editorSnapshotRef.current,
+          command: null,
+          checking: false,
+          pendingIntent: false,
+        });
+        pendingIntentRef.current = null;
+        return result.status === "applied" || result.status === "already_applied";
+      }
 
       if (result.status === "applied" || result.status === "already_applied") {
         const pendingIntent = pendingIntentRef.current;
@@ -517,11 +581,25 @@ export function useScratchBreakdowns(
         return applyEditorResult(editorSnapshotRef.current ?? current, result);
       } catch {
         const latest = editorSnapshotRef.current ?? current;
-        commitEditorSnapshot({ ...latest, phase: "reconciling", command });
+        if (latest.phase === "invalidated") {
+          // Invalidated while the request was out: check it once, read-only.
+          pendingIntentRef.current = null;
+          void checkInvalidated(latest, true);
+          return false;
+        }
+        // The outcome is unknown: keep the command and the lock, drop a pending
+        // navigation (a later Check again never navigates) and never resend.
+        pendingIntentRef.current = null;
+        commitEditorSnapshot({
+          ...latest,
+          phase: "unknown",
+          command,
+          pendingIntent: false,
+        });
         return false;
       }
     },
-    [applyEditorResult, commitEditorSnapshot],
+    [applyEditorResult, checkInvalidated, commitEditorSnapshot],
   );
 
   const save = useCallback(
@@ -530,6 +608,7 @@ export function useScratchBreakdowns(
       if (
         current === null ||
         current.phase === "saving" ||
+        current.phase === "unknown" ||
         current.phase === "reconciling" ||
         current.phase === "invalidated" ||
         current.phase === "conflict"
@@ -598,11 +677,14 @@ export function useScratchBreakdowns(
 
   const reconcile = useCallback(async (): Promise<boolean> => {
     const current = editorSnapshotRef.current;
-    if (current === null || current.command === null || current.phase !== "reconciling") {
-      return false;
+    if (current === null || current.command === null) return false;
+    if (current.phase === "invalidated") {
+      if (current.checking === true) return false;
+      return checkInvalidated(current, false);
     }
+    if (current.phase !== "unknown") return false;
     return dispatchEditorSave(current, current.command, true);
-  }, [dispatchEditorSave]);
+  }, [checkInvalidated, dispatchEditorSave]);
 
   const useMine = useCallback(async (): Promise<boolean> => {
     const current = editorSnapshotRef.current;
@@ -632,7 +714,14 @@ export function useScratchBreakdowns(
 
   const cancel = useCallback((): boolean => {
     const current = editorSnapshotRef.current;
-    if (current === null || current.phase === "saving" || current.phase === "reconciling") {
+    if (
+      current === null ||
+      current.phase === "saving" ||
+      current.phase === "unknown" ||
+      current.phase === "reconciling" ||
+      // Close would drop the command and strand the lock.
+      (current.phase === "invalidated" && current.command !== null)
+    ) {
       return false;
     }
     pendingIntentRef.current = null;
@@ -645,16 +734,24 @@ export function useScratchBreakdowns(
 
   const invalidate = useCallback(() => {
     const current = editorSnapshotRef.current;
-    if (current === null) return;
+    if (current === null || current.phase === "invalidated") return;
     pendingIntentRef.current = null;
-    commitEditorSnapshot({
+    const next = {
       ...current,
-      phase: "invalidated",
+      phase: "invalidated" as const,
       copyableDraft: current.draft,
       pendingIntent: false,
-      focusIntent: "active-scratch-fallback",
-    });
-  }, [commitEditorSnapshot]);
+      focusIntent: "active-scratch-fallback" as const,
+      // A request still out settles the command; Check again waits for it.
+      ...(current.phase === "saving" || current.phase === "reconciling"
+        ? { checking: true }
+        : {}),
+    };
+    commitEditorSnapshot(next);
+    // An editor holding an unconfirmed save checks it once; one whose request
+    // is still out settles through that request's answer instead.
+    if (current.phase === "unknown") void checkInvalidated(next, true);
+  }, [checkInvalidated, commitEditorSnapshot]);
 
   const stayHere = useCallback(() => {
     const current = editorSnapshotRef.current;

@@ -331,8 +331,9 @@ function forcedEditorSentence(
     case "delayed-pending":
       return status.saving;
     case "reconciling":
-    case "unknown":
       return status.reconciling;
+    case "unknown":
+      return status.unknown;
     case "not-applied":
     case "rejected":
     case "conflict":
@@ -391,10 +392,19 @@ function InlineEditor({
       : forcedItemKeys.breakdownEditor(snapshot.target.id),
   );
   const [isFieldTooltipOpen, setIsFieldTooltipOpen] = useState(false);
+  const checkAgainRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const field = fieldRef.current;
-    if (field === null || snapshot.phase === "invalidated") return;
+    // Unknown and reconciling keep focus on Check again.
+    if (
+      field === null ||
+      snapshot.phase === "invalidated" ||
+      snapshot.phase === "unknown" ||
+      snapshot.phase === "reconciling"
+    ) {
+      return;
+    }
     if (snapshot.focusIntent !== "field" && snapshot.focusIntent !== "field-end") {
       return;
     }
@@ -404,6 +414,18 @@ function InlineEditor({
       field.setSelectionRange(end, end);
     }
   }, [snapshot.focusIntent, snapshot.phase, snapshot.target.id]);
+
+  // Entering unknown from a Save click unmounts Save: move focus to Check again
+  // rather than leave it on the page body.
+  useEffect(() => {
+    if (snapshot.phase !== "unknown") return;
+    if (
+      document.activeElement === null ||
+      document.activeElement === document.body
+    ) {
+      checkAgainRef.current?.focus();
+    }
+  }, [snapshot.phase]);
 
   useEffect(() => {
     const nextVersion = snapshot.latest?.version ?? null;
@@ -427,6 +449,7 @@ function InlineEditor({
           : snapshot.phase === "pristine" ||
               snapshot.phase === "dirty" ||
               snapshot.phase === "saving" ||
+              snapshot.phase === "unknown" ||
               snapshot.phase === "reconciling"
             ? copy.status[snapshot.phase]
             : snapshot.phase === "conflict"
@@ -438,11 +461,13 @@ function InlineEditor({
   const realStatus: ItemStatus | null =
     snapshot.phase === "saving"
       ? "pending"
-      : snapshot.phase === "reconciling"
-        ? "reconciling"
-        : snapshot.phase === "not_applied"
-          ? "problem"
-          : null;
+      : snapshot.phase === "unknown"
+        ? "unknown"
+        : snapshot.phase === "reconciling"
+          ? "reconciling"
+          : snapshot.phase === "not_applied"
+            ? "problem"
+            : null;
   const realSentence =
     realStatus === null ? null : statusCopy;
   const forcedStatus = forcedEditor?.status ?? null;
@@ -460,6 +485,9 @@ function InlineEditor({
   // Save and Cancel are unavailable at once while a save is in flight.
   const isInFlight =
     snapshot.phase === "saving" || snapshot.phase === "reconciling";
+  // Unknown and reconciling show Check again instead of Save and Cancel.
+  const isCheckingPhase =
+    snapshot.phase === "unknown" || snapshot.phase === "reconciling";
   // A tooltip opened while no status showed must not wait to open on its own
   // when one appears later: drop the flag while there is no glyph.
   if (presentation.glyph === null && isFieldTooltipOpen) {
@@ -491,6 +519,7 @@ function InlineEditor({
     }
     if (
       snapshot.phase !== "saving" &&
+      snapshot.phase !== "unknown" &&
       snapshot.phase !== "reconciling" &&
       snapshot.phase !== "conflict"
     ) {
@@ -568,7 +597,9 @@ function InlineEditor({
     },
     onKeyDown: handleFieldKeyDown,
     readOnly:
-      snapshot.phase === "saving" || snapshot.phase === "reconciling",
+      snapshot.phase === "saving" ||
+      snapshot.phase === "unknown" ||
+      snapshot.phase === "reconciling",
     value: snapshot.draft,
   };
   const isIssuePhase =
@@ -662,7 +693,25 @@ function InlineEditor({
                 <StatusIcon presentation={presentation} sentence={statusSentence} />
               ) : null}
             </span>
-            {snapshot.pendingIntent && isInFlight ? (
+            {isCheckingPhase ? (
+              <Button
+                ref={checkAgainRef}
+                aria-disabled={
+                  snapshot.phase === "reconciling" ? "true" : undefined
+                }
+                data-triage-role="inline-editor-check-again"
+                size="xs"
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  if (snapshot.phase !== "unknown") return;
+                  checkAgainRef.current?.focus();
+                  void editor.reconcile();
+                }}
+              >
+                {INBOX_TRIAGE_COPY.reliability.actions.checkAgain}
+              </Button>
+            ) : snapshot.pendingIntent && isInFlight ? (
               <Button
                 size="xs"
                 type="button"
@@ -768,7 +817,23 @@ function InlineEditor({
                 <Button size="xs" type="button" onClick={() => void copyDraft()}>
                   {copy.conflict.copyDraft}
                 </Button>
+                {snapshot.command !== null ? (
+                  <Button
+                    aria-disabled={snapshot.checking === true ? "true" : undefined}
+                    data-triage-role="inline-editor-check-again"
+                    size="xs"
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (snapshot.checking === true) return;
+                      void editor.reconcile();
+                    }}
+                  >
+                    {INBOX_TRIAGE_COPY.reliability.actions.checkAgain}
+                  </Button>
+                ) : null}
                 <Button
+                  disabled={snapshot.command !== null}
                   size="xs"
                   type="button"
                   variant="outline"
@@ -1677,6 +1742,17 @@ export function BreakdownPanel({
       draft.length > 0 || addCompletionHoldRef.current,
     );
   }
+
+  // Check again that ends in an applied answer closes the editor from
+  // `reconciling`; no other path leaves that phase for a closed editor.
+  const editorPhase = editor.snapshot?.phase ?? null;
+  const previousEditorPhaseRef = useRef(editorPhase);
+  useEffect(() => {
+    if (previousEditorPhaseRef.current === "reconciling" && editorPhase === null) {
+      setEditorAnnouncement(INBOX_TRIAGE_COPY.inlineEditor.status.saved);
+    }
+    previousEditorPhaseRef.current = editorPhase;
+  }, [editorPhase]);
 
   async function handleEditorSave(): Promise<boolean> {
     const snapshot = editor.snapshot;

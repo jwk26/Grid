@@ -69,6 +69,7 @@ export interface InboxTriageCopy {
       readonly saving: string;
       readonly savingBeforeContinuing: string;
       readonly notApplied: string;
+      readonly unknown: string;
       readonly reconciling: string;
       readonly saved: string;
     };
@@ -460,6 +461,7 @@ export const INBOX_TRIAGE_COPY = {
       saving: "Saving…",
       savingBeforeContinuing: "Saving before continuing…",
       notApplied: "Not saved. Your draft is still here.",
+      unknown: "We couldn't confirm whether your changes were saved.",
       reconciling: "Checking whether your changes were saved…",
       saved: "Saved.",
     },
