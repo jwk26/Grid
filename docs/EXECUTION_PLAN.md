@@ -1096,12 +1096,21 @@ reachable on a slow or dropped connection.
   returns to `unknown`. Cancel, Escape, edits and blur save stay unavailable
   in `unknown` and `reconciling`. Entering `unknown` drops a pending navigation
   intent, as `Stay here` does, so a later `Check again` never navigates.
+  An editor invalidated while it holds a command (from `unknown`, or from
+  `saving` or `reconciling` whose request then throws) enters the recovery view
+  at once and runs the read-only reconcile once in the background; a terminal
+  answer releases the lock and clears the command, and the recovery view stays.
+  A background reconcile that throws returns to `invalidated` with the command
+  kept and is never retried on its own. `cancel()` (Close) is unavailable while
+  an invalidated editor holds a command (Phase 50 mi-3).
 - `src/components/triage/breakdown-panel.tsx` and test: `unknown` shows `?` at
   once in the editor status box with field emphasis and the field tooltip, and
   a compact `Check again` in place of Save and Cancel (`[box][Check again]`,
   inside the `9.5rem` region). `Check again`
   turns unavailable at once and stays focused through reconcile, as Add's does.
-  The new state is announced once through the editor's live container.
+  The new state is announced once through the editor's live container. While
+  the recovery view holds a command, it offers `Check again` beside Copy and
+  Close is unavailable.
 - `src/lib/copy/inbox-triage.ts` and test: `inlineEditor.status.unknown`:
   `We couldn't confirm whether your changes were saved.`; `Check again` reuses
   `reliability.actions.checkAgain`.
@@ -1110,9 +1119,9 @@ reachable on a slow or dropped connection.
 
 **Dependencies:** Task 245.
 
-**Authority:** Phase 50 mi-2; SPEC §Item status presentation (Unknown, Reconciling)
-and the Editor states bullet; DESIGN_TOKENS `DP-VQ04` amendment (`unknown` row);
-CLAUDE.md Architecture 6 and 9.
+**Authority:** Phase 50 mi-2, mi-3; SPEC §Item status presentation (Unknown,
+Reconciling) and the Editor states bullet; DESIGN_TOKENS `DP-VQ04` amendment
+(`unknown` and `invalidated` rows); CLAUDE.md Architecture 6 and 9.
 
 **Observable acceptance:** with `save_breakdown` or `save_scratch_title`
 answered `Unknown — request lost`, the editor shows `?` with emphasis and
@@ -1120,7 +1129,11 @@ answered `Unknown — request lost`, the editor shows `?` with emphasis and
 shows `?` then the loader after 300ms and ends in the right state for an
 applied, not applied or conflicting answer; while unknown, other Inbox writes
 stay locked, and after the terminal answer they work again without reload; a
-reconcile that fails again returns to `?`.
+reconcile that fails again returns to `?`. When another tab deletes or stages
+the row while the editor is unknown, the recovery view appears, one read-only
+check is sent, and other Inbox writes work again without reload; if that check
+fails (offline), it is sent only once, Close stays unavailable and
+`Check again` is offered.
 
 **Verification:** gate; `expert` review (state logic and lock release); browser
 checkpoint with the state switch in `griddo`, `retro-mac` and `neumorphism`, light

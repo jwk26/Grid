@@ -753,7 +753,11 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   `We couldn't confirm whether your changes were saved.` in the tooltip and a
   compact `Check again` in place of Save and Cancel; it is never resent, the lock
   stays until a terminal answer, and `Check again` reconciles read-only (Task
-  245A, Phase 50 mi-2).
+  245A, Phase 50 mi-2). An editor invalidated while it holds such a save shows
+  the recovery view at once and checks once, read-only, in the background; a
+  terminal answer releases the lock and the view stays. If that check fails,
+  the view offers `Check again` and Close stays unavailable until a terminal
+  answer; the check is never retried on its own (Phase 50 mi-3).
 - Editors capture `{record ID, base value, version, lifecycle}` in client memory
   and use SCHEMA CAS. A stale write never becomes last-write-wins. Text conflict
   offers inline use-mine/use-latest semantics against the acknowledged latest

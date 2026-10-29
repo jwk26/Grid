@@ -796,7 +796,7 @@ to the item status rule ([Feedback Status Surfaces](#feedback-status-surfaces)):
 | `offline` (`Offline. Your draft is still here.`) | No overlay: the draft stays in the editor and the offline write-attempt toast appears (SPEC §Toasts) |
 | `unknown` (Task 245A) | `?` at once with field emphasis and the tooltip `We couldn't confirm whether your changes were saved.`; a compact `Check again` replaces Save and Cancel in the action region; `reconciling` after it keeps `?`, then the loader |
 | `conflict` | Unchanged: the source-bound conflict view stays (F08) |
-| `invalidated` | Unchanged: the recovery overlay is a decision surface F05 does not touch |
+| `invalidated` | Unchanged: the recovery overlay is a decision surface F05 does not touch. Exception (Task 245A, mi-3): while it holds a save whose outcome is unconfirmed, a compact `Check again` sits beside Copy and Close is unavailable until a terminal answer |
 | Applied (`Saved.`) | Only the polite hidden announcement (F04) |
 
 The fixed geometry, the `9.5rem` action region and the lock rules stay. The
