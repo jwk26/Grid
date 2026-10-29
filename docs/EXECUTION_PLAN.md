@@ -673,8 +673,11 @@ after the user accepts it; the gate is green at the end of every stage.
    `dexie` used in `src/components/layout/grid-runtime.test.tsx`,
    `src/components/triage/triage-workspace.test.tsx` and
    `src/hooks/use-triage-dnd.test.ts`; and in `src/lib/db/supabase-store.test.ts`
-   the read-parity block against the Dexie store is deleted, since its
-   reference leaves (its Phase 45 run is the evidence).
+   the read-parity block against the Dexie store, which is the only test of the
+   snapshot store's reads, is rewritten as explicit expected values over the
+   same fixture (ids and order, taken from the Dexie store's current output
+   while it still exists), and the read cases of `archive-sweep.test.ts` move
+   into it.
 2. **Dexie out.** Delete `src/lib/db/indexeddb.ts` with its `settings` store,
    the Dexie side of `runBreadcrumbZoneMigration` (the interface method and the
    Supabase no-op stay for Task 249 if it has not landed) and the Dexie backing
