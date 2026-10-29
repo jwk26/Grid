@@ -24,6 +24,12 @@
 // Task 231), and stopping the `supabase_kong_grid` container (then
 // starting it again) for an unreachable server and the load-failure screen.
 //
+// The Full folder holds a Bit in every cell outside the top-left 3x2 block (feedback F34), but the
+// client only blocks the breadcrumb zone it measures, so it can still offer block cells. To reach
+// the full-grid message ("has no empty cell"), create in the Full folder until the dialog
+// answers it, filling the block cells the measured breadcrumb leaves open. After Task 249 the
+// folder is checked to read as full without this step (ledger mi-3).
+//
 // Scenario ids are generated per run by the database function; the same keys as before
 // (inbox, archive, documents, fullFolder, stagingScratch, ...) are returned under `ids` and
 // kept at window.griddoFixture.IDS. Use one fixture label per browser session or lane: two

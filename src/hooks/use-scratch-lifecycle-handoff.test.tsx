@@ -144,4 +144,60 @@ describe("useScratchLifecycleHandoff", () => {
     expect(onBeforeDestination).toHaveBeenCalledWith({ id: "older", kind: "scratch" });
     expect(seenSelection).toEqual(["selected"]);
   });
+  // Phase 35 MI-19: the search and sort can change while the terminal read is in flight
+  // (search is not behind the operation lock), so the destination uses the values at the
+  // moment the read returns, not the ones the handler closed over when the action started.
+  function deferredSetup() {
+    let resolveRead: (value: unknown) => void = () => undefined;
+    const readTerminalSnapshot = vi.fn(
+      () => new Promise((resolve) => { resolveRead = resolve; }),
+    );
+    const { result } = renderHook(() =>
+      useScratchLifecycleHandoff({
+        inboxNodeId: "inbox",
+        readTerminalSnapshot: readTerminalSnapshot as never,
+      }),
+    );
+    const handoff = result.current; // the closure of the render the action started in
+    const settle = () =>
+      resolveRead({ projectedActiveScratchBits: [newer, selected, older], source: selected });
+    return { handoff, settle };
+  }
+
+  it("uses the search typed while the terminal read was in flight", async () => {
+    const { handoff, settle } = deferredSetup();
+    const pending = handoff("selected", { scratch: selected });
+    useTriageStore.setState({ scratchPoolQuery: "alpha" });
+    settle();
+    await expect(pending).resolves.toEqual({ id: "newer", kind: "scratch" });
+    expect(useTriageStore.getState().selectedScratchId).toBe("newer");
+  });
+
+  it("uses the sort changed while the terminal read was in flight", async () => {
+    const { handoff, settle } = deferredSetup();
+    const pending = handoff("selected", { scratch: selected });
+    useTriagePreferencesStore.setState({ poolCreatedAtSort: "ASC" });
+    settle();
+    await expect(pending).resolves.toEqual({ id: "newer", kind: "scratch" });
+  });
+  it("falls back to the Pool as it stands after a failed read, not as the action began", async () => {
+    useTriageStore.setState({
+      scratchPoolActiveIds: ["newer", "selected", "older"],
+      scratchPoolResultIds: ["newer", "selected", "older"],
+    });
+    let rejectRead: (reason: Error) => void = () => undefined;
+    const readTerminalSnapshot = vi.fn(
+      () => new Promise((_resolve, reject) => { rejectRead = reject; }),
+    );
+    const { result } = renderHook(() =>
+      useScratchLifecycleHandoff({
+        inboxNodeId: "inbox",
+        readTerminalSnapshot: readTerminalSnapshot as never,
+      }),
+    );
+    const pending = result.current("selected", { scratch: selected });
+    useTriageStore.setState({ scratchPoolResultIds: ["newer", "selected"] });
+    rejectRead(new Error("read failed"));
+    await expect(pending).resolves.toEqual({ id: "newer", kind: "scratch" });
+  });
 });

@@ -41,12 +41,8 @@ export function useScratchLifecycleHandoff({
   onBeforeDestination,
   readTerminalSnapshot,
 }: UseScratchLifecycleHandoffOptions) {
-  const scratchPoolQuery = useTriageStore((state) => state.scratchPoolQuery);
   const finishScratchArchive = useTriageStore(
     (state) => state.finishScratchArchive,
-  );
-  const poolCreatedAtSort = useTriagePreferencesStore(
-    (state) => state.poolCreatedAtSort,
   );
 
   return useCallback(
@@ -54,11 +50,11 @@ export function useScratchLifecycleHandoff({
       scratchId: string,
       result: unknown,
     ): Promise<ExternalScratchRemovalDestination> => {
-      const poolSnapshot = useTriageStore.getState();
       let terminalSnapshot: ExternalScratchRemovalTerminalSnapshot;
       try {
         terminalSnapshot = await readTerminalSnapshot(inboxNodeId, scratchId);
       } catch {
+        const poolSnapshot = useTriageStore.getState();
         const fallbackContext = {
           activeIds: poolSnapshot.scratchPoolActiveIds,
           visibleIds: poolSnapshot.scratchPoolResultIds,
@@ -74,6 +70,11 @@ export function useScratchLifecycleHandoff({
         onDestination?.(fallback);
         return fallback;
       }
+      // The search and the sort are read now, not when the action started: the
+      // search is not behind the operation lock, so either can change while the
+      // read is in flight (Phase 35 MI-19).
+      const { scratchPoolQuery } = useTriageStore.getState();
+      const { poolCreatedAtSort } = useTriagePreferencesStore.getState();
       const { projectedActiveScratchBits, source } = terminalSnapshot;
       const remaining = projectedActiveScratchBits.filter(
         (scratch) => scratch.id !== scratchId,
@@ -117,9 +118,7 @@ export function useScratchLifecycleHandoff({
       inboxNodeId,
       onBeforeDestination,
       onDestination,
-      poolCreatedAtSort,
       readTerminalSnapshot,
-      scratchPoolQuery,
     ],
   );
 }
