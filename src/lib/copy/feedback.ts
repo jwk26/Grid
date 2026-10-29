@@ -9,6 +9,16 @@ export function createDialogNoEmptyCell(target: string): string {
   return `“${target}” has no empty cell. Move or delete an item to make room.`;
 }
 
+/**
+ * The offline write-attempt warning toast (SPEC §Toasts, F18). One fixed id, so a
+ * repeat updates the visible toast instead of stacking another. The counted form
+ * arrives with the shared toast helper (Task 232).
+ */
+export const OFFLINE_WRITE_ATTEMPT = {
+  id: "offline-write-attempt",
+  single: "You're offline. Changes can't be saved right now.",
+} as const;
+
 // App-level screens (SPEC §Feedback copy, App-level screens). The Loading screen's copy comes
 // with Task 234.
 const UNREACHABLE_REASON = "The server can't be reached. Check your connection and try again.";

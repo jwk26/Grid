@@ -132,7 +132,6 @@ describe("Inbox/Triage core-English copy", () => {
         dirty: "Unsaved changes.",
         saving: "Saving…",
         savingBeforeContinuing: "Saving before continuing…",
-        offline: "Offline. Your draft is still here.",
         notApplied: "Not saved. Your draft is still here.",
         reconciling: "Checking whether your changes were saved…",
         saved: "Saved.",
@@ -155,7 +154,6 @@ describe("Inbox/Triage core-English copy", () => {
         close: "Close",
       },
       actions: {
-        retrySave: "Retry save",
         stayHere: "Stay here",
       },
     });

@@ -9,6 +9,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { toast } from "sonner";
+import { offlineToastIcon } from "@/components/feedback/toast-icons";
+import { OFFLINE_WRITE_ATTEMPT } from "@/lib/copy/feedback";
 import {
   getDataStore,
   type AddBreakdownCommand,
@@ -110,7 +113,6 @@ export type ConditionalEditorPhase =
   | "dirty"
   | "validation"
   | "saving"
-  | "offline"
   | "not_applied"
   | "reconciling"
   | "conflict"
@@ -548,7 +550,14 @@ export function useScratchBreakdowns(
         return true;
       }
       if ((editorOptions.isOnline ?? isBrowserOnline)() === false) {
-        commitEditorSnapshot({ ...current, phase: "offline", focusIntent: "field" });
+        // Offline write attempt (F05, F18): nothing changes on screen and the
+        // draft stays; only the warning toast appears, under one fixed id so a
+        // repeat updates it. Task 233 replaces this check with the connection
+        // monitor and Task 232 this call with the shared toast helper.
+        toast.warning(OFFLINE_WRITE_ATTEMPT.single, {
+          id: OFFLINE_WRITE_ATTEMPT.id,
+          icon: offlineToastIcon,
+        });
         return false;
       }
 

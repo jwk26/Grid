@@ -68,7 +68,6 @@ export interface InboxTriageCopy {
       readonly dirty: string;
       readonly saving: string;
       readonly savingBeforeContinuing: string;
-      readonly offline: string;
       readonly notApplied: string;
       readonly reconciling: string;
       readonly saved: string;
@@ -91,7 +90,6 @@ export interface InboxTriageCopy {
       readonly close: string;
     };
     readonly actions: {
-      readonly retrySave: string;
       readonly stayHere: string;
     };
   };
@@ -461,7 +459,6 @@ export const INBOX_TRIAGE_COPY = {
       dirty: "Unsaved changes.",
       saving: "Saving…",
       savingBeforeContinuing: "Saving before continuing…",
-      offline: "Offline. Your draft is still here.",
       notApplied: "Not saved. Your draft is still here.",
       reconciling: "Checking whether your changes were saved…",
       saved: "Saved.",
@@ -484,7 +481,6 @@ export const INBOX_TRIAGE_COPY = {
       close: "Close",
     },
     actions: {
-      retrySave: "Retry save",
       stayHere: "Stay here",
     },
   },

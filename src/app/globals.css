@@ -4297,10 +4297,14 @@
   white-space: nowrap;
 }
 
-.triage-inline-editor__actions [data-triage-role="inline-editor-progress"] {
-  color: hsl(var(--muted-foreground));
-  font-family: var(--theme-font);
-  font-size: 0.75rem;
+/* The always-reserved 22px status box before Save (DP-FB-01, F07). */
+.triage-inline-editor__status-slot {
+  --status-icon-size: 16px;
+  align-items: center;
+  display: flex;
+  flex: none;
+  inline-size: 22px;
+  justify-content: center;
 }
 
 [data-triage-emphasis="destructive"][data-triage-contrast="adaptive"] {
@@ -4794,13 +4798,6 @@
 }
 :root[data-color-theme="retro-mac"] .triage-shell .triage-inline-editor__issue-overlay [data-triage-role="inline-editor-issue-status"] {
   font-family: var(--triage-context-font); font-size: 10px; line-height: 14px;
-}
-:root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-context .triage-inline-editor__actions:has([data-triage-role="inline-editor-progress"]) {
-  flex-direction: column; align-items: flex-end; white-space: normal;
-}
-:root[data-color-theme="retro-mac"] .triage-shell .triage-fixed-context [data-triage-role="inline-editor-progress"] {
-  font-family: var(--triage-context-font); font-size: 10px; line-height: 12px;
-  white-space: normal; overflow-wrap: anywhere; max-inline-size: 100%;
 }
 
 /* Stable title slot fits both the view text and the actual single-line editor. */
@@ -6348,7 +6345,6 @@
   opacity: 0.5;
 }
 :root[data-color-theme="neumorphism"] [data-triage-emphasis="destructive"][data-triage-contrast="adaptive"]:not(:disabled) { color: var(--triage-pool-destructive-ink); }
-:root[data-color-theme="neumorphism"] .triage-inline-editor__actions [data-triage-role="inline-editor-progress"] { color: hsl(var(--foreground) / 0.8); }
 :root[data-color-theme="neumorphism"] .triage-inline-editor__issue-overlay {
   background: color-mix(in srgb, var(--page-bg) 92%, transparent);
   border-radius: 18px;

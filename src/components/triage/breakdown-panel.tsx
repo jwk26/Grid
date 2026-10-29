@@ -8,7 +8,6 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  useSyncExternalStore,
   type ChangeEvent,
   type FocusEvent,
   type KeyboardEvent,
@@ -323,17 +322,25 @@ export function ArchiveOperationCard({
   );
 }
 
-function subscribeToBrowserConnectivity(onStoreChange: () => void) {
-  window.addEventListener("online", onStoreChange);
-  window.addEventListener("offline", onStoreChange);
-  return () => {
-    window.removeEventListener("online", onStoreChange);
-    window.removeEventListener("offline", onStoreChange);
-  };
-}
-
-function getBrowserOnlineSnapshot() {
-  return navigator.onLine;
+/** The sentence a forced development state shows on an editor. */
+function forcedEditorSentence(
+  state: ForcedState,
+  status: (typeof INBOX_TRIAGE_COPY)["inlineEditor"]["status"],
+): string | null {
+  switch (state) {
+    case "delayed-pending":
+      return status.saving;
+    case "reconciling":
+    case "unknown":
+      return status.reconciling;
+    case "not-applied":
+    case "rejected":
+    case "conflict":
+    case "integrity":
+      return status.notApplied;
+    case "editor-offline":
+      return null;
+  }
 }
 
 function InlineEditor({
@@ -378,11 +385,12 @@ function InlineEditor({
   const latestVersionRef = useRef(snapshot.latest?.version ?? null);
   const [copyStatus, setCopyStatus] = useState("");
   const [latestStatus, setLatestStatus] = useState("");
-  const isBrowserOnline = useSyncExternalStore(
-    subscribeToBrowserConnectivity,
-    getBrowserOnlineSnapshot,
-    () => true,
+  const forcedEditor = useForcedItemStatus(
+    isScratchTitle
+      ? forcedItemKeys.scratchTitleEditor(snapshot.target.id)
+      : forcedItemKeys.breakdownEditor(snapshot.target.id),
   );
+  const [isFieldTooltipOpen, setIsFieldTooltipOpen] = useState(false);
 
   useEffect(() => {
     const field = fieldRef.current;
@@ -419,12 +427,39 @@ function InlineEditor({
           : snapshot.phase === "pristine" ||
               snapshot.phase === "dirty" ||
               snapshot.phase === "saving" ||
-              snapshot.phase === "offline" ||
               snapshot.phase === "reconciling"
             ? copy.status[snapshot.phase]
             : snapshot.phase === "conflict"
               ? copy.conflict.heading
               : copy.recovery.heading;
+
+  // Item status (feedback F02, F05): saving shows the loader, reconciling `?`
+  // then the loader, not saved `!`. A forced development state takes its place.
+  const realStatus: ItemStatus | null =
+    snapshot.phase === "saving"
+      ? "pending"
+      : snapshot.phase === "reconciling"
+        ? "reconciling"
+        : snapshot.phase === "not_applied"
+          ? "problem"
+          : null;
+  const realSentence =
+    realStatus === null ? null : statusCopy;
+  const forcedStatus = forcedEditor?.status ?? null;
+  const itemStatus = forcedStatus ?? realStatus;
+  const statusSentence =
+    forcedStatus !== null && forcedEditor !== null
+      ? forcedEditorSentence(forcedEditor.state, copy.status)
+      : realSentence;
+  const presentation = useStatusPresentation(
+    itemStatus,
+    forcedStatus !== null
+      ? `forced:${forcedEditor?.state}`
+      : `${snapshot.phase}:${snapshot.command?.operationId ?? ""}`,
+  );
+  // Save and Cancel are unavailable at once while a save is in flight.
+  const isInFlight =
+    snapshot.phase === "saving" || snapshot.phase === "reconciling";
 
   function handleFieldBlur(
     event: FocusEvent<HTMLInputElement>,
@@ -500,13 +535,15 @@ function InlineEditor({
     }
   }
 
-  const describedBy = [
-    snapshot.phase === "pristine" || snapshot.phase === "dirty"
-      ? null
-      : statusId,
-  ].filter((id): id is string => id !== null);
+  // Validation, conflict and invalidated keep their own status element; the item
+  // statuses are described by the tooltip's sentence.
+  const describedByOwnStatus =
+    snapshot.phase === "validation" ||
+    snapshot.phase === "conflict" ||
+    snapshot.phase === "invalidated";
   const commonFieldProps = {
-    "aria-describedby": describedBy.length > 0 ? describedBy.join(" ") : undefined,
+    ...(describedByOwnStatus ? { "aria-describedby": statusId } : {}),
+    ...statusEmphasisProps(presentation),
     "aria-invalid": snapshot.phase === "validation" || undefined,
     "aria-label": fieldLabel,
     className: "triage-inline-editor__field",
@@ -530,10 +567,7 @@ function InlineEditor({
     value: snapshot.draft,
   };
   const isIssuePhase =
-    snapshot.phase === "offline" ||
-    snapshot.phase === "not_applied" ||
-    snapshot.phase === "conflict" ||
-    snapshot.phase === "invalidated";
+    snapshot.phase === "conflict" || snapshot.phase === "invalidated";
 
   return (
     <>
@@ -564,7 +598,13 @@ function InlineEditor({
                 <label className="sr-only" htmlFor={fieldId}>
                   {fieldLabel}
                 </label>
-                <input ref={fieldRef} type="text" {...commonFieldProps} />
+                <StatusTooltip
+                  open={isFieldTooltipOpen && presentation.glyph !== null}
+                  sentence={statusSentence ?? ""}
+                  onOpenChange={setIsFieldTooltipOpen}
+                >
+                  <input ref={fieldRef} type="text" {...commonFieldProps} />
+                </StatusTooltip>
               </>
             )}
             {snapshot.phase === "validation" ? (
@@ -576,18 +616,20 @@ function InlineEditor({
               >
                 {validationCopy}
               </span>
-            ) : (snapshot.phase === "saving" ||
-                snapshot.phase === "reconciling") ? (
-              <div
-                id={statusId}
-                aria-atomic="true"
-                aria-live="polite"
-                className="sr-only"
-                data-triage-role="inline-editor-announcement"
-              >
-                {statusCopy}
-              </div>
             ) : null}
+            {/* One polite container stays mounted; only its text changes. */}
+            <div
+              aria-atomic="true"
+              aria-live="polite"
+              className="sr-only"
+              data-triage-role="inline-editor-announcement"
+            >
+              {realSentence !== null ? (
+                <span key={`${snapshot.phase}:${snapshot.pendingIntent}`}>
+                  {realSentence}
+                </span>
+              ) : null}
+            </div>
           </div>
           {contentAfter}
         </div>
@@ -604,22 +646,49 @@ function InlineEditor({
             className="triage-inline-editor__actions"
             data-triage-role="inline-editor-actions"
           >
-            {(snapshot.phase === "pristine" ||
-              snapshot.phase === "dirty" ||
-              snapshot.phase === "validation") && (
+            {/* The 22px status box is always reserved, empty until a glyph shows. */}
+            <span
+              className="triage-inline-editor__status-slot"
+              data-triage-role="inline-editor-status-slot"
+            >
+              {statusSentence !== null ? (
+                <StatusIcon presentation={presentation} sentence={statusSentence} />
+              ) : null}
+            </span>
+            {snapshot.pendingIntent && isInFlight ? (
+              <Button
+                size="xs"
+                type="button"
+                variant="outline"
+                onClick={editor.stayHere}
+              >
+                {copy.actions.stayHere}
+              </Button>
+            ) : (
               <>
                 <Button
                   className={cn(
-                    snapshot.phase === "dirty" &&
+                    (snapshot.phase === "dirty" ||
+                      snapshot.phase === "not_applied") &&
                       "hover:bg-destructive/10",
                   )}
                   data-triage-contrast={
-                    snapshot.phase === "dirty" ? "adaptive" : undefined
+                    snapshot.phase === "dirty" ||
+                    snapshot.phase === "not_applied"
+                      ? "adaptive"
+                      : undefined
                   }
                   data-triage-emphasis={
-                    snapshot.phase === "dirty" ? "destructive" : undefined
+                    snapshot.phase === "dirty" ||
+                    snapshot.phase === "not_applied"
+                      ? "destructive"
+                      : undefined
                   }
-                  disabled={snapshot.phase !== "dirty"}
+                  disabled={
+                    isInFlight ||
+                    (snapshot.phase !== "dirty" &&
+                      snapshot.phase !== "not_applied")
+                  }
                   size="xs"
                   type="button"
                   variant="ghost"
@@ -629,6 +698,7 @@ function InlineEditor({
                 </Button>
                 <Button
                   data-triage-treatment="text"
+                  disabled={isInFlight}
                   size="xs"
                   type="button"
                   variant="ghost"
@@ -636,42 +706,6 @@ function InlineEditor({
                 >
                   {INBOX_TRIAGE_COPY.baseActions.cancel}
                 </Button>
-              </>
-            )}
-            {snapshot.phase === "saving" && (
-              <>
-                <span data-triage-role="inline-editor-progress">
-                  {snapshot.pendingIntent
-                    ? copy.status.savingBeforeContinuing
-                    : copy.status.saving}
-                </span>
-                {snapshot.pendingIntent && (
-                  <Button
-                    size="xs"
-                    type="button"
-                    variant="outline"
-                    onClick={editor.stayHere}
-                  >
-                    {copy.actions.stayHere}
-                  </Button>
-                )}
-              </>
-            )}
-            {snapshot.phase === "reconciling" && (
-              <>
-                <span data-triage-role="inline-editor-progress">
-                  {copy.status.reconciling}
-                </span>
-                {snapshot.pendingIntent && (
-                  <Button
-                    size="xs"
-                    type="button"
-                    variant="outline"
-                    onClick={editor.stayHere}
-                  >
-                    {copy.actions.stayHere}
-                  </Button>
-                )}
               </>
             )}
           </div>
@@ -699,29 +733,6 @@ function InlineEditor({
             )}
           </span>
           <div data-triage-role="inline-editor-issue-actions">
-            {(snapshot.phase === "offline" ||
-              snapshot.phase === "not_applied") && (
-              <>
-                <Button
-                  disabled={
-                    snapshot.phase === "offline" && !isBrowserOnline
-                  }
-                  size="xs"
-                  type="button"
-                  onClick={() => void onSave()}
-                >
-                  {copy.actions.retrySave}
-                </Button>
-                <Button
-                  size="xs"
-                  type="button"
-                  variant="outline"
-                  onClick={() => editor.cancel()}
-                >
-                  {INBOX_TRIAGE_COPY.baseActions.cancel}
-                </Button>
-              </>
-            )}
             {snapshot.phase === "conflict" && (
               <>
                 <Button size="xs" type="button" onClick={() => void onUseMine()}>

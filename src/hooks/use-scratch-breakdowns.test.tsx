@@ -14,6 +14,9 @@ import { createScratchTitleBlockerHandle } from "./use-scratch-breakdowns";
 
 const getDataStoreMock = vi.hoisted(() => vi.fn());
 const liveReadMock = vi.hoisted(() => vi.fn());
+const toastWarning = vi.hoisted(() => vi.fn());
+
+vi.mock("sonner", () => ({ toast: { warning: toastWarning } }));
 
 vi.mock("@/lib/db/datastore", () => ({
   getDataStore: getDataStoreMock,
@@ -694,8 +697,9 @@ describe("useScratchBreakdowns", () => {
     expect(result.current.editor.snapshot).toBeNull();
   });
 
-  it("distinguishes offline and not-applied while preserving the draft", async () => {
+  it("keeps the draft and shows the offline toast, without a phase change, an RPC or a lock, when saving offline", async () => {
     const lock = createOperationLock();
+    const acquire = vi.spyOn(lock, "acquire");
     const online = vi.fn(() => false);
     const { result, rerender } = renderHook(
       ({ isOnline }) =>
@@ -709,12 +713,23 @@ describe("useScratchBreakdowns", () => {
       result.current.editor.openScratchTitle(createScratch());
       result.current.editor.changeDraft("Offline draft");
     });
+    const before = result.current.editor.snapshot;
     await act(async () => expect(await result.current.editor.save()).toBe(false));
+    await act(async () => expect(await result.current.editor.save()).toBe(false));
+    expect(result.current.editor.snapshot).toEqual(before);
     expect(result.current.editor.snapshot).toMatchObject({
-      phase: "offline",
+      phase: "dirty",
       draft: "Offline draft",
+      focusIntent: before?.focusIntent,
     });
     expect(dataStore.saveScratchTitle).not.toHaveBeenCalled();
+    expect(acquire).not.toHaveBeenCalled();
+    // One fixed id: a repeat updates the one visible toast.
+    expect(toastWarning).toHaveBeenCalledTimes(2);
+    expect(toastWarning).toHaveBeenCalledWith(
+      "You're offline. Changes can't be saved right now.",
+      expect.objectContaining({ id: "offline-write-attempt", icon: expect.anything() }),
+    );
 
     const nowOnline = vi.fn(() => true);
     rerender({ isOnline: nowOnline });
