@@ -794,6 +794,7 @@ to the item status rule ([Feedback Status Surfaces](#feedback-status-surfaces)):
 | Pending intent (`Saving before continuing…`) | The loader plus the existing `Stay here`; the sentence in the tooltip |
 | `not-applied` (`Not saved.`) | `!` with emphasis and the tooltip in place of the overlay line; its existing recovery control stays as a compact control |
 | `offline` (`Offline. Your draft is still here.`) | No overlay: the draft stays in the editor and the offline write-attempt toast appears (SPEC §Toasts) |
+| `unknown` (Task 245A) | `?` at once with field emphasis and the tooltip `We couldn't confirm whether your changes were saved.`; a compact `Check again` replaces Save and Cancel in the action region; `reconciling` after it keeps `?`, then the loader |
 | `conflict` | Unchanged: the source-bound conflict view stays (F08) |
 | `invalidated` | Unchanged: the recovery overlay is a decision surface F05 does not touch |
 | Applied (`Saved.`) | Only the polite hidden announcement (F04) |

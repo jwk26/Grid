@@ -748,7 +748,12 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   plus the existing `Stay here`, the sentence in the tooltip; `Not saved.`
   becomes `!` plus the tooltip; `Offline. Your draft is still here.` is
   replaced by the offline write-attempt toast ([Toasts](#toasts)), and the
-  draft stays in the editor. The conflict view stays as built.
+  draft stays in the editor. The conflict view stays as built. A save whose
+  outcome is unknown (an error or the request timeout) shows `?` at once with
+  `We couldn't confirm whether your changes were saved.` in the tooltip and a
+  compact `Check again` in place of Save and Cancel; it is never resent, the lock
+  stays until a terminal answer, and `Check again` reconciles read-only (Task
+  245A, Phase 50 mi-2).
 - Editors capture `{record ID, base value, version, lifecycle}` in client memory
   and use SCHEMA CAS. A stale write never becomes last-write-wins. Text conflict
   offers inline use-mine/use-latest semantics against the acknowledged latest

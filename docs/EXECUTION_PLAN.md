@@ -220,7 +220,7 @@ SaaS lane:
 
 Feedback lane:
   241→242→243→244  Phase 49 (waits for none; beside Phases 42–44)
-  [Phase 49 + Phase 45 Final Close]→245→246→247→248→249; 250  Phase 50 (beside Phases 46–48)
+  [Phase 49 + Phase 45 Final Close]→245→245A→246→247→248→249; 250  Phase 50 (beside Phases 46–48)
 
 Retired Tasks 164/165 and 180–208 are not dependency nodes.
 Cross-phase arrows also require the preceding phase's actual Final Close/main
@@ -253,7 +253,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 47 | Planned / unstarted | [Feel and resilience](#phase-47--feel-and-resilience) | 231–234 | Phase 46 and Phase 49 close/main sync. |
 | Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 | Phase 47 close/main sync. |
 | Phase 49 | Completed | [Feedback lane, part 1: theme set, status primitives, toasts](execution-plan/archive/phase-49.md) | 241–244 | Accepted and archived (2026-10-24); ISSUE-20-01 and MI-13 resolved in Task 241; mi-1, mi-2 and mi-3 bound to Task 248 in `Issues_Deferred.md`. Phases 45 and 47 no longer wait for it. |
-| Phase 50 | Planned / unstarted | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](#phase-50--inbox-status-breadcrumb-reveal-and-last-scratch) | 245–250 | Phase 49 and Phase 45 close/main sync; runs beside Phases 46–48; does not block Phase 48; closes before the theme stage. |
+| Phase 50 | Planned / unstarted | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](#phase-50--inbox-status-breadcrumb-reveal-and-last-scratch) | 245–250 + 245A | Phase 49 and Phase 45 close/main sync; runs beside Phases 46–48; does not block Phase 48; closes before the theme stage. |
 | Phases 36–40 | Retired (feedback F28, 2026-10-22) | [Terminal, Claymorphism + Origami, GridDO + Tiny Desk, Graphite, and the Task 208 campaign gate](execution-plan/archive/phases-36-40-retired.md) | 180–208 | Retired as superseded; never runnable. Numbers are not reused. |
 
 ## Theme Realization Task Sets
@@ -1021,6 +1021,8 @@ checks run on local Supabase (Shared rules above).
 
 Task order (user, 2026-10-29): Task 250 runs first, since it shares no file
 with Phase 46's Task 230; then Tasks 245–249 in their dependency order.
+Task 245A (user, 2026-10-30, Phase 50 mi-2) runs right after Task 245 and
+before Task 246.
 
 ### Task 245: [ ] Show Breakdown, Add and editor statuses on the item
 
@@ -1072,6 +1074,59 @@ locked row is reachable by keyboard and shows its sentence on focus; the Add
 timing); browser checkpoint with the state switch.
 
 **Commit message:** `feat(inbox): show Breakdown and editor statuses on the item`.
+
+### Task 245A: [ ] Check an inline-editor save whose outcome is unknown
+
+Phase 50 mi-2 (Task 245 `expert` review, user 2026-10-30). A save that throws
+(`WriteOutcomeUnknownError` after the Task 227 request timeout, or any error)
+leaves the editor in `reconciling` with the operation lock held, and nothing
+calls `editor.reconcile()`: the loader turns forever, Save, Cancel and Escape do
+nothing, and every other Inbox write stays locked until reload. The defect dates
+from the conditional editor (`bba0da0`, 2026-08-14); the request timeout makes it
+reachable on a slow or dropped connection.
+
+**Files and actions:**
+- `src/hooks/use-scratch-breakdowns.ts` and test: an `unknown` editor phase. A
+  thrown save or reconcile enters `unknown` with its command kept and the lock
+  still held; it never resends the save (CLAUDE.md Architecture 6). `reconcile()`
+  runs from `unknown` (read-only `reconcileSave…`), passes through
+  `reconciling`, and its terminal result applies as a save result does
+  (applied closes with `Saved.`, `not_applied` gives `!`, conflict opens the
+  conflict view, invalidated the recovery view); a reconcile that throws
+  returns to `unknown`. Cancel, Escape, edits and blur save stay unavailable
+  in `unknown` and `reconciling`. Entering `unknown` drops a pending navigation
+  intent, as `Stay here` does, so a later `Check again` never navigates.
+- `src/components/triage/breakdown-panel.tsx` and test: `unknown` shows `?` at
+  once in the editor status box with field emphasis and the field tooltip, and
+  a compact `Check again` in place of Save and Cancel (`[box][Check again]`,
+  inside the `9.5rem` region). `Check again`
+  turns unavailable at once and stays focused through reconcile, as Add's does.
+  The new state is announced once through the editor's live container.
+- `src/lib/copy/inbox-triage.ts` and test: `inlineEditor.status.unknown`:
+  `We couldn't confirm whether your changes were saved.`; `Check again` reuses
+  `reliability.actions.checkAgain`.
+- `src/components/dev/state-switch-panel.tsx` and test: the editor rows offer
+  `unknown`.
+
+**Dependencies:** Task 245.
+
+**Authority:** Phase 50 mi-2; SPEC §Item status presentation (Unknown, Reconciling)
+and the Editor states bullet; DESIGN_TOKENS `DP-VQ04` amendment (`unknown` row);
+CLAUDE.md Architecture 6 and 9.
+
+**Observable acceptance:** with `save_breakdown` or `save_scratch_title`
+answered `Unknown — request lost`, the editor shows `?` with emphasis and
+`Check again`, never the endless loader; no second save is sent; `Check again`
+shows `?` then the loader after 300ms and ends in the right state for an
+applied, not applied or conflicting answer; while unknown, other Inbox writes
+stay locked, and after the terminal answer they work again without reload; a
+reconcile that fails again returns to `?`.
+
+**Verification:** gate; `expert` review (state logic and lock release); browser
+checkpoint with the state switch in `griddo`, `retro-mac` and `neumorphism`, light
+and dark, at 1024px with the Pool open (`Check again` width).
+
+**Commit message:** `fix(inbox): check an inline-editor save whose outcome is unknown`.
 
 ### Task 246: [ ] Show Staging statuses on the item and widen the Nodes zone
 
@@ -1405,7 +1460,7 @@ This register covers every implementation/test path declared by two or more task
   173–179 plus 176A and 179A, 209–212, 213–218, and 241–244), fourteen
   completed archives (Phases 23–31, 34, 35, 41, 42 and 49), two historical
   unaccepted transfer records (164/165), 29 retired tasks (180–208) in retired
-  Phases 36–40, 22 unaccepted tasks (219–240) in Phases 43–48, 6 unaccepted tasks
-  (245–250) in Phase 50, and two reserved phases (32–33).
+  Phases 36–40, 22 unaccepted tasks (219–240) in Phases 43–48, 7 unaccepted tasks
+  (245–250 and 245A) in Phase 50, and two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.
