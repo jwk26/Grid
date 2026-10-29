@@ -10,8 +10,8 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 ## Task 250 — Remember the last selected Scratch on this device
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 250 acceptance
+- Status: Accepted
+- Next: Task 245 (run-task 245)
 - Open: none (mi-1 Deferred)
 
 ### Log

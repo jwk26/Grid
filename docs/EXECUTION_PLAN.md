@@ -1290,7 +1290,7 @@ drop into the top-left cells.
 
 **Commit message:** `refactor(grid): remove the blocked breadcrumb zone`.
 
-### Task 250: [ ] Remember the last selected Scratch on this device
+### Task 250: [x] Remember the last selected Scratch on this device
 
 **Files and actions:** `src/stores/triage-preferences-store.ts` and test: a
 validated `lastSelectedScratchId`; the Inbox selection owner
