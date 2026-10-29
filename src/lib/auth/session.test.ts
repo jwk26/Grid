@@ -323,4 +323,44 @@ describe("session controller auth events", () => {
     expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
     expect(t.auth.signOut).not.toHaveBeenCalled();
   });
+
+  it("a rejected refresh at load (SIGNED_OUT queued before getSession returns no session) creates no guest", async () => {
+    const t = setup();
+    // The real supabase-js drops the session during initialize(), delivers SIGNED_OUT, then
+    // getSession() answers with no session and no error. The default (timer) defer is in force.
+    t.setSession(null);
+    const real = createSessionController({
+      getClient: () => ({ auth: t.auth, rpc: t.rpc }) as never,
+      storage: t.storage,
+      runExclusive: (_name, task) => task(),
+    });
+    t.storage.setItem("griddo.session-kind", "account");
+    t.auth.getSession.mockImplementationOnce(async () => {
+      t.emit("SIGNED_OUT", null);
+      // No timer turn in between: the callback and getSession() run in one microtask chain.
+      return { data: { session: null }, error: null };
+    });
+    await real.start();
+    await settle();
+    await settle();
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBe("account");
+    expect(real.getState()).toEqual({ phase: "session-expired", variant: "account" });
+  });
+
+  it("Retry after a failed Continue as guest retries guest creation, not the expired screen", async () => {
+    const t = setup();
+    t.storage.setItem(SESSION_EXPIRED_KEY, "guest");
+    await t.controller.start();
+    t.auth.signInAnonymously.mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: new AuthRetryableFetchError("fetch failed", 0),
+    } as never);
+    await t.controller.continueAsGuest();
+    expect(t.controller.getState()).toEqual({ phase: "guest-failure", reason: "unreachable" });
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBe("guest");
+    await t.controller.retry();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+  });
 });

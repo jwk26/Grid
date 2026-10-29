@@ -44,6 +44,9 @@ export type SessionControllerOptions = {
 
 export type SessionController = ReturnType<typeof createSessionController>;
 
+// Thrown inside the guest-entry lock when the entry was overtaken before it signed in.
+class SupersededError extends Error {}
+
 const UNREACHABLE_STATUSES: ReadonlySet<number> = new Set([0, 408, 502, 503, 504]);
 
 function isUnreachable(error: unknown): boolean {
@@ -98,6 +101,9 @@ export function createSessionController(options: SessionControllerOptions) {
   let generation = 0;
   let currentUserId: string | null = null;
   let started = false;
+  // A guest started after an expiry keeps skipping the marker through Retry and reconnect, until
+  // the entry ends with a session.
+  let skippingMarker = false;
 
   const setState = (next: EntryState) => {
     state = next;
@@ -122,6 +128,7 @@ export function createSessionController(options: SessionControllerOptions) {
   const lastKind = (): SessionVariant => (read(SESSION_KIND_KEY) === "account" ? "account" : "guest");
 
   const expire = (variant: SessionVariant) => {
+    skippingMarker = false;
     write(SESSION_EXPIRED_KEY, variant);
     currentUserId = null;
     setState({ phase: "session-expired", variant });
@@ -133,6 +140,8 @@ export function createSessionController(options: SessionControllerOptions) {
   };
 
   async function enter(skipMarker = false): Promise<void> {
+    skipMarker ||= skippingMarker;
+    skippingMarker = skipMarker;
     const mine = ++generation;
     const stale = () => mine !== generation;
     setState({ phase: "entering" });
@@ -156,7 +165,9 @@ export function createSessionController(options: SessionControllerOptions) {
     if (!user) {
       try {
         user = await runExclusive(GUEST_ENTRY_LOCK, async () => {
-          // Another tab may have signed in while this one waited for the lock.
+          // Another tab may have signed in while this one waited for the lock, or the session
+          // may have been rejected meanwhile (SIGNED_OUT bumps `generation` and sets the marker).
+          if (stale() || (!skipMarker && read(SESSION_EXPIRED_KEY))) throw new SupersededError();
           const again = await client.auth.getSession();
           if (again.data.session?.user) return again.data.session.user as AuthUser;
           const created = await client.auth.signInAnonymously();
@@ -164,7 +175,7 @@ export function createSessionController(options: SessionControllerOptions) {
           return created.data.user as AuthUser;
         });
       } catch (error) {
-        if (stale()) return;
+        if (error instanceof SupersededError || stale()) return;
         return setState({ phase: "guest-failure", reason: classifyGuestFailure(error) });
       }
       if (stale()) return;
@@ -172,6 +183,7 @@ export function createSessionController(options: SessionControllerOptions) {
     remember(user);
     // An entry that skipped the marker ended with a session: the chosen action completed.
     if (skipMarker) write(SESSION_EXPIRED_KEY, null);
+    skippingMarker = false;
 
     try {
       const ensured = await callEnsureAccount(client);
@@ -202,10 +214,12 @@ export function createSessionController(options: SessionControllerOptions) {
     void enter(skipMarker);
   };
 
+  const isDeliberateSignOut = () =>
+    Date.now() - Number(read(DELIBERATE_SIGN_OUT_KEY) ?? 0) < DELIBERATE_SIGN_OUT_WINDOW_MS;
+
   const onAuthEvent = (event: string, session: { user: AuthUser } | null) => {
     if (event === "SIGNED_OUT") {
-      const deliberate = Number(read(DELIBERATE_SIGN_OUT_KEY) ?? 0);
-      if (Date.now() - deliberate < DELIBERATE_SIGN_OUT_WINDOW_MS) {
+      if (isDeliberateSignOut()) {
         // A chosen sign-out: a user change. The choosing tab's own entry is superseded by an
         // identical one; the lock keeps it to one guest.
         dropAndEnter(true);
@@ -240,7 +254,12 @@ export function createSessionController(options: SessionControllerOptions) {
       if (started) return Promise.resolve();
       started = true;
       getClient().auth.onAuthStateChange((event, session) => {
-        defer(() => onAuthEvent(event, session as { user: AuthUser } | null));
+        const user = session as { user: AuthUser } | null;
+        // An expiry is recorded in this tick: supabase-js delivers SIGNED_OUT and then lets
+        // getSession() continue at once, so a deferred handler would run after entry had already
+        // signed in a new guest. Nothing in that path calls back into auth.
+        if (event === "SIGNED_OUT" && !isDeliberateSignOut()) onAuthEvent(event, user);
+        else defer(() => onAuthEvent(event, user));
       });
       if (typeof window !== "undefined") window.addEventListener("online", retryIfFailed);
       return enter();
