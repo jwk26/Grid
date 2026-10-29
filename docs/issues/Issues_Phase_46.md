@@ -8,8 +8,8 @@ Plan fixes at start (user, 2026-10-29): Task 230 runs in three stages with a che
 ## Task 230 — Remove Dexie and the client orphan path
 
 ### Current state
-- Status: Implemented, awaiting acceptance (Stage 1)
-- Next: Stage 1 acceptance
+- Status: Implemented, awaiting acceptance (Stage 2)
+- Next: Stage 2 acceptance
 - Open: none
 
 ### Log
@@ -26,7 +26,7 @@ Plan fixes at start (user, 2026-10-29): Task 230 runs in three stages with a che
 | indexeddb.test (create/update/cascade/promote), deadline-hierarchy, mtime-cascade, auto-completion, grid-uniqueness | ported-scenarios.db, node-bit-writes.db, chunk-writes.db | delete |
 | one-call-actions | node-bit-writes.db / chunk-writes.db (Hook 2 extend, reorder) and hard-delete-writes.db (Empty Trash) | delete |
 | archive, cascade-delete, cascade-restore | archive-writes.db, trash-writes.db | delete |
-| archive-sweep | client reads: `supabase-store.test.ts` (grid contents/calendar/trash/archive/search) + createNode cases in node-bit-writes.db | delete |
+| archive-sweep | read cases moved into the `supabase-store.test.ts` expected-value block; createNode cases in node-bit-writes.db | file deleted |
 | cascade-hard-delete, auto-cleanup, scratch-aggregate-hard-delete | hard-delete-writes.db (`integrity_cleanup_required` cases unreachable by S18) | delete |
 | triage-placement, triage-undo | placement-commands.db, placement-undo*.db | delete |
 | staged-candidates | stage-commands.db | delete |
@@ -37,14 +37,19 @@ Plan fixes at start (user, 2026-10-29): Task 230 runs in three stages with a che
 | indexeddb.schema-v3/v4-upgrade, indexeddb.transaction | none: Dexie schema/transaction mechanics, no Postgres subject | delete |
 | indexeddb.migration (breadcrumb zone) | none: SCHEMA §Not ported (`settings`), S43 (4) no-op; Task 249 removes the zone | delete |
 | state-switch (`withDevInjection`) | none: client-only | rewrite over a fake store |
-| supabase-store.test.ts parity block | Phase 45 run is the evidence | delete block |
+| supabase-store.test.ts parity block | none: it was the only test of the snapshot store's reads | rewritten as expected values |
 No scenario lacks a counterpart without a settled reason.
 - Review (advisory, 2026-10-29, work plan): approve with changes. Apply: (1) the `supabase-store.test.ts` parity block is the only test of the snapshot store's reads and `archive-sweep`'s listed counterpart, so it is rewritten as explicit expected values (ids and order from the Dexie store's current output) over the same fixture and absorbs `archive-sweep`'s read cases, per the amended plan (`ef540b3`); (2) Stage 1 verifies with the full gate (`git diff --check`, `pnpm test`, `pnpm test:db`, `pnpm lint`, `pnpm typecheck`, `pnpm build`); (3) drop `use-global-urgency`/`use-inbox`/`use-trash-scratch.inbox-instances` from Stage 1: they do not import `dexie`, only name `liveQuery`; (4) the three `liveQuery` rewrites follow the hand-rolled subscription in `use-inbox.test.tsx`. Not applied: none.
 - Decision: the mapping's "none" rows (candidate-orphan-cleanup, schema-v3/v4 upgrade, transaction, breadcrumb-zone migration, state-switch) and the two unreachable scenarios (`integrity_cleanup_required`, "source cannot be resolved", both excluded by the candidate foreign key, S18) are accepted as stated; the parity block is rewritten, not deleted (user, 2026-10-29).
+- Review (advisory, 2026-10-30, Stage 1 checkpoint): approve. Apply: in the Stage 2 commit, correct two mapping rows to what was done: `archive-sweep` → read cases moved into the `supabase-store.test.ts` expected-value block, createNode cases in node-bit-writes.db, file deleted; parity block → rewritten as expected values. Stage 2 note: the `'from "dexie"'` string assertion at `triage-workspace.test.tsx:944` is not an import; drop it with Dexie or exclude it from the no-import check. Not applied: none.
+- Decision: Stage 1 accepted (user, 2026-10-30).
 
 ### Checkpoint
 - Changed (Stage 1): deleted the 29 Dexie-only suites in `src/lib/db/` per the mapping table; `state-switch.test.ts` now runs `withDevInjection` over a small stateful fake store; the `liveRead` mock in `grid-runtime.test.tsx`, `triage-workspace.test.tsx` and `use-triage-dnd.test.ts` is a hand-rolled one-run subscription (no `dexie`); the `supabase-store.test.ts` parity block is explicit expected ids and order (taken from the Dexie store's output over the same fixture before the switch), and it covers `archive-sweep`'s read cases. `indexeddb.test-utils.ts` stays for Stage 2 (nothing imports it now).
 - Verified: `git diff --check`, `pnpm test` (2036 tests, fewer by the deleted suites), `pnpm test:db` (942), `pnpm lint` (0 errors, the same 11 warnings), `pnpm typecheck`, `pnpm build` all pass.
 - Please check: nothing visual. Look at the mapping table above and at the rewritten expected values in `src/lib/db/supabase-store.test.ts`.
 - Unresolved: none.
+- Changed (Stage 2): deleted `src/lib/db/indexeddb.ts` (with its `settings` store and the Dexie side of `runBreadcrumbZoneMigration`), `indexeddb.test-utils.ts` and `src/app/dev/supabase-slice/`; removed `dexie` and `fake-indexeddb` from `package.json`/lockfile and `NEXT_PUBLIC_GRIDDO_SUPABASE_SLICE` from `.env.local.example`; dropped the `from "dexie"` string assertion in `triage-workspace.test.tsx`; reworded the code comments that described the Dexie store as live; corrected the two Stage 1 mapping rows (`archive-sweep`, parity block). `datastore.ts` already had no Dexie backing for `liveRead`, and the interface method plus Supabase no-op of `runBreadcrumbZoneMigration` stay for Task 249.
+- Verified (Stage 2): `git diff --check`, `pnpm test` (2036), `pnpm test:db` (942), `pnpm lint` (0 errors, 11 warnings), `pnpm typecheck`, `pnpm build` all pass. Browser smoke on local Supabase with the fixture, no page or console errors: `/`, `/grid/[id]` (Documents, Inbox, Archive), `/calendar/weekly`, `/calendar/monthly`, `/trash`, the Bit popup (`?bit=`); `/dev/supabase-slice` answers 404.
+- Please check (Stage 2): nothing visual changed; open the app on local Supabase and see that the grid, Inbox, Calendar, Trash and a Bit popup load as before.
 

@@ -9,8 +9,8 @@ import {
   stagedCandidateSchema,
 } from "@/lib/db/schema";
 
-// The Zod schemas of the Inbox/Triage commands and their results. Both stores parse a command at
-// the client write boundary (SPEC Architecture Rule 5); the Dexie store also parses its results.
+// The Zod schemas of the Inbox/Triage commands and their results. The store parses a command at
+// the client write boundary (SPEC Architecture Rule 5).
 
 export const commandVersionSchema = z.number().int().min(1);
 

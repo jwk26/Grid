@@ -12,8 +12,8 @@ import type {
 } from "@/lib/db/datastore";
 
 // The Undo verdict of a placement (SCHEMA §Undo placement), judged from account rows alone. The
-// Dexie store reads its state from IndexedDB, the Supabase store from the account snapshot, and
-// both apply the same checks in the order of the database function: already undone, owner Scratch
+// Supabase store reads its state from the account snapshot and applies the same checks in the
+// order of the database function: already undone, owner Scratch
 // active, preconditions, then conflict.
 
 export type PlacementUndoState = {

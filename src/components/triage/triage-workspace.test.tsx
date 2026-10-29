@@ -961,7 +961,6 @@ describe("TriageWorkspace", () => {
   });
 
   it("keeps reactive DataStore reads behind the dedicated hook boundary", () => {
-    expect(workspaceSource).not.toContain('from "dexie"');
     expect(workspaceSource).not.toContain("getDataStore");
     expect(workspaceSource).toContain(
       'from "@/hooks/use-external-scratch-removal-data"',

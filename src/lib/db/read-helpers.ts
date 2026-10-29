@@ -1,6 +1,6 @@
 import type { Chunk, Node } from "@/lib/db/schema";
 
-// Read helpers shared by the Dexie store and the snapshot store, so both order results the same way.
+// Read helpers shared by the snapshot store's reads, so every read orders its results the same way.
 
 export function sortGridItems<T extends { x: number; y: number }>(items: T[]): T[] {
   return [...items].sort((left, right) => left.y - right.y || left.x - right.x);

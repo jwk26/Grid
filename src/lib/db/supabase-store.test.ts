@@ -125,7 +125,7 @@ beforeEach(async () => {
 const ids = (rows: Array<{ id: string }>) => rows.map((row) => row.id);
 const ns = (...n: number[]) => n.map(id);
 
-// Expected ids and order are explicit values, taken from the Dexie store's output over this same
+// Expected ids and order are explicit values, taken from the removed Dexie store's output over this same
 // fixture before it was removed (Task 230). Reads sort by primary key unless a method orders them.
 describe("snapshot store reads over the fixture", () => {
   it("Node reads", async () => {

@@ -93,8 +93,8 @@ import { isDeadlineAfter } from "@/lib/utils/deadline";
 
 // The DataStore over the account snapshot (SPEC Architecture Decisions 2 and 19). Task 226 is
 // the read side: every read is answered in memory over the snapshot view with SCHEMA Key
-// Queries semantics. Results come back in the order the Dexie store returns them: primary-key
-// `id` order, then the same sort where the Dexie read sorts. Task 227 Stage 2 adds the ordinary
+// Queries semantics. Results come back in primary-key
+// `id` order, then sorted where the read sorts. Task 227 Stage 2 adds the ordinary
 // writes (one call each, server-confirmed); the Inbox/Triage commands follow in Stage 3.
 
 type ReadKey =

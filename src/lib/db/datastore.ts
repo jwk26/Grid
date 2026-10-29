@@ -249,7 +249,7 @@ export type LiveObserver<T> = {
 
 export type LiveSubscription = { unsubscribe(): void };
 
-/** The subscribe shape of Dexie's `liveQuery`, so hooks never import `dexie`. */
+/** The subscribe shape hooks observe a live read through. */
 export type LiveObservable<T> = {
   subscribe(observer: LiveObserver<T>): LiveSubscription;
 };
@@ -467,8 +467,7 @@ let dataStorePromise: Promise<DataStore> | null = null;
 
 async function createDataStore(): Promise<DataStore> {
   // Production store (Phase 45): the Supabase store over the account snapshot. It exists once
-  // entry has made a session, prepared the account and loaded the snapshot; the Dexie store stays
-  // in the tree until Phase 46 removes it.
+  // entry has made a session, prepared the account and loaded the snapshot.
   const [{ getSessionController }, { createSupabaseStore }] = await Promise.all([
     import("@/lib/auth/session"),
     import("@/lib/db/supabase-store"),
