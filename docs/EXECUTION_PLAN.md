@@ -1078,7 +1078,7 @@ timing); browser checkpoint with the state switch.
 
 **Commit message:** `feat(inbox): show Breakdown and editor statuses on the item`.
 
-### Task 245A: [ ] Check an inline-editor save whose outcome is unknown
+### Task 245A: [x] Check an inline-editor save whose outcome is unknown
 
 Phase 50 mi-2 (Task 245 `expert` review, user 2026-10-30). A save that throws
 (`WriteOutcomeUnknownError` after the Task 227 request timeout, or any error)

@@ -94,8 +94,8 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 ## Task 245A — Check an inline-editor save whose outcome is unknown
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 245A acceptance
+- Status: Accepted
+- Next: Task 246 (run-task 246)
 - Open: none (mi-3 fixed; residual and advisory items in Unresolved)
 
 ### Log
@@ -112,9 +112,11 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 - Task 245A Please check window (2026-10-30): the Playwright window is seeded (`griddo`, light), 1024×768 with the Pool open, at `http://localhost:3050/grid/f11808f9-152b-4bbb-87a9-c4816bee2d0a` (dev server on port 3050, left running). First state: the Scratch title editor in `?` with `Check again` (`save_scratch_title` aborted by a window-only route). The recovery-view `Check again` state is not reachable in the browser (see (1)). The user is told not to resize or reload it; the session stops driving it until the user replies.
 - Review (advisory, 2026-10-30, task finish, round 2): approve. Round 1 items (1)–(4) are in `81bd59c`: focus moves to Close only when it would fall to the body, the Please check window is recorded, the ledger is tidied and the gate reran (2078). The mi-3 invalidation path is unreachable in the browser until Task 233 adds refetch (checked: in one tab every invalidating action is locked), so unit tests suffice now; Task 233's Verification now browser-checks it, whichever of Task 233 and the Phase 50 close lands on `main` second (`1848909`). Apply: (1) Checkpoint Please check: record that the user checked the editor `?` and `Check again` in `griddo`, `retro-mac` and `neumorphism`, light and dark, at 1024px with the Pool open, and drop the unreachable recovery-view `Check again`; (2) Unresolved: name the Task 233 binding (`1848909`) for the browser check of mi-3; (3) remove the two blank lines inside this Log. Not applied: none.
 
+- Decision: Task 245A accepted after the user checked the editor `?` and `Check again` in `griddo`, `retro-mac` and `neumorphism`, light and dark, at 1024px with the Pool open (user, 2026-10-30).
+
 ### Checkpoint
 - Changed: `use-scratch-breakdowns.ts`, `breakdown-panel.tsx`, `copy/inbox-triage.ts`, `state-switch-panel.tsx` and their tests.
 - Verified: `git diff --check`, `pnpm test` (2078), `pnpm lint` (0 errors, 11 warnings), `pnpm typecheck`, `pnpm build` (full gate rerun after the focus fix, 2078 tests). Browser, local Supabase, `griddo`, 1024px with the Pool open: with `save_scratch_title` aborted, Enter shows `?` and `Check again` in the 9.5rem region, one save sent; `Check again` ends in `!` with Save and Cancel (the real read answered not applied).
-- Please check: the editor `?` and `Check again` in `griddo`, `retro-mac` and `neumorphism`, light and dark, at 1024px with the Pool open. Looked at so far: `griddo` light only, by the session; the user's check in the other themes and in dark is pending.
+- Please check: the editor `?` and `Check again` in `griddo`, `retro-mac` and `neumorphism`, light and dark, at 1024px with the Pool open. Checked by the user (2026-10-30).
 - Unresolved: (f) residual: if the background check failed and the user finishes the external-removal handoff, the panel remounts (`key={selectedScratchId}`) and the workspace lock stays until reload (pre-existing); the mi-3 invalidation path could not be run in the browser (the app does not refetch before Task 233, so another context removing the row never reaches the page; a reload drops the editor) and is covered by hook and panel tests; Task 233's Verification browser-checks it once refetch exists (`1848909`).
 - Review: (expert) Medium — `Saved.` not announced after an applied `Check again` → fixed (panel announces on `reconciling` → closed; test). Low — focus on the body after a Save click ended in `unknown` → fixed (focus moves to `Check again`; test). mi-3 fix review: see Log.
