@@ -812,15 +812,7 @@ export const scratchBreakdownSchema = z.object({
   version: versionSchema,
 });
 
-export const createScratchBreakdownSchema = scratchBreakdownSchema.omit({
-  id: true,
-  createdAt: true,
-  consumedAt: true,
-  version: true,
-});
-
 export type ScratchBreakdown = z.infer<typeof scratchBreakdownSchema>;
-export type CreateScratchBreakdown = z.infer<typeof createScratchBreakdownSchema>;
 
 // --- StagedCandidate ---
 

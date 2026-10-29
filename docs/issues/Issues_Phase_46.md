@@ -63,3 +63,12 @@ No scenario lacks a counterpart without a settled reason.
 - Unresolved: (a) the staging "source-unresolved" integrity projection (`integrityCandidates`, its `staging-zone` rendering, `unresolvedCandidatesOf` in `use-trash-scratch.ts`, the dev state switch's `integrity` state) is outside the plan's removal list and kept; it is now unreachable under the foreign keys (S18), so it is a candidate for a later cleanup if you want it. (b) and (c) were fixed after the Stage 3 review (the DESIGN_TOKENS `orphan-cleanup` row and orphan copy, the SPEC "proposed" mark).
 - Review (expert, 2026-10-30): no code findings. Doc leftovers fixed: PLANNING_STANDARD §6 "until Phase 45/46" passages, SPEC "orphan cleanup are never held", SCHEMA "Phase 46 removes the store". Items (b) and (c) were fixed after the advisory review.
 - Decision: Stage 3 and Task 230 accepted (user, 2026-10-30).
+
+## Phase close — 2026-10-30
+
+- Audit: Task 230 `[x]` (user-accepted); no Open, In Progress or Awaiting User Decision item; `origin/main` (52d0830) is an ancestor of the branch, so no merge was needed. Every file in `git diff origin/main...HEAD` is named in the Task 230 log or checkpoint.
+- Gate (close, after the close commit): `git diff --check origin/main...HEAD`, `pnpm test` 2025/2025, `pnpm test:db` 942/942 after a reset, `pnpm lint` (0 errors, 11 existing warnings), `pnpm typecheck`, `pnpm build` pass.
+- Close review against `PLANNING_STANDARD.md` §6: no Blocking finding. No `dexie` or `fake-indexeddb` import remains; only `session.ts` and `supabase-client.ts` import `@supabase/supabase-js`; no SQL function or migration changed (only `supabase-store-commands.db.test.ts`), so no SQL review or production step applies. Advisory: the hook error logs still say "liveQuery" (left as is at the Stage 2 review).
+- Documents reconciled at close: SCHEMA §Zod Validation Schemas no longer declares `createScratchBreakdownSchema` / `CreateScratchBreakdown`, which Stage 3 removed from `schema.ts`; the plan's shared SaaS rule now says the Dexie tests stayed until Phase 46 removed them.
+- Production: nothing to apply (no migration).
+- Carried over: none. The `source-unresolved` integrity projection stays by the user's decision, with no cleanup item.
