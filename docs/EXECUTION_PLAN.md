@@ -1037,6 +1037,9 @@ Waits for: Phase 49 and Phase 45 Final Close and `main` sync (runs beside
 Phases 46–48). Does not block Phase 48; closes before the theme stage. Its
 checks run on local Supabase (Shared rules above).
 
+Task order (user, 2026-10-29): Task 250 runs first, since it shares no file
+with Phase 46's Task 230; then Tasks 245–249 in their dependency order.
+
 ### Task 245: [ ] Show Breakdown, Add and editor statuses on the item
 
 **Files and actions:**
@@ -1063,11 +1066,14 @@ checks run on local Supabase (Shared rules above).
 - `inbox-triage-theme-realization.test.tsx`: the new roles.
 
 **Dependencies:** Phase 49 and Phase 45 Final Close and `main` sync; this
-phase's lifecycle gate; `DP-FB-01` recorded.
+phase's lifecycle gate; `DP-FB-01` recorded; if Phase 46 is merged into
+`origin/main` by then, `origin/main` is merged (not rebased) into the phase
+branch first, so the files both phases change are resolved before the task
+starts (user, 2026-10-29).
 
-**Authority:** F01, F02, F04–F07, F09; MI-21 (row part); SPEC §Item status
-presentation, §Breakdown and Selected Scratch Context; DESIGN_TOKENS `DP-VQ02`
-retirement and the `DP-VQ04`, `DP-VQ05` amendments.
+**Authority:** F01, F02, F04–F07, F09; MI-21 (row part); Phase 45 mi-1; SPEC
+§Item status presentation, §Breakdown and Selected Scratch Context;
+DESIGN_TOKENS `DP-VQ02` retirement and the `DP-VQ04`, `DP-VQ05` amendments.
 
 **Observable acceptance:** at 1024px with the Pool open a Breakdown row's title
 keeps its width (the row reserves 22px, not 160px); an Add success shows
@@ -1076,7 +1082,9 @@ loader only after 300ms; unknown shows `?` with `Check again`, not applied
 `!` with `Retry Add`, each with emphasis and its sentence on hover and focus;
 Delete and the editors follow the same rule; an offline editor save keeps the
 draft and shows the toast; the conflict view is unchanged; a status icon on a
-locked row is reachable by keyboard and shows its sentence on focus.
+locked row is reachable by keyboard and shows its sentence on focus; the Add
+`account_limit` reason shows in full, not cut off with an ellipsis, in
+`retro-mac` and `neumorphism` at 1280px (Phase 45 mi-1).
 
 **Verification:** gate; `expert` review (state-to-presentation mapping and
 timing); browser checkpoint with the state switch.
@@ -1108,8 +1116,8 @@ timing); browser checkpoint with the state switch.
 
 **Dependencies:** Task 245.
 
-**Authority:** F06–F10; MI-21 (Staging part); SPEC §Durable Staging;
-DESIGN_TOKENS `DP-VQ06-STAGING` amendment.
+**Authority:** F06–F10; MI-21 (Staging part); Phase 45 mi-2; SPEC §Durable
+Staging; DESIGN_TOKENS `DP-VQ06-STAGING` amendment.
 
 **Observable acceptance:** at 1024px with the Pool open a Node card is never
 narrower than one card and the well shows one column, two when they fit;
@@ -1117,7 +1125,9 @@ pending shows the loader after 300ms; unknown and reconciling show `?`; an
 Unstage failure shows `!` on the candidate and no band; a Stage failure keeps
 the band, and so do the stale-invalidation notices; the status icon of a Stage
 projection or integrity slot is reachable by keyboard and shows its sentence on
-focus.
+focus; in `neumorphism` at 1280px the rejected placement reason inside the
+`Confirm placement` card in the Home column shows in full, not clipped
+(Phase 45 mi-2).
 
 **Verification:** gate; `expert` review (failure routing); browser checkpoint
 with the state switch.
@@ -1193,8 +1203,9 @@ are judged under real latency (SPEC §Write feel).
   (F12).
 - `src/app/globals.css`: `home-button`, `breadcrumb-reveal`,
   `breadcrumb-drop-target`.
-- Drag cancel (Phase 49 mi-3): `src/hooks/use-dnd.ts` and its test gain a
-  cancel handler that clears `activeItem` and the drag state `handleDragEnd`
+- Drag cancel (Phase 49 mi-3): `useDnd`, the Grid hook in
+  `src/hooks/use-dnd.ts` (`useTriageDnd` in the same file already has one),
+  and its test gain a cancel handler that clears `activeItem` and the drag state `handleDragEnd`
   clears, without a write; the `DndContext` in `grid-runtime.tsx` and in
   `src/app/calendar/layout.tsx` wire it to `onDragCancel`, so an
   `Esc`-cancelled drag no longer leaves the cards dimmed, the scroll wrapper
@@ -1250,22 +1261,28 @@ and every `isCellBlocked` or blocked-cell guard from `grid-runtime.tsx`,
 `runBreadcrumbZoneMigration` from `datastore.ts`, the Supabase store's no-op
 and, if Phase 46 has not removed it, `indexeddb.ts`, with every `settings` use
 and no Dexie version bump; delete the reserved top-left block the client
-passes as `p_reserved_cells` and stop passing it from `src/lib/db/supabase-store.ts`
-and `src/lib/auth/session.ts` (the server parameter stays at its default; no SQL
-change, feedback F34); update the tests that cover the zone
-(`grid-view.test.tsx`, `use-grid-actions.test.ts`, `use-triage-dnd.test.ts`,
-`grid-dnd.test.ts`, `grid-runtime.test.tsx`, `indexeddb.migration.test.ts`).
+passes as `p_reserved_cells` (`BREADCRUMB_RESERVED_CELLS` in
+`src/lib/db/supabase-calls.ts`, sent by `callEnsureAccount`, `callUpdateNode`
+and the restore, unarchive and promotion calls) and stop passing it (the server
+parameter stays at its default `'[]'`; no SQL change, feedback F34); update the
+tests that cover the zone and the reserved block (`grid-view.test.tsx`,
+`use-grid-actions.test.ts`, `use-triage-dnd.test.ts`, `grid-dnd.test.ts`,
+`grid-runtime.test.tsx`, `indexeddb.migration.test.ts`,
+`supabase-calls.test.ts`, `supabase-store.writes.test.ts`,
+`src/lib/auth/session.test.ts`).
 
 **Dependencies:** Task 248.
 
-**Authority:** F26, F34; F16 (dropped toast); SCHEMA §Not ported, §Internal
-functions; SPEC §Breadcrumb reveal and Home button.
+**Authority:** F26, F34; F16 (dropped toast); Phase 45 mi-3; SCHEMA §Not
+ported, §Internal functions; SPEC §Breadcrumb reveal and Home button.
 
 **Observable acceptance:** the cells under the breadcrumb accept Add,
 placement and drops like any other cell, including a drag dropped on a
 top-left cell under the revealed bar; a restore, an unhide or a promotion into
 a Grid whose only free cells are top-left lands there; no zone code or `settings` read or
-write remains; every gate passes.
+write remains; the 156-Bit Full folder fixture reads as full (no empty cell in
+the Create dialog), and the `inbox-triage.js` header recipe drops its zone
+workaround if it no longer applies (Phase 45 mi-3); every gate passes.
 
 **Verification:** gate; `expert` review (Add, placement and DnD paths); a
 search for the zone names returns nothing; browser checkpoint of a create and a
