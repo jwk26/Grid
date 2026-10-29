@@ -787,7 +787,7 @@ function getReliabilityState(
   return null;
 }
 
-type DeleteSentenceKey =
+type SentenceKey =
   | "pending"
   | "unknown"
   | "reconciling"
@@ -795,12 +795,12 @@ type DeleteSentenceKey =
   | "rejected"
   | "conflict";
 
-function deleteSentenceKey(state: ReliabilityState): DeleteSentenceKey {
+function sentenceKeyOf(state: ReliabilityState): SentenceKey {
   return state === "not-applied" ? "notApplied" : state;
 }
 
-/** The Delete sentence a forced development state shows, or null for none. */
-function forcedDeleteSentenceKey(state: ForcedState): DeleteSentenceKey | null {
+/** The Add or Delete sentence a forced development state shows, or null for none. */
+function forcedSentenceKey(state: ForcedState): SentenceKey | null {
   switch (state) {
     case "delayed-pending":
       return "pending";
@@ -828,66 +828,6 @@ function itemStatusOfReliability(state: ReliabilityState): ItemStatus {
     case "conflict":
       return "problem";
   }
-}
-
-function ReliabilityLine({
-  action,
-  actionRef,
-  copy,
-  isReconciling,
-  onAction,
-  surface,
-  state,
-}: {
-  action: string | null;
-  actionRef?: (element: HTMLButtonElement | null) => void;
-  copy: string;
-  isReconciling: boolean;
-  onAction?: () => void;
-  surface: "add" | "delete";
-  state: ReliabilityState;
-}) {
-  return (
-    <div
-      className={cn(
-        "breakdown-reliability",
-        surface === "add"
-          ? "breakdown-add-reliability"
-          : "breakdown-delete-reliability",
-      )}
-      data-triage-role="breakdown-reliability"
-    >
-      <span
-        aria-atomic="true"
-        aria-live="polite"
-        className="breakdown-reliability__status"
-        data-triage-reliability-state={state}
-        role="status"
-      >
-        {copy}
-      </span>
-      {action !== null ? (
-        <Button
-          ref={actionRef}
-          aria-disabled={isReconciling ? "true" : undefined}
-          className="breakdown-reliability__action"
-          data-triage-role="breakdown-reliability-action"
-          size="xs"
-          type="button"
-          variant={
-            action === INBOX_TRIAGE_COPY.reliability.actions.retryAdd
-              ? "default"
-              : "ghost"
-          }
-          onClick={() => {
-            if (!isReconciling) onAction?.();
-          }}
-        >
-          {action}
-        </Button>
-      ) : null}
-    </div>
-  );
 }
 
 function BreakdownRow({
@@ -968,24 +908,24 @@ function BreakdownRow({
       : null;
   const deleteReliabilityState = getReliabilityState(deleteOperation);
   const forced = useForcedItemStatus(forcedItemKeys.breakdown(row.id));
-  const forcedSentenceKey =
+  const forcedRowKey =
     forced === null || forced.status === null
       ? null
-      : forcedDeleteSentenceKey(forced.state);
+      : forcedSentenceKey(forced.state);
   const sentenceKey =
-    forcedSentenceKey ??
+    forcedRowKey ??
     (deleteReliabilityState === null
       ? null
-      : deleteSentenceKey(deleteReliabilityState));
+      : sentenceKeyOf(deleteReliabilityState));
   const itemStatus =
-    forcedSentenceKey !== null && forced !== null
+    forcedRowKey !== null && forced !== null
       ? forced.status
       : deleteReliabilityState === null
         ? null
         : itemStatusOfReliability(deleteReliabilityState);
   const presentation = useStatusPresentation(
     itemStatus,
-    forcedSentenceKey !== null
+    forcedRowKey !== null
       ? `forced:${forced?.state}`
       : (deleteOperation?.operationId ?? ""),
   );
@@ -1436,27 +1376,49 @@ export function BreakdownPanel({
       ? null
       : rawAddOperation;
   const addReliabilityState = getReliabilityState(addOperation);
-  const addReliabilityCopy =
-    addReliabilityState === null
+  const forcedAdd = useForcedItemStatus(
+    selectedScratchId === null ? null : forcedItemKeys.add(selectedScratchId),
+  );
+  const forcedAddSentenceKey =
+    forcedAdd === null || forcedAdd.status === null
       ? null
-      : addReliabilityState === "rejected" &&
+      : forcedSentenceKey(forcedAdd.state);
+  const addSentenceKey =
+    forcedAddSentenceKey ??
+    (addReliabilityState === null ? null : sentenceKeyOf(addReliabilityState));
+  const addStatusSentence =
+    addSentenceKey === null
+      ? null
+      : forcedAddSentenceKey === null &&
+          addSentenceKey === "rejected" &&
           addOperation?.rejection?.code === "account_limit"
         ? INBOX_TRIAGE_COPY.reliability.add.rejectedAccountLimit.replace(
             "{limit}",
             String(addOperation.rejection.limit ?? ""),
           )
-        : INBOX_TRIAGE_COPY.reliability.add[
-            addReliabilityState === "not-applied"
-              ? "notApplied"
-              : addReliabilityState
-          ];
+        : INBOX_TRIAGE_COPY.reliability.add[addSentenceKey];
+  const addItemStatus =
+    forcedAddSentenceKey !== null && forcedAdd !== null
+      ? forcedAdd.status
+      : addReliabilityState === null
+        ? null
+        : itemStatusOfReliability(addReliabilityState);
+  const addPresentation = useStatusPresentation(
+    addItemStatus,
+    forcedAddSentenceKey !== null
+      ? `forced:${forcedAdd?.state}`
+      : (addOperation?.operationId ?? ""),
+  );
+  const [isAddTooltipOpen, setIsAddTooltipOpen] = useState(false);
   const addReliabilityAction =
-    addReliabilityState === "unknown" ||
-    addReliabilityState === "reconciling"
-      ? INBOX_TRIAGE_COPY.reliability.actions.checkAgain
-      : addReliabilityState === "not-applied"
-        ? INBOX_TRIAGE_COPY.reliability.actions.retryAdd
-        : null;
+    forcedAddSentenceKey !== null
+      ? null
+      : addReliabilityState === "unknown" ||
+          addReliabilityState === "reconciling"
+        ? INBOX_TRIAGE_COPY.reliability.actions.checkAgain
+        : addReliabilityState === "not-applied"
+          ? INBOX_TRIAGE_COPY.reliability.actions.retryAdd
+          : null;
   const deleteOperationsByBreakdownId = new Map(
     operations
       .filter(
@@ -2581,33 +2543,49 @@ export function BreakdownPanel({
           }
           inert={isDepartureDecision ? true : undefined}
         >
-          {isAdding || addReliabilityState !== null ? (
-            <input
-              ref={(element) => {
-                inputRef.current = element;
-                addEntryRef.current = element;
-              }}
-              className="block h-8 w-full appearance-none rounded-md border border-border bg-background px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
-              data-triage-role="breakdown-add-field"
-              maxLength={500}
-              onChange={(event) => updateAddDraft(event.target.value)}
-              onCompositionEnd={() => {
-                isComposingRef.current = false;
-              }}
-              onCompositionStart={() => {
-                isComposingRef.current = true;
-              }}
-              onKeyDown={handleInputKeyDown}
-              placeholder="Add a note..."
-              readOnly={
-                operationLock.activeOperation !== null ||
-                addReliabilityState === "pending" ||
-                addReliabilityState === "unknown" ||
-                addReliabilityState === "reconciling"
-              }
-              type="text"
-              value={newContent}
-            />
+          {isAdding || addReliabilityState !== null || addStatusSentence !== null ? (
+            <div className="breakdown-add-field-wrap">
+              <StatusTooltip
+                open={isAddTooltipOpen && addPresentation.glyph !== null}
+                sentence={addStatusSentence ?? ""}
+                onOpenChange={setIsAddTooltipOpen}
+              >
+                <input
+                  ref={(element) => {
+                    inputRef.current = element;
+                    addEntryRef.current = element;
+                  }}
+                  className="block h-8 w-full appearance-none rounded-md border border-border bg-background px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  data-triage-role="breakdown-add-field"
+                  {...statusEmphasisProps(addPresentation)}
+                  maxLength={500}
+                  onChange={(event) => updateAddDraft(event.target.value)}
+                  onCompositionEnd={() => {
+                    isComposingRef.current = false;
+                  }}
+                  onCompositionStart={() => {
+                    isComposingRef.current = true;
+                  }}
+                  onKeyDown={handleInputKeyDown}
+                  placeholder="Add a note..."
+                  readOnly={
+                    operationLock.activeOperation !== null ||
+                    addReliabilityState === "pending" ||
+                    addReliabilityState === "unknown" ||
+                    addReliabilityState === "reconciling"
+                  }
+                  type="text"
+                  value={newContent}
+                />
+              </StatusTooltip>
+              {addStatusSentence !== null ? (
+                <StatusIcon
+                  className="breakdown-add-status-icon"
+                  presentation={addPresentation}
+                  sentence={addStatusSentence}
+                />
+              ) : null}
+            </div>
           ) : (
             <div
               ref={(element) => {
@@ -2625,36 +2603,61 @@ export function BreakdownPanel({
               Add a note...
             </div>
           )}
-          <Button
-            data-triage-role="breakdown-add-control"
-            disabled={
-              operationLock.activeOperation !== null ||
-              !isAdding ||
-              newContent.trim().length === 0
-            }
-            size="sm"
-            type="button"
-            onClick={() => void handleAdd({ keepInputOpen: true })}
-          >
-            {INBOX_TRIAGE_COPY.baseActions.add}
-          </Button>
-          {addReliabilityState !== null && addReliabilityCopy !== null ? (
-            <ReliabilityLine
-              action={addReliabilityAction}
-              actionRef={(element) => {
-                addReliabilityActionRef.current = element;
-              }}
-              copy={addReliabilityCopy}
-              isReconciling={addReliabilityState === "reconciling"}
-              state={addReliabilityState}
-              surface="add"
-              onAction={
-                addReliabilityState === "not-applied"
-                  ? () => void handleRetryAdd()
-                  : () => void handleReconcileAdd()
+          <div className="breakdown-add-actions">
+            {addReliabilityAction !== null ? (
+              <Button
+                ref={addReliabilityActionRef}
+                aria-disabled={
+                  addReliabilityState === "reconciling" ? "true" : undefined
+                }
+                className="breakdown-reliability__action"
+                data-triage-role="breakdown-reliability-action"
+                size="xs"
+                type="button"
+                variant={
+                  addReliabilityState === "not-applied" ? "default" : "ghost"
+                }
+                onClick={() => {
+                  if (addReliabilityState === "reconciling") return;
+                  if (addReliabilityState === "not-applied") {
+                    void handleRetryAdd();
+                  } else {
+                    void handleReconcileAdd();
+                  }
+                }}
+              >
+                {addReliabilityAction}
+              </Button>
+            ) : null}
+            <Button
+              data-triage-role="breakdown-add-control"
+              disabled={
+                operationLock.activeOperation !== null ||
+                !isAdding ||
+                newContent.trim().length === 0
               }
-            />
-          ) : null}
+              size="sm"
+              type="button"
+              onClick={() => void handleAdd({ keepInputOpen: true })}
+            >
+              {INBOX_TRIAGE_COPY.baseActions.add}
+            </Button>
+          </div>
+          {/* One container stays mounted, so a screen reader registers it before
+              its text changes; the inner text is keyed per state. */}
+          <div
+            aria-atomic="true"
+            aria-live="polite"
+            className="sr-only"
+            data-triage-role="breakdown-add-status-announcement"
+            role="status"
+          >
+            {addStatusSentence !== null ? (
+              <span key={`${addOperation?.operationId ?? forcedAdd?.state}:${addSentenceKey}`}>
+                {addStatusSentence}
+              </span>
+            ) : null}
+          </div>
         </div>
         {isDepartureDecision ? (
           <div

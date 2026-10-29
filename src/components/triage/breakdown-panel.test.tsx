@@ -11,7 +11,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   BreakdownOperationProjection,
   ConditionalEditorSnapshot,
@@ -103,6 +103,12 @@ const getDataStoreMock = vi.hoisted(() => vi.fn());
 const archiveBitMock = vi.hoisted(() => vi.fn());
 const useInboxMock = vi.hoisted(() => vi.fn());
 const currentTime = new Date(2026, 5, 17, 12, 0, 0).getTime();
+function announcementOf(role: string): HTMLElement {
+  const element = document.querySelector<HTMLElement>(`[data-triage-role="${role}"]`);
+  if (element === null) throw new Error(`no ${role}`);
+  return element;
+}
+
 function announcementRegion(): HTMLElement {
   const region = document.querySelector<HTMLElement>(
     '[data-feedback-role="status-announcement"]',
@@ -477,6 +483,18 @@ function BreakdownPanel(
     />
   );
 }
+
+beforeAll(() => {
+  // Radix Popper measures its anchor; jsdom has no ResizeObserver.
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+});
 
 describe("BreakdownPanel first read after a Scratch switch (MI-22)", () => {
   const readyState = (isReady: boolean, breakdowns: unknown[] = []) => ({
@@ -1005,7 +1023,14 @@ describe("BreakdownPanel", () => {
   });
 
   it("maps DP-VQ05 through all eight theme families with reduced-motion-identical static treatment", () => {
-    expect(globalsCss).toContain(".breakdown-add-reliability");
+    expect(globalsCss).not.toContain(".breakdown-add-reliability");
+    expect(globalsCss).toMatch(
+      /:root:root \.triage-shell \.breakdown-add-field-wrap > \[data-triage-role="breakdown-add-field"\] \{\s*padding-inline-end: 30px;/,
+    );
+    expect(globalsCss).toMatch(
+      /color-theme="retro-mac"\] \.triage-shell \.breakdown-add-field-wrap:focus-within \.breakdown-add-status-icon \{\s*color: var\(--triage-context-surface\);/,
+    );
+    expect(globalsCss).toContain(".breakdown-add-status-icon");
     expect(globalsCss).not.toContain(".breakdown-delete-reliability");
     for (const theme of [
       "neumorphism",
@@ -1013,15 +1038,12 @@ describe("BreakdownPanel", () => {
       "retro-mac",
     ]) {
       expect(globalsCss).toContain(
-        `:root[data-color-theme="${theme}"] .breakdown-reliability`,
+        `:root[data-color-theme="${theme}"] .breakdown-reliability__action`,
       );
     }
+    expect(globalsCss).not.toMatch(/\.breakdown-reliability[ ,{]/);
     expect(globalsCss).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.breakdown-reliability,[\s\S]*\.breakdown-reliability \*[\s\S]*animation: none !important;[\s\S]*transition: none !important;/,
-    );
-    const reliabilityBlock = getCssBlock(".breakdown-reliability");
-    expect(reliabilityBlock).not.toMatch(
-      /animation|transform|transition|blink|pulse|bounce|spin/i,
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.breakdown-reliability__action,[\s\S]*animation: none !important;[\s\S]*transition: none !important;/,
     );
   });
 
@@ -2264,11 +2286,18 @@ describe("BreakdownPanel", () => {
       },
     ];
     render(<BreakdownPanel />);
+    const sentence =
+      "Add unavailable. This account has reached its limit of 300 breakdowns. Your draft is still here.";
+    // The whole reason is the field's description, the icon's name and a
+    // polite announcement; no visible line can cut it off (Phase 45 mi-1).
+    expect(screen.getByPlaceholderText("Add a note...")).toHaveAccessibleDescription(sentence);
+    expect(screen.getByRole("img", { name: sentence })).toHaveAttribute(
+      "data-glyph",
+      "exclamation",
+    );
     expect(
-      screen.getByText(
-        "Add unavailable. This account has reached its limit of 300 breakdowns. Your draft is still here.",
-      ),
-    ).toHaveAttribute("role", "status");
+      announcementOf("breakdown-add-status-announcement"),
+    ).toHaveTextContent(sentence);
   });
 
   it("keeps the plain rejected line for any other rejection code", () => {
@@ -2285,7 +2314,10 @@ describe("BreakdownPanel", () => {
       },
     ];
     render(<BreakdownPanel />);
-    expect(screen.getByText("Add unavailable. Your draft is still here.")).toBeInTheDocument();
+    expect(
+      announcementOf("breakdown-add-status-announcement"),
+    ).toHaveTextContent("Add unavailable. Your draft is still here.");
+    expect(announcementOf("breakdown-add-status-announcement")).not.toHaveTextContent("limit");
   });
 
   it.each([
@@ -2321,8 +2353,9 @@ describe("BreakdownPanel", () => {
       null,
     ],
   ] as const)(
-    "renders the authoritative Add %s/%s reliability state",
+    "shows the authoritative Add %s/%s on the field, with the action beside Add",
     (phase, status, copy, action) => {
+      vi.useFakeTimers();
       triageStoreState.selectedScratchId = "scratch-1";
       hookState.operations = [
         {
@@ -2337,28 +2370,63 @@ describe("BreakdownPanel", () => {
 
       render(<BreakdownPanel />);
 
-      const statusText = screen.getByText(copy);
-      const reliability = statusText.closest(
-        '[data-triage-reliability-surface="add"]',
-      );
-      const reliabilityLine = statusText.closest(
-        '[data-triage-role="breakdown-reliability"]',
-      );
-      expect(reliability).toHaveAttribute(
+      const field = screen.getByPlaceholderText("Add a note...");
+      const region = screen.getByTestId("breakdown-add-row");
+      expect(region).toHaveAttribute(
         "data-triage-reliability-state",
         phase === "terminal" ? status?.replace("_", "-") : phase,
       );
-      expect(statusText).toHaveAttribute("role", "status");
-      expect(statusText).toHaveAttribute("aria-live", "polite");
-      expect(statusText).toHaveAttribute("aria-atomic", "true");
-      if (action === null) {
-        expect(
-          within(reliabilityLine as HTMLElement).queryByRole("button"),
-        ).toBeNull();
+      // No second line any more: the sentence is the field's description and
+      // a hidden polite announcement, available at once.
+      expect(region.querySelector(".breakdown-reliability")).toBeNull();
+      expect(field).toHaveAccessibleDescription(copy);
+      const announcement = announcementOf("breakdown-add-status-announcement");
+      expect(announcement).toHaveTextContent(copy);
+      expect(announcement).toHaveAttribute("aria-live", "polite");
+      expect(announcement).toHaveAttribute("aria-atomic", "true");
+      expect(announcement).toHaveClass("sr-only");
+
+      if (phase === "pending") {
+        // Pending shows nothing until the display delay has passed.
+        expect(screen.queryByRole("img")).toBeNull();
+        expect(field).not.toHaveAttribute("data-status-emphasis");
+        act(() => vi.advanceTimersByTime(300));
+        expect(screen.getByRole("img", { name: copy })).toHaveAttribute(
+          "data-glyph",
+          "loader",
+        );
+        expect(field).not.toHaveAttribute("data-status-emphasis");
+      } else if (phase === "reconciling") {
+        // `?` stays, with its emphasis, until the loader is due.
+        expect(screen.getByRole("img", { name: copy })).toHaveAttribute(
+          "data-glyph",
+          "question",
+        );
+        expect(field).toHaveAttribute("data-status-emphasis");
+        act(() => vi.advanceTimersByTime(300));
+        expect(screen.getByRole("img", { name: copy })).toHaveAttribute(
+          "data-glyph",
+          "loader",
+        );
+        expect(field).not.toHaveAttribute("data-status-emphasis");
       } else {
-        const button = within(reliabilityLine as HTMLElement).getByRole("button", {
-          name: action,
-        });
+        expect(screen.getByRole("img", { name: copy })).toHaveAttribute(
+          "data-glyph",
+          phase === "unknown" ? "question" : "exclamation",
+        );
+        expect(field).toHaveAttribute("data-status-emphasis");
+      }
+      expect(field.closest(".breakdown-add-field-wrap")).toContainElement(
+        screen.getByRole("img", { name: copy }),
+      );
+
+      if (action === null) {
+        expect(within(region).queryByRole("button", { name: /Check again|Retry Add/ })).toBeNull();
+      } else {
+        const button = within(region).getByRole("button", { name: action });
+        expect(button.closest(".breakdown-add-actions")).toContainElement(
+          within(region).getByRole("button", { name: "Add" }),
+        );
         if (phase === "reconciling") {
           expect(button).toHaveAttribute("aria-disabled", "true");
           expect(button).not.toBeDisabled();
@@ -2368,6 +2436,106 @@ describe("BreakdownPanel", () => {
       expect(screen.queryByRole("button", { name: "Delete again" })).toBeNull();
     },
   );
+
+  it("shows the Add tooltip with the sentence on field focus and nothing without a status", async () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.operations = [
+      {
+        kind: "add",
+        operationId: "add-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "new-row",
+        phase: "terminal",
+        status: "not_applied",
+      },
+    ];
+    const view = render(<BreakdownPanel />);
+    fireEvent.focus(screen.getByPlaceholderText("Add a note..."));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Not added. Your draft is still here.",
+    );
+
+    hookState.operations = [];
+    view.rerender(<BreakdownPanel />);
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(screen.queryByRole("img")).toBeNull();
+  });
+
+  it("keeps one Add announcement container mounted across states and re-announces each", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    const op = (phase: string, status?: string) => [
+      {
+        kind: "add",
+        operationId: "add-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "new-row",
+        phase,
+        ...(status === undefined ? {} : { status }),
+      },
+    ];
+    hookState.operations = [];
+    const view = render(<BreakdownPanel />);
+    const container = announcementOf("breakdown-add-status-announcement");
+    expect(container).toBeEmptyDOMElement();
+    for (const [operations, sentence] of [
+      [op("unknown"), "We couldn’t confirm whether it was added."],
+      [op("reconciling"), "Checking whether it was added…"],
+      [op("terminal", "not_applied"), "Not added. Your draft is still here."],
+    ] as const) {
+      hookState.operations = operations as never;
+      view.rerender(<BreakdownPanel />);
+      expect(announcementOf("breakdown-add-status-announcement")).toBe(container);
+      expect(container).toHaveTextContent(sentence);
+      expect(container).toHaveAttribute("aria-live", "polite");
+    }
+    hookState.operations = [];
+    view.rerender(<BreakdownPanel />);
+    expect(announcementOf("breakdown-add-status-announcement")).toBe(container);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("keeps the same Add input mounted and focused as a status appears and ends", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    const view = render(<BreakdownPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Add a note..." }));
+    const input = screen.getByPlaceholderText("Add a note...");
+    input.focus();
+    hookState.operations = [
+      {
+        kind: "add",
+        operationId: "add-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "new-row",
+        phase: "unknown",
+      },
+    ];
+    view.rerender(<BreakdownPanel />);
+    expect(screen.getByPlaceholderText("Add a note...")).toBe(input);
+    expect(input).toHaveFocus();
+    hookState.operations = [];
+    view.rerender(<BreakdownPanel />);
+    expect(screen.getByPlaceholderText("Add a note...")).toBe(input);
+    expect(input).toHaveFocus();
+  });
+
+  it("shows a forced development state on the Add field with its own sentence and no action", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    act(() => {
+      registerForcedItemStates({ [forcedItemKeys.add("scratch-1")]: "rejected" });
+    });
+    render(<BreakdownPanel />);
+    const sentence = "Add unavailable. Your draft is still here.";
+    expect(screen.getByRole("img", { name: sentence })).toHaveAttribute(
+      "data-glyph",
+      "exclamation",
+    );
+    expect(screen.getByPlaceholderText("Add a note...")).toHaveAttribute(
+      "data-status-emphasis",
+    );
+    expect(screen.queryByRole("button", { name: /Check again|Retry Add/ })).toBeNull();
+    act(() => clearForcedItemStates());
+    expect(screen.queryByRole("img")).toBeNull();
+  });
 
   it("reconciles and retries Add with the preserved command identity and focus", async () => {
     triageStoreState.selectedScratchId = "scratch-1";
@@ -3026,7 +3194,8 @@ describe("BreakdownPanel", () => {
     expect(
       view.container.querySelector('[data-triage-role="breakdown-add-completion-blocker"]'),
     ).toBeNull();
-    expect(input).not.toHaveAttribute("aria-describedby");
+    // Only the Add status sentence describes the field; no blocker sentence does.
+    expect(input).toHaveAccessibleDescription("Not added. Your draft is still here.");
     expect(input).toHaveFocus();
     expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
     expect(screen.queryByRole("region", { name: "Scratch complete" })).toBeNull();
@@ -3519,8 +3688,8 @@ describe("BreakdownPanel", () => {
     ];
     const view = render(<BreakdownPanel />);
     expect(
-      screen.getByText("Add unavailable. Your draft is still here."),
-    ).toBeInTheDocument();
+      announcementOf("breakdown-add-status-announcement"),
+    ).toHaveTextContent("Add unavailable. Your draft is still here.");
 
     triageStoreState.selectedScratchId = "scratch-2";
     view.rerender(<BreakdownPanel />);
@@ -3530,6 +3699,7 @@ describe("BreakdownPanel", () => {
     expect(
       screen.queryByText("Add unavailable. Your draft is still here."),
     ).toBeNull();
+    expect(screen.queryByRole("img")).toBeNull();
   });
 
   it("focuses the next visible row after confirmed Delete", async () => {

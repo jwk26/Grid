@@ -327,8 +327,7 @@
       scroll-behavior: auto !important;
     }
 
-    .breakdown-reliability,
-    .breakdown-reliability * {
+    .breakdown-reliability__action {
       animation: none !important;
       transition: none !important;
     }
@@ -3987,30 +3986,36 @@
   white-space: nowrap;
 }
 
-/* DP-VQ05 stays attached to the originating Add region or exact Delete row. */
+/* The Add status icon sits inside the field at its right end (DP-FB-01, F07);
+   `Check again` and `Retry Add` sit beside Add. */
 .breakdown-add-region {
   column-gap: 0.5rem;
   row-gap: 0;
 }
 
-.breakdown-reliability {
-  align-items: center;
-  background: hsl(var(--muted) / 0.28);
-  border-block-start: var(--theme-border-width) solid hsl(var(--border));
-  color: hsl(var(--foreground));
-  column-gap: 0.5rem;
-  display: grid;
-  font-family: var(--theme-font);
-  font-size: 0.75rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-  line-height: 1rem;
-  min-block-size: 1.75rem;
+.breakdown-add-field-wrap {
   min-inline-size: 0;
-  padding: 0.25rem 0.375rem;
+  position: relative;
 }
 
-.breakdown-add-reliability {
-  grid-column: 1 / -1;
+/* Higher than every theme's own Add field padding (retro-mac, neumorphism), so
+   the draft never runs under the icon. */
+:root:root .triage-shell .breakdown-add-field-wrap > [data-triage-role="breakdown-add-field"] {
+  padding-inline-end: 30px;
+}
+
+.breakdown-add-status-icon {
+  inset-block-start: 50%;
+  inset-inline-end: 8px;
+  pointer-events: none;
+  position: absolute;
+  transform: translateY(-50%);
+}
+
+.breakdown-add-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .archive-withdrawal-status {
@@ -4187,13 +4192,6 @@
   border-color: hsl(var(--border));
 }
 
-.breakdown-reliability__status {
-  min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .breakdown-reliability__action,
 .breakdown-reliability__action:hover,
 .breakdown-reliability__action:focus-visible,
@@ -4206,37 +4204,15 @@
   opacity: 0.58;
 }
 
-:root[data-color-theme="neumorphism"] .breakdown-reliability,
-:root[data-color-theme="neumorphism"] .breakdown-reliability__status {
-  border: 0;
-  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.12),
-    inset -3px -3px 6px hsl(var(--background) / 0.86);
-}
-
 :root[data-color-theme="neumorphism"] .breakdown-reliability__action {
   border: 0;
   box-shadow: var(--theme-shadow);
-}
-
-:root[data-color-theme="claymorphism"] .breakdown-reliability,
-:root[data-color-theme="claymorphism"] .breakdown-reliability__status {
-  border: 0;
-  border-radius: calc(var(--theme-radius) * 0.45);
-  box-shadow: inset 2px 2px 5px hsl(var(--foreground) / 0.12),
-    inset -2px -2px 5px hsl(var(--background) / 0.8);
 }
 
 :root[data-color-theme="claymorphism"] .breakdown-reliability__action {
   border: 0;
   box-shadow: 2px 2px 4px hsl(var(--foreground) / 0.18),
     -1px -1px 3px hsl(var(--background) / 0.8);
-}
-
-:root[data-color-theme="retro-mac"] .breakdown-reliability,
-:root[data-color-theme="retro-mac"] .breakdown-reliability__status {
-  background: hsl(var(--background));
-  border-radius: 0;
-  box-shadow: 1px 1px 0 hsl(var(--foreground));
 }
 
 :root[data-color-theme="retro-mac"] .breakdown-reliability__action {
@@ -4575,8 +4551,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .breakdown-reliability,
-  .breakdown-reliability *,
+  .breakdown-reliability__action,
   .triage-inline-editor,
   .triage-inline-editor * {
     animation: none !important;
@@ -4781,6 +4756,11 @@
 }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-add-field"]:focus {
   background: var(--triage-context-ink); color: var(--triage-context-surface);
+}
+/* The focused field inverts to the ink surface; the status icon inside it takes
+   the field's focused text colour so `?` and `!` stay visible (DP-FB-01 FB-2). */
+:root[data-color-theme="retro-mac"] .triage-shell .breakdown-add-field-wrap:focus-within .breakdown-add-status-icon {
+  color: var(--triage-context-surface);
 }
 :root[data-color-theme="retro-mac"] .triage-shell [data-triage-role="breakdown-add-control"] {
   background: var(--triage-context-surface); border: 2px solid var(--triage-context-ink);
@@ -6381,16 +6361,6 @@
 :root[data-color-theme="neumorphism"] .triage-fixed-breakdown-row .triage-inline-editor__issue-overlay { padding-inline: 16px; }
 :root[data-color-theme="neumorphism"] .triage-inline-editor__issue-overlay [data-triage-role="inline-editor-issue-status"] { color: hsl(var(--foreground) / 0.85); }
 
-/* DP-VQ05 reliability lines: one shallow inset channel with a raised recovery control. */
-:root[data-color-theme="neumorphism"] .breakdown-reliability {
-  background: transparent;
-  border: 0;
-  border-radius: 14px;
-  box-shadow: var(--theme-shadow-inset-sm);
-  color: hsl(var(--foreground) / 0.85);
-  padding: 0.25rem 0.625rem;
-}
-:root[data-color-theme="neumorphism"] .breakdown-reliability__status { box-shadow: none; }
 :root[data-color-theme="neumorphism"] .breakdown-reliability__action {
   background: var(--page-bg);
   border: 0;

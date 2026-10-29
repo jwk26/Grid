@@ -336,7 +336,6 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] :is\(\.scratch-trash-dialog, \.breakdown-delete-dialog\) \{/);
     expect(css).toMatch(/color-theme="neumorphism"\] :is\(\.scratch-trash-dialog-overlay, \.breakdown-delete-dialog-overlay\) \{/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-inline-editor__field \{[^}]*border-radius: 999px;[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
-    expect(css).toMatch(/color-theme="neumorphism"\] \.breakdown-reliability \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.breakdown-reliability__action \{[^}]*box-shadow: var\(--theme-shadow-card-xs\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.breakdown-departure-sheet \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
     expect(css).toMatch(/\[data-triage-role="breakdown-departure-continue"\]:active \{\s*background-color: var\(--page-bg\);\s*box-shadow: var\(--theme-shadow-card\);\s*color: var\(--triage-pool-sort-active\);/);
@@ -756,7 +755,7 @@ describe("Phase 41 Scratch Trash realization (Task 210)", () => {
 describe("Phase 41 Retro Mac departure sheet realization (Task 211)", () => {
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
   const start = css.indexOf("/* Phase 41 (Task 211)");
-  const block = css.slice(start, css.indexOf("@media (prefers-reduced-motion: reduce) {\n  .breakdown-reliability,", start));
+  const block = css.slice(start, css.indexOf("@media (prefers-reduced-motion: reduce) {\n  .breakdown-reliability__action,", start));
   const rule = (selector: string) =>
     block.match(new RegExp(`${selector.replace(/[.[\]()*>]/g, "\\$&")} \\{([^}]*)\\}`))?.[1] ?? "";
 
