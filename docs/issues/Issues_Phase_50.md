@@ -10,8 +10,8 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 ## Task 250 — Remember the last selected Scratch on this device
 
 ### Current state
-- Status: Awaiting User Decision
-- Next: go-ahead on the work plan
+- Status: In Progress
+- Next: Stage 1 acceptance (preference field); then Stage 2
 - Open: none
 
 ### Log
@@ -21,3 +21,8 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
   - `use-inbox.ts` (+test): pass the saved id into reconcile; save every non-null `selectedScratchId` to the preferences store (device-local, no domain write). An unresolved saved id (deleted, archived, other account) simply falls back to the first active Scratch and is overwritten by that selection.
   - Stages: (1) preference field + test; (2) restore/save wiring + tests, then a browser check (select a Scratch, reload; delete it, reload; sign in as another local test user).
   - Verify: failing tests first, then gate (`git diff --check`, test, lint, typecheck, build). `expert` review since selection state logic changes.
+- Review (advisory, 2026-10-29, work plan): approve with changes. Apply: (1) accept the other-account fallback after a reload; also try a same-tab sign-out → sign-in as another local test user and record the result as `mi-1` — by code reading `triage-store` is never reset on a user change (`session.ts` sign-out resets only the snapshot), so the old account's `selectedScratchId`/`scratchPoolActiveIds` enter the external-removal hold instead of the fallback; the fix is outside this task (`session.ts`, SaaS lane) and its binding is the user's; (2) add `lastSelectedScratchId` to `partialize` and to `setItem`, which rebuilds the persisted object field by field, and assert the raw `localStorage` value in the test; (3) the reconcile effect in `use-inbox.ts` reads the saved id with `getState()` instead of subscribing, so a save does not re-run reconcile; (4) the browser check confirms no Supabase RPC on select and reload (no domain write); (5) tests: the saved id never overrides an external-removal or own-Trash hold, a valid same-session selection ignores it, a search-hidden saved id falls back to the first visible row, a stored value without the field or with a non-string loads as null. Not applied: none.
+- Decision: no visual change, so the theme × light/dark × resolution matrix does not apply; the browser check runs in `griddo` only (user, 2026-10-29).
+- Decision: go-ahead on the work plan with the advisory review applied (user, 2026-10-29). Stage 1 starts.
+- Stage 1 implemented (uncommitted until accepted): `lastSelectedScratchId` in `triage-preferences-store.ts` (default, validator, setter, normalize, `setItem`, `partialize`), raw-localStorage and invalid-value tests pass; typecheck passes.
+- Review (advisory, 2026-10-29, Stage 1): approve. Apply: none. Not applied: none. For Stage 2: `setLastSelectedScratchId(null)` clears the saved id, so the save path writes only a non-null selection and never during the load-time `null`.

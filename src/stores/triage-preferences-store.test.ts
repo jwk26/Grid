@@ -47,6 +47,7 @@ beforeEach(() => {
   useTriagePreferencesStore.setState({
     poolCreatedAtSort: "DESC",
     breakdownCreatedAtSort: "DESC",
+    lastSelectedScratchId: null,
   });
   localStorageMock.clear();
 });
@@ -83,6 +84,7 @@ describe("triage-preferences-store", () => {
     ).toEqual({
       poolCreatedAtSort: "ASC",
       breakdownCreatedAtSort: "DESC",
+      lastSelectedScratchId: null,
     });
   });
 
@@ -145,6 +147,7 @@ describe("triage-preferences-store", () => {
     ).toEqual({
       poolCreatedAtSort: "ASC",
       breakdownCreatedAtSort: "DESC",
+      lastSelectedScratchId: null,
     });
   });
 
@@ -162,9 +165,80 @@ describe("triage-preferences-store", () => {
   it("exposes no durable, page-session, recovery, or Newly state", () => {
     expect(Object.keys(useTriagePreferencesStore.getState()).sort()).toEqual([
       "breakdownCreatedAtSort",
+      "lastSelectedScratchId",
       "poolCreatedAtSort",
       "setBreakdownCreatedAtSort",
+      "setLastSelectedScratchId",
       "setPoolCreatedAtSort",
     ]);
+  });
+
+  it("defaults the last selected Scratch to null", () => {
+    expect(useTriagePreferencesStore.getState().lastSelectedScratchId).toBeNull();
+  });
+
+  it("persists the last selected Scratch id in the raw stored value", () => {
+    useTriagePreferencesStore.getState().setLastSelectedScratchId("scratch-1");
+
+    expect(
+      JSON.parse(
+        localStorage.getItem(TRIAGE_PREFERENCES_PERSISTENCE_KEY) ?? "null",
+      ),
+    ).toEqual({
+      poolCreatedAtSort: "DESC",
+      breakdownCreatedAtSort: "DESC",
+      lastSelectedScratchId: "scratch-1",
+    });
+  });
+
+  it("rejects an empty or non-string id when setting", () => {
+    const store = useTriagePreferencesStore.getState();
+    store.setLastSelectedScratchId("scratch-1");
+
+    store.setLastSelectedScratchId("");
+    expect(useTriagePreferencesStore.getState().lastSelectedScratchId).toBeNull();
+
+    store.setLastSelectedScratchId("scratch-1");
+    store.setLastSelectedScratchId(null);
+    expect(useTriagePreferencesStore.getState().lastSelectedScratchId).toBeNull();
+  });
+
+  it("hydrates a saved Scratch id and keeps the sorts", async () => {
+    localStorage.setItem(
+      TRIAGE_PREFERENCES_PERSISTENCE_KEY,
+      JSON.stringify({
+        poolCreatedAtSort: "ASC",
+        breakdownCreatedAtSort: "ASC",
+        lastSelectedScratchId: "scratch-9",
+      }),
+    );
+
+    await useTriagePreferencesStore.persist.rehydrate();
+
+    expect(useTriagePreferencesStore.getState()).toMatchObject({
+      poolCreatedAtSort: "ASC",
+      breakdownCreatedAtSort: "ASC",
+      lastSelectedScratchId: "scratch-9",
+    });
+  });
+
+  it.each([
+    ["a stored value without the field", undefined],
+    ["a non-string value", 42],
+    ["an empty string", ""],
+  ])("loads %s as null", async (_label, value) => {
+    localStorage.setItem(
+      TRIAGE_PREFERENCES_PERSISTENCE_KEY,
+      JSON.stringify({ poolCreatedAtSort: "ASC", lastSelectedScratchId: value }),
+    );
+
+    await useTriagePreferencesStore.persist.rehydrate();
+
+    expect(useTriagePreferencesStore.getState().lastSelectedScratchId).toBeNull();
+    expect(
+      JSON.parse(
+        localStorage.getItem(TRIAGE_PREFERENCES_PERSISTENCE_KEY) ?? "null",
+      ).lastSelectedScratchId,
+    ).toBeNull();
   });
 });
