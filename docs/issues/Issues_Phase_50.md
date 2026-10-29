@@ -41,8 +41,8 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 ## Task 245 — Show Breakdown, Add and editor statuses on the item
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 245 acceptance
+- Status: Accepted
+- Next: Task 245A (run-task 245A)
 - Open: none (mi-2 Deferred)
 
 ### Log
@@ -82,6 +82,7 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 - Review (advisory, 2026-10-30, task finish): approve with changes. The Observable acceptance holds (22px slot, no visible success, loader after 300ms, `?`/`Check again`, `!`/`Retry Add`, editor states, offline toast, conflict view unchanged, locked-row icon by keyboard, whole `account_limit` reason); `pnpm test` 2066 rerun. mi-2 checked by code reading: `runCommand` throws `WriteOutcomeUnknownError` on an unknown outcome, the editor catch sets `reconciling`, nothing calls `editor.reconcile()`, and the lock is released only in `applyEditorResult`. Apply: the Checkpoint's `Unresolved: none` names mi-2 and its binding below. The Task 232 and 233 notes need no plan change (both entries already cover them). Not applied: none.
 - Decision: mi-2 Deferred → Task 245A (Phase 50, right after Task 245, before Task 246): an editor save whose outcome is unknown shows `?` with `Check again`, is never resent, keeps the lock until a terminal answer and reconciles read-only; plan, SPEC and DESIGN_TOKENS `DP-VQ04` updated (user, 2026-10-30; `bc7a628`).
 - Task 246 note: reuse Task 245's status patterns: open a status tooltip only while a glyph is visible and reset its open flag without one; keep each polite live container mounted and key only its inner text; a `StatusTooltip` with an empty sentence keeps its host mounted and describes nothing (Task 245 `expert` review and advisory Stage 2 review).
+- Decision: Task 245 accepted (user, 2026-10-30).
 
 ### Checkpoint
 - Changed: `breakdown-panel.tsx` (Delete status in the 22px row slot with `Check again` in the action cluster; Add status inside the field with `Check again`/`Retry Add` beside Add; editor status box, loader, `?`, `!` and emphasis; hidden polite announcements in always-mounted containers; no `DP-VQ02` success state), `use-scratch-breakdowns.ts` (the `offline` phase removed; an offline save shows the fixed-id warning toast and changes nothing else), `copy/feedback.ts` (`OFFLINE_WRITE_ATTEMPT`), `copy/inbox-triage.ts` (`breakdownAnnouncement`; `offline` and `retrySave` removed), `status-tooltip.tsx` (an empty sentence describes nothing), `globals.css` (22px slot, Add icon, editor status box; success, reliability-line, overlay-offline and progress rules removed), and their tests and the theme-realization test. The workspace needed no change: its Unstage projection already only fed the panel's announcement.

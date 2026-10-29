@@ -1024,7 +1024,7 @@ with Phase 46's Task 230; then Tasks 245–249 in their dependency order.
 Task 245A (user, 2026-10-30, Phase 50 mi-2) runs right after Task 245 and
 before Task 246.
 
-### Task 245: [ ] Show Breakdown, Add and editor statuses on the item
+### Task 245: [x] Show Breakdown, Add and editor statuses on the item
 
 **Files and actions:**
 - `src/components/triage/breakdown-panel.tsx` and test: remove the `DP-VQ02`
