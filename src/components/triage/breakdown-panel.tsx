@@ -460,6 +460,11 @@ function InlineEditor({
   // Save and Cancel are unavailable at once while a save is in flight.
   const isInFlight =
     snapshot.phase === "saving" || snapshot.phase === "reconciling";
+  // A tooltip opened while no status showed must not wait to open on its own
+  // when one appears later: drop the flag while there is no glyph.
+  if (presentation.glyph === null && isFieldTooltipOpen) {
+    setIsFieldTooltipOpen(false);
+  }
 
   function handleFieldBlur(
     event: FocusEvent<HTMLInputElement>,
@@ -601,7 +606,9 @@ function InlineEditor({
                 <StatusTooltip
                   open={isFieldTooltipOpen && presentation.glyph !== null}
                   sentence={statusSentence ?? ""}
-                  onOpenChange={setIsFieldTooltipOpen}
+                  onOpenChange={(next) =>
+                    setIsFieldTooltipOpen(next && presentation.glyph !== null)
+                  }
                 >
                   <input ref={fieldRef} type="text" {...commonFieldProps} />
                 </StatusTooltip>
@@ -1140,18 +1147,22 @@ function BreakdownRow({
           </div>
         </>
       )}
-      {statusSentence !== null ? (
-        <span
-          id={statusDescriptionId}
-          aria-atomic="true"
-          aria-live="polite"
-          className="sr-only"
-          data-triage-role="breakdown-row-status-announcement"
-          role="status"
-        >
-          {statusSentence}
-        </span>
-      ) : null}
+      {/* One polite container per row stays mounted; only its text changes, so
+          the first sentence of a Delete is announced too. */}
+      <span
+        id={statusDescriptionId}
+        aria-atomic="true"
+        aria-live="polite"
+        className="sr-only"
+        data-triage-role="breakdown-row-status-announcement"
+        role="status"
+      >
+        {statusSentence !== null ? (
+          <span key={`${deleteOperation?.operationId ?? forced?.state}:${sentenceKey}`}>
+            {statusSentence}
+          </span>
+        ) : null}
+      </span>
     </div>
   );
 }
@@ -1421,6 +1432,9 @@ export function BreakdownPanel({
       : (addOperation?.operationId ?? ""),
   );
   const [isAddTooltipOpen, setIsAddTooltipOpen] = useState(false);
+  if (addPresentation.glyph === null && isAddTooltipOpen) {
+    setIsAddTooltipOpen(false);
+  }
   const addReliabilityAction =
     forcedAddSentenceKey !== null
       ? null
@@ -2559,7 +2573,9 @@ export function BreakdownPanel({
               <StatusTooltip
                 open={isAddTooltipOpen && addPresentation.glyph !== null}
                 sentence={addStatusSentence ?? ""}
-                onOpenChange={setIsAddTooltipOpen}
+                onOpenChange={(next) =>
+                  setIsAddTooltipOpen(next && addPresentation.glyph !== null)
+                }
               >
                 <input
                   ref={(element) => {

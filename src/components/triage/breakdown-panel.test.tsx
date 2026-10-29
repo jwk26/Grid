@@ -2115,6 +2115,17 @@ describe("BreakdownPanel", () => {
       },
     );
 
+    it("does not open the editor tooltip by itself when a status appears after a hover with no status", async () => {
+      const { field, view } = openEditor("breakdown", "dirty");
+      fireEvent.pointerMove(field);
+      fireEvent.pointerLeave(field);
+      fireEvent.blur(field);
+      editorState.snapshot = { ...editorState.snapshot!, phase: "not_applied" };
+      view.rerender(<BreakdownPanel />);
+      await act(async () => Promise.resolve());
+      expect(screen.queryByRole("tooltip")).toBeNull();
+    });
+
     it("not-applied shows the sentence in a tooltip on the field", async () => {
       const { field } = openEditor("breakdown", "not_applied");
       fireEvent.focus(field);
@@ -2602,6 +2613,28 @@ describe("BreakdownPanel", () => {
       expect(screen.queryByRole("button", { name: "Delete again" })).toBeNull();
     },
   );
+
+  it("does not open the Add tooltip by itself when a status appears after a hover with no status", async () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    const view = render(<BreakdownPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Add a note..." }));
+    const input = screen.getByPlaceholderText("Add a note...");
+    fireEvent.pointerMove(input);
+    fireEvent.pointerLeave(input);
+    fireEvent.blur(input);
+    hookState.operations = [
+      {
+        kind: "add",
+        operationId: "add-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "new-row",
+        phase: "unknown",
+      },
+    ];
+    view.rerender(<BreakdownPanel />);
+    await act(async () => Promise.resolve());
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
 
   it("shows the Add tooltip with the sentence on field focus and nothing without a status", async () => {
     triageStoreState.selectedScratchId = "scratch-1";
@@ -3698,8 +3731,8 @@ describe("BreakdownPanel", () => {
       // The sentence is announced at once, whatever the icon shows.
       expect(
         within(row).getByText(copy, {
-          selector: '[data-triage-role="breakdown-row-status-announcement"]',
-        }),
+          selector: '[data-triage-role="breakdown-row-status-announcement"] > span',
+        }).parentElement,
       ).toHaveAttribute("aria-live", "polite");
       expect(row.querySelector(".breakdown-reliability")).toBeNull();
 
@@ -3774,9 +3807,11 @@ describe("BreakdownPanel", () => {
     const grip = screen.getByRole("button", { name: "Drag breakdown" });
     expect(grip).toBeEnabled();
     expect(grip.getAttribute("aria-describedby")).toContain(
-      screen.getByText("Not deleted. This breakdown is still here.", {
-        selector: '[data-triage-role="breakdown-row-status-announcement"]',
-      }).id,
+      (
+        screen.getByText("Not deleted. This breakdown is still here.", {
+          selector: '[data-triage-role="breakdown-row-status-announcement"] > span',
+        }).parentElement as HTMLElement
+      ).id,
     );
     fireEvent.focus(grip);
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
@@ -3785,6 +3820,40 @@ describe("BreakdownPanel", () => {
     expect(
       document.querySelector('[data-feedback-role="status-tooltip"]'),
     ).toHaveClass("explorer-title-tooltip");
+  });
+
+  it("keeps one Delete announcement container per row mounted across states", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Container row" }),
+    ];
+    hookState.operations = [];
+    const view = render(<BreakdownPanel />);
+    const container = document.querySelector(
+      '[data-triage-role="breakdown-row-status-announcement"]',
+    ) as HTMLElement;
+    expect(container).toBeEmptyDOMElement();
+    for (const [phase, status, sentence] of [
+      ["pending", undefined, "Deleting…"],
+      ["unknown", undefined, "We couldn’t confirm whether it was deleted."],
+      ["terminal", "not_applied", "Not deleted. This breakdown is still here."],
+    ] as const) {
+      hookState.operations = [
+        {
+          kind: "delete",
+          operationId: "delete-operation",
+          scratchBitId: "scratch-1",
+          breakdownId: "row-1",
+          phase,
+          ...(status === undefined ? {} : { status }),
+        },
+      ];
+      view.rerender(<BreakdownPanel />);
+      expect(
+        document.querySelector('[data-triage-role="breakdown-row-status-announcement"]'),
+      ).toBe(container);
+      expect(container).toHaveTextContent(sentence);
+    }
   });
 
   it("shows a forced development state on the row without an operation", () => {
