@@ -39,6 +39,7 @@ const globalsCss = readFileSync(
 
 const useExplorerRemoteStatusMock = vi.hoisted(() => vi.fn());
 const undoRepository = vi.hoisted(() => ({
+  getPlacementUndoTruth: vi.fn(),
   reconcileDirectPlacementUndo: vi.fn(),
   reconcileStagedPlacementUndo: vi.fn(),
   undoDirectPlacement: vi.fn(),
@@ -49,17 +50,13 @@ const undoRepository = vi.hoisted(() => ({
 vi.mock("@/lib/db/datastore", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/db/datastore")>()),
   getDataStore: vi.fn(async () => undoRepository),
-}));
-
-vi.mock("dexie", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("dexie")>()),
-  liveQuery: (query: () => Promise<unknown>) => ({
+  liveRead: (read: (store: unknown) => Promise<unknown>) => ({
     subscribe: ({ next, error }: {
       next: (value: unknown) => void;
       error?: (reason: unknown) => void;
     }) => {
       let active = true;
-      void query().then(
+      void read(undoRepository).then(
         (value) => {
           if (active) next(value);
         },
@@ -384,8 +381,7 @@ beforeEach(async () => {
     source: command.sourceSnapshot,
     candidate: null,
   }));
-  undoRepository.reconcileDirectPlacementUndo.mockImplementation(inspectUndo);
-  undoRepository.reconcileStagedPlacementUndo.mockImplementation(inspectUndo);
+  undoRepository.getPlacementUndoTruth.mockImplementation(inspectUndo);
   undoRepository.getBit.mockImplementation(async () => ({
     deletedAt: null,
     archivedAt: null,
@@ -1461,7 +1457,7 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
   it.each(["available", "mutated", "terminal-conflict"] as const)("pilot keeps the exact ordinary %s reason display partition", async (kind) => {
     const target = createNode({id:"pilot-partition",title:"Pilot partition"});
     const entry = newlyPlacedEntry(target,"node",1);setGrid(null,[target]);
-    if (kind === "mutated") undoRepository.reconcileDirectPlacementUndo.mockImplementation(async command => ({operationId:command.operationId,status:"conflict",result:{...command.resultSnapshot,version:command.resultSnapshot.version+1},source:command.sourceSnapshot,candidate:null}));
+    if (kind === "mutated") undoRepository.getPlacementUndoTruth.mockImplementation(async command => ({operationId:command.operationId,status:"conflict",result:{...command.resultSnapshot,version:command.resultSnapshot.version+1},source:command.sourceSnapshot,candidate:null}));
     if (kind === "terminal-conflict") undoRepository.undoDirectPlacement.mockImplementation(async command => ({operationId:command.operationId,status:"conflict",result:{...command.resultSnapshot,version:command.resultSnapshot.version+1},source:command.sourceSnapshot,candidate:null}));
     renderWithUndo([entry]);const action=await screen.findByRole("button",{name:"Undo placement of Pilot partition"});
     if (kind === "terminal-conflict") {await waitFor(()=>expect(action).toHaveAttribute("aria-disabled","false"));fireEvent.click(action);}
@@ -1533,7 +1529,7 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
       const entry = newlyPlacedEntry(target, "node", 1);
       setGrid(null, [target]);
       undoRepository.getBit.mockImplementation(async () => owner);
-      undoRepository.reconcileDirectPlacementUndo.mockImplementation(
+      undoRepository.getPlacementUndoTruth.mockImplementation(
         async (command) => ({
           operationId: command.operationId,
           status: "rejected" as const,
@@ -1670,7 +1666,7 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
       name: "Undo placement of Undo target",
     });
     await waitFor(() => {
-      expect(undoRepository.reconcileDirectPlacementUndo).toHaveBeenCalled();
+      expect(undoRepository.getPlacementUndoTruth).toHaveBeenCalled();
     });
     await waitFor(() => expect(undoButton).toBeEnabled());
     fireEvent.click(undoButton);
@@ -1780,7 +1776,7 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
     const entry = newlyPlacedEntry(target, "node", 1);
     const acquire = vi.fn(() => true);
     setGrid(null, [target]);
-    undoRepository.reconcileDirectPlacementUndo.mockImplementation(
+    undoRepository.getPlacementUndoTruth.mockImplementation(
       () => new Promise<never>(() => undefined),
     );
 
@@ -2105,6 +2101,28 @@ describe("HierarchyExplorer Task 153 placement reliability rail", () => {
       view.unmount();
     },
   );
+
+  it.each([
+    ["nodes", "“Project” wasn’t placed. This account has reached its limit of 300 Nodes. Your source is unchanged."],
+    ["bits", "“Project” wasn’t placed. This account has reached its limit of 300 Bits. Your source is unchanged."],
+  ])("shows the account limit reason for a rejected %s placement, with Cancel and no Retry", (table, copy) => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    render(
+      <HierarchyExplorer
+        {...defaultProps}
+        placementSnapshot={placementSnapshot({
+          phase: "terminal",
+          resultType: "node",
+          terminalKind: "account-limit",
+          terminalStatus: "rejected",
+          rejection: { code: "account_limit", table, limit: 300 },
+        })}
+      />,
+    );
+    expect(screen.getByRole("status", { name: "Placement status" })).toHaveTextContent(copy);
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+  });
 
   it("announces the edited result title after authoritative success", async () => {
     const placed = createBit({

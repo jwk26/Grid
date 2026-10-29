@@ -49,4 +49,14 @@ describe("useBitDetailActions", () => {
     expect(dataStore.updateBit).toHaveBeenCalledWith("bit-1", bitPatch);
     expect(dataStore.updateNode).toHaveBeenCalledWith("node-1", nodePatch);
   });
+
+  it("passes the parent extension to updateBit only when asked", async () => {
+    const { result } = renderHook(() => useBitDetailActions());
+
+    await act(async () => {
+      await result.current.updateBit("bit-1", { deadline: 1 }, { extendParent: true });
+    });
+
+    expect(dataStore.updateBit).toHaveBeenCalledWith("bit-1", { deadline: 1 }, { extendParent: true });
+  });
 });

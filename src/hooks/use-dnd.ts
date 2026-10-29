@@ -1182,13 +1182,18 @@ export function useDnd(getBlockedCells: () => Set<string>): {
     }
 
     const dataStore = await getDataStore();
-    await dataStore.updateBit(conflictState.parentBitId, {
-      deadline: conflictState.pendingTimestamp,
-    });
-    await dataStore.updateChunk(conflictState.pendingChunkId, {
-      time: conflictState.pendingTimestamp,
-    });
-    setConflictState(CLOSED_CONFLICT_STATE);
+    try {
+      await dataStore.updateChunk(
+        conflictState.pendingChunkId,
+        { time: conflictState.pendingTimestamp },
+        { extendParent: true },
+      );
+    } catch {
+      // The Bit's extension did not fit its Node (deadline_exceeds_parent): nothing was written.
+      // The dialog closes; the visible failure waits for Task 232.
+    } finally {
+      setConflictState(CLOSED_CONFLICT_STATE);
+    }
   };
 
   const handleConflictKeepChild = () => {

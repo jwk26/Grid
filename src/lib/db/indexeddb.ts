@@ -1,6 +1,42 @@
-import Dexie, { type DexieOptions, type Table } from "dexie";
+import Dexie, { liveQuery, type DexieOptions, type Table } from "dexie";
 import { z } from "zod";
 import { GRID_COLS, GRID_ROWS, TRASH_RETENTION_DAYS } from "@/lib/constants";
+import { DeadlineConflictError } from "@/lib/db/write-errors";
+import {
+  matchesPlacementUndoPostcondition,
+  matchesPlacementUndoPrecondition,
+  placementUndoStateResult,
+  placementUndoVerdict,
+  type PlacementUndoState,
+} from "@/lib/db/placement-undo-verdict";
+import {
+  addBreakdownCommandSchema,
+  saveScratchTitleCommandSchema,
+  saveBreakdownCommandSchema,
+  deleteBreakdownCommandSchema,
+  stageCandidateCommandSchema,
+  unstageCandidateCommandSchema,
+  confirmedCandidateOrphanCleanupCommandSchema,
+  stagedPlacementCommandSchema,
+  directPlacementCommandSchema,
+  stagedPlacementUndoCommandSchema,
+  directPlacementUndoCommandSchema,
+  archiveScratchCommandSchema,
+  trashScratchCommandSchema,
+  trashScratchResultSchema,
+  addBreakdownResultSchema,
+  saveScratchTitleResultSchema,
+  saveBreakdownResultSchema,
+  deleteBreakdownResultSchema,
+  stageCandidateResultSchema,
+  unstageCandidateResultSchema,
+  confirmedCandidateOrphanCleanupResultSchema,
+  placementResultSchema,
+  placementUndoResultSchema,
+  scratchArchiveEligibilitySchema,
+  archiveScratchResultSchema,
+  archiveScratchRecoveryResultSchema,
+} from "@/lib/db/command-schemas";
 import type {
   AddBreakdownCommand,
   AddBreakdownResult,
@@ -24,6 +60,8 @@ import type {
   SaveBreakdownResult,
   SaveScratchTitleCommand,
   SaveScratchTitleResult,
+  ExtendParentOption,
+  LiveObservable,
   ScratchArchiveEligibility,
   StageCandidateCommand,
   StageCandidateResult,
@@ -42,8 +80,6 @@ import {
   createNodeSchema,
   nodeSchema,
   pendingOperationRecoverySchema,
-  repositoryOperationIdSchema,
-  repositoryOperationStatusSchema,
   scratchBreakdownSchema,
   stagedCandidateSchema,
   updateBitSchema,
@@ -64,6 +100,7 @@ import {
   type UpdateNode,
   type UpdateScratchBreakdown,
 } from "@/lib/db/schema";
+import { buildNodeTitlePath, sortChunks, sortGridItems } from "@/lib/db/read-helpers";
 import { findNearestEmptyCell } from "@/lib/utils/bfs";
 import { findItemsInBlockedZone } from "@/lib/utils/breadcrumb-zone";
 import { isDeadlineAfter } from "@/lib/utils/deadline";
@@ -124,16 +161,6 @@ type PlacementState = {
   bits: Bit[];
 };
 
-type PlacementUndoState = {
-  resultNode: Node | undefined;
-  resultBit: Bit | undefined;
-  source: ScratchBreakdown | undefined;
-  candidate: StagedCandidate | undefined;
-  sourceCandidate: StagedCandidate | undefined;
-  nodes: Node[];
-  bits: Bit[];
-  ownerIsActive: boolean;
-};
 
 type ScratchArchiveState = {
   eligibility: ScratchArchiveEligibility;
@@ -166,21 +193,7 @@ const SYSTEM_NODE_SEEDS: Record<SystemNodeRole, Pick<Node, "title" | "icon" | "c
   },
 };
 
-/**
- * Thrown when a deadline write would violate the parent–child deadline constraint.
- * Consumers can catch this and surface DeadlineConflictModal or DeadlineConflictOverlay.
- */
-export class DeadlineConflictError extends Error {
-  constructor(
-    /** "child_exceeds_parent" — bit/chunk deadline > parent deadline */
-    public readonly conflictType: "child_exceeds_parent",
-    /** IDs of the conflicting items */
-    public readonly conflictingIds: string[],
-  ) {
-    super("Deadline conflict");
-    this.name = "DeadlineConflictError";
-  }
-}
+export { DeadlineConflictError };
 
 type IndexedDBMigrationStore = "nodes" | "bits" | "scratchBreakdowns";
 type IndexedDBMigrationReason =
@@ -204,243 +217,6 @@ const BIT_PERSISTED_FIELDS = bitSchema.keyof().options;
 const BREAKDOWN_PERSISTED_FIELDS = scratchBreakdownSchema.keyof().options;
 
 const chunkUpdateSchema = chunkSchema.omit({ id: true, parentId: true }).partial();
-const commandVersionSchema = z.number().int().min(1);
-
-const addBreakdownCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  breakdownId: z.string().uuid(),
-  scratchBitId: z.string().uuid(),
-  scratchExpectedVersion: commandVersionSchema,
-  content: z.string().min(1).max(1000),
-}).strict();
-
-const saveScratchTitleCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  scratchBitId: z.string().uuid(),
-  expectedVersion: commandVersionSchema,
-  baseTitle: z.string().min(1).max(200),
-  title: z.string().min(1).max(200),
-}).strict();
-
-const saveBreakdownCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  breakdownId: z.string().uuid(),
-  expectedVersion: commandVersionSchema,
-  baseContent: z.string().min(1).max(1000),
-  baseOrder: z.number().int().min(0),
-  content: z.string().min(1).max(1000),
-  order: z.number().int().min(0),
-}).strict();
-
-const deleteBreakdownCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  breakdownId: z.string().uuid(),
-  expectedVersion: commandVersionSchema,
-  scratchBitId: z.string().uuid(),
-  scratchExpectedVersion: commandVersionSchema,
-}).strict();
-
-const stageCandidateCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  candidateId: z.string().uuid(),
-  scratchBitId: z.string().uuid(),
-  sourceBreakdownId: z.string().uuid(),
-  sourceExpectedVersion: commandVersionSchema,
-  resultType: z.enum(["node", "bit"]),
-}).strict();
-
-const unstageCandidateCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  candidateId: z.string().uuid(),
-  candidateExpectedVersion: commandVersionSchema,
-  sourceBreakdownId: z.string().uuid(),
-  sourceExpectedVersion: commandVersionSchema,
-}).strict();
-
-const confirmedCandidateOrphanProofSchema = z.discriminatedUnion("status", [
-  z.object({
-    status: z.literal("confirmed"),
-    cause: z.enum(["source_deleted", "source_tombstoned"]),
-    sourceBreakdownId: z.string().uuid(),
-  }).strict(),
-  z.object({
-    status: z.literal("unresolved"),
-    reason: z.enum(["cache_miss", "offline", "delayed_subscription"]),
-  }).strict(),
-  z.object({
-    status: z.literal("planned_aggregate"),
-    sourceBreakdownId: z.string().uuid(),
-  }).strict(),
-]);
-
-const confirmedCandidateOrphanCleanupCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  auditEventId: z.string().uuid(),
-  candidateId: z.string().uuid(),
-  candidateExpectedVersion: commandVersionSchema,
-  sourceBreakdownId: z.string().uuid(),
-  scratchBitId: z.string().uuid(),
-  resultType: z.enum(["node", "bit"]),
-  proof: confirmedCandidateOrphanProofSchema,
-}).strict();
-
-const placementCommandShape = {
-  operationId: repositoryOperationIdSchema,
-  resultId: z.string().uuid(),
-  scratchBitId: z.string().uuid(),
-  sourceBreakdownId: z.string().uuid(),
-  sourceExpectedVersion: commandVersionSchema,
-  resultType: z.enum(["node", "bit"]),
-  title: z.string().min(1).max(1000),
-  targetParentId: z.string().uuid().nullable(),
-  expectedAncestorIds: z.array(z.string().uuid()),
-  x: z.number().int(),
-  y: z.number().int(),
-};
-
-const stagedPlacementCommandSchema = z.object({
-  ...placementCommandShape,
-  candidateId: z.string().uuid(),
-  candidateExpectedVersion: commandVersionSchema,
-}).strict();
-
-const directPlacementCommandSchema = z.object(placementCommandShape).strict();
-
-const placementUndoCommandShape = {
-  operationId: repositoryOperationIdSchema,
-  resultSnapshot: z.union([nodeSchema, bitSchema]),
-  sourceSnapshot: scratchBreakdownSchema,
-};
-
-const stagedPlacementUndoCommandSchema = z.object({
-  ...placementUndoCommandShape,
-  candidateSnapshot: stagedCandidateSchema,
-}).strict();
-
-const directPlacementUndoCommandSchema = z.object(placementUndoCommandShape).strict();
-
-const archiveScratchCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  scratchBitId: z.string().uuid(),
-  expectedVersion: commandVersionSchema,
-  callerAssertion: z.object({
-    addDraftClear: z.literal(true),
-    titleBlockerClear: z.literal(true),
-  }).strict(),
-}).strict();
-
-const trashScratchCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  scratchBitId: z.string().uuid(),
-  expectedVersion: commandVersionSchema,
-  candidates: z.array(z.object({
-    candidateId: z.string().uuid(),
-    candidateExpectedVersion: commandVersionSchema,
-    sourceBreakdownId: z.string().uuid(),
-    sourceExpectedVersion: commandVersionSchema,
-  }).strict()).refine(
-    (items) =>
-      new Set(items.map((item) => item.candidateId)).size === items.length &&
-      new Set(items.map((item) => item.sourceBreakdownId)).size === items.length,
-    "Trash Scratch candidates must be a set",
-  ),
-}).strict();
-
-const trashScratchResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  scratch: bitSchema.nullable(),
-  candidates: z.array(stagedCandidateSchema),
-}).strict();
-
-const addBreakdownResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  breakdown: scratchBreakdownSchema.nullable(),
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const saveScratchTitleResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const saveBreakdownResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  breakdown: scratchBreakdownSchema.nullable(),
-  candidate: stagedCandidateSchema.nullable(),
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const deleteBreakdownResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  breakdown: scratchBreakdownSchema.nullable(),
-  candidate: stagedCandidateSchema.nullable(),
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const stageCandidateResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  candidate: stagedCandidateSchema.nullable(),
-  source: scratchBreakdownSchema.nullable(),
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const unstageCandidateResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  candidate: stagedCandidateSchema.nullable(),
-  source: scratchBreakdownSchema.nullable(),
-}).strict();
-
-const confirmedCandidateOrphanCleanupResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  candidate: stagedCandidateSchema.nullable(),
-  source: scratchBreakdownSchema.nullable(),
-  auditEvent: candidateOrphanAuditEventSchema.nullable(),
-}).strict();
-
-const placementResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  result: z.union([nodeSchema, bitSchema]).nullable(),
-  source: scratchBreakdownSchema.nullable(),
-  candidate: stagedCandidateSchema.nullable(),
-}).strict();
-
-const placementUndoResultSchema = placementResultSchema;
-
-const scratchArchiveEligibilitySchema = z.object({
-  eligible: z.boolean(),
-  scratch: bitSchema.nullable(),
-  consumedCount: z.number().int().min(0),
-  unconsumedCount: z.number().int().min(0),
-  stagedCandidateCount: z.number().int().min(0),
-}).strict();
-
-const archiveScratchResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  scratch: bitSchema.nullable(),
-}).strict();
-
-const archiveScratchRecoveryResultSchema = z.union([
-  z.object({
-    operationId: repositoryOperationIdSchema,
-    status: z.enum(["applied", "not_applied", "conflict"]),
-    scratch: bitSchema.nullable(),
-  }).strict(),
-  z.object({
-    operationId: repositoryOperationIdSchema,
-    outcome: z.literal("unknown"),
-  }).strict(),
-]);
-
 export class GridDODatabase extends Dexie {
   nodes!: Table<Node, string>;
   bits!: Table<Bit, string>;
@@ -593,6 +369,10 @@ export class IndexedDBDataStore implements DataStore {
     private readonly database: DatabaseLike,
     private readonly onTransactionCheckpoint?: IndexedDBTransactionCheckpointHook,
   ) {}
+
+  liveRead<T>(read: (store: DataStore) => Promise<T>): LiveObservable<T> {
+    return liveQuery(() => read(this));
+  }
 
   async getNode(id: string): Promise<Node | undefined> {
     return this.database.nodes.get(id);
@@ -814,6 +594,19 @@ export class IndexedDBDataStore implements DataStore {
     });
   }
 
+  async emptyTrash(): Promise<AggregateHardDeleteResult> {
+    return this.write(async () => {
+      const [nodes, bits] = await Promise.all([
+        this.database.nodes.toArray(),
+        this.database.bits.toArray(),
+      ]);
+      return this.deletePlannedAggregate(
+        new Set(nodes.filter((node) => node.deletedAt !== null).map(({ id }) => id)),
+        new Set(bits.filter((bit) => bit.deletedAt !== null).map(({ id }) => id)),
+      );
+    });
+  }
+
   async cleanupExpiredTrash(): Promise<AggregateHardDeleteResult> {
     return this.write(async () => {
       const expirationCutoff = Date.now() - TRASH_RETENTION_DAYS * 86_400_000;
@@ -903,7 +696,7 @@ export class IndexedDBDataStore implements DataStore {
     return bit;
   }
 
-  async updateBit(id: string, data: UpdateBit): Promise<void> {
+  async updateBit(id: string, data: UpdateBit, options?: ExtendParentOption): Promise<void> {
     const parsed = updateBitSchema.parse(data);
 
     await this.write(async () => {
@@ -929,12 +722,20 @@ export class IndexedDBDataStore implements DataStore {
         });
       }
 
-      await this.assertBitDeadlineFitsParent(
-        next.parentId,
-        next.deadline,
-        next.deadlineAllDay,
-        existing.id,
-      );
+      // Hook 2: a deadline past the parent's fails, unless the caller answered "update the parent
+      // too": then the parent takes the Bit's deadline in this same write.
+      let extendedParent: Node | null = null;
+      try {
+        await this.assertBitDeadlineFitsParent(
+          next.parentId,
+          next.deadline,
+          next.deadlineAllDay,
+          existing.id,
+        );
+      } catch (error) {
+        if (!(options?.extendParent && error instanceof DeadlineConflictError)) throw error;
+        extendedParent = await this.getRequiredNode(next.parentId);
+      }
 
       const timestamp = Date.now();
       const statusChanged = delta.status !== undefined;
@@ -946,6 +747,17 @@ export class IndexedDBDataStore implements DataStore {
       const mtimeTouched = touchesBitMtime(delta);
 
       await this.database.bits.put(bitSchema.parse(next));
+      if (extendedParent) {
+        await this.database.nodes.put(
+          nodeSchema.parse(
+            incrementVersion({
+              ...extendedParent,
+              deadline: next.deadline,
+              deadlineAllDay: next.deadlineAllDay,
+            }),
+          ),
+        );
+      }
 
       const parentIds = new Set<string>();
 
@@ -2616,26 +2428,24 @@ export class IndexedDBDataStore implements DataStore {
       this.database instanceof GridDODatabase &&
       !this.hasAmbientDatabaseTransaction()
     ) {
-      return this.readInboxBreakdownSnapshot(() =>
-        this.reconcileStagedPlacementUndo(command),
+      return this.readInboxBreakdownSnapshot(
+        () => this.reconcileStagedPlacementUndo(command),
+        [this.database.chunks],
       );
     }
 
     const parsed = stagedPlacementUndoCommandSchema.parse(command);
     const state = await this.readPlacementUndoState(parsed);
-    return placementUndoResultSchema.parse({
-      operationId: parsed.operationId,
-      status: matchesPlacementUndoPostcondition(parsed, state, true)
-        ? "already_applied"
-        : !state.ownerIsActive
-          ? "rejected"
-          : matchesPlacementUndoPrecondition(parsed, state, true)
-            ? "not_applied"
-            : "conflict",
-      result: placementUndoStateResult(state),
-      source: state.source ?? null,
-      candidate: state.candidate ?? state.sourceCandidate ?? null,
-    });
+    return placementUndoResultSchema.parse(placementUndoVerdict(parsed, state, true));
+  }
+
+  /** The Undo verdict from the stored rows. Sends no request (a Dexie read is local). */
+  async getPlacementUndoTruth(
+    command: DirectPlacementUndoCommand | StagedPlacementUndoCommand,
+  ): Promise<PlacementUndoResult> {
+    return "candidateSnapshot" in command
+      ? this.reconcileStagedPlacementUndo(command)
+      : this.reconcileDirectPlacementUndo(command);
   }
 
   async undoDirectPlacement(
@@ -2656,26 +2466,15 @@ export class IndexedDBDataStore implements DataStore {
       this.database instanceof GridDODatabase &&
       !this.hasAmbientDatabaseTransaction()
     ) {
-      return this.readInboxBreakdownSnapshot(() =>
-        this.reconcileDirectPlacementUndo(command),
+      return this.readInboxBreakdownSnapshot(
+        () => this.reconcileDirectPlacementUndo(command),
+        [this.database.chunks],
       );
     }
 
     const parsed = directPlacementUndoCommandSchema.parse(command);
     const state = await this.readPlacementUndoState(parsed);
-    return placementUndoResultSchema.parse({
-      operationId: parsed.operationId,
-      status: matchesPlacementUndoPostcondition(parsed, state, false)
-        ? "already_applied"
-        : !state.ownerIsActive
-          ? "rejected"
-          : matchesPlacementUndoPrecondition(parsed, state, false)
-            ? "not_applied"
-            : "conflict",
-      result: placementUndoStateResult(state),
-      source: state.source ?? null,
-      candidate: state.sourceCandidate ?? null,
-    });
+    return placementUndoResultSchema.parse(placementUndoVerdict(parsed, state, false));
   }
 
   private async applyPlacementUndo(
@@ -2792,6 +2591,19 @@ export class IndexedDBDataStore implements DataStore {
       .sort((left, right) => left.order - right.order);
   }
 
+  async getAllScratchBreakdowns(): Promise<ScratchBreakdown[]> {
+    return this.requireScratchBreakdowns().toArray();
+  }
+
+  async getStagedCandidates(scratchBitId: string): Promise<StagedCandidate[]> {
+    const all = await this.requireStagedCandidates().toArray();
+    return all.filter((candidate) => candidate.scratchBitId === scratchBitId);
+  }
+
+  async getAllStagedCandidates(): Promise<StagedCandidate[]> {
+    return this.requireStagedCandidates().toArray();
+  }
+
   async updateScratchBreakdown(
     id: string,
     data: UpdateScratchBreakdown,
@@ -2905,9 +2717,13 @@ export class IndexedDBDataStore implements DataStore {
     return chunk;
   }
 
-  async updateChunk(id: string, data: Partial<Chunk>): Promise<void> {
+  async updateChunk(
+    id: string,
+    data: Partial<Chunk>,
+    options?: ExtendParentOption,
+  ): Promise<void> {
     if (this.database instanceof GridDODatabase && !this.hasAmbientWriteTransaction()) {
-      return this.write(() => this.updateChunk(id, data));
+      return this.write(() => this.updateChunk(id, data, options));
     }
 
     const existing = await this.getRequiredChunk(id);
@@ -2915,7 +2731,24 @@ export class IndexedDBDataStore implements DataStore {
     const bit = await this.getRequiredBit(existing.parentId);
     const next = { ...existing, ...parsed };
 
-    await this.assertChunkTimeFitsBit(bit, next.time, next.timeAllDay);
+    // Hook 2: a time past the Bit's deadline fails, unless the caller answered "update the
+    // parent too": the Bit then takes the Chunk's time as its deadline, and that must fit the Node.
+    const exceedsBit =
+      next.time !== null &&
+      bit.deadline !== null &&
+      isDeadlineAfter(next.time, next.timeAllDay, bit.deadline, bit.deadlineAllDay);
+    const extendBit = exceedsBit && options?.extendParent === true;
+    if (extendBit) {
+      const node = await this.getRequiredNode(bit.parentId);
+      if (
+        node.deadline !== null &&
+        isDeadlineAfter(next.time as number, next.timeAllDay, node.deadline, node.deadlineAllDay)
+      ) {
+        throw new Error("Chunk time cannot exceed parent node deadline");
+      }
+    } else {
+      await this.assertChunkTimeFitsBit(bit, next.time, next.timeAllDay);
+    }
 
     const timestamp = Date.now();
     // Detect uncheck: complete → incomplete triggers sticky force-complete rule
@@ -2923,9 +2756,40 @@ export class IndexedDBDataStore implements DataStore {
 
     await this.write(async () => {
       await this.database.chunks.put(chunkSchema.parse(next));
+      if (extendBit) {
+        await this.database.bits.put(
+          bitSchema.parse(
+            incrementVersion({
+              ...bit,
+              deadline: next.time,
+              deadlineAllDay: next.timeAllDay,
+              mtime: timestamp,
+            }),
+          ),
+        );
+      }
       await this.updateBitCompletionAndCascade(bit.id, timestamp, {
         stickyIfForceCompleted: isUnchecking,
+        versionAlreadyBumped: extendBit,
       });
+    });
+  }
+
+  async reorderChunks(bitId: string, chunkIds: readonly string[]): Promise<void> {
+    await this.write(async () => {
+      await this.getRequiredBit(bitId);
+      const chunks = await this.getChunks(bitId);
+      const current = new Set(chunks.map((chunk) => chunk.id));
+      if (chunkIds.length !== current.size || new Set(chunkIds).size !== chunkIds.length || !chunkIds.every((chunkId) => current.has(chunkId))) {
+        throw new Error("Chunk order must list exactly the Bit's Chunks");
+      }
+      const byId = new Map(chunks.map((chunk) => [chunk.id, chunk]));
+      for (const [index, chunkId] of chunkIds.entries()) {
+        const chunk = byId.get(chunkId) as Chunk;
+        if (chunk.order !== index) {
+          await this.database.chunks.put(chunkSchema.parse({ ...chunk, order: index }));
+        }
+      }
     });
   }
 
@@ -3458,6 +3322,7 @@ export class IndexedDBDataStore implements DataStore {
 
   private async readInboxBreakdownSnapshot<T>(
     scope: () => Promise<T>,
+    extraTables: Table[] = [],
   ): Promise<T> {
     if (!(this.database instanceof GridDODatabase)) {
       return scope();
@@ -3471,6 +3336,7 @@ export class IndexedDBDataStore implements DataStore {
       [
         this.database.nodes,
         this.database.bits,
+        ...extraTables,
         this.database.scratchBreakdowns,
         this.database.stagedCandidates,
       ],
@@ -3789,7 +3655,7 @@ export class IndexedDBDataStore implements DataStore {
     const candidateId = "candidateSnapshot" in command
       ? command.candidateSnapshot.id
       : undefined;
-    const [resultNode, resultBit, source, candidate, nodes, bits, allCandidates] =
+    const [resultNode, resultBit, source, candidate, nodes, bits, chunks, allCandidates] =
       await Promise.all([
         this.database.nodes.get(command.resultSnapshot.id),
         this.database.bits.get(command.resultSnapshot.id),
@@ -3797,6 +3663,7 @@ export class IndexedDBDataStore implements DataStore {
         candidateId ? candidates.get(candidateId) : Promise.resolve(undefined),
         this.database.nodes.toArray(),
         this.database.bits.toArray(),
+        this.database.chunks.toArray(),
         candidates.toArray(),
       ]);
 
@@ -3815,6 +3682,7 @@ export class IndexedDBDataStore implements DataStore {
       ),
       nodes,
       bits,
+      chunks,
       ownerIsActive:
         owner !== undefined &&
         owner.deletedAt === null &&
@@ -4040,6 +3908,8 @@ export class IndexedDBDataStore implements DataStore {
        * If 2+ chunks are incomplete, the Bit was force-completed → keep complete.
        */
       stickyIfForceCompleted?: boolean;
+      /** The caller already counted this call's version bump on the Bit (a deadline extension). */
+      versionAlreadyBumped?: boolean;
     },
   ): Promise<void> {
     const [bit, chunks] = await Promise.all([
@@ -4067,7 +3937,7 @@ export class IndexedDBDataStore implements DataStore {
       mtime: timestamp,
     };
     await this.database.bits.put(
-      nextStatus === bit.status ? nextBit : incrementVersion(nextBit),
+      nextStatus === bit.status || options?.versionAlreadyBumped ? nextBit : incrementVersion(nextBit),
     );
     await this.touchNodeIds([bit.parentId], timestamp);
   }
@@ -4349,130 +4219,6 @@ function matchesTrashScratchPostcondition(
   });
 }
 
-function placementUndoStateResult(state: PlacementUndoState): Node | Bit | null {
-  return state.resultNode ?? state.resultBit ?? null;
-}
-
-function matchesPlacementUndoPrecondition(
-  command: DirectPlacementUndoCommand | StagedPlacementUndoCommand,
-  state: PlacementUndoState,
-  staged: boolean,
-): boolean {
-  const result = placementUndoStateResult(state);
-  if (
-    !result ||
-    ("level" in command.resultSnapshot ? state.resultBit !== undefined : state.resultNode !== undefined) ||
-    !sameFlatRecord(result, command.resultSnapshot) ||
-    !validPlacementUndoSnapshots(command, staged) ||
-    !state.source ||
-    !sameFlatRecord(state.source, command.sourceSnapshot) ||
-    placementUndoHasDependencies(command.resultSnapshot.id, state)
-  ) {
-    return false;
-  }
-
-  if (
-    command.resultSnapshot.parentId !== null &&
-    !state.nodes.some(({ id }) => id === command.resultSnapshot.parentId)
-  ) {
-    return false;
-  }
-
-  if (staged) {
-    return (
-      "candidateSnapshot" in command &&
-      state.candidate === undefined &&
-      state.sourceCandidate === undefined
-    );
-  }
-  return state.sourceCandidate === undefined;
-}
-
-function matchesPlacementUndoPostcondition(
-  command: DirectPlacementUndoCommand | StagedPlacementUndoCommand,
-  state: PlacementUndoState,
-  staged: boolean,
-): boolean {
-  if (
-    state.resultNode !== undefined ||
-    state.resultBit !== undefined ||
-    placementUndoHasDependencies(command.resultSnapshot.id, state) ||
-    !state.source ||
-    !sameFlatRecord(state.source, {
-      ...command.sourceSnapshot,
-      consumedAt: null,
-      version: command.sourceSnapshot.version + 1,
-    })
-  ) {
-    return false;
-  }
-
-  if (!staged) return state.sourceCandidate === undefined;
-  if (!("candidateSnapshot" in command)) return false;
-
-  const candidate = state.candidate ?? state.sourceCandidate;
-  return (
-    candidate !== undefined &&
-    state.candidate?.id === state.sourceCandidate?.id &&
-    candidate.updatedAt >= candidate.createdAt &&
-    sameFlatRecord(candidate, {
-      ...command.candidateSnapshot,
-      updatedAt: candidate.updatedAt,
-      version: command.candidateSnapshot.version + 1,
-    })
-  );
-}
-
-function validPlacementUndoSnapshots(
-  command: DirectPlacementUndoCommand | StagedPlacementUndoCommand,
-  staged: boolean,
-): boolean {
-  const result = command.resultSnapshot;
-  const source = command.sourceSnapshot;
-  const isNode = "level" in result;
-  if (
-    result.version !== 1 ||
-    result.createdAt !== result.mtime ||
-    result.deletedAt !== null ||
-    result.archivedAt !== null ||
-    source.consumedAt !== result.createdAt
-  ) {
-    return false;
-  }
-  if (isNode && (result.systemRole !== null || result.hiddenFromGrid)) return false;
-
-  if (!staged) return !("candidateSnapshot" in command);
-  if (!("candidateSnapshot" in command)) return false;
-  const candidate = command.candidateSnapshot;
-  return (
-    candidate.scratchBitId === source.scratchBitId &&
-    candidate.sourceBreakdownId === source.id &&
-    candidate.resultType === (isNode ? "node" : "bit") &&
-    candidate.lifecycle === "staged"
-  );
-}
-
-function placementUndoHasDependencies(
-  resultId: string,
-  state: PlacementUndoState,
-): boolean {
-  return (
-    state.nodes.some(({ parentId }) => parentId === resultId) ||
-    state.bits.some(({ parentId }) => parentId === resultId)
-  );
-}
-
-function sameFlatRecord<T extends object>(actual: T, expected: T): boolean {
-  const actualRecord = actual as Record<string, unknown>;
-  const expectedRecord = expected as Record<string, unknown>;
-  const actualKeys = Object.keys(actualRecord);
-  const expectedKeys = Object.keys(expectedRecord);
-  return (
-    actualKeys.length === expectedKeys.length &&
-    expectedKeys.every((key) => actualRecord[key] === expectedRecord[key])
-  );
-}
-
 function placementStateResult(state: PlacementState): Node | Bit | null {
   return state.resultNode ?? state.resultBit ?? null;
 }
@@ -4692,14 +4438,6 @@ function placementCellIsOccupied(
   );
 }
 
-function sortGridItems<T extends { x: number; y: number }>(items: T[]): T[] {
-  return [...items].sort((left, right) => left.y - right.y || left.x - right.x);
-}
-
-function sortChunks(items: Chunk[]): Chunk[] {
-  return [...items].sort((left, right) => left.order - right.order);
-}
-
 function touchesNodeMtime(update: Partial<MutableNodeInput>): boolean {
   return Object.keys(update).some((key) => !["parentId", "x", "y"].includes(key));
 }
@@ -4811,26 +4549,6 @@ function collectDescendantNodeIds(rootId: string, allNodes: Node[]): string[] {
 
   visit(rootId);
   return result;
-}
-
-function buildNodeTitlePath(
-  parentId: string | null,
-  nodesById: Map<string, Node>,
-): string[] {
-  const path: string[] = [];
-  let currentId = parentId;
-
-  while (currentId) {
-    const current = nodesById.get(currentId);
-    if (!current) {
-      break;
-    }
-
-    path.unshift(current.title);
-    currentId = current.parentId;
-  }
-
-  return path;
 }
 
 function isDefined<T>(value: T | null | undefined): value is T {

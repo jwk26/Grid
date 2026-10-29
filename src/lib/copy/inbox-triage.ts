@@ -163,6 +163,8 @@ export interface InboxTriageCopy {
       readonly reconciling: string;
       readonly notApplied: string;
       readonly rejected: string;
+      /** `{limit}` is the account limit the server named. */
+      readonly rejectedAccountLimit: string;
       readonly conflict: string;
     };
     readonly delete: {
@@ -185,6 +187,9 @@ export interface InboxTriageCopy {
     readonly notApplied: string;
     readonly staleSource: string;
     readonly staleTarget: string;
+    /** `{limit}` is the account limit the server named; `{items}` is `accountLimitItems`. */
+    readonly accountLimit: string;
+    readonly accountLimitItems: { readonly nodes: string; readonly bits: string };
     readonly success: string;
     readonly actions: {
       readonly checkAgain: string;
@@ -560,6 +565,8 @@ export const INBOX_TRIAGE_COPY = {
       reconciling: "Checking whether it was added…",
       notApplied: "Not added. Your draft is still here.",
       rejected: "Add unavailable. Your draft is still here.",
+      rejectedAccountLimit:
+        "Add unavailable. This account has reached its limit of {limit} breakdowns. Your draft is still here.",
       conflict: "This Scratch changed. Your draft is still here.",
     },
     delete: {
@@ -584,6 +591,9 @@ export const INBOX_TRIAGE_COPY = {
       "The source changed. Nothing was placed. Cancel and drag it again.",
     staleTarget:
       "The destination changed. Nothing was placed. Cancel and drag to the current destination.",
+    accountLimit:
+      "“{title}” wasn’t placed. This account has reached its limit of {limit} {items}. Your source is unchanged.",
+    accountLimitItems: { nodes: "Nodes", bits: "Bits" },
     success: "Placed “{title}” in {destination}.",
     actions: {
       checkAgain: "Check again",

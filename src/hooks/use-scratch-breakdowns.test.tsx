@@ -13,14 +13,12 @@ import { useScratchBreakdowns } from "./use-scratch-breakdowns";
 import { createScratchTitleBlockerHandle } from "./use-scratch-breakdowns";
 
 const getDataStoreMock = vi.hoisted(() => vi.fn());
-const liveQueryMock = vi.hoisted(() => vi.fn());
+const liveReadMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/datastore", () => ({
   getDataStore: getDataStoreMock,
-}));
-
-vi.mock("dexie", () => ({
-  liveQuery: liveQueryMock,
+  liveRead: (read: (store: unknown) => Promise<unknown>) =>
+    liveReadMock(() => getDataStoreMock().then(read)),
 }));
 
 type BreakdownQueryResult = {
@@ -182,7 +180,7 @@ describe("useScratchBreakdowns", () => {
     subscriptions.length = 0;
     dataStore = createDataStore();
     getDataStoreMock.mockResolvedValue(dataStore);
-    liveQueryMock.mockImplementation(
+    liveReadMock.mockImplementation(
       (query: () => Promise<BreakdownQueryResult>) => {
         const subscription: LiveQuerySubscription = {
           query,
@@ -223,7 +221,7 @@ describe("useScratchBreakdowns", () => {
         stayHere: expect.any(Function),
       }),
     );
-    expect(liveQueryMock).not.toHaveBeenCalled();
+    expect(liveReadMock).not.toHaveBeenCalled();
     expect(getDataStoreMock).not.toHaveBeenCalled();
   });
 
@@ -261,7 +259,7 @@ describe("useScratchBreakdowns", () => {
 
     emitBreakdowns(rows);
 
-    expect(liveQueryMock).toHaveBeenCalledTimes(1);
+    expect(liveReadMock).toHaveBeenCalledTimes(1);
     expect(result.current.breakdowns).toEqual(rows);
   });
 
@@ -333,6 +331,27 @@ describe("useScratchBreakdowns", () => {
     expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledWith(command);
     expect(result.current.operations).toEqual([
       expect.objectContaining({ phase: "terminal", status: "not_applied" }),
+    ]);
+  });
+
+  it("keeps the account_limit rejection on the terminal Add operation", async () => {
+    const command = addCommand();
+    const rejection = { code: "account_limit", table: "scratch_breakdowns", limit: 300 };
+    dataStore.addBreakdown.mockResolvedValue({
+      operationId: command.operationId,
+      status: "rejected",
+      breakdown: null,
+      scratch: null,
+      rejection,
+    });
+    const { result } = renderHook(() => useScratchBreakdowns(command.scratchBitId));
+
+    await act(async () => {
+      await result.current.addBreakdown(command);
+    });
+
+    expect(result.current.operations).toEqual([
+      expect.objectContaining({ phase: "terminal", status: "rejected", rejection }),
     ]);
   });
 

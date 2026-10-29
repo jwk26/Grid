@@ -6,14 +6,14 @@ import type { Bit, Node } from "@/types";
 import { useExplorerRemoteStatus } from "./use-explorer-remote-status";
 
 const getDataStoreMock = vi.hoisted(() => vi.fn());
-const liveQueryMock = vi.hoisted(() => vi.fn());
+const liveReadMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/datastore", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/db/datastore")>();
-  return { ...original, getDataStore: getDataStoreMock };
+  return { ...original, getDataStore: getDataStoreMock,
+    liveRead: (read: (store: unknown) => Promise<unknown>) =>
+    liveReadMock(() => getDataStoreMock().then(read)), };
 });
-
-vi.mock("dexie", () => ({ liveQuery: liveQueryMock }));
 
 type Observer = {
   next: (value: unknown) => void;
@@ -111,7 +111,7 @@ beforeEach(() => {
       bitRows.find((row) => row.id === id),
     ),
   } as unknown as DataStore);
-  liveQueryMock.mockImplementation((query: () => Promise<unknown>) => {
+  liveReadMock.mockImplementation((query: () => Promise<unknown>) => {
     const subscription: Subscription = { query, unsubscribe: vi.fn() };
     subscriptions.push(subscription);
     return {

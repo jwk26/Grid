@@ -130,9 +130,14 @@ vi.mock("@/hooks/use-grid-actions", () => ({
   }),
 }));
 
-vi.mock("@/lib/db/datastore", () => ({
-  getDataStore: getDataStoreMock,
-}));
+vi.mock("@/lib/db/datastore", async () => {
+  const { liveQuery } = await import("dexie");
+  return {
+    getDataStore: getDataStoreMock,
+    liveRead: (read: (store: unknown) => Promise<unknown>) =>
+      liveQuery(() => getDataStoreMock().then(read)),
+  };
+});
 
 vi.mock("@/lib/utils/bfs", () => ({
   findNearestEmptyCell: vi.fn(),

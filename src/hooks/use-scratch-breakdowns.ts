@@ -1,6 +1,5 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import {
   createContext,
   useCallback,
@@ -14,12 +13,14 @@ import {
   getDataStore,
   type AddBreakdownCommand,
   type AddBreakdownResult,
+  type CommandRejection,
   type DeleteBreakdownCommand,
   type DeleteBreakdownResult,
   type SaveBreakdownCommand,
   type SaveBreakdownResult,
   type SaveScratchTitleCommand,
   type SaveScratchTitleResult,
+  liveRead,
 } from "@/lib/db/datastore";
 import type {
   RepositoryOperationStatus,
@@ -49,6 +50,8 @@ export type BreakdownOperationProjection = Readonly<{
   breakdownId: string;
   phase: "pending" | "unknown" | "reconciling" | "terminal";
   status?: RepositoryOperationStatus;
+  /** The rule a rejected answer named (`account_limit` shows its reason line). */
+  rejection?: CommandRejection;
   sourceSnapshot?: ScratchBreakdown;
 }>;
 
@@ -243,8 +246,7 @@ export function useScratchBreakdowns(
   useEffect(() => {
     if (scratchBitId === null) return;
 
-    const subscription = liveQuery(async () => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore) => {
       const [rows, archiveEligibility] = await Promise.all([
         dataStore.getScratchBreakdowns(scratchBitId),
         dataStore.getScratchArchiveEligibility(scratchBitId),
@@ -727,11 +729,19 @@ export function useScratchBreakdowns(
 
       try {
         const result = await invoke();
-        const status = (result as { status: RepositoryOperationStatus }).status;
+        const { status, rejection } = result as {
+          status: RepositoryOperationStatus;
+          rejection?: CommandRejection;
+        };
         setOperations((current) =>
           current.map((operation) =>
             operation.operationId === command.operationId
-              ? { ...operation, phase: "terminal", status }
+              ? {
+                  ...operation,
+                  phase: "terminal",
+                  status,
+                  ...(rejection === undefined ? {} : { rejection }),
+                }
               : operation,
           ),
         );

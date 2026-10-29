@@ -29,6 +29,9 @@ type UndoStore = {
   reconcileStagedPlacementUndo(command: StagedPlacementUndoCommand): Promise<PlacementUndoResult>;
   undoDirectPlacement(command: DirectPlacementUndoCommand): Promise<PlacementUndoResult>;
   reconcileDirectPlacementUndo(command: DirectPlacementUndoCommand): Promise<PlacementUndoResult>;
+  getPlacementUndoTruth(
+    command: DirectPlacementUndoCommand | StagedPlacementUndoCommand,
+  ): Promise<PlacementUndoResult>;
 };
 
 type CheckpointHook = (name: string) => undefined;
@@ -210,6 +213,38 @@ describe("authoritative source-aware placement Undo", () => {
         status: "applied",
         result: null,
         source: { consumedAt: null, version: prepared.undo.sourceSnapshot.version + 1 },
+      });
+    } finally {
+      prepared.database.close();
+    }
+  });
+
+  it("blocks a Bit Undo while a Chunk survives under the result, in the verdict read and the command (SCHEMA §Undo placement)", async () => {
+    const prepared = await preparedUndo(false, "bit");
+    try {
+      const resultId = prepared.undo.resultSnapshot.id;
+      await prepared.database.chunks.put({
+        id: IDS.child,
+        title: "Chunk",
+        description: "",
+        time: null,
+        timeAllDay: false,
+        status: "incomplete",
+        order: 0,
+        parentId: resultId,
+      });
+      const blocked = await snapshotSevenStores(prepared.database);
+      await expect(prepared.store.getPlacementUndoTruth(prepared.undo)).resolves.toMatchObject({
+        status: "conflict",
+      });
+      await expect(prepared.store.undoDirectPlacement(prepared.undo)).resolves.toMatchObject({
+        status: "conflict",
+      });
+      expect(await snapshotSevenStores(prepared.database)).toEqual(blocked);
+
+      await prepared.database.chunks.delete(IDS.child);
+      await expect(prepared.store.getPlacementUndoTruth(prepared.undo)).resolves.toMatchObject({
+        status: "not_applied",
       });
     } finally {
       prepared.database.close();

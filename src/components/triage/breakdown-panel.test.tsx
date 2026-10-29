@@ -2306,6 +2306,44 @@ describe("BreakdownPanel", () => {
     expect(operationLockState.activeOperation).toBeNull();
   });
 
+  it("names the account limit when Add is rejected for it", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.operations = [
+      {
+        kind: "add",
+        operationId: "add-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "new-row",
+        phase: "terminal",
+        status: "rejected",
+        rejection: { code: "account_limit", table: "scratch_breakdowns", limit: 300 },
+      },
+    ];
+    render(<BreakdownPanel />);
+    expect(
+      screen.getByText(
+        "Add unavailable. This account has reached its limit of 300 breakdowns. Your draft is still here.",
+      ),
+    ).toHaveAttribute("role", "status");
+  });
+
+  it("keeps the plain rejected line for any other rejection code", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.operations = [
+      {
+        kind: "add",
+        operationId: "add-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "new-row",
+        phase: "terminal",
+        status: "rejected",
+        rejection: { code: "invalid_target" },
+      },
+    ];
+    render(<BreakdownPanel />);
+    expect(screen.getByText("Add unavailable. Your draft is still here.")).toBeInTheDocument();
+  });
+
   it.each([
     ["pending", undefined, "Adding…", null],
     [

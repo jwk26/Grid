@@ -1,8 +1,7 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getDataStore } from "@/lib/db/datastore";
+import { getDataStore, liveRead } from "@/lib/db/datastore";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { useTriageStore } from "@/stores/triage-store";
 import type { Bit, Node } from "@/types";
@@ -119,8 +118,7 @@ export function useInbox(): {
   }, []);
 
   useEffect(() => {
-    const subscription = liveQuery(async () => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore) => {
       const nodes = await dataStore.getAllActiveNodes();
       return nodes
         .filter(
@@ -149,8 +147,7 @@ export function useInbox(): {
       return;
     }
 
-    const subscription = liveQuery(async () => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore) => {
       const bits = await dataStore.getAllActiveBits();
       return bits.filter(
         (bit) =>
@@ -174,8 +171,7 @@ export function useInbox(): {
     previousPoolLifecycleRef.current = null;
     poolLifecycleRevisionRef.current = 0;
 
-    const subscription = liveQuery(async () => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore) => {
       const [allActiveBits, archivedItems, trashedItems] = await Promise.all([
         dataStore.getAllActiveBits(),
         dataStore.getArchivedItems(),

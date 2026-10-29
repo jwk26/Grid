@@ -519,3 +519,173 @@ describe("SnapshotStore: the pending-write layer", () => {
     expect(sendSecond).not.toHaveBeenCalled();
   });
 });
+
+describe("SnapshotStore: commands without a pending effect (Task 227)", () => {
+  it("applies the envelope's changes to the base and never shows a pending write", async () => {
+    const { store } = await loaded();
+    const states: number[] = [];
+    store.subscribe(() => states.push(store.getState().pending.length));
+    const send = vi.fn(async () => applied([nodeRow(NODE_ID, { x: 9, version: 2 })]));
+    const outcome = await store.command({ key: `nodes:${NODE_ID}`, send });
+    expect(outcome.outcome).toBe("applied");
+    expect(nodeX(store)).toBe(9);
+    expect(Math.max(0, ...states)).toBe(0);
+  });
+
+  it("the view stays at the base until the answer arrives", async () => {
+    const { store } = await loaded();
+    const answer = deferred<Envelope>();
+    const run = store.command({ key: "account", send: () => answer.promise });
+    await flush();
+    expect(nodeX(store)).toBe(0);
+    expect(store.getState().pending).toEqual([]);
+    answer.resolve(applied([nodeRow(NODE_ID, { x: 4, version: 2 })]));
+    await run;
+    expect(nodeX(store)).toBe(4);
+  });
+
+  it("a command with the same key is sent after the one before it ended, whatever its outcome", async () => {
+    const { store } = await loaded();
+    const first = deferred<Envelope>();
+    const sendSecond = vi.fn(async () => applied([nodeRow(NODE_ID, { x: 2, version: 3 })]));
+    const w1 = store.command({ key: "scratch:s", send: () => first.promise });
+    const w2 = store.command({ key: "scratch:s", send: sendSecond });
+    await flush();
+    expect(sendSecond).not.toHaveBeenCalled();
+    first.reject(new Error("boom"));
+    expect((await w1).outcome).toBe("error");
+    expect((await w2).outcome).toBe("applied");
+    expect(sendSecond).toHaveBeenCalledTimes(1);
+  });
+
+  it("commands with different keys do not wait for each other", async () => {
+    const { store } = await loaded();
+    const first = deferred<Envelope>();
+    const sendSecond = vi.fn(async () => applied([]));
+    void store.command({ key: "a", send: () => first.promise });
+    await store.command({ key: "b", send: sendSecond });
+    expect(sendSecond).toHaveBeenCalledTimes(1);
+  });
+
+  it("a rejection reports rejected with its envelope and refetches after a state-dependent code", async () => {
+    const { store, fetchSnapshot } = await loaded();
+    const envelope: Envelope = {
+      status: "rejected",
+      result: null,
+      changes: { nodes: { upserted: [nodeRow(NODE_ID, { x: 3, version: 5 })], deleted: [] } },
+      rejection: { code: "cell_taken" },
+    };
+    const outcome = await store.command({ key: "k", send: async () => envelope });
+    expect(outcome).toEqual({ outcome: "rejected", envelope });
+    await flush();
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  it("no answer within the timeout is unknown: refetched once, never resent", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchSnapshot = vi.fn<() => Promise<unknown>>(async () => snapshotOf([nodeRow(NODE_ID, { x: 0 })]));
+      const store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+      await store.load();
+      const send = vi.fn(() => new Promise<Envelope>(() => undefined));
+      const run = store.command({ key: "account", send });
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect((await run).outcome).toBe("unknown");
+      await vi.advanceTimersByTimeAsync(0);
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("an UnknownOutcomeError is unknown and refetches; any other throw is an error without a refetch", async () => {
+    const { store, fetchSnapshot } = await loaded();
+    const unknown = await store.command({
+      key: "k",
+      send: async () => {
+        throw new UnknownOutcomeError("no response");
+      },
+    });
+    expect(unknown.outcome).toBe("unknown");
+    await flush();
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+    const failed = await store.command({
+      key: "k",
+      send: async () => {
+        throw new Error("boom");
+      },
+    });
+    expect(failed.outcome).toBe("error");
+    await flush();
+    expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  it("a command queued behind another is never sent after reset, and a late answer misses the new base", async () => {
+    const { store } = await loaded();
+    const first = deferred<Envelope>();
+    const sendSecond = vi.fn(async () => applied([]));
+    const w1 = store.command({ key: "k", send: () => first.promise });
+    const w2 = store.command({ key: "k", send: sendSecond });
+    store.reset();
+    first.resolve(applied([nodeRow(NODE_ID, { x: 8, version: 9 })]));
+    await w1;
+    expect((await w2).outcome).toBe("error");
+    expect(sendSecond).not.toHaveBeenCalled();
+    expect(store.getState().view.nodes.size).toBe(0);
+  });
+});
+
+describe("SnapshotStore: a write that waits in the chain has its own timeout (Task 227 review)", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  async function loadedFake() {
+    const fetchSnapshot = vi.fn<() => Promise<unknown>>(async () => snapshotOf([nodeRow(NODE_ID, { x: 0 })]));
+    const store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+    await store.load();
+    return store;
+  }
+
+  it("a command behind a request that never ends ends as an unsent error after two timeouts", async () => {
+    const store = await loadedFake();
+    void store.command({ key: "k", send: () => new Promise<Envelope>(() => undefined) });
+    const sendSecond = vi.fn(async () => applied([]));
+    const second = store.command({ key: "k", send: sendSecond });
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(sendSecond).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    const outcome = await second;
+    expect(outcome.outcome).toBe("error");
+    expect(sendSecond).not.toHaveBeenCalled();
+  });
+
+  it("an effect write that timed out in the queue leaves the view and the pending list, and is never sent later", async () => {
+    const store = await loadedFake();
+    const first = deferred<Envelope>();
+    void store.command({ key: `nodes:${NODE_ID}`, send: () => first.promise });
+    const sendSecond = vi.fn(async () => applied([nodeRow(NODE_ID, { x: 7, version: 3 })]));
+    const second = store.write({ effect: move(NODE_ID, 7), send: sendSecond });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(nodeX(store)).toBe(7);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect((await second).outcome).toBe("error");
+    expect(nodeX(store)).toBe(0);
+    expect(store.getState().pending).toEqual([]);
+    first.resolve(applied([]));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sendSecond).not.toHaveBeenCalled();
+  });
+
+  it("a queued write that reaches its turn before the timeout is sent as before", async () => {
+    const store = await loadedFake();
+    const first = deferred<Envelope>();
+    void store.command({ key: "k", send: () => first.promise });
+    const sendSecond = vi.fn(async () => applied([]));
+    const second = store.command({ key: "k", send: sendSecond });
+    await vi.advanceTimersByTimeAsync(5_000);
+    first.resolve(applied([]));
+    expect((await second).outcome).toBe("applied");
+    expect(sendSecond).toHaveBeenCalledTimes(1);
+  });
+});

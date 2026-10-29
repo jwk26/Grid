@@ -7,28 +7,25 @@ const rows = vi.hoisted(() => ({
   sources: [] as Array<Record<string, unknown>>,
 }));
 
-vi.mock("@/lib/db/datastore", () => ({ getDataStore: vi.fn() }));
-vi.mock("@/lib/db/indexeddb", () => ({
-  db: {
-    bits: {
-      where: () => ({
-        equals: (parentId: string) => ({
-          toArray: async () => rows.bits.filter((bit) => bit.parentId === parentId),
-        }),
-      }),
-    },
-    stagedCandidates: { toArray: async () => rows.candidates },
-    scratchBreakdowns: { toArray: async () => rows.sources },
-  },
-}));
-vi.mock("dexie", () => ({
-  liveQuery: (query: () => Promise<unknown>) => ({
-    subscribe: (observer: { next: (value: unknown) => void; error: (error: unknown) => void }) => {
-      void query().then(observer.next).catch(observer.error);
-      return { unsubscribe: vi.fn() };
-    },
-  }),
-}));
+vi.mock("@/lib/db/datastore", () => {
+  const store = {
+    getBitsForNode: async (parentId: string) =>
+      rows.bits.filter(
+        (bit) => bit.parentId === parentId && bit.deletedAt === null && bit.archivedAt === null,
+      ),
+    getAllStagedCandidates: async () => rows.candidates,
+    getAllScratchBreakdowns: async () => rows.sources,
+  };
+  return {
+    getDataStore: vi.fn(),
+    liveRead: (read: (store: unknown) => Promise<unknown>) => ({
+      subscribe: (observer: { next: (value: unknown) => void; error: (error: unknown) => void }) => {
+        void read(store).then(observer.next).catch(observer.error);
+        return { unsubscribe: vi.fn() };
+      },
+    }),
+  };
+});
 
 import { useTrashScratchSnapshot } from "./use-trash-scratch";
 

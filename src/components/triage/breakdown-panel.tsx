@@ -1342,11 +1342,17 @@ export function BreakdownPanel({
   const addReliabilityCopy =
     addReliabilityState === null
       ? null
-      : INBOX_TRIAGE_COPY.reliability.add[
-          addReliabilityState === "not-applied"
-            ? "notApplied"
-            : addReliabilityState
-        ];
+      : addReliabilityState === "rejected" &&
+          addOperation?.rejection?.code === "account_limit"
+        ? INBOX_TRIAGE_COPY.reliability.add.rejectedAccountLimit.replace(
+            "{limit}",
+            String(addOperation.rejection.limit ?? ""),
+          )
+        : INBOX_TRIAGE_COPY.reliability.add[
+            addReliabilityState === "not-applied"
+              ? "notApplied"
+              : addReliabilityState
+          ];
   const addReliabilityAction =
     addReliabilityState === "unknown" ||
     addReliabilityState === "reconciling"

@@ -1,6 +1,5 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import {
   createContext,
   useCallback,
@@ -14,6 +13,7 @@ import {
   getDataStore,
   type TrashScratchCommand,
   type TrashScratchResult,
+  liveRead,
 } from "@/lib/db/datastore";
 import type {
   Bit,
@@ -133,16 +133,12 @@ export function useTrashScratchSnapshot(
 
   useEffect(() => {
     if (inboxNodeId === null) return;
-    const subscription = liveQuery(async (): Promise<TrashScratchSnapshot> => {
-      const { db } = await import("@/lib/db/indexeddb");
-      const [bits, candidates, sources] = await Promise.all([
-        db.bits.where("parentId").equals(inboxNodeId).toArray(),
-        db.stagedCandidates.toArray(),
-        db.scratchBreakdowns.toArray(),
+    const subscription = liveRead(async (dataStore): Promise<TrashScratchSnapshot> => {
+      const [scratches, candidates, sources] = await Promise.all([
+        dataStore.getBitsForNode(inboxNodeId),
+        dataStore.getAllStagedCandidates(),
+        dataStore.getAllScratchBreakdowns(),
       ]);
-      const scratches = bits.filter(
-        (bit) => bit.deletedAt === null && bit.archivedAt === null,
-      );
       const ids = new Set(scratches.map((bit) => bit.id));
       return {
         scratches,

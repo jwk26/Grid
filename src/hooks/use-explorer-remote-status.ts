@@ -1,8 +1,7 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useEffect, useRef, useState } from "react";
-import { getDataStore } from "@/lib/db/datastore";
+import { liveRead } from "@/lib/db/datastore";
 import {
   type ExplorerItemIdentity,
   useTriageStore,
@@ -109,8 +108,7 @@ export function useExplorerRemoteStatus({
   const pathKey = pathIds.join("\u0000");
   useEffect(() => {
     const watchedPathIds = pathKey === "" ? [] : pathKey.split("\u0000");
-    const subscription = liveQuery(async (): Promise<AuthoritativeSnapshot> => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore): Promise<AuthoritativeSnapshot> => {
       const [nodes, bits, pathRecords] = await Promise.all([
         dataStore.getAllActiveNodes(),
         dataStore.getAllActiveBits(),

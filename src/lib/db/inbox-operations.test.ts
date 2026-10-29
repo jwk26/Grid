@@ -100,9 +100,11 @@ describe("authoritative Inbox Breakdown commands", () => {
     ],
   ] as const)(
     "%s reads every authoritative store from one read-only transaction snapshot",
-    async (_name, reconcile) => {
+    async (name, reconcile) => {
       await withCommandStore(undefined, async (database, store) => {
-        await expectSingleReconcileSnapshot(database, () => reconcile(store));
+        // The Undo verdict also reads the Chunks (a Chunk under the result blocks the Undo).
+        const extraStores = name.endsWith("PlacementUndo") ? ["chunks"] : [];
+        await expectSingleReconcileSnapshot(database, () => reconcile(store), extraStores);
       });
     },
   );
@@ -775,6 +777,7 @@ async function withCommandStore(
 async function expectSingleReconcileSnapshot(
   database: GridDODatabase,
   reconcile: () => Promise<unknown>,
+  extraStores: readonly string[] = [],
 ): Promise<void> {
   const observedTransactions: Array<typeof Dexie.currentTransaction> = [];
   const observeTransaction = () => {
@@ -818,7 +821,7 @@ async function expectSingleReconcileSnapshot(
       observedTransactions.every((observed) => observed === transaction),
     ).toBe(true);
     expect([...(transaction?.storeNames ?? [])].sort()).toEqual(
-      [...RECONCILE_STORE_NAMES].sort(),
+      [...RECONCILE_STORE_NAMES, ...extraStores].sort(),
     );
   } finally {
     for (const spy of spies) {

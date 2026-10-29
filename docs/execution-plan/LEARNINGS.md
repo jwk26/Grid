@@ -131,6 +131,8 @@
 
 **A guard in SQL is false only when it is not null.** In `reconcile_trash_scratch`, `jsonb_typeof(null) = 'array'` is null, so `when not inputs.ok` was skipped and a null set on a Scratch with no candidates classified `not_applied` or `already_applied`. Wrap a guard built from arguments in `coalesce(…, false)` and test each null argument on a record where the other rules would pass. *(Phase 44, Task 224)*
 
+**A live read must never send a request whose answer changes the snapshot.** `use-triage-newly-placed` ran `reconcile*PlacementUndo` inside its live read; on Dexie that was a local read, but on the Supabase store every reconcile envelope carries `changes`, which publish a new view, which reruns the live read and sends the reconcile again, an endless loop that also discards in-flight refetches. Judge such truth from the snapshot rows with a pure function (`placementUndoVerdict`) and keep the server call for the unknown-outcome path only. *(Phase 45, Task 228)*
+
 ---
 
 ## Workflow / Process
@@ -164,3 +166,5 @@
 **Run `git diff --check` over the branch, not the working tree.** Bare `git diff --check` sees only uncommitted changes, so whitespace in an already committed file passes every task gate and fails at phase close (`git diff --check origin/main...HEAD`). Run the range form in task gates. *(Phase 42 close)*
 
 **Write a parity deviation into the canonical hook when it is decided.** Task 220's lifecycle decisions (refusals, the `archived_at` rule, `parent_inactive`, idempotent `applied`) were recorded in the ledger only, so SCHEMA's hooks still described Dexie at phase close and had to be reconciled there. A decision that changes a hook's behavior goes into SCHEMA in the same commit as the code. *(Phase 43 close; recurred at the Phase 44 close, where the command contract choices stayed in the ledger's Task 227 notes until the close commit)*
+
+**A server in `.mcp.json` is not running until it is enabled.** The project declared the Playwright MCP server, and CLAUDE.md and the plan named it for browser checks, but no session ever approved it, so `/mcp` listed nothing and Tasks 227–229 checked in the DevTools browser and a headless script instead. `"enabledMcpjsonServers": ["playwright"]` in the tracked `.claude/settings.json` enables it in every worktree without a per-path approval; after adding a server, confirm in a fresh session that `/mcp` shows it connected before a plan relies on it. *(Phase 45 close)*

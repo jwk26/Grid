@@ -267,3 +267,122 @@ export function nodePatchToRow(patch: NodePatch): NodePatchRow {
   if (patch.pastDeadlineDismissed !== undefined) row.past_deadline_dismissed = patch.pastDeadlineDismissed;
   return row;
 }
+
+// The values the write functions accept (SCHEMA Hooks 1-12). Each converter keeps only the keys
+// the function takes: server-owned fields (`level`, `status` on create, `order` on a Chunk update)
+// can never reach `p_values` or `p_changes`. An undefined key is left out, null is kept.
+function pick<Row extends object>(entries: ReadonlyArray<readonly [keyof Row, unknown]>): Row {
+  const row = {} as Record<string, unknown>;
+  for (const [key, value] of entries) if (value !== undefined) row[key as string] = value;
+  return row as Row;
+}
+
+export type NodeCreateRow = Pick<NodeRow, "title" | "color" | "icon" | "x" | "y"> &
+  Partial<Pick<NodeRow, "deadline" | "deadline_all_day" | "parent_id">>;
+export function nodeCreateToRow(
+  node: Pick<Node, "title" | "color" | "icon" | "x" | "y" | "deadline" | "deadlineAllDay" | "parentId">,
+): NodeCreateRow {
+  return pick<NodeCreateRow>([
+    ["title", node.title],
+    ["color", node.color],
+    ["icon", node.icon],
+    ["deadline", node.deadline],
+    ["deadline_all_day", node.deadlineAllDay],
+    ["parent_id", node.parentId],
+    ["x", node.x],
+    ["y", node.y],
+  ]);
+}
+
+export type BitCreateRow = Pick<BitRow, "title" | "icon" | "parent_id" | "x" | "y"> &
+  Partial<Pick<BitRow, "description" | "deadline" | "deadline_all_day" | "priority">>;
+export function bitCreateToRow(
+  bit: Pick<Bit, "title" | "icon" | "parentId" | "x" | "y" | "description" | "deadline" | "deadlineAllDay" | "priority">,
+): BitCreateRow {
+  return pick<BitCreateRow>([
+    ["title", bit.title],
+    ["description", bit.description],
+    ["icon", bit.icon],
+    ["deadline", bit.deadline],
+    ["deadline_all_day", bit.deadlineAllDay],
+    ["priority", bit.priority],
+    ["parent_id", bit.parentId],
+    ["x", bit.x],
+    ["y", bit.y],
+  ]);
+}
+
+export type BitPatch = Partial<
+  Pick<
+    Bit,
+    | "title"
+    | "description"
+    | "icon"
+    | "deadline"
+    | "deadlineAllDay"
+    | "priority"
+    | "status"
+    | "parentId"
+    | "x"
+    | "y"
+    | "pastDeadlineDismissed"
+  >
+>;
+export type BitPatchRow = Partial<
+  Pick<
+    BitRow,
+    | "title"
+    | "description"
+    | "icon"
+    | "deadline"
+    | "deadline_all_day"
+    | "priority"
+    | "status"
+    | "parent_id"
+    | "x"
+    | "y"
+    | "past_deadline_dismissed"
+  >
+>;
+export function bitPatchToRow(patch: BitPatch): BitPatchRow {
+  return pick<BitPatchRow>([
+    ["title", patch.title],
+    ["description", patch.description],
+    ["icon", patch.icon],
+    ["deadline", patch.deadline],
+    ["deadline_all_day", patch.deadlineAllDay],
+    ["priority", patch.priority],
+    ["status", patch.status],
+    ["parent_id", patch.parentId],
+    ["x", patch.x],
+    ["y", patch.y],
+    ["past_deadline_dismissed", patch.pastDeadlineDismissed],
+  ]);
+}
+
+export type ChunkCreateRow = Pick<ChunkRow, "title" | "parent_id" | "order"> &
+  Partial<Pick<ChunkRow, "description" | "time" | "time_all_day">>;
+export function chunkCreateToRow(
+  chunk: Pick<Chunk, "title" | "parentId" | "order" | "description" | "time" | "timeAllDay">,
+): ChunkCreateRow {
+  return pick<ChunkCreateRow>([
+    ["title", chunk.title],
+    ["description", chunk.description],
+    ["time", chunk.time],
+    ["time_all_day", chunk.timeAllDay],
+    ["parent_id", chunk.parentId],
+    ["order", chunk.order],
+  ]);
+}
+
+export type ChunkPatch = Partial<Pick<Chunk, "title" | "description" | "time" | "timeAllDay" | "status">>;
+export type ChunkPatchRow = Partial<Pick<ChunkRow, "title" | "description" | "time" | "time_all_day" | "status">>;
+export function chunkPatchToRow(patch: ChunkPatch): ChunkPatchRow {
+  return pick<ChunkPatchRow>([
+    ["title", patch.title],
+    ["description", patch.description],
+    ["time", patch.time],
+    ["time_all_day", patch.timeAllDay],
+    ["status", patch.status],
+  ]);
+}

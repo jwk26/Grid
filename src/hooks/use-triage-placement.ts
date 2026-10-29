@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import {
   getDataStore,
+  type CommandRejection,
   type DirectPlacementCommand,
   type PlacementResult,
   type StagedPlacementCommand,
@@ -49,7 +50,8 @@ export type TriagePlacementPhase =
 export type TriagePlacementTerminalKind =
   | "not-applied"
   | "stale-source"
-  | "stale-target";
+  | "stale-target"
+  | "account-limit";
 
 export type TriagePlacementSnapshot = Readonly<{
   release: TriagePlacementRelease;
@@ -60,6 +62,8 @@ export type TriagePlacementSnapshot = Readonly<{
   command: TriagePlacementCommand | null;
   terminalStatus: RepositoryOperationStatus | null;
   terminalKind: TriagePlacementTerminalKind | null;
+  /** The rule a rejected answer named, kept for the `account-limit` reason line. */
+  rejection?: CommandRejection | null;
   resultTitleDraft: string | null;
 }>;
 
@@ -170,6 +174,9 @@ function classifyTerminalKind(
   result: PlacementResult,
 ): TriagePlacementTerminalKind {
   if (result.status === "not_applied") return "not-applied";
+  if (result.status === "rejected" && result.rejection?.code === "account_limit") {
+    return "account-limit";
+  }
   return returnedSourceMatches(snapshot, result)
     ? "stale-target"
     : "stale-source";
@@ -303,6 +310,7 @@ export function useTriagePlacement({
         command,
         terminalStatus: result.status,
         terminalKind: classifyTerminalKind(current, result),
+        rejection: result.rejection ?? null,
       });
       return true;
     },

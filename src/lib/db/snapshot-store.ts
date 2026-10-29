@@ -189,7 +189,13 @@ function applyEffects(base: AccountView, effects: readonly PendingEffect[]): Acc
   return next;
 }
 
-type PendingEntry = PendingInfo & { effect: PendingEffect };
+// A command (Task 227) has no effect: it never shows in the view and never in `pending`; it only
+// takes part in the send chain, the timeout and the reset rule.
+type PendingEntry = Omit<PendingInfo, "table" | "recordId"> & {
+  table: TableKey | null;
+  recordId: string | null;
+  effect: PendingEffect | null;
+};
 
 export type SnapshotStoreOptions = {
   fetchSnapshot: () => Promise<unknown>;
@@ -299,22 +305,58 @@ export class SnapshotStore {
   write(args: { effect: PendingEffect; send: () => Promise<Envelope> }): Promise<WriteOutcome> {
     const { effect } = args;
     const recordId = effect.kind === "create" ? effect.record.id : effect.id;
-    const key = `${effect.table}:${recordId}`;
+    return this.enqueue(`${effect.table}:${recordId}`, effect, recordId, args.send);
+  }
+
+  // A write with no pending effect: the view stays at the base until the answer's `changes` reach
+  // it (server-confirmed, Phase 45). Same send chain, timeout, unknown outcome and refetch rules
+  // as `write`. `key` names the chain: the target record, the Scratch of an Inbox command, or one
+  // account key.
+  command(args: { key: string; send: () => Promise<Envelope> }): Promise<WriteOutcome> {
+    return this.enqueue(args.key, null, null, args.send);
+  }
+
+  private enqueue(
+    key: string,
+    effect: PendingEffect | null,
+    recordId: string | null,
+    sendRequest: () => Promise<Envelope>,
+  ): Promise<WriteOutcome> {
     const previous = this.chains.get(key);
     const entry: PendingEntry = {
       id: this.nextId++,
-      table: effect.table,
+      table: effect ? effect.table : null,
       recordId,
       state: previous ? "queued" : "sent",
       effect,
     };
     this.pending = [...this.pending, entry];
-    this.publish();
+    if (effect) this.publish();
+
+    // A write that waits behind an earlier one has its own deadline from the moment it queued: the
+    // earlier request gets its full timeout and then as long again to end. If it still has not
+    // ended, this write ends as an error that was never sent (no write, so not an unknown
+    // outcome), leaves the list, and is skipped when its turn comes.
+    let queueTimer: ReturnType<typeof setTimeout> | undefined;
+    const expired = previous
+      ? new Promise<WriteOutcome>((resolve) => {
+          queueTimer = setTimeout(() => {
+            if (entry.state !== "queued") return;
+            this.pending = this.pending.filter((item) => item.id !== entry.id);
+            if (effect) this.publish();
+            resolve({ outcome: "error", error: new Error("The write timed out before it was sent") });
+          }, 2 * this.requestTimeoutMs);
+        })
+      : null;
 
     const started = previous
-      ? previous.then(() => this.send(entry, args.send))
-      : Promise.resolve(this.send(entry, args.send));
-    const run = started.then((sent) => sent.outcome);
+      ? previous.then(() => {
+          clearTimeout(queueTimer);
+          return this.send(entry, sendRequest);
+        })
+      : Promise.resolve(this.send(entry, sendRequest));
+    const answered = started.then((sent) => sent.outcome);
+    const run = expired ? Promise.race([answered, expired]) : answered;
     // The next write to this record waits for the request itself to end, not for the timeout: a
     // later write cannot overtake a timed-out one on the server.
     const tail: Promise<unknown> = started.then((sent) => sent.done).finally(() => {
@@ -337,7 +379,7 @@ export class SnapshotStore {
     }
     if (entry.state === "queued") {
       entry.state = "sent";
-      this.publish();
+      if (entry.effect) this.publish();
     }
     let request: Promise<Envelope>;
     try {
@@ -426,13 +468,17 @@ export class SnapshotStore {
   }
 
   private computeState(): StoreState {
+    const shown = this.pending.filter(
+      (entry): entry is PendingEntry & { effect: PendingEffect; table: TableKey; recordId: string } =>
+        entry.effect !== null,
+    );
     return {
       status: this.status,
       view: applyEffects(
         this.base,
-        this.pending.map((entry) => entry.effect),
+        shown.map((entry) => entry.effect),
       ),
-      pending: this.pending.map(({ id, table, recordId, state }) => ({ id, table, recordId, state })),
+      pending: shown.map(({ id, table, recordId, state }) => ({ id, table, recordId, state })),
     };
   }
 

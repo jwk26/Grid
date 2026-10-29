@@ -26,10 +26,17 @@ export type AddBreakdownCommand = RepositoryOperationCommand<{
   content: string;
 }>;
 
+/**
+ * The rule a `rejected` answer names (SCHEMA §Result envelope). Only the Supabase store sets it;
+ * `account_limit` carries `table` and `limit` so the rejected state can show its reason.
+ */
+export type CommandRejection = Readonly<{ code: string; table?: string; limit?: number }>;
+
 export type AddBreakdownResult = RepositoryOperationResult<{
   status: RepositoryOperationStatus;
   breakdown: ScratchBreakdown | null;
   scratch: Bit | null;
+  rejection?: CommandRejection;
 }>;
 
 export type SaveScratchTitleCommand = RepositoryOperationCommand<{
@@ -159,6 +166,7 @@ export type PlacementResult = RepositoryOperationResult<{
   result: Node | Bit | null;
   source: ScratchBreakdown | null;
   candidate: StagedCandidate | null;
+  rejection?: CommandRejection;
 }>;
 
 export type PlacementUndoCommandBase = RepositoryOperationCommand<{
@@ -234,7 +242,31 @@ export type AggregateHardDeleteResult =
       candidates: StagedCandidate[];
     };
 
+export type LiveObserver<T> = {
+  next?: (value: T) => void;
+  error?: (error: unknown) => void;
+};
+
+export type LiveSubscription = { unsubscribe(): void };
+
+/** The subscribe shape of Dexie's `liveQuery`, so hooks never import `dexie`. */
+export type LiveObservable<T> = {
+  subscribe(observer: LiveObserver<T>): LiveSubscription;
+};
+
+/**
+ * The answer to a deadline conflict (SCHEMA Hook 2): the call also extends the parent record's
+ * deadline (a Bit's Node, a Chunk's Bit) in the same write, instead of failing.
+ */
+export type ExtendParentOption = Readonly<{ extendParent?: boolean }>;
+
 export interface DataStore {
+  /**
+   * Re-runs `read` against this store on every data change and emits each
+   * result. The first result is emitted without waiting for a change.
+   */
+  liveRead<T>(read: (store: DataStore) => Promise<T>): LiveObservable<T>;
+
   // --- Nodes ---
   getNode(id: string): Promise<Node | undefined>;
   getNodes(parentId: string | null): Promise<Node[]>;
@@ -243,6 +275,8 @@ export interface DataStore {
   softDeleteNode(id: string): Promise<void>;
   restoreNode(id: string): Promise<void>;
   hardDeleteNode(id: string): Promise<AggregateHardDeleteResult>;
+  /** Permanently deletes every trashed Node closure and trashed Bit in one write (Hook 6). */
+  emptyTrash(): Promise<AggregateHardDeleteResult>;
   cleanupExpiredTrash(): Promise<AggregateHardDeleteResult>;
 
   getAllActiveNodes(): Promise<Node[]>;
@@ -253,7 +287,7 @@ export interface DataStore {
   getBitsForNode(nodeId: string): Promise<Bit[]>;
   getAllActiveBits(): Promise<Bit[]>;
   createBit(data: CreateBit): Promise<Bit>;
-  updateBit(id: string, data: UpdateBit): Promise<void>;
+  updateBit(id: string, data: UpdateBit, options?: ExtendParentOption): Promise<void>;
   softDeleteBit(id: string): Promise<void>;
   restoreBit(id: string): Promise<void>;
   hardDeleteBit(id: string): Promise<AggregateHardDeleteResult>;
@@ -287,6 +321,12 @@ export interface DataStore {
   // --- Scratch Breakdowns ---
   createScratchBreakdown(data: CreateScratchBreakdown): Promise<ScratchBreakdown>;
   getScratchBreakdowns(scratchBitId: string): Promise<ScratchBreakdown[]>;
+  /** Every Breakdown row of the account, in `id` order. */
+  getAllScratchBreakdowns(): Promise<ScratchBreakdown[]>;
+  /** Staged Candidates of one Scratch, in `id` order. */
+  getStagedCandidates(scratchBitId: string): Promise<StagedCandidate[]>;
+  /** Every staged Candidate of the account, in `id` order. */
+  getAllStagedCandidates(): Promise<StagedCandidate[]>;
   updateScratchBreakdown(id: string, data: UpdateScratchBreakdown): Promise<void>;
   markScratchBreakdownConsumed(id: string): Promise<void>;
   unconsumeScratchBreakdown(id: string): Promise<void>;
@@ -341,6 +381,13 @@ export interface DataStore {
   reconcileStagedPlacementUndo(
     command: StagedPlacementUndoCommand,
   ): Promise<PlacementUndoResult>;
+  /**
+   * The Undo verdict of a placement, judged from the stored account rows. Sends no request, so a
+   * live read may call it on every change; the reconcile methods stay for an unknown outcome.
+   */
+  getPlacementUndoTruth(
+    command: DirectPlacementUndoCommand | StagedPlacementUndoCommand,
+  ): Promise<PlacementUndoResult>;
   undoDirectPlacement(command: DirectPlacementUndoCommand): Promise<PlacementUndoResult>;
   reconcileDirectPlacementUndo(
     command: DirectPlacementUndoCommand,
@@ -349,7 +396,9 @@ export interface DataStore {
   // --- Chunks ---
   getChunks(bitId: string): Promise<Chunk[]>;
   createChunk(data: CreateChunk): Promise<Chunk>;
-  updateChunk(id: string, data: Partial<Chunk>): Promise<void>;
+  updateChunk(id: string, data: Partial<Chunk>, options?: ExtendParentOption): Promise<void>;
+  /** Writes `order` 0..n-1 in the given sequence; the list must be exactly the Bit's Chunks. */
+  reorderChunks(bitId: string, chunkIds: readonly string[]): Promise<void>;
   deleteChunk(id: string): Promise<void>;
 
   // --- Queries ---
@@ -383,20 +432,63 @@ export interface DataStore {
   ): Promise<{ relocated: number }>;
 }
 
-let cachedDataStore: DataStore | null = null;
+/**
+ * `DataStore.liveRead` on the current store. Hooks import this; the store is
+ * resolved on subscribe, and unsubscribing before it resolves subscribes nothing.
+ */
+export function liveRead<T>(read: (store: DataStore) => Promise<T>): LiveObservable<T> {
+  return {
+    subscribe(observer) {
+      let closed = false;
+      let inner: LiveSubscription | null = null;
+      getDataStore().then(
+        (store) => {
+          if (closed) return;
+          inner = store.liveRead(read).subscribe(observer);
+        },
+        (error: unknown) => {
+          if (!closed) observer.error?.(error);
+        },
+      );
+      return {
+        unsubscribe() {
+          closed = true;
+          inner?.unsubscribe();
+          inner = null;
+        },
+      };
+    },
+  };
+}
 
-export async function getDataStore(): Promise<DataStore> {
-  if (cachedDataStore) {
-    return cachedDataStore;
-  }
+// The in-flight promise is cached, so callers that ask before the account is ready share one
+// store.
+let dataStorePromise: Promise<DataStore> | null = null;
 
-  const dataStoreModule = await import("@/lib/db/indexeddb");
-  let dataStore: DataStore = dataStoreModule.indexedDBStore;
+async function createDataStore(): Promise<DataStore> {
+  // Production store (Phase 45): the Supabase store over the account snapshot. It exists once
+  // entry has made a session, prepared the account and loaded the snapshot; the Dexie store stays
+  // in the tree until Phase 46 removes it.
+  const [{ getSessionController }, { createSupabaseStore }] = await Promise.all([
+    import("@/lib/auth/session"),
+    import("@/lib/db/supabase-store"),
+  ]);
+  const controller = getSessionController();
+  await controller.whenReady();
+  let dataStore: DataStore = createSupabaseStore(controller.store);
   if (process.env.NODE_ENV === "development") {
     // Development state switch (feedback F30): wrap whichever store is returned.
     const { withDevInjection } = await import("@/lib/dev/state-switch");
     dataStore = withDevInjection(dataStore);
   }
-  cachedDataStore = dataStore;
-  return cachedDataStore;
+  return dataStore;
+}
+
+export function getDataStore(): Promise<DataStore> {
+  dataStorePromise ??= createDataStore().catch((error: unknown) => {
+    // A failed start is not kept: the next caller tries again.
+    dataStorePromise = null;
+    throw error;
+  });
+  return dataStorePromise;
 }

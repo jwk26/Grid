@@ -7,23 +7,24 @@ import { useTriageStore } from "@/stores/triage-store";
 import { useInbox } from "./use-inbox";
 
 const getDataStoreMock = vi.hoisted(() => vi.fn());
-const liveQueryMock = vi.hoisted(() => vi.fn());
+const liveReadMock = vi.hoisted(() => vi.fn());
 const liveQueryRuns: Array<() => Promise<void>> = [];
 
-vi.mock("@/lib/db/datastore", () => ({
-  getDataStore: async () => {
+vi.mock("@/lib/db/datastore", () => {
+  const getDataStore = async () => {
     const dataStore = await getDataStoreMock();
     return {
       getArchivedItems: async () => ({ nodes: [], bits: [] }),
       getTrashedItems: async () => ({ nodes: [], bits: [] }),
       ...dataStore,
     };
-  },
-}));
-
-vi.mock("dexie", () => ({
-  liveQuery: liveQueryMock,
-}));
+  };
+  return {
+    getDataStore,
+    liveRead: (read: (store: unknown) => Promise<unknown>) =>
+      liveReadMock(() => getDataStore().then(read)),
+  };
+});
 
 function createNode(overrides: Partial<Node> = {}): Node {
   return {
@@ -86,7 +87,7 @@ describe("useInbox", () => {
       ownTrashMarkers: {},
     });
     useTriagePreferencesStore.setState({ poolCreatedAtSort: "DESC" });
-    liveQueryMock.mockImplementation((query: () => Promise<unknown>) => ({
+    liveReadMock.mockImplementation((query: () => Promise<unknown>) => ({
       subscribe: (observer: {
         next: (value: unknown) => void;
         error: (error: unknown) => void;

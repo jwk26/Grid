@@ -10,19 +10,24 @@ import {
 
 const getBitMock = vi.hoisted(() => vi.fn());
 const reconcileMock = vi.hoisted(() => vi.fn());
+const truthMock = vi.hoisted(() => vi.fn());
+// One re-run per registered live read, to stand in for a snapshot change.
+const reruns = vi.hoisted(() => [] as Array<() => Promise<void>>);
 
-vi.mock("@/lib/db/datastore", () => ({
-  getDataStore: async () => ({
-    getBit: getBitMock,
-    reconcileDirectPlacementUndo: reconcileMock,
-    reconcileStagedPlacementUndo: reconcileMock,
-  }),
+const fakeStore = vi.hoisted(() => ({
+  getBit: undefined as unknown,
+  getPlacementUndoTruth: undefined as unknown,
+  reconcileDirectPlacementUndo: undefined as unknown,
+  reconcileStagedPlacementUndo: undefined as unknown,
 }));
 
-vi.mock("dexie", () => ({
-  liveQuery: (query: () => Promise<unknown>) => ({
+vi.mock("@/lib/db/datastore", () => ({
+  getDataStore: async () => fakeStore,
+  liveRead: (read: (store: unknown) => Promise<unknown>) => ({
     subscribe: (observer: { next: (value: unknown) => void; error: (error: unknown) => void }) => {
-      void query().then(observer.next).catch(observer.error);
+      const run = () => read(fakeStore).then(observer.next).catch(observer.error);
+      reruns.push(run);
+      void run();
       return { unsubscribe: vi.fn() };
     },
   }),
@@ -119,7 +124,15 @@ function rejectedTruth(): PlacementUndoResult {
 beforeEach(() => {
   getBitMock.mockReset();
   reconcileMock.mockReset();
-  reconcileMock.mockResolvedValue(rejectedTruth());
+  truthMock.mockReset();
+  truthMock.mockResolvedValue(rejectedTruth());
+  reruns.length = 0;
+  Object.assign(fakeStore, {
+    getBit: getBitMock,
+    getPlacementUndoTruth: truthMock,
+    reconcileDirectPlacementUndo: reconcileMock,
+    reconcileStagedPlacementUndo: reconcileMock,
+  });
 });
 
 describe("useTriageNewlyPlacedUndo default owner observation", () => {
@@ -177,7 +190,7 @@ describe("useTriageNewlyPlacedUndo default owner observation", () => {
 
   it("a rejected Undo dispatch against a just-trashed owner is labelled trashed, not invalid-provenance", async () => {
     getBitMock.mockResolvedValueOnce(scratch({}));
-    reconcileMock.mockResolvedValue({
+    truthMock.mockResolvedValue({
       ...rejectedTruth(),
       status: "not_applied",
     });
@@ -205,5 +218,72 @@ describe("useTriageNewlyPlacedUndo default owner observation", () => {
         reason: "trashed",
       }),
     );
+  });
+
+  it("judges the Undo from the snapshot on every change and sends no reconcile request", async () => {
+    getBitMock.mockResolvedValue(scratch({}));
+    truthMock.mockResolvedValue({ ...rejectedTruth(), status: "not_applied" });
+    const { result } = renderHook(() =>
+      useTriageNewlyPlacedUndo({
+        entries: [provenance],
+        operationLock: unlocked,
+        placementOpen: false,
+        hasDirtyEdit: () => false,
+      }),
+    );
+    await waitFor(() =>
+      expect(result.current.getState("node", placed.id).reason).toBe("available"),
+    );
+    expect(truthMock).toHaveBeenCalledTimes(1);
+
+    // Three snapshot changes, then a child appears under the result.
+    await act(async () => {
+      for (let change = 0; change < 3; change += 1) await reruns[0]!();
+      truthMock.mockResolvedValue({ ...rejectedTruth(), status: "conflict" });
+      await reruns[0]!();
+    });
+    await waitFor(() =>
+      expect(result.current.getState("node", placed.id).reason).toBe("dependencies"),
+    );
+    expect(truthMock).toHaveBeenCalledTimes(5);
+    expect(reconcileMock).not.toHaveBeenCalled();
+
+    // The child goes again: re-enabled, still no request.
+    truthMock.mockResolvedValue({ ...rejectedTruth(), status: "not_applied" });
+    await act(async () => {
+      await reruns[0]!();
+    });
+    await waitFor(() =>
+      expect(result.current.getState("node", placed.id).reason).toBe("reenabled"),
+    );
+    expect(reconcileMock).not.toHaveBeenCalled();
+  });
+
+  it("reconciles once, and only, after an unknown Undo outcome", async () => {
+    getBitMock.mockResolvedValue(scratch({}));
+    truthMock.mockResolvedValue({ ...rejectedTruth(), status: "not_applied" });
+    reconcileMock.mockResolvedValue({ ...rejectedTruth(), status: "already_applied", result: null });
+    const dispatchUndo = vi.fn().mockRejectedValue(new Error("no answer"));
+    const { result } = renderHook(() =>
+      useTriageNewlyPlacedUndo({
+        entries: [provenance],
+        operationLock: unlocked,
+        placementOpen: false,
+        hasDirtyEdit: () => false,
+        dispatchUndo,
+      }),
+    );
+    await waitFor(() =>
+      expect(result.current.getState("node", placed.id).reason).toBe("available"),
+    );
+    await act(async () => {
+      await result.current.activate("node", placed.id);
+    });
+    expect(result.current.getState("node", placed.id).phase).toBe("unknown");
+    expect(reconcileMock).not.toHaveBeenCalled();
+    await act(async () => {
+      await result.current.reconcile("node", placed.id);
+    });
+    expect(reconcileMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -1059,6 +1059,14 @@
   background-position: var(--triage-frame-background-position, 0 0);
 }
 
+/* The app-level frame (load failure, session expired) takes the shell's background only: one
+   centred block, none of the desktop-menu layout or padding. */
+.triage-shell.triage-shell--frame {
+  display: grid;
+  grid-template: 1fr / 1fr;
+  padding: 0;
+}
+
 /* One shared decorative DOM; only the adopted retro aliases display it. */
 .triage-shell__desktop-menu {
   display: var(--triage-desktop-menu-display, none);

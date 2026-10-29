@@ -230,6 +230,30 @@ describe("BitDetailPopup", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not offer Promote to Node for a Bit whose title is over the Node limit", () => {
+    mockBitDetail(
+      createBit({ title: "x".repeat(101) }),
+      [createChunk()],
+      createNode({ level: 1 }),
+    );
+
+    render(<BitDetailPopup />);
+
+    expect(screen.queryByRole("button", { name: "Promote to Node" })).not.toBeInTheDocument();
+  });
+
+  it("offers Promote to Node for a Bit whose title is exactly at the Node limit", () => {
+    mockBitDetail(
+      createBit({ title: "x".repeat(100) }),
+      [createChunk()],
+      createNode({ level: 1 }),
+    );
+
+    render(<BitDetailPopup />);
+
+    expect(screen.getByRole("button", { name: "Promote to Node" })).toBeInTheDocument();
+  });
+
   it("waits for a confirmed ordinary parent identity before offering Promote to Node", () => {
     mockBitDetail(createBit({ parentId: "unresolved-parent" }), [createChunk()]);
 
@@ -386,14 +410,13 @@ describe("BitDetailPopup", () => {
       fireEvent.click(screen.getByRole("button", { name: "Update parent" }));
     });
 
-    expect(updateNodeMock).toHaveBeenCalledWith("node-1", {
-      deadline: nextDeadline,
-      deadlineAllDay: true,
-    });
+    // One call: the store extends the parent Node in the same write (SCHEMA Hook 2).
+    expect(updateNodeMock).not.toHaveBeenCalled();
     expect(updateBitMock).toHaveBeenCalledTimes(2);
-    expect(updateBitMock).toHaveBeenLastCalledWith("bit-1", {
-      deadline: nextDeadline,
-      deadlineAllDay: true,
-    });
+    expect(updateBitMock).toHaveBeenLastCalledWith(
+      "bit-1",
+      { deadline: nextDeadline, deadlineAllDay: true },
+      { extendParent: true },
+    );
   });
 });

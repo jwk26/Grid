@@ -317,6 +317,8 @@ describe("Inbox/Triage core-English copy", () => {
         reconciling: "Checking whether it was added…",
         notApplied: "Not added. Your draft is still here.",
         rejected: "Add unavailable. Your draft is still here.",
+        rejectedAccountLimit:
+          "Add unavailable. This account has reached its limit of {limit} breakdowns. Your draft is still here.",
         conflict: "This Scratch changed. Your draft is still here.",
       },
       delete: {
@@ -344,6 +346,9 @@ describe("Inbox/Triage core-English copy", () => {
         "The source changed. Nothing was placed. Cancel and drag it again.",
       staleTarget:
         "The destination changed. Nothing was placed. Cancel and drag to the current destination.",
+      accountLimit:
+        "“{title}” wasn’t placed. This account has reached its limit of {limit} {items}. Your source is unchanged.",
+      accountLimitItems: { nodes: "Nodes", bits: "Bits" },
       success: "Placed “{title}” in {destination}.",
       actions: {
         checkAgain: "Check again",

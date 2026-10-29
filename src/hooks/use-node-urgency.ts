@@ -1,8 +1,7 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useEffect, useState } from "react";
-import { getDataStore } from "@/lib/db/datastore";
+import { liveRead } from "@/lib/db/datastore";
 import { getUrgencyLevel } from "@/lib/utils/urgency";
 import type { UrgencyLevel } from "@/types";
 
@@ -16,8 +15,7 @@ export function useNodeUrgency(nodeId: string): UrgencyLevel {
   const [urgency, setUrgency] = useState<UrgencyLevel>(null);
 
   useEffect(() => {
-    const subscription = liveQuery(async () => {
-      const dataStore = await getDataStore();
+    const subscription = liveRead(async (dataStore) => {
       return dataStore.getBitsForNode(nodeId);
     }).subscribe({
       next: (bits) => {

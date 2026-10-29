@@ -1,9 +1,8 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
-import { getDataStore } from "@/lib/db/datastore";
+import { type DataStore, liveRead } from "@/lib/db/datastore";
 import type { Bit, Chunk, Node } from "@/types";
 
 type CalendarItem = Node | Bit | Chunk;
@@ -25,8 +24,7 @@ const INITIAL_CALENDAR_DATA: CalendarDataState = {
   isLoading: true,
 };
 
-async function loadCalendarSnapshot() {
-  const dataStore = await getDataStore();
+async function loadCalendarSnapshot(dataStore: DataStore) {
   const rootNodes = await dataStore.getNodes(null);
   const nodes: Node[] = [...rootNodes];
   const bits: Bit[] = [];
@@ -132,7 +130,7 @@ export function useCalendarData(): {
   const [state, setState] = useState<CalendarDataState>(INITIAL_CALENDAR_DATA);
 
   useEffect(() => {
-    const subscription = liveQuery(loadCalendarSnapshot).subscribe({
+    const subscription = liveRead(loadCalendarSnapshot).subscribe({
       next: ({ bits, chunks, nodes }) => {
         setState({
           nodes,

@@ -8,38 +8,41 @@ const eligibilityByScratch = vi.hoisted(
 );
 const listeners = vi.hoisted(() => new Set<() => void>());
 
-vi.mock("dexie", () => ({
-  liveQuery: (query: () => Promise<unknown>) => ({
-    subscribe: (observer: { next: (value: unknown) => void; error: (error: unknown) => void }) => {
-      let active = true;
-      const publish = () => {
-        void query().then(
-          (value) => {
-            if (active) observer.next(value);
-          },
-          (error) => {
-            if (active) observer.error(error);
-          },
-        );
-      };
-      listeners.add(publish);
-      publish();
+vi.mock("@/lib/db/datastore", () => {
+  const store = {
+    getScratchArchiveEligibility: async (scratchId: string) =>
+      eligibilityByScratch.get(scratchId) ?? eligibility(false),
+  };
+  return {
+    getDataStore: async () => store,
+    liveRead: (read: (store: unknown) => Promise<unknown>) => {
+      const query = () => read(store);
       return {
-        unsubscribe: () => {
-          active = false;
-          listeners.delete(publish);
+        subscribe: (observer: { next: (value: unknown) => void; error: (error: unknown) => void }) => {
+          let active = true;
+          const publish = () => {
+            void query().then(
+              (value) => {
+                if (active) observer.next(value);
+              },
+              (error) => {
+                if (active) observer.error(error);
+              },
+            );
+          };
+          listeners.add(publish);
+          publish();
+          return {
+            unsubscribe: () => {
+              active = false;
+              listeners.delete(publish);
+            },
+          };
         },
       };
     },
-  }),
-}));
-
-vi.mock("@/lib/db/datastore", () => ({
-  getDataStore: async () => ({
-    getScratchArchiveEligibility: async (scratchId: string) =>
-      eligibilityByScratch.get(scratchId) ?? eligibility(false),
-  }),
-}));
+  };
+});
 
 function eligibility(
   eligible: boolean,
