@@ -381,6 +381,13 @@ export interface DataStore {
   reconcileStagedPlacementUndo(
     command: StagedPlacementUndoCommand,
   ): Promise<PlacementUndoResult>;
+  /**
+   * The Undo verdict of a placement, judged from the stored account rows. Sends no request, so a
+   * live read may call it on every change; the reconcile methods stay for an unknown outcome.
+   */
+  getPlacementUndoTruth(
+    command: DirectPlacementUndoCommand | StagedPlacementUndoCommand,
+  ): Promise<PlacementUndoResult>;
   undoDirectPlacement(command: DirectPlacementUndoCommand): Promise<PlacementUndoResult>;
   reconcileDirectPlacementUndo(
     command: DirectPlacementUndoCommand,
@@ -454,20 +461,34 @@ export function liveRead<T>(read: (store: DataStore) => Promise<T>): LiveObserva
   };
 }
 
-let cachedDataStore: DataStore | null = null;
+// The in-flight promise is cached, so callers that ask before the account is ready share one
+// store.
+let dataStorePromise: Promise<DataStore> | null = null;
 
-export async function getDataStore(): Promise<DataStore> {
-  if (cachedDataStore) {
-    return cachedDataStore;
-  }
-
-  const dataStoreModule = await import("@/lib/db/indexeddb");
-  let dataStore: DataStore = dataStoreModule.indexedDBStore;
+async function createDataStore(): Promise<DataStore> {
+  // Production store (Phase 45): the Supabase store over the account snapshot. It exists once
+  // entry has made a session, prepared the account and loaded the snapshot; the Dexie store stays
+  // in the tree until Phase 46 removes it.
+  const [{ getSessionController }, { createSupabaseStore }] = await Promise.all([
+    import("@/lib/auth/session"),
+    import("@/lib/db/supabase-store"),
+  ]);
+  const controller = getSessionController();
+  await controller.whenReady();
+  let dataStore: DataStore = createSupabaseStore(controller.store);
   if (process.env.NODE_ENV === "development") {
     // Development state switch (feedback F30): wrap whichever store is returned.
     const { withDevInjection } = await import("@/lib/dev/state-switch");
     dataStore = withDevInjection(dataStore);
   }
-  cachedDataStore = dataStore;
-  return cachedDataStore;
+  return dataStore;
+}
+
+export function getDataStore(): Promise<DataStore> {
+  dataStorePromise ??= createDataStore().catch((error: unknown) => {
+    // A failed start is not kept: the next caller tries again.
+    dataStorePromise = null;
+    throw error;
+  });
+  return dataStorePromise;
 }

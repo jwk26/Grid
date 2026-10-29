@@ -6,10 +6,10 @@ import { Suspense } from "react";
 import type { ReactNode } from "react";
 import { BitDetailPopup } from "@/components/bit-detail/bit-detail-popup";
 import { AppToaster } from "@/components/feedback/app-toaster";
+import { AppFrame } from "@/components/layout/app-frame";
 import { ColorThemeProvider } from "@/components/layout/color-theme-provider";
 import { SearchOverlay } from "@/components/layout/search-overlay";
 import { QuickCaptureOverlays } from "@/components/quick-capture/quick-capture-overlays";
-import { useSystemNodeSeeding } from "@/hooks/use-system-node-seeding";
 import { useTrashAutoCleanup } from "@/hooks/use-trash-auto-cleanup";
 
 // Development state switch (feedback F30): never part of a production bundle.
@@ -29,11 +29,6 @@ function TrashAutoCleanup() {
   return null;
 }
 
-function SystemNodeSeeding() {
-  useSystemNodeSeeding();
-  return null;
-}
-
 export default function Providers({
   children,
 }: {
@@ -46,18 +41,19 @@ export default function Providers({
       enableSystem
     >
       <ColorThemeProvider>
-        <TrashAutoCleanup />
-        <SystemNodeSeeding />
-        {children}
-        <Suspense>
-          <QuickCaptureOverlays />
-        </Suspense>
-        <Suspense>
-          <SearchOverlay />
-        </Suspense>
-        <Suspense>
-          <BitDetailPopup />
-        </Suspense>
+        <AppFrame>
+          <TrashAutoCleanup />
+          {children}
+          <Suspense>
+            <QuickCaptureOverlays />
+          </Suspense>
+          <Suspense>
+            <SearchOverlay />
+          </Suspense>
+          <Suspense>
+            <BitDetailPopup />
+          </Suspense>
+        </AppFrame>
         <AppToaster />
         {StateSwitchPanel ? <StateSwitchPanel /> : null}
       </ColorThemeProvider>

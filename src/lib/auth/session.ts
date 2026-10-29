@@ -237,13 +237,12 @@ export function createSessionController(options: SessionControllerOptions) {
     },
     /** Subscribes to auth events and the browser's `online` event once, then runs entry. */
     start(): Promise<void> {
-      if (!started) {
-        started = true;
-        getClient().auth.onAuthStateChange((event, session) => {
-          defer(() => onAuthEvent(event, session as { user: AuthUser } | null));
-        });
-        if (typeof window !== "undefined") window.addEventListener("online", retryIfFailed);
-      }
+      if (started) return Promise.resolve();
+      started = true;
+      getClient().auth.onAuthStateChange((event, session) => {
+        defer(() => onAuthEvent(event, session as { user: AuthUser } | null));
+      });
+      if (typeof window !== "undefined") window.addEventListener("online", retryIfFailed);
       return enter();
     },
     retry(): Promise<void> {

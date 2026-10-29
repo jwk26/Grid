@@ -4,7 +4,12 @@ const innerSubscribe = vi.hoisted(() => vi.fn());
 const innerUnsubscribe = vi.hoisted(() => vi.fn());
 const storeLiveRead = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/db/indexeddb", () => ({ indexedDBStore: { liveRead: storeLiveRead } }));
+vi.mock("@/lib/auth/session", () => ({
+  getSessionController: () => ({ whenReady: async () => undefined, store: {} }),
+}));
+vi.mock("@/lib/db/supabase-store", () => ({
+  createSupabaseStore: () => ({ liveRead: storeLiveRead }),
+}));
 
 describe("liveRead helper", () => {
   beforeEach(() => {
@@ -70,7 +75,7 @@ describe("liveRead helper", () => {
 
   it("reports a rejected getDataStore() through error, and not after an unsubscribe", async () => {
     vi.resetModules();
-    vi.doMock("@/lib/db/indexeddb", () => {
+    vi.doMock("@/lib/db/supabase-store", () => {
       throw new Error("store unavailable");
     });
     const { liveRead } = await import("@/lib/db/datastore");
@@ -83,6 +88,13 @@ describe("liveRead helper", () => {
     liveRead(async () => 1).subscribe(closed).unsubscribe();
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(closed.error).not.toHaveBeenCalled();
-    vi.doUnmock("@/lib/db/indexeddb");
+    vi.doUnmock("@/lib/db/supabase-store");
+  });
+
+  it("callers that ask before the account is ready share one store", async () => {
+    const { getDataStore } = await import("@/lib/db/datastore");
+    const [first, second] = await Promise.all([getDataStore(), getDataStore()]);
+    expect(second).toBe(first);
+    expect(await getDataStore()).toBe(first);
   });
 });

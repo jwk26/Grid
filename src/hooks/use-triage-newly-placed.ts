@@ -7,6 +7,7 @@ import {
   getDataStore,
   type DirectPlacementUndoCommand,
   type PlacementUndoResult,
+  type DataStore,
   type StagedPlacementUndoCommand,
   liveRead,
 } from "@/lib/db/datastore";
@@ -201,9 +202,10 @@ async function reconcileUndoWithRepository(
 
 async function readOwningScratchLifecycle(
   scratchBitId: string,
+  dataStore?: Pick<DataStore, "getBit">,
 ): Promise<OwningScratchLifecycle> {
-  const dataStore = await getDataStore();
-  const scratch = await dataStore.getBit(scratchBitId);
+  const store = dataStore ?? (await getDataStore());
+  const scratch = await store.getBit(scratchBitId);
   if (scratch === undefined || scratch.deletedAt !== null) return "trashed";
   return scratch.archivedAt !== null ? "archived" : "active";
 }
@@ -219,14 +221,16 @@ function observeUndoTruth(
     publish(new Map());
     return () => undefined;
   }
-  const subscription = liveRead(async () => {
+  // The Undo truth is judged from the snapshot (`getPlacementUndoTruth` sends no request), so a
+  // snapshot change costs no call. `reconcile*PlacementUndo` is for an unknown outcome only.
+  const subscription = liveRead(async (store) => {
     const scratchIds = [...new Set(entries.map((entry) => entry.source.scratchBitId))];
     // An unreadable owner is left unknown; it never hides the Undo truth.
     const owners = new Map<string, OwningScratchLifecycle>();
     await Promise.all(
       scratchIds.map(async (id) => {
         try {
-          owners.set(id, await readOwningScratchLifecycle(id));
+          owners.set(id, await readOwningScratchLifecycle(id, store));
         } catch {
           // unknown owner
         }
@@ -238,7 +242,7 @@ function observeUndoTruth(
           entry,
           entry.operationId,
         );
-        const result = await reconcileUndoWithRepository(command);
+        const result = await store.getPlacementUndoTruth(command);
         return [placementKey(entry.resultType, entry.resultId), result] as const;
       }),
     );

@@ -237,7 +237,7 @@ describe("write method coverage", () => {
     const { store } = setup(() => ok(applied()));
     const reads = new Set([
       "liveRead", "getNode", "getNodes", "getAllActiveNodes", "getBit", "getBits", "getBitsForNode",
-      "getAllActiveBits", "getScratchArchiveEligibility", "getScratchBreakdowns", "getAllScratchBreakdowns",
+      "getAllActiveBits", "getScratchArchiveEligibility", "getPlacementUndoTruth", "getScratchBreakdowns", "getAllScratchBreakdowns",
       "getStagedCandidates", "getAllStagedCandidates", "getChunks", "getActiveGridContents",
       "getCalendarItems", "getTrashedItems", "getArchivedItems", "searchAll", "getGridOccupancy",
       "getChildDeadlineConflicts",

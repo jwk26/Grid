@@ -23,6 +23,7 @@ import type {
   DeleteBreakdownResult,
   DirectPlacementCommand,
   DirectPlacementUndoCommand,
+  StagedPlacementUndoCommand,
   LiveObservable,
   PlacementResult,
   PlacementUndoResult,
@@ -38,6 +39,7 @@ import type {
   UnstageCandidateCommand,
   UnstageCandidateResult,
 } from "@/lib/db/datastore";
+import { placementUndoVerdict } from "@/lib/db/placement-undo-verdict";
 import { buildNodeTitlePath, sortChunks, sortGridItems } from "@/lib/db/read-helpers";
 import {
   bitCreateToRow,
@@ -105,6 +107,7 @@ type ReadKey =
   | "getBitsForNode"
   | "getAllActiveBits"
   | "getScratchArchiveEligibility"
+  | "getPlacementUndoTruth"
   | "getScratchBreakdowns"
   | "getAllScratchBreakdowns"
   | "getStagedCandidates"
@@ -322,6 +325,43 @@ export function createSupabaseStore(
   const getBits = async (parentId: string): Promise<Bit[]> =>
     sortGridItems(bits().filter((bit) => bit.parentId === parentId && isActive(bit)));
 
+  // The Undo verdict from the snapshot alone (SCHEMA §Undo placement). Sends no request: the
+  // reconcile function answers with the rows it read, which would republish the view and ask a
+  // live read again.
+  const getPlacementUndoTruth = async (
+    command: DirectPlacementUndoCommand | StagedPlacementUndoCommand,
+  ): Promise<PlacementUndoResult> => {
+    const current = view();
+    const staged = "candidateSnapshot" in command;
+    const resultId = command.resultSnapshot.id;
+    const owner = current.bits.get(command.sourceSnapshot.scratchBitId);
+    const ownerParent = owner ? current.nodes.get(owner.parentId) : undefined;
+    const sourceCandidate = [...current.stagedCandidates.values()].find(
+      (item) => item.sourceBreakdownId === command.sourceSnapshot.id,
+    );
+    return placementUndoVerdict(
+      command,
+      {
+        resultNode: current.nodes.get(resultId),
+        resultBit: current.bits.get(resultId),
+        source: current.scratchBreakdowns.get(command.sourceSnapshot.id),
+        candidate: staged ? current.stagedCandidates.get(command.candidateSnapshot.id) : undefined,
+        sourceCandidate,
+        nodes: [...current.nodes.values()],
+        bits: [...current.bits.values()],
+        chunks: [...current.chunks.values()],
+        ownerIsActive:
+          owner !== undefined &&
+          owner.deletedAt === null &&
+          owner.archivedAt === null &&
+          ownerParent?.systemRole === "inbox" &&
+          ownerParent.deletedAt === null &&
+          ownerParent.archivedAt === null,
+      },
+      staged,
+    );
+  };
+
   const getScratchArchiveEligibility = async (
     scratchBitId: string,
   ): Promise<ScratchArchiveEligibility> => {
@@ -399,6 +439,7 @@ export function createSupabaseStore(
     getBitsForNode: async (nodeId) => bits().filter((bit) => bit.parentId === nodeId && isActive(bit)),
     getAllActiveBits: async () => bits().filter(isActive),
     getScratchArchiveEligibility,
+    getPlacementUndoTruth,
     getScratchBreakdowns: async (scratchBitId) =>
       byId(view().scratchBreakdowns)
         .filter((row: ScratchBreakdown) => row.scratchBitId === scratchBitId)
