@@ -657,7 +657,7 @@ each task reads its notes at its start.
 
 ## Phase 46 — Dexie Removal
 
-### Task 230: [ ] Remove Dexie and the client orphan path
+### Task 230: [x] Remove Dexie and the client orphan path
 
 **Files and actions:** three stages, each with its own checkpoint and commit
 after the user accepts it; the gate is green at the end of every stage.

@@ -8,8 +8,8 @@ Plan fixes at start (user, 2026-10-29): Task 230 runs in three stages with a che
 ## Task 230 — Remove Dexie and the client orphan path
 
 ### Current state
-- Status: Implemented, awaiting acceptance (Stage 3)
-- Next: Stage 3 acceptance (Task 230 acceptance)
+- Status: Accepted
+- Next: none (Task 230 accepted)
 - Open: none
 
 ### Log
@@ -47,6 +47,7 @@ No scenario lacks a counterpart without a settled reason.
 - Decision: Stage 2 accepted (user, 2026-10-30).
 - Review (advisory, 2026-10-30, Stage 3 checkpoint / task finish): approve with changes. Apply: (b) remove the `orphan-cleanup` status row (`DESIGN_TOKENS.md:455`) and the orphan copy from the Integrity/stale copy row (`:908`), since the copy left the code in Stage 3; (c) drop "(proposed; absent today)" from the `use-staged-candidates.ts` row (`SPEC.md:1851`); date the expert Review entry. Not applied: none. Next-task check: Task 249 is already conditional on `indexeddb.ts` and Phase 47 needs nothing from Task 230, so no Task 231 note.
 - Decision: DESIGN_TOKENS joins Task 230's document list for (b); (a) the `source-unresolved` integrity projection stays, with no cleanup item (user, 2026-10-30).
+- Review (advisory, 2026-10-30, Task 230 acceptance): approve; supersedes the Stage 3 review. (b), (c) and the expert entry's date are applied in `03b1474`. Apply: none. Not applied: none.
 
 ### Checkpoint
 - Changed (Stage 1): deleted the 29 Dexie-only suites in `src/lib/db/` per the mapping table; `state-switch.test.ts` now runs `withDevInjection` over a small stateful fake store; the `liveRead` mock in `grid-runtime.test.tsx`, `triage-workspace.test.tsx` and `use-triage-dnd.test.ts` is a hand-rolled one-run subscription (no `dexie`); the `supabase-store.test.ts` parity block is explicit expected ids and order (taken from the Dexie store's output over the same fixture before the switch), and it covers `archive-sweep`'s read cases. `indexeddb.test-utils.ts` stays for Stage 2 (nothing imports it now).
@@ -61,4 +62,4 @@ No scenario lacks a counterpart without a settled reason.
 - Please check (Stage 3): nothing visual changed; Inbox Stage/Unstage and the other routes behave as at the end of Phase 45.
 - Unresolved: (a) the staging "source-unresolved" integrity projection (`integrityCandidates`, its `staging-zone` rendering, `unresolvedCandidatesOf` in `use-trash-scratch.ts`, the dev state switch's `integrity` state) is outside the plan's removal list and kept; it is now unreachable under the foreign keys (S18), so it is a candidate for a later cleanup if you want it. (b) and (c) were fixed after the Stage 3 review (the DESIGN_TOKENS `orphan-cleanup` row and orphan copy, the SPEC "proposed" mark).
 - Review (expert, 2026-10-30): no code findings. Doc leftovers fixed: PLANNING_STANDARD §6 "until Phase 45/46" passages, SPEC "orphan cleanup are never held", SCHEMA "Phase 46 removes the store". Items (b) and (c) were fixed after the advisory review.
-
+- Decision: Stage 3 and Task 230 accepted (user, 2026-10-30).
