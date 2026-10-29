@@ -241,4 +241,25 @@ describe("triage-preferences-store", () => {
       ).lastSelectedScratchId,
     ).toBeNull();
   });
+
+  it("does not rewrite storage when the saved Scratch id is unchanged", () => {
+    useTriagePreferencesStore.getState().setLastSelectedScratchId("scratch-1");
+    // Another tab changes the Pool sort in storage.
+    localStorage.setItem(
+      TRIAGE_PREFERENCES_PERSISTENCE_KEY,
+      JSON.stringify({
+        poolCreatedAtSort: "ASC",
+        breakdownCreatedAtSort: "DESC",
+        lastSelectedScratchId: "scratch-1",
+      }),
+    );
+
+    useTriagePreferencesStore.getState().setLastSelectedScratchId("scratch-1");
+
+    expect(
+      JSON.parse(
+        localStorage.getItem(TRIAGE_PREFERENCES_PERSISTENCE_KEY) ?? "null",
+      ).poolCreatedAtSort,
+    ).toBe("ASC");
+  });
 });

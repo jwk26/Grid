@@ -10,9 +10,9 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 ## Task 250 — Remember the last selected Scratch on this device
 
 ### Current state
-- Status: In Progress
-- Next: Stage 1 acceptance (preference field); then Stage 2
-- Open: none
+- Status: Implemented, awaiting acceptance
+- Next: Task 250 acceptance
+- Open: mi-1
 
 ### Log
 - Work plan:
@@ -26,3 +26,12 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 - Decision: go-ahead on the work plan with the advisory review applied (user, 2026-10-29). Stage 1 starts.
 - Stage 1 implemented (uncommitted until accepted): `lastSelectedScratchId` in `triage-preferences-store.ts` (default, validator, setter, normalize, `setItem`, `partialize`), raw-localStorage and invalid-value tests pass; typecheck passes.
 - Review (advisory, 2026-10-29, Stage 1): approve. Apply: none. Not applied: none. For Stage 2: `setLastSelectedScratchId(null)` clears the saved id, so the save path writes only a non-null selection and never during the load-time `null`.
+- mi-1 [Open]: after a same-tab sign-out and sign-in as another account, `triage-store` keeps the old account's `selectedScratchId` and `scratchPoolActiveIds`, so the new account enters the external-removal hold instead of the saved-Scratch or first-Scratch fallback — cause: `session.ts` sign-out resets only the snapshot (`store.reset()`), not `triage-store`; found by code reading, not reproduced (no sign-out surface in the UI yet) — fix: reset `triage-store` on a user change (`session.ts`, SaaS lane); binding is the user's decision.
+- Review (expert): Low — an unchanged id saved again made persist rewrite both sorts from this tab's memory, overwriting a sort changed in another tab → fixed (the setter skips `set` when the id is unchanged; test added).
+
+### Checkpoint
+- Changed: `triage-preferences-store.ts` (`lastSelectedScratchId`, validated, persisted, no-op on an unchanged id), `triage-store.ts` (`preferredScratchId` in `reconcileScratchPoolContext`), `use-inbox.ts` (passes the saved id with `getState()`; saves a selection that is in the active list), and their tests.
+- Verified: `git diff --check`, `pnpm test` (2356), `pnpm lint` (0 errors, 11 warnings as at baseline), `pnpm typecheck`, `pnpm build`. Browser, local Supabase, `griddo`: selecting a Scratch and reloading restores it; a Scratch moved to Trash whose id was still saved falls back to the first Scratch; a saved id from account A opened as account B falls back to B's first Scratch; no Supabase call on select, and only the usual load calls on reload. `pnpm test:db` not run (feedback lane, phase close).
+- Please check: select a Scratch other than the first, reload and confirm the same one is selected; Trash it and reload.
+- Unresolved: mi-1.
+- Review: Low (sorts overwritten across tabs) → fixed.

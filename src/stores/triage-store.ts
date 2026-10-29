@@ -50,6 +50,11 @@ type ScratchPoolContext = {
   visibleIds: string[];
   /** Selected-Scratch ids this page has just trashed itself; never external removal. */
   ownTrashIds?: readonly string[];
+  /**
+   * The device-saved Scratch id. Chosen only when no selection is held and it
+   * is both active and visible; otherwise the first visible row is chosen.
+   */
+  preferredScratchId?: string | null;
 };
 
 export interface OwnTrashMarker {
@@ -276,7 +281,12 @@ export const useTriageStore = create<TriageState>((set) => ({
   setScratchPoolQuery: (query) => set({ scratchPoolQuery: query }),
   setScratchPoolResultIds: (ids) => set({ scratchPoolResultIds: ids }),
   setScratchPoolScroll: (position) => set({ scratchPoolScroll: position }),
-  reconcileScratchPoolContext: ({ activeIds, visibleIds, ownTrashIds }) =>
+  reconcileScratchPoolContext: ({
+    activeIds,
+    visibleIds,
+    ownTrashIds,
+    preferredScratchId,
+  }) =>
     set((state) => {
       const selectionIsActive =
         state.selectedScratchId !== null &&
@@ -336,7 +346,11 @@ export const useTriageStore = create<TriageState>((set) => ({
       const selectedScratchId =
         selectionIsActive || shouldHoldExternalRemoval || ownTrashSelected
           ? state.selectedScratchId
-          : (visibleIds[0] ?? null);
+          : preferredScratchId != null &&
+              activeIds.includes(preferredScratchId) &&
+              visibleIds.includes(preferredScratchId)
+            ? preferredScratchId
+            : (visibleIds[0] ?? null);
       const selectionChanged = selectedScratchId !== state.selectedScratchId;
       const scrollAnchorIsVisible =
         state.scratchPoolScroll.anchorId !== null &&

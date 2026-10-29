@@ -115,7 +115,7 @@ const triagePreferencesStorage: PersistStorage<PersistedTriagePreferences> = {
 
 export const useTriagePreferencesStore = create<TriagePreferencesState>()(
   persist<TriagePreferencesState, [], [], PersistedTriagePreferences>(
-    (set) => ({
+    (set, get) => ({
       poolCreatedAtSort: DEFAULT_CREATED_AT_SORT,
       breakdownCreatedAtSort: DEFAULT_CREATED_AT_SORT,
       lastSelectedScratchId: null,
@@ -123,8 +123,14 @@ export const useTriagePreferencesStore = create<TriagePreferencesState>()(
         set({ poolCreatedAtSort: validateCreatedAtSort(sort) }),
       setBreakdownCreatedAtSort: (sort) =>
         set({ breakdownCreatedAtSort: validateCreatedAtSort(sort) }),
-      setLastSelectedScratchId: (id) =>
-        set({ lastSelectedScratchId: validateLastSelectedScratchId(id) }),
+      // An unchanged id must not call set: persist writes on every set and
+      // would rewrite the sorts from this tab's memory, overwriting a sort
+      // another tab changed.
+      setLastSelectedScratchId: (id) => {
+        const next = validateLastSelectedScratchId(id);
+        if (next === get().lastSelectedScratchId) return;
+        set({ lastSelectedScratchId: next });
+      },
     }),
     {
       name: TRIAGE_PREFERENCES_PERSISTENCE_KEY,

@@ -606,6 +606,88 @@ describe("useTriageStore app-session ownership", () => {
     });
   });
 
+  it("restores the preferred Scratch on first entry when it is active and visible", () => {
+    useTriageStore.getState().reconcileScratchPoolContext({
+      activeIds: ["first", "saved"],
+      visibleIds: ["first", "saved"],
+      preferredScratchId: "saved",
+    });
+
+    expect(useTriageStore.getState().selectedScratchId).toBe("saved");
+    expect(useTriageStore.getState().externalScratchRemoval).toBeNull();
+  });
+
+  it("falls back to the first visible row when the preferred Scratch is not active", () => {
+    useTriageStore.getState().reconcileScratchPoolContext({
+      activeIds: ["first", "second"],
+      visibleIds: ["first", "second"],
+      preferredScratchId: "deleted",
+    });
+
+    expect(useTriageStore.getState().selectedScratchId).toBe("first");
+  });
+
+  it("falls back to the first visible row when the preferred Scratch is search-hidden", () => {
+    useTriageStore.getState().reconcileScratchPoolContext({
+      activeIds: ["first", "saved"],
+      visibleIds: ["first"],
+      preferredScratchId: "saved",
+    });
+
+    expect(useTriageStore.getState().selectedScratchId).toBe("first");
+  });
+
+  it("ignores the preferred Scratch while a valid selection exists", () => {
+    useTriageStore.setState({ selectedScratchId: "current" });
+
+    useTriageStore.getState().reconcileScratchPoolContext({
+      activeIds: ["current", "saved"],
+      visibleIds: ["current", "saved"],
+      preferredScratchId: "saved",
+    });
+
+    expect(useTriageStore.getState().selectedScratchId).toBe("current");
+  });
+
+  it("never lets the preferred Scratch override an external-removal hold", () => {
+    useTriageStore.setState({
+      selectedScratchId: "selected",
+      scratchPoolResultIds: ["selected", "next"],
+      scratchPoolActiveIds: ["selected", "next"],
+    });
+
+    useTriageStore.getState().reconcileScratchPoolContext({
+      activeIds: ["next", "saved"],
+      visibleIds: ["next", "saved"],
+      preferredScratchId: "saved",
+    });
+
+    expect(useTriageStore.getState().selectedScratchId).toBe("selected");
+    expect(useTriageStore.getState().externalScratchRemoval).toMatchObject({
+      scratchId: "selected",
+      destinationId: "next",
+    });
+  });
+
+  it("never lets the preferred Scratch override an own-Trash hold", () => {
+    useTriageStore.setState({
+      selectedScratchId: "selected",
+      scratchPoolResultIds: ["selected", "next"],
+      scratchPoolActiveIds: ["selected", "next"],
+    });
+    useTriageStore.getState().registerOwnTrash("selected", 4);
+
+    useTriageStore.getState().reconcileScratchPoolContext({
+      activeIds: ["next", "saved"],
+      visibleIds: ["next", "saved"],
+      ownTrashIds: ["selected"],
+      preferredScratchId: "saved",
+    });
+
+    expect(useTriageStore.getState().selectedScratchId).toBe("selected");
+    expect(useTriageStore.getState().externalScratchRemoval).toBeNull();
+  });
+
   it("uses null for an invalid prior selection with no visible search result", () => {
     useTriageStore.setState({
       selectedScratchId: "removed",
