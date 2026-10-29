@@ -386,8 +386,8 @@ describe("Inbox/Triage core-English copy", () => {
     expect(154 in INBOX_TRIAGE_COPY.receiptDependent).toBe(false);
   });
 
-  it("owns the exact approved DP-VQ02 Add/Unstage success wording", () => {
-    expect(INBOX_TRIAGE_COPY.breakdownSuccess).toEqual({
+  it("owns the hidden Add/Unstage announcement wording", () => {
+    expect(INBOX_TRIAGE_COPY.breakdownAnnouncement).toEqual({
       add: "Added.",
       unstage: "Returned to Breakdown.",
     });

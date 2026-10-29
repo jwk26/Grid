@@ -249,7 +249,7 @@ export interface InboxTriageCopy {
       readonly retry: string;
     };
   };
-  readonly breakdownSuccess: {
+  readonly breakdownAnnouncement: {
     readonly add: string;
     readonly unstage: string;
   };
@@ -652,7 +652,7 @@ export const INBOX_TRIAGE_COPY = {
       retry: "Retry",
     },
   },
-  breakdownSuccess: {
+  breakdownAnnouncement: {
     add: "Added.",
     unstage: "Returned to Breakdown.",
   },

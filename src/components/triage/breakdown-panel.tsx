@@ -29,6 +29,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  StatusAnnouncement,
+  useStatusAnnouncement,
+} from "@/components/feedback/status-announcement";
+import {
+  StatusIcon,
+  statusEmphasisProps,
+  useStatusPresentation,
+} from "@/components/feedback/status-icon";
+import { StatusTooltip } from "@/components/feedback/status-tooltip";
+import {
   invalidateTriageDragSource,
   type TriageDragItem,
 } from "@/hooks/use-dnd";
@@ -58,6 +68,12 @@ import {
 import { useTriageDepartureContext } from "@/hooks/use-triage-departure";
 import { useTriageOperationLockContext } from "@/hooks/use-triage-operation-lock";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
+import {
+  forcedItemKeys,
+  useForcedItemStatus,
+  type ForcedState,
+} from "@/lib/feedback/forced-item-status";
+import type { ItemStatus } from "@/lib/feedback/item-status";
 import type {
   AddBreakdownCommand,
   DeleteBreakdownCommand,
@@ -79,7 +95,6 @@ type OpenEditorSnapshot = NonNullable<ConditionalEditorSnapshot>;
 const SCRATCH_TITLE_INLINE_LIMIT = 60;
 const BREAKDOWN_CONTENT_INLINE_LIMIT = 120;
 const BREAKDOWN_UNSTAGE_DROP_ID = "triage-remove-drop:breakdown";
-const BREAKDOWN_SUCCESS_DURATION_MS = 1600;
 
 export type BreakdownSuccessSignal = Readonly<{
   kind: "add" | "unstage";
@@ -331,7 +346,6 @@ function InlineEditor({
   onSave,
   onUseMine,
   snapshot,
-  successSignal,
   actionRole,
   actionTestId,
 }: {
@@ -344,7 +358,6 @@ function InlineEditor({
   onSave: () => Promise<boolean>;
   onUseMine: () => Promise<boolean>;
   snapshot: OpenEditorSnapshot;
-  successSignal?: BreakdownSuccessSignal | null;
   actionRole: string;
   actionTestId: string;
 }) {
@@ -579,9 +592,7 @@ function InlineEditor({
           {contentAfter}
         </div>
       </div>
-      {!isScratchTitle ? (
-        <BreakdownSuccessSlot signal={successSignal} />
-      ) : null}
+      {!isScratchTitle ? <BreakdownStatusSlot /> : null}
       <div
         className="triage-fixed-action-slot"
         data-testid={actionTestId}
@@ -776,6 +787,49 @@ function getReliabilityState(
   return null;
 }
 
+type DeleteSentenceKey =
+  | "pending"
+  | "unknown"
+  | "reconciling"
+  | "notApplied"
+  | "rejected"
+  | "conflict";
+
+function deleteSentenceKey(state: ReliabilityState): DeleteSentenceKey {
+  return state === "not-applied" ? "notApplied" : state;
+}
+
+/** The Delete sentence a forced development state shows, or null for none. */
+function forcedDeleteSentenceKey(state: ForcedState): DeleteSentenceKey | null {
+  switch (state) {
+    case "delayed-pending":
+      return "pending";
+    case "reconciling":
+    case "unknown":
+    case "rejected":
+    case "conflict":
+      return state;
+    case "not-applied":
+    case "integrity":
+      return "notApplied";
+    case "editor-offline":
+      return null;
+  }
+}
+
+function itemStatusOfReliability(state: ReliabilityState): ItemStatus {
+  switch (state) {
+    case "pending":
+    case "unknown":
+    case "reconciling":
+      return state;
+    case "not-applied":
+    case "rejected":
+    case "conflict":
+      return "problem";
+  }
+}
+
 function ReliabilityLine({
   action,
   actionRef,
@@ -850,7 +904,6 @@ function BreakdownRow({
   deleteOperation,
   onDeleteReliabilityActionRef,
   onReconcileDelete,
-  successSignal,
 }: {
   row: ScratchBreakdown;
   isStaged: boolean;
@@ -868,7 +921,6 @@ function BreakdownRow({
     element: HTMLButtonElement | null,
   ) => void;
   onReconcileDelete: (operationId: string) => void;
-  successSignal: BreakdownSuccessSignal | null;
 }) {
   const {
     attributes,
@@ -915,22 +967,74 @@ function BreakdownRow({
       ? editor.snapshot
       : null;
   const deleteReliabilityState = getReliabilityState(deleteOperation);
-  const deleteReliabilityCopy =
-    deleteReliabilityState === null
+  const forced = useForcedItemStatus(forcedItemKeys.breakdown(row.id));
+  const forcedSentenceKey =
+    forced === null || forced.status === null
       ? null
-      : INBOX_TRIAGE_COPY.reliability.delete[
-          deleteReliabilityState === "not-applied"
-            ? "notApplied"
-            : deleteReliabilityState
-        ];
+      : forcedDeleteSentenceKey(forced.state);
+  const sentenceKey =
+    forcedSentenceKey ??
+    (deleteReliabilityState === null
+      ? null
+      : deleteSentenceKey(deleteReliabilityState));
+  const itemStatus =
+    forcedSentenceKey !== null && forced !== null
+      ? forced.status
+      : deleteReliabilityState === null
+        ? null
+        : itemStatusOfReliability(deleteReliabilityState);
+  const presentation = useStatusPresentation(
+    itemStatus,
+    forcedSentenceKey !== null
+      ? `forced:${forced?.state}`
+      : (deleteOperation?.operationId ?? ""),
+  );
+  const statusSentence =
+    sentenceKey === null ? null : INBOX_TRIAGE_COPY.reliability.delete[sentenceKey];
+  const statusDescriptionId = useId();
   const deleteReliabilityAction =
-    deleteReliabilityState === null || deleteReliabilityState === "pending"
+    deleteOperation === null ||
+    deleteReliabilityState === null ||
+    deleteReliabilityState === "pending"
       ? null
       : INBOX_TRIAGE_COPY.reliability.actions.checkAgain;
   const isDeleteInFlight =
     deleteOperation !== null && deleteOperation.phase !== "terminal";
   const isDragDisabled = isStaged || isOperationLocked || isDeleteInFlight;
-  const isSuccess = successSignal !== null;
+  const gripAriaDescribedBy =
+    [
+      (attributes as { "aria-describedby"?: string })["aria-describedby"],
+      statusSentence === null ? undefined : statusDescriptionId,
+    ]
+      .filter((id): id is string => id !== undefined)
+      .join(" ") || undefined;
+  const gripButton = (
+    <button
+      ref={setActivatorNodeRef}
+      aria-label="Drag breakdown"
+      data-source-version={row.version}
+      data-triage-staging-focus-source="true"
+      data-triage-drag-source="breakdown-grip"
+      data-triage-role="breakdown-grip-control"
+      disabled={isDragDisabled}
+      className={cn(
+        "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-transparent text-muted-foreground/60 hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+        isDragDisabled
+          ? "cursor-not-allowed"
+          : "cursor-grab active:cursor-grabbing",
+      )}
+      type="button"
+      {...attributes}
+      {...listeners}
+      aria-describedby={gripAriaDescribedBy}
+    >
+      <GripVertical
+        aria-hidden="true"
+        className={cn("h-4 w-4 transition-colors", gripColorClass)}
+        data-testid="breakdown-grip"
+      />
+    </button>
+  );
 
   return (
     <div
@@ -942,10 +1046,8 @@ function BreakdownRow({
       data-breakdown-id={row.id}
       data-triage-layout="fixed-inline-editor"
       data-triage-role={isStaged ? "breakdown-staged-row" : "breakdown-active-row"}
-      data-triage-state={
-        isStaged ? "staged" : isSuccess ? "success" : "active"
-      }
-      data-triage-success-kind={successSignal?.kind}
+      data-triage-state={isStaged ? "staged" : "active"}
+      {...statusEmphasisProps(presentation)}
       data-triage-reliability-state={deleteReliabilityState ?? undefined}
       data-triage-reliability-surface={
         deleteReliabilityState === null ? undefined : "delete"
@@ -953,7 +1055,6 @@ function BreakdownRow({
       role="listitem"
       className={cn(
         "group triage-fixed-breakdown-row border-b border-border/30 transition-[background-color,border-color,color,opacity] last:border-b-0 motion-reduce:transition-none",
-        deleteReliabilityState !== null && "triage-fixed-breakdown-row--reliability",
         isStaged && !isDragging && "opacity-50 transition-opacity duration-200",
         isDragging &&
           "opacity-30 border border-dashed border-muted bg-transparent",
@@ -965,30 +1066,13 @@ function BreakdownRow({
         data-triage-block-slot="stretch"
         data-triage-role="breakdown-drag-slot"
       >
-        <button
-          ref={setActivatorNodeRef}
-          aria-label="Drag breakdown"
-          data-source-version={row.version}
-          data-triage-staging-focus-source="true"
-          data-triage-drag-source="breakdown-grip"
-          data-triage-role="breakdown-grip-control"
-          disabled={isDragDisabled}
-          className={cn(
-            "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-transparent text-muted-foreground/60 hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-            isDragDisabled
-              ? "cursor-not-allowed"
-              : "cursor-grab active:cursor-grabbing",
-          )}
-          type="button"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical
-            aria-hidden="true"
-            className={cn("h-4 w-4 transition-colors", gripColorClass)}
-            data-testid="breakdown-grip"
-          />
-        </button>
+        {statusSentence !== null && presentation.glyph !== null ? (
+          <StatusTooltip sentence={statusSentence}>
+            <span className="inline-flex">{gripButton}</span>
+          </StatusTooltip>
+        ) : (
+          gripButton
+        )}
       </div>
       {editorSnapshot !== null ? (
         <InlineEditor
@@ -1001,7 +1085,6 @@ function BreakdownRow({
           onSave={onSave}
           onUseMine={onUseMine}
           snapshot={editorSnapshot}
-          successSignal={successSignal}
         />
       ) : (
         <>
@@ -1021,13 +1104,52 @@ function BreakdownRow({
               {row.content}
             </div>
           </div>
-          <BreakdownSuccessSlot signal={successSignal} />
+          {statusSentence !== null && presentation.glyph !== null ? (
+            <StatusTooltip sentence={statusSentence}>
+              <div
+                className="breakdown-status-slot"
+                data-testid="breakdown-status-slot"
+                data-triage-role="breakdown-status-slot"
+              >
+                <StatusIcon
+                  focusable={isDragDisabled}
+                  presentation={presentation}
+                  sentence={statusSentence}
+                />
+              </div>
+            </StatusTooltip>
+          ) : (
+            <BreakdownStatusSlot />
+          )}
           <div
             className="triage-fixed-action-slot"
             data-testid="breakdown-action-slot"
             data-triage-block-slot="stretch"
             data-triage-role="breakdown-action-slot"
           >
+            {deleteReliabilityAction !== null ? (
+              <Button
+                ref={(element) => onDeleteReliabilityActionRef(row.id, element)}
+                aria-disabled={
+                  deleteReliabilityState === "reconciling" ? "true" : undefined
+                }
+                className="breakdown-reliability__action"
+                data-triage-role="breakdown-reliability-action"
+                size="xs"
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  if (
+                    deleteReliabilityState !== "reconciling" &&
+                    deleteOperation !== null
+                  ) {
+                    onReconcileDelete(deleteOperation.operationId);
+                  }
+                }}
+              >
+                {deleteReliabilityAction}
+              </Button>
+            ) : null}
             <button
               ref={(element) => onEditRef(row.id, element)}
               aria-label={INBOX_TRIAGE_COPY.baseActions.edit}
@@ -1067,53 +1189,30 @@ function BreakdownRow({
           </div>
         </>
       )}
-      {deleteReliabilityState !== null && deleteReliabilityCopy !== null ? (
-        <ReliabilityLine
-          action={deleteReliabilityAction}
-          actionRef={(element) =>
-            onDeleteReliabilityActionRef(row.id, element)
-          }
-          copy={deleteReliabilityCopy}
-          isReconciling={deleteReliabilityState === "reconciling"}
-          state={deleteReliabilityState}
-          surface="delete"
-          onAction={() => {
-            if (deleteOperation !== null) {
-              onReconcileDelete(deleteOperation.operationId);
-            }
-          }}
-        />
+      {statusSentence !== null ? (
+        <span
+          id={statusDescriptionId}
+          aria-atomic="true"
+          aria-live="polite"
+          className="sr-only"
+          data-triage-role="breakdown-row-status-announcement"
+          role="status"
+        >
+          {statusSentence}
+        </span>
       ) : null}
     </div>
   );
 }
 
-function BreakdownSuccessSlot({
-  signal = null,
-}: {
-  signal?: BreakdownSuccessSignal | null;
-}) {
-  const copy = signal === null ? null : INBOX_TRIAGE_COPY.breakdownSuccess[signal.kind];
+/** The always-reserved 22px status column of a row (feedback F07). */
+function BreakdownStatusSlot() {
   return (
     <div
-      className="breakdown-success-slot"
-      data-testid="breakdown-success-slot"
-      data-triage-role="breakdown-success-status"
-    >
-      {copy === null ? null : (
-        <span
-          aria-atomic="true"
-          aria-live="polite"
-          className="breakdown-success-status"
-          role="status"
-        >
-          <span aria-hidden="true" data-triage-role="breakdown-success-check">
-            ✓
-          </span>{" "}
-          {copy}
-        </span>
-      )}
-    </div>
+      className="breakdown-status-slot"
+      data-testid="breakdown-status-slot"
+      data-triage-role="breakdown-status-slot"
+    />
   );
 }
 
@@ -1268,9 +1367,7 @@ export function BreakdownPanel({
   );
   const [isAdding, setIsAdding] = useState(false);
   const [newContent, setNewContent] = useState("");
-  const [activeSuccessSignal, setActiveSuccessSignal] =
-    useState<BreakdownSuccessSignal | null>(null);
-  const successTimerRef = useRef<number | null>(null);
+  const { announcement, announce } = useStatusAnnouncement();
   const pendingSuccessSignalRef = useRef<BreakdownSuccessSignal | null>(null);
   const signaledSuccessIdentitiesRef = useRef(new Set<string>());
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1370,24 +1467,15 @@ export function BreakdownPanel({
       .map((operation) => [operation.breakdownId, operation] as const),
   );
 
-  const startSuccess = useCallback((signal: BreakdownSuccessSignal) => {
-    pendingSuccessSignalRef.current = null;
-    if (successTimerRef.current !== null) {
-      window.clearTimeout(successTimerRef.current);
-    }
-    setActiveSuccessSignal(signal);
-    successTimerRef.current = window.setTimeout(() => {
-      successTimerRef.current = null;
-      setActiveSuccessSignal((current) =>
-        current !== null &&
-        current.kind === signal.kind &&
-        current.operationId === signal.operationId &&
-        current.rowId === signal.rowId
-          ? null
-          : current,
-      );
-    }, BREAKDOWN_SUCCESS_DURATION_MS);
-  }, []);
+  // Success shows nothing on screen (feedback F01); a screen reader hears the
+  // sentence once (F04).
+  const startSuccess = useCallback(
+    (signal: BreakdownSuccessSignal) => {
+      pendingSuccessSignalRef.current = null;
+      announce(INBOX_TRIAGE_COPY.breakdownAnnouncement[signal.kind]);
+    },
+    [announce],
+  );
 
   const isSuccessTargetActive = useCallback(
     (signal: BreakdownSuccessSignal) =>
@@ -1401,11 +1489,6 @@ export function BreakdownPanel({
       const identity = `${signal.kind}\u0000${signal.operationId}\u0000${signal.rowId}`;
       if (signaledSuccessIdentitiesRef.current.has(identity)) return;
       signaledSuccessIdentitiesRef.current.add(identity);
-      if (successTimerRef.current !== null) {
-        window.clearTimeout(successTimerRef.current);
-        successTimerRef.current = null;
-      }
-      setActiveSuccessSignal(null);
       pendingSuccessSignalRef.current = signal;
       if (isSuccessTargetActive(signal)) startSuccess(signal);
     },
@@ -1425,15 +1508,6 @@ export function BreakdownPanel({
       startSuccess(pendingSignal);
     }
   }, [breakdowns, isSuccessTargetActive, stagedSourceIds, startSuccess]);
-
-  useEffect(
-    () => () => {
-      if (successTimerRef.current !== null) {
-        window.clearTimeout(successTimerRef.current);
-      }
-    },
-    [],
-  );
 
   useEffect(
     () =>
@@ -2185,6 +2259,7 @@ export function BreakdownPanel({
           Return to Breakdown
         </div>
       ) : null}
+      <StatusAnnouncement announcement={announcement} />
       <div aria-atomic="true" aria-live="polite" className="sr-only">
         {editorAnnouncement}
       </div>
@@ -2410,11 +2485,6 @@ export function BreakdownPanel({
                   }}
                   onReconcileDelete={(operationId) =>
                     void handleReconcileDelete(operationId)
-                  }
-                  successSignal={
-                    activeSuccessSignal?.rowId === item.row.id
-                      ? activeSuccessSignal
-                      : null
                   }
                   onEditRef={(id, element) => {
                     if (element === null) rowEditRefs.current.delete(id);

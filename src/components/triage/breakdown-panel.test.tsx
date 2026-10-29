@@ -22,6 +22,11 @@ import {
   type TriageDepartureController,
 } from "@/hooks/use-triage-departure";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
+import {
+  clearForcedItemStates,
+  forcedItemKeys,
+  registerForcedItemStates,
+} from "@/lib/feedback/forced-item-status";
 import type { ScratchBreakdown } from "@/lib/db/schema";
 import type { Bit } from "@/types";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
@@ -98,6 +103,14 @@ const getDataStoreMock = vi.hoisted(() => vi.fn());
 const archiveBitMock = vi.hoisted(() => vi.fn());
 const useInboxMock = vi.hoisted(() => vi.fn());
 const currentTime = new Date(2026, 5, 17, 12, 0, 0).getTime();
+function announcementRegion(): HTMLElement {
+  const region = document.querySelector<HTMLElement>(
+    '[data-feedback-role="status-announcement"]',
+  );
+  if (region === null) throw new Error("no status announcement region");
+  return region;
+}
+
 const globalsCss = readFileSync(
   join(process.cwd(), "src/app/globals.css"),
   "utf8",
@@ -539,8 +552,7 @@ describe("BreakdownPanel first read after a Scratch switch (MI-22)", () => {
 });
 
 describe("BreakdownPanel", () => {
-  it("shows an authoritative Unstage signal once, preserves focus, and clears it at 1600ms", async () => {
-    vi.useFakeTimers();
+  it("announces an authoritative Unstage once, shows nothing on the row and keeps focus", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1", content: "Returned row" }),
@@ -554,30 +566,25 @@ describe("BreakdownPanel", () => {
     const grip = screen.getByRole("button", { name: "Drag breakdown" });
     grip.focus();
 
-    const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("✓ Returned to Breakdown.");
-    expect(status).toHaveAttribute("aria-live", "polite");
-    expect(status).toHaveAttribute("aria-atomic", "true");
-    expect(status.querySelector("[aria-hidden=true]")).toHaveTextContent("✓");
-    expect(screen.getByTestId("breakdown-row")).toHaveAttribute(
-      "data-triage-state",
-      "success",
-    );
+    const live = announcementRegion();
+    expect(live).toHaveTextContent("Returned to Breakdown.");
+    expect(live).toHaveAttribute("aria-live", "polite");
+    expect(live).toHaveAttribute("aria-atomic", "true");
+    expect(live).toHaveClass("sr-only");
+    const row = screen.getByTestId("breakdown-row");
+    expect(row).toHaveAttribute("data-triage-state", "active");
+    expect(row).not.toHaveTextContent("Returned to Breakdown.");
+    expect(row).not.toHaveTextContent("✓");
+    expect(screen.getByTestId("breakdown-status-slot")).toBeEmptyDOMElement();
     expect(grip).toHaveFocus();
 
-    act(() => vi.advanceTimersByTime(1599));
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    view.rerender(<BreakdownPanel successSignal={signal} />);
-    act(() => vi.advanceTimersByTime(1));
-    expect(screen.queryByRole("status")).toBeNull();
-
+    // The same identity, rerendered or replayed, is not announced again.
+    const textNode = live.firstElementChild;
     view.rerender(<BreakdownPanel successSignal={{ ...signal }} />);
-    act(() => vi.advanceTimersByTime(1600));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcementRegion().firstElementChild).toBe(textNode);
   });
 
-  it("interrupts a prior success with a different identity and restarts the exact lifetime", () => {
-    vi.useFakeTimers();
+  it("announces a different Unstage identity again", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1", content: "First" }),
@@ -588,30 +595,18 @@ describe("BreakdownPanel", () => {
         successSignal={{ kind: "unstage", operationId: "unstage-1", rowId: "row-1" }}
       />,
     );
-
-    act(() => vi.advanceTimersByTime(1000));
+    const first = announcementRegion().firstElementChild;
+    expect(first).not.toBeNull();
     view.rerender(
       <BreakdownPanel
         successSignal={{ kind: "unstage", operationId: "unstage-2", rowId: "row-2" }}
       />,
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Returned to Breakdown.",
-    );
-    expect(
-      screen
-        .getAllByTestId("breakdown-row")
-        .find((row) => row.getAttribute("data-breakdown-id") === "row-2"),
-    ).toHaveAttribute("data-triage-state", "success");
-
-    act(() => vi.advanceTimersByTime(600));
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(1000));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcementRegion()).toHaveTextContent("Returned to Breakdown.");
+    expect(announcementRegion().firstElementChild).not.toBe(first);
   });
 
-  it("starts Unstage lifetime only after the source row is restored as active", () => {
-    vi.useFakeTimers();
+  it("announces Unstage only after the source row is restored as active", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1", content: "Delayed restore" }),
@@ -631,17 +626,10 @@ describe("BreakdownPanel", () => {
     };
     const view = render(<BreakdownPanel successSignal={signal} />);
 
-    expect(screen.queryByRole("status")).toBeNull();
-    act(() => vi.advanceTimersByTime(1000));
+    expect(announcementRegion()).toBeEmptyDOMElement();
     triageStoreState.stagedCandidates["scratch-1"] = [];
     view.rerender(<BreakdownPanel successSignal={signal} />);
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Returned to Breakdown.",
-    );
-    act(() => vi.advanceTimersByTime(1599));
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(1));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcementRegion()).toHaveTextContent("Returned to Breakdown.");
   });
 
   it("treats a source in stagedSourceIds as staged before any candidate is listed, with grip, Edit and Delete disabled", () => {
@@ -727,8 +715,7 @@ describe("BreakdownPanel", () => {
     expect(editorState.invalidate).toHaveBeenCalled();
   });
 
-  it("holds the Unstage success signal while the source is still in stagedSourceIds", () => {
-    vi.useFakeTimers();
+  it("holds the Unstage announcement while the source is still in stagedSourceIds", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1", content: "Held unstage" }),
@@ -747,7 +734,7 @@ describe("BreakdownPanel", () => {
         successSignal={signal}
       />,
     );
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcementRegion()).toBeEmptyDOMElement();
 
     view.rerender(
       <RealBreakdownPanel
@@ -758,45 +745,10 @@ describe("BreakdownPanel", () => {
         successSignal={signal}
       />,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Returned to Breakdown.");
+    expect(announcementRegion()).toHaveTextContent("Returned to Breakdown.");
   });
 
-  it("keeps the row-local status mounted if inline edit begins during its lifetime", () => {
-    vi.useFakeTimers();
-    triageStoreState.selectedScratchId = "scratch-1";
-    hookState.breakdownsByScratch["scratch-1"] = [
-      createScratchBreakdown({ id: "row-1", content: "Edit during success" }),
-    ];
-    const signal = {
-      kind: "unstage" as const,
-      operationId: "unstage-edit",
-      rowId: "row-1",
-    };
-    const view = render(<BreakdownPanel successSignal={signal} />);
-    act(() => vi.advanceTimersByTime(600));
-    editorState.snapshot = {
-      target: { kind: "breakdown", id: "row-1" },
-      phase: "dirty",
-      base: { value: "Edit during success", version: 1, order: 0 },
-      draft: "Editing",
-      latest: null,
-      copyableDraft: null,
-      pendingIntent: false,
-      focusIntent: "field",
-      command: null,
-    };
-    view.rerender(<BreakdownPanel successSignal={signal} />);
-
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Returned to Breakdown.",
-    );
-    act(() => vi.advanceTimersByTime(999));
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(1));
-    expect(screen.queryByRole("status")).toBeNull();
-  });
-
-  it("turns a confirmed local Add into the shared row signal without moving input focus", async () => {
+  it("announces a confirmed local Add without showing it or moving input focus", async () => {
     const originalScrollIntoView = Element.prototype.scrollIntoView;
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -823,7 +775,11 @@ describe("BreakdownPanel", () => {
     fireEvent.change(input, { target: { value: "New row" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(await screen.findByRole("status")).toHaveTextContent("✓ Added.");
+    await waitFor(() =>
+      expect(announcementRegion()).toHaveTextContent("Added."),
+    );
+    expect(screen.getByTestId("breakdown-row")).not.toHaveTextContent("Added.");
+    expect(screen.queryByText("✓")).toBeNull();
     expect(input).toHaveFocus();
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -831,8 +787,7 @@ describe("BreakdownPanel", () => {
     });
   });
 
-  it("starts Add lifetime only when its committed row projection mounts", async () => {
-    vi.useFakeTimers();
+  it("announces Add only when its committed row projection mounts", async () => {
     const originalScrollIntoView = Element.prototype.scrollIntoView;
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -859,42 +814,31 @@ describe("BreakdownPanel", () => {
     fireEvent.keyDown(input, { key: "Enter" });
     await act(async () => Promise.resolve());
 
-    expect(screen.queryByRole("status")).toBeNull();
-    act(() => vi.advanceTimersByTime(1000));
+    expect(announcementRegion()).toBeEmptyDOMElement();
     hookState.breakdownsByScratch["scratch-1"] = [committedRow!];
     view.rerender(<BreakdownPanel />);
-    expect(screen.getByRole("status")).toHaveTextContent("Added.");
-    act(() => vi.advanceTimersByTime(1599));
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(1));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcementRegion()).toHaveTextContent("Added.");
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
       value: originalScrollIntoView,
     });
   });
 
-  it("reserves the success slot and binds exact motion and reduced-motion CSS", () => {
+  it("reserves a 22px empty status slot and carries no success wash, check or 160px slot", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1" }),
     ];
     render(<BreakdownPanel />);
 
-    expect(screen.getByTestId("breakdown-success-slot")).toBeEmptyDOMElement();
-    expect(globalsCss).toContain("animation: breakdown-success-wash 600ms ease-out forwards");
-    expect(globalsCss).toContain('[data-triage-state~="success"]');
-    expect(globalsCss).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(globalsCss).toContain(".breakdown-success-status");
-    for (const theme of [
-      "neumorphism",
-      "claymorphism",
-      "retro-mac",
-    ]) {
-      expect(globalsCss).toContain(
-        `[data-color-theme="${theme}"] [data-triage-role="breakdown-active-row"][data-triage-state~="success"]`,
-      );
-    }
+    expect(screen.getByTestId("breakdown-status-slot")).toBeEmptyDOMElement();
+    expect(globalsCss).toContain("--triage-breakdown-status-slot: 22px;");
+    expect(getCssBlock(".triage-fixed-breakdown-row")).toContain(
+      "var(--triage-breakdown-status-slot)",
+    );
+    expect(globalsCss).not.toMatch(/breakdown-success|data-triage-state~="success"/);
+    expect(globalsCss).not.toContain("--triage-breakdown-success-reserve");
+    expect(INBOX_TRIAGE_COPY).not.toHaveProperty("breakdownSuccess");
   });
   it("exposes a transient Breakdown drop-back target only for a staged drag", () => {
     triageStoreState.selectedScratchId = "scratch-1";
@@ -1062,7 +1006,7 @@ describe("BreakdownPanel", () => {
 
   it("maps DP-VQ05 through all eight theme families with reduced-motion-identical static treatment", () => {
     expect(globalsCss).toContain(".breakdown-add-reliability");
-    expect(globalsCss).toContain(".breakdown-delete-reliability");
+    expect(globalsCss).not.toContain(".breakdown-delete-reliability");
     for (const theme of [
       "neumorphism",
       "claymorphism",
@@ -2584,7 +2528,7 @@ describe("BreakdownPanel", () => {
         .compareDocumentPosition(screen.getByText("New confirmed row")) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.getByRole("status")).toHaveTextContent("Added.");
+    expect(announcementRegion()).toHaveTextContent("Added.");
 
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -3161,9 +3105,10 @@ describe("BreakdownPanel", () => {
         }}
       />,
     );
-    const status = screen.getByRole("status");
+    const status = screen
+      .getAllByRole("status")
+      .find((element) => element.getAttribute("data-triage-role") === "archive-withdrawal-status");
     expect(status).toHaveTextContent(copy);
-    expect(status).toHaveAttribute("data-triage-role", "archive-withdrawal-status");
     expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
     expect(screen.queryByRole("region", { name: "Scratch complete" })).toBeNull();
   });
@@ -3388,15 +3333,16 @@ describe("BreakdownPanel", () => {
   });
 
   it.each([
-    ["pending", undefined, "Deleting…"],
-    ["unknown", undefined, "We couldn’t confirm whether it was deleted."],
-    ["reconciling", undefined, "Checking whether it was deleted…"],
-    ["terminal", "not_applied", "Not deleted. This breakdown is still here."],
-    ["terminal", "rejected", "Delete unavailable. This breakdown is still here."],
-    ["terminal", "conflict", "This breakdown changed. Delete was not completed."],
+    ["pending", undefined, "Deleting…", "loader", false],
+    ["unknown", undefined, "We couldn’t confirm whether it was deleted.", "question", true],
+    ["reconciling", undefined, "Checking whether it was deleted…", "loader", true],
+    ["terminal", "not_applied", "Not deleted. This breakdown is still here.", "exclamation", true],
+    ["terminal", "rejected", "Delete unavailable. This breakdown is still here.", "exclamation", true],
+    ["terminal", "conflict", "This breakdown changed. Delete was not completed.", "exclamation", true],
   ] as const)(
-    "retains the source row for Delete %s/%s without a retry or resend action",
-    (phase, status, copy) => {
+    "shows Delete %s/%s on the row's status slot, with no second line, retry or resend action",
+    (phase, status, copy, glyph, hasCheckAgain) => {
+      vi.useFakeTimers();
       triageStoreState.selectedScratchId = "scratch-1";
       hookState.breakdownsByScratch["scratch-1"] = [
         createScratchBreakdown({ id: "row-1", content: "Retained row" }),
@@ -3413,26 +3359,121 @@ describe("BreakdownPanel", () => {
       ];
 
       render(<BreakdownPanel />);
+      const row = screen.getByText("Retained row").closest("[role=listitem]") as HTMLElement;
+      // The sentence is announced at once, whatever the icon shows.
+      expect(
+        within(row).getByText(copy, {
+          selector: '[data-triage-role="breakdown-row-status-announcement"]',
+        }),
+      ).toHaveAttribute("aria-live", "polite");
+      expect(row.querySelector(".breakdown-reliability")).toBeNull();
 
-      const row = screen.getByText("Retained row").closest("[role=listitem]");
-      expect(row).toBeInTheDocument();
-      expect(within(row as HTMLElement).getByText(copy)).toBeInTheDocument();
-      expect(within(row as HTMLElement).queryByRole("button", { name: "Retry" })).toBeNull();
-      expect(
-        within(row as HTMLElement).queryByRole("button", { name: "Retry Delete" }),
-      ).toBeNull();
-      expect(
-        within(row as HTMLElement).queryByRole("button", { name: "Delete again" }),
-      ).toBeNull();
-      if (phase === "unknown" || phase === "reconciling" || status !== undefined) {
+      if (phase === "pending") {
+        // Pending shows nothing until the display delay has passed.
+        expect(within(row).getByTestId("breakdown-status-slot")).toBeEmptyDOMElement();
+        expect(row).not.toHaveAttribute("data-status-emphasis");
+      } else if (phase === "reconciling") {
+        // Reconciling keeps the `?` and its emphasis until the loader is due.
+        expect(within(row).getByRole("img", { name: copy })).toHaveAttribute(
+          "data-glyph",
+          "question",
+        );
+        expect(row).toHaveAttribute("data-status-emphasis");
+      }
+      if (glyph === "loader") act(() => vi.advanceTimersByTime(300));
+      const slot = within(row).getByTestId("breakdown-status-slot");
+      const icon = within(slot).getByRole("img", { name: copy });
+      expect(icon).toHaveAttribute("data-glyph", glyph);
+      if (glyph === "loader") {
+        expect(row).not.toHaveAttribute("data-status-emphasis");
+      } else {
+        expect(row).toHaveAttribute("data-status-emphasis");
+      }
+      // The grip is disabled while a Delete is in flight, so the icon takes focus.
+      const inFlight = phase !== "terminal";
+      if (inFlight) expect(icon).toHaveAttribute("tabindex", "0");
+      else expect(icon).not.toHaveAttribute("tabindex");
+
+      expect(within(row).queryByRole("button", { name: "Retry" })).toBeNull();
+      expect(within(row).queryByRole("button", { name: "Retry Delete" })).toBeNull();
+      expect(within(row).queryByRole("button", { name: "Delete again" })).toBeNull();
+      const checkAgain = within(row).queryByRole("button", { name: "Check again" });
+      if (hasCheckAgain) {
+        expect(checkAgain).toBeInTheDocument();
+        // It sits in the action cluster, before Edit and Trash.
         expect(
-          within(row as HTMLElement).getByRole("button", { name: "Check again" }),
-        ).toBeInTheDocument();
+          within(within(row).getByTestId("breakdown-action-slot")).getByRole("button", {
+            name: "Check again",
+          }),
+        ).toBe(checkAgain);
+      } else {
+        expect(checkAgain).toBeNull();
       }
     },
   );
 
-  it("clears a terminal Delete reliability line when the retained row starts a new source interaction", () => {
+  it("shows a Delete tooltip with the sentence on the enabled grip", async () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Retained row" }),
+    ];
+    hookState.operations = [
+      {
+        kind: "delete",
+        operationId: "delete-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "row-1",
+        phase: "terminal",
+        status: "not_applied",
+      },
+    ];
+    render(<BreakdownPanel />);
+    const grip = screen.getByRole("button", { name: "Drag breakdown" });
+    expect(grip).toBeEnabled();
+    expect(grip.getAttribute("aria-describedby")).toContain(
+      screen.getByText("Not deleted. This breakdown is still here.", {
+        selector: '[data-triage-role="breakdown-row-status-announcement"]',
+      }).id,
+    );
+    fireEvent.focus(grip);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Not deleted. This breakdown is still here.",
+    );
+    expect(
+      document.querySelector('[data-feedback-role="status-tooltip"]'),
+    ).toHaveClass("explorer-title-tooltip");
+  });
+
+  it("shows a forced development state on the row without an operation", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Forced row" }),
+    ];
+    act(() => {
+      registerForcedItemStates({ [forcedItemKeys.breakdown("row-1")]: "conflict" });
+    });
+    render(<BreakdownPanel />);
+    const row = screen.getByText("Forced row").closest("[role=listitem]") as HTMLElement;
+    expect(
+      within(row).getByRole("img", {
+        name: "This breakdown changed. Delete was not completed.",
+      }),
+    ).toHaveAttribute("data-glyph", "exclamation");
+    expect(row).toHaveAttribute("data-status-emphasis");
+    expect(within(row).queryByRole("button", { name: "Check again" })).toBeNull();
+    act(() => clearForcedItemStates());
+    expect(within(row).queryByRole("img")).toBeNull();
+  });
+
+  it("clears a terminal Delete status when the retained row starts a new source interaction", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1", content: "Review then edit" }),
@@ -3451,18 +3492,17 @@ describe("BreakdownPanel", () => {
     render(<BreakdownPanel />);
     const row = screen.getByText("Review then edit").closest("[role=listitem]");
     expect(
-      within(row as HTMLElement).getByText(
-        "Not deleted. This breakdown is still here.",
-      ),
+      within(row as HTMLElement).getByRole("img", {
+        name: "Not deleted. This breakdown is still here.",
+      }),
     ).toBeInTheDocument();
 
     fireEvent.click(
       within(row as HTMLElement).getByRole("button", { name: "Edit" }),
     );
 
-    expect(
-      screen.queryByText("Not deleted. This breakdown is still here."),
-    ).toBeNull();
+    expect(screen.queryByRole("img", { name: /Not deleted/ })).toBeNull();
+    expect(screen.queryByText("Not deleted. This breakdown is still here.")).toBeNull();
   });
 
   it("does not restore a terminal reliability line after leaving and returning to its Scratch", () => {
