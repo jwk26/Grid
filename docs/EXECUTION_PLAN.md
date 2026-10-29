@@ -752,7 +752,7 @@ runs on Dexie.
 
 **Commit message:** `feat(db): send every write as a database function call`.
 
-### Task 228: [ ] Add guest entry and the load-failure screen
+### Task 228: [x] Add guest entry and the load-failure screen
 
 **Files and actions:**
 - `src/lib/auth/session.ts`: anonymous sign-in on local Supabase (no
