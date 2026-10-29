@@ -2169,6 +2169,23 @@ describe("BreakdownPanel", () => {
       expect(within(settled).getByRole("button", { name: "Close" })).toBeEnabled();
     });
 
+    it("moves focus to Close when a recovery-view Check again clears the command", () => {
+      openEditor("breakdown", "dirty");
+      editorState.snapshot = {
+        ...editorState.snapshot!,
+        phase: "invalidated",
+        copyableDraft: "Edited text",
+        command: { operationId: "op-1" } as never,
+      };
+      const { rerender } = render(<BreakdownPanel />);
+      const check = screen.getAllByRole("button", { name: "Check again" }).at(-1) as HTMLElement;
+      check.focus();
+      check.blur();
+      editorState.snapshot = { ...editorState.snapshot!, command: null };
+      rerender(<BreakdownPanel />);
+      expect(screen.getAllByRole("button", { name: "Close" }).at(-1)).toHaveFocus();
+    });
+
     it("keeps Check again focused and unavailable while reconciling from unknown", () => {
       const { actions } = openEditor("breakdown", "reconciling");
       const check = within(actions).getByRole("button", { name: "Check again" });

@@ -393,6 +393,8 @@ function InlineEditor({
   );
   const [isFieldTooltipOpen, setIsFieldTooltipOpen] = useState(false);
   const checkAgainRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const heldCommandRef = useRef(snapshot.command !== null);
 
   useEffect(() => {
     const field = fieldRef.current;
@@ -426,6 +428,21 @@ function InlineEditor({
       checkAgainRef.current?.focus();
     }
   }, [snapshot.phase]);
+
+  // A terminal answer clears the command: Check again goes away and Close is
+  // enabled, so focus moves to Close instead of falling to the page body.
+  useEffect(() => {
+    const held = snapshot.command !== null;
+    if (
+      heldCommandRef.current &&
+      !held &&
+      snapshot.phase === "invalidated" &&
+      (document.activeElement === null || document.activeElement === document.body)
+    ) {
+      closeRef.current?.focus();
+    }
+    heldCommandRef.current = held;
+  }, [snapshot.command, snapshot.phase]);
 
   useEffect(() => {
     const nextVersion = snapshot.latest?.version ?? null;
@@ -833,6 +850,7 @@ function InlineEditor({
                   </Button>
                 ) : null}
                 <Button
+                  ref={closeRef}
                   disabled={snapshot.command !== null}
                   size="xs"
                   type="button"
