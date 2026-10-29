@@ -173,7 +173,7 @@ function isApplied(status: RepositoryOperationStatus): boolean {
   return status === "applied" || status === "already_applied";
 }
 
-/** Candidates whose source cannot be joined are integrity-unresolved (Orphan cleanup resolves them). */
+/** Candidates whose source cannot be joined are integrity-unresolved (a reload or the next snapshot resolves them). */
 function unresolvedCandidatesOf(
   snapshot: TrashScratchSnapshot,
   scratchId: string,

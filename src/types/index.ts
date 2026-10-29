@@ -1,12 +1,10 @@
 // Re-export all schema types
 export type {
   Bit,
-  CandidateOrphanAuditEvent,
   Chunk,
   CreateBit,
   CreateChunk,
   CreateNode,
-  CreateScratchBreakdown,
   CreateStagedCandidate,
   Node,
   PendingOperationRecovery,
@@ -19,7 +17,6 @@ export type {
   UnknownRepositoryOperationOutcome,
   UpdateBit,
   UpdateNode,
-  UpdateScratchBreakdown,
 } from "@/lib/db/schema";
 
 // Computed types — never stored, derived at render time

@@ -8,10 +8,7 @@ import type {
   Chunk,
   CreateChunk,
   ScratchBreakdown,
-  CreateScratchBreakdown,
-  UpdateScratchBreakdown,
   StagedCandidate,
-  CandidateOrphanAuditEvent,
   RepositoryOperationCommand,
   RepositoryOperationResult,
   RepositoryOperationStatus,
@@ -107,38 +104,6 @@ export type UnstageCandidateResult = RepositoryOperationResult<{
   status: RepositoryOperationStatus;
   candidate: StagedCandidate | null;
   source: ScratchBreakdown | null;
-}>;
-
-export type ConfirmedCandidateOrphanProof =
-  | Readonly<{
-      status: "confirmed";
-      cause: CandidateOrphanAuditEvent["cause"];
-      sourceBreakdownId: string;
-    }>
-  | Readonly<{
-      status: "unresolved";
-      reason: "cache_miss" | "offline" | "delayed_subscription";
-    }>
-  | Readonly<{
-      status: "planned_aggregate";
-      sourceBreakdownId: string;
-    }>;
-
-export type ConfirmedCandidateOrphanCleanupCommand = RepositoryOperationCommand<{
-  auditEventId: string;
-  candidateId: string;
-  candidateExpectedVersion: number;
-  sourceBreakdownId: string;
-  scratchBitId: string;
-  resultType: StagedCandidate["resultType"];
-  proof: ConfirmedCandidateOrphanProof;
-}>;
-
-export type ConfirmedCandidateOrphanCleanupResult = RepositoryOperationResult<{
-  status: RepositoryOperationStatus;
-  candidate: StagedCandidate | null;
-  source: ScratchBreakdown | null;
-  auditEvent: CandidateOrphanAuditEvent | null;
 }>;
 
 export type PlacementCommandBase = RepositoryOperationCommand<{
@@ -249,7 +214,7 @@ export type LiveObserver<T> = {
 
 export type LiveSubscription = { unsubscribe(): void };
 
-/** The subscribe shape of Dexie's `liveQuery`, so hooks never import `dexie`. */
+/** The subscribe shape hooks observe a live read through. */
 export type LiveObservable<T> = {
   subscribe(observer: LiveObserver<T>): LiveSubscription;
 };
@@ -319,7 +284,6 @@ export interface DataStore {
   ensureSystemNodes(): Promise<void>;
 
   // --- Scratch Breakdowns ---
-  createScratchBreakdown(data: CreateScratchBreakdown): Promise<ScratchBreakdown>;
   getScratchBreakdowns(scratchBitId: string): Promise<ScratchBreakdown[]>;
   /** Every Breakdown row of the account, in `id` order. */
   getAllScratchBreakdowns(): Promise<ScratchBreakdown[]>;
@@ -327,10 +291,6 @@ export interface DataStore {
   getStagedCandidates(scratchBitId: string): Promise<StagedCandidate[]>;
   /** Every staged Candidate of the account, in `id` order. */
   getAllStagedCandidates(): Promise<StagedCandidate[]>;
-  updateScratchBreakdown(id: string, data: UpdateScratchBreakdown): Promise<void>;
-  markScratchBreakdownConsumed(id: string): Promise<void>;
-  unconsumeScratchBreakdown(id: string): Promise<void>;
-  deleteScratchBreakdown(id: string): Promise<void>;
 
   // --- Authoritative Inbox Breakdown Commands ---
   addBreakdown(command: AddBreakdownCommand): Promise<AddBreakdownResult>;
@@ -361,14 +321,6 @@ export interface DataStore {
   reconcileUnstageCandidate(
     command: UnstageCandidateCommand,
   ): Promise<UnstageCandidateResult>;
-
-  // --- Authoritative Candidate Integrity Commands ---
-  cleanupConfirmedCandidateOrphan(
-    command: ConfirmedCandidateOrphanCleanupCommand,
-  ): Promise<ConfirmedCandidateOrphanCleanupResult>;
-  reconcileConfirmedCandidateOrphanCleanup(
-    command: ConfirmedCandidateOrphanCleanupCommand,
-  ): Promise<ConfirmedCandidateOrphanCleanupResult>;
 
   // --- Authoritative Inbox Placement Commands ---
   placeStagedCandidate(command: StagedPlacementCommand): Promise<PlacementResult>;
@@ -467,8 +419,7 @@ let dataStorePromise: Promise<DataStore> | null = null;
 
 async function createDataStore(): Promise<DataStore> {
   // Production store (Phase 45): the Supabase store over the account snapshot. It exists once
-  // entry has made a session, prepared the account and loaded the snapshot; the Dexie store stays
-  // in the tree until Phase 46 removes it.
+  // entry has made a session, prepared the account and loaded the snapshot.
   const [{ getSessionController }, { createSupabaseStore }] = await Promise.all([
     import("@/lib/auth/session"),
     import("@/lib/db/supabase-store"),

@@ -128,7 +128,6 @@ follows Phase 45. Until a task lands, the code keeps today's behavior.
 | Local database tooling | Supabase CLI (pinned dev dependency) + Docker Desktop | pinned | `supabase start`, migrations, generated types, `pnpm test:db` |
 | Bot protection | Cloudflare Turnstile | — | Guards anonymous sign-in in production |
 | Hosting | Vercel Hobby | — | Static/client app from `main`; no Next.js server code |
-| Storage (until Phase 46) | Dexie.js (IndexedDB) | Dexie library 4.x; DB schema v4 | The running store until Phase 45 switches to Supabase; Phase 46 removes it (SCHEMA §Dexie Migration Target) |
 | Theming | next-themes | latest | Dark/Light mode with system preference detection |
 | Dates | date-fns | 4.x | Date arithmetic — aging, urgency, calendar rendering |
 | State Management | Zustand | 5.x | Lightweight client state — edit mode, sidebar, drag state, calendar view |
@@ -140,9 +139,9 @@ follows Phase 45. Until a task lands, the code keeps today's behavior.
 
 ## Architecture Decisions
 
-1. **Client Components by default** — GridDO runs entirely in the browser, with no Next.js server code (S21). The account's data lives in Supabase Postgres and is read and written from the client (S02, S08); until Phase 45 it lives in IndexedDB. Server Components are used only for static layout shells (root layout, page skeletons). Any component that reads data or handles interaction is a Client Component.
+1. **Client Components by default** — GridDO runs entirely in the browser, with no Next.js server code (S21). The account's data lives in Supabase Postgres and is read and written from the client (S02, S08). Server Components are used only for static layout shells (root layout, page skeletons). Any component that reads data or handles interaction is a Client Component.
 
-2. **DataStore abstraction (two-layer)** — Data access has two independent abstraction boundaries. **Command/repository layer:** All writes, including the approved Inbox/Triage CAS and atomic commands, go through `DataStore` (`src/lib/db/datastore.ts`). From Phase 45 its implementation is the Supabase store (`src/lib/db/supabase-store.ts`), which sends every write as one database function call (SCHEMA §Database Functions) and answers reads from the account snapshot; until then it is the Dexie implementation (`src/lib/db/indexeddb.ts`). Components never sequence repository writes. **Reactive layer:** All read subscriptions go through custom hooks (`src/hooks/use-*.ts`). From Phase 45 they subscribe to the account snapshot store instead of Dexie `liveQuery`, and their return shapes stay (S07). Components import hooks rather than the store. The Supabase store preserves the approved conditional-write, version, postcondition, and reconciliation semantics in SCHEMA.
+2. **DataStore abstraction (two-layer)** — Data access has two independent abstraction boundaries. **Command/repository layer:** All writes, including the approved Inbox/Triage CAS and atomic commands, go through `DataStore` (`src/lib/db/datastore.ts`). From Phase 45 its implementation is the Supabase store (`src/lib/db/supabase-store.ts`), which sends every write as one database function call (SCHEMA §Database Functions) and answers reads from the account snapshot; Phase 46 removed the Dexie implementation. Components never sequence repository writes. **Reactive layer:** All read subscriptions go through custom hooks (`src/hooks/use-*.ts`). They subscribe to the account snapshot store, and their return shapes stayed the same as under Dexie `liveQuery` (S07). Components import hooks rather than the store. The Supabase store preserves the approved conditional-write, version, postcondition, and reconciliation semantics in SCHEMA.
 
 3. **Reactive data via custom hooks** — Components subscribe through custom hooks (`useGridData`, `useBitDetail`, `useCalendarData`, and the global `useSearch`). The Inbox target adds `useStagedCandidates` and `useGridExplorerSearch` under the exact target paths in [Key File Paths](#key-file-paths). Hooks read the in-memory account snapshot (Decision 19); a snapshot change re-renders its subscribers. Reactive delivery does not prove that a mutation committed, that a source is orphaned, or that a cached value is authoritative. Inbox commands converge only through the typed repository result and command-specific reconciliation contract in SCHEMA. The global `useSearch()` / `searchAll()` pair remains separate and is never extended or reused as Grid Explorer search.
 
@@ -221,7 +220,7 @@ follows Phase 45. Until a task lands, the code keeps today's behavior.
 | UI Primitives (shadcn) | `src/components/ui/{name}.tsx` | `src/components/ui/button.tsx` |
 | Hooks | `src/hooks/use-{name}.ts` | `src/hooks/use-grid-data.ts` |
 | DataStore Interface | `src/lib/db/datastore.ts` | — |
-| DataStore Implementation | `src/lib/db/supabase-store.ts` (from Phase 45); `src/lib/db/indexeddb.ts` (until Phase 46) | — |
+| DataStore Implementation | `src/lib/db/supabase-store.ts` (from Phase 45) | — |
 | Database migrations and tests | `supabase/migrations/*.sql`; `supabase/tests/*.db.test.ts` | — |
 | Validation Schemas | `src/lib/db/schema.ts` | — |
 | Pure Utilities | `src/lib/utils/{name}.ts` | `src/lib/utils/bfs.ts` |
@@ -800,7 +799,7 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   narrower than one Node card, even where that bends the 35/65 split, and lays
   its cards in an auto-fill grid: one column when two cards do not fit, two as
   today when they do. All themes share it.
-- A subsection label is just `Nodes` or `Bits` for zero or one presentation candidate. It receives a numeric prefix only at two or more (`2 Nodes`, `3 Bits`). For each type, this presentation total includes source-resolved durable candidates and visible non-draggable Stage projections in pending, unknown, or reconciling, counting an authoritative candidate and its operation projection with the same candidate ID once. Unstage adds no projection count and retains its durable candidate until authoritative disappearance. Unresolved-source integrity slots are not presentation candidates and are excluded from this total. Repository membership, authoritative counts, Archive eligibility and operation locks remain durable truth. The heading total is not a success claim. Authoritative `applied` and `already_applied` outcomes retain their SCHEMA semantics and show no visible success (feedback F01); the heading total still derives only from the current reactive candidate/projection inputs. Terminal projection removal follows the post-terminal presentation hold (amended 2026-10-18, MI-15). On `applied` or `already_applied`, a Stage projection whose candidate ID is already in the current snapshot is removed in the same commit; otherwise it stays as a post-terminal presentation hold: it keeps its current phase, copy and non-draggable shape, holds no lock or navigation guard, makes no new announcement, and keeps counting once with its candidate ID. The displayed phase is presentation only: the item is marked held, no lock, guard, live sentence or other consumer treats it as unresolved, and it keeps the interactivity it had while pending (a held candidate is not draggable; a held source row's grip, Edit and Delete stay disabled). The hold is checked when the result arrives and on every later snapshot. It ends when the snapshot contains the candidate ID (as a source-resolved candidate or an unresolved-source integrity slot), when a live-query read that started after the result returns without it, or when the subscription errors. `rejected`, `conflict`, `not_applied`, failure and orphan cleanup are never held. No timer or elapsed time decides removal, and membership is never inferred before the snapshot. Stage projections render at the top of their list, newest first, where the candidate lands under the `createdAt` DESC sort. A pending Stage projection, and one held from pending, shows the candidate's icon and title in its final card or row shape and no in-card status line; its pending sentence is announced only through the Staging live region (2026-10-18, mi-14). Unknown and reconciling keep the attached line until Phase 50, which replaces every in-card line with the item status icon and tooltip: the loader after the delay for pending, `?` for unknown and reconciling ([Item status presentation](#item-status-presentation)). The subsection-local remote-arrival `new items` indicator remains separate and is never added to this total.
+- A subsection label is just `Nodes` or `Bits` for zero or one presentation candidate. It receives a numeric prefix only at two or more (`2 Nodes`, `3 Bits`). For each type, this presentation total includes source-resolved durable candidates and visible non-draggable Stage projections in pending, unknown, or reconciling, counting an authoritative candidate and its operation projection with the same candidate ID once. Unstage adds no projection count and retains its durable candidate until authoritative disappearance. Unresolved-source integrity slots are not presentation candidates and are excluded from this total. Repository membership, authoritative counts, Archive eligibility and operation locks remain durable truth. The heading total is not a success claim. Authoritative `applied` and `already_applied` outcomes retain their SCHEMA semantics and show no visible success (feedback F01); the heading total still derives only from the current reactive candidate/projection inputs. Terminal projection removal follows the post-terminal presentation hold (amended 2026-10-18, MI-15). On `applied` or `already_applied`, a Stage projection whose candidate ID is already in the current snapshot is removed in the same commit; otherwise it stays as a post-terminal presentation hold: it keeps its current phase, copy and non-draggable shape, holds no lock or navigation guard, makes no new announcement, and keeps counting once with its candidate ID. The displayed phase is presentation only: the item is marked held, no lock, guard, live sentence or other consumer treats it as unresolved, and it keeps the interactivity it had while pending (a held candidate is not draggable; a held source row's grip, Edit and Delete stay disabled). The hold is checked when the result arrives and on every later snapshot. It ends when the snapshot contains the candidate ID (as a source-resolved candidate or an unresolved-source integrity slot), when a live-query read that started after the result returns without it, or when the subscription errors. `rejected`, `conflict`, `not_applied`, and failure are never held. No timer or elapsed time decides removal, and membership is never inferred before the snapshot. Stage projections render at the top of their list, newest first, where the candidate lands under the `createdAt` DESC sort. A pending Stage projection, and one held from pending, shows the candidate's icon and title in its final card or row shape and no in-card status line; its pending sentence is announced only through the Staging live region (2026-10-18, mi-14). Unknown and reconciling keep the attached line until Phase 50, which replaces every in-card line with the item status icon and tooltip: the loader after the delay for pending, `?` for unknown and reconciling ([Item status presentation](#item-status-presentation)). The subsection-local remote-arrival `new items` indicator remains separate and is never added to this total.
 - The whole staged candidate root is the primary pointer/touch drag activator;
   it has no select/detail/menu behavior and no internal grip. Every grab point
   uses the same pointer-centered, type-specific compact `TriageDragToken` and
@@ -818,8 +817,8 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
 - A snapshot miss, offline state, or delayed refetch never proves an orphan
   and never renders a broken candidate as normal. In the Postgres target the
   foreign key from a candidate to its source makes an orphan impossible, so the
-  confirmed-orphan command and its `VQ-06` orphan status are removed (S18; the
-  Dexie path stays until Phase 46). There is no general operation history.
+  confirmed-orphan command and its `VQ-06` orphan status are removed (S18;
+  Phase 46 removed the client path). There is no general operation history.
 - Candidate existence blocks staged-source Save/Delete in the repository as
   well as UI. Rejection never auto-unstages, propagates an edit, or cascades a
   candidate. Staging does not consume the source row.
@@ -1619,11 +1618,10 @@ enabled.
   stays outside Git. The job checks that Docker is running and reports a failed
   run. Phase 48 runs one restore test into local Supabase. The manual dump
   before each production migration stays (S22, S34).
-- **Development switch** (S36): in Phase 42 the end-to-end slice is a
-  development-only page behind `NEXT_PUBLIC_GRIDDO_SUPABASE_SLICE`. It is not a
-  product route: outside development, or with the switch off, it returns 404,
-  and Phase 46 removes it. From Phase 45 the Supabase store is the only store
-  the app uses.
+- **Development switch** (S36): the Phase 42 end-to-end slice was a
+  development-only page behind `NEXT_PUBLIC_GRIDDO_SUPABASE_SLICE`. Phase 46
+  removed the page and the switch. Since Phase 45 the Supabase store is the
+  only store the app uses.
 
 ---
 
@@ -1789,7 +1787,6 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/components/layout/color-theme-toggle.tsx` | Color theme picker — the color themes (four from Task 241), swatches, selected check |
 | `src/components/calendar/calendar-view-header.tsx` | Shared Calendar weekly/monthly header — title/subtitle, view switch, previous/today/next controls |
 | `src/lib/db/datastore.ts` | `DataStore` interface — the abstraction boundary between app code and storage |
-| `src/lib/db/indexeddb.ts` | Dexie.js IndexedDB implementation of `DataStore` — the running store until Phase 45; removed in Phase 46 |
 | `src/lib/db/supabase-client.ts` *(Phase 42)* | Browser Supabase client: project URL, publishable key, session persistence |
 | `src/lib/db/database.types.ts` *(Phase 42, generated)* | `supabase gen types typescript` output; types the row converter (S33) |
 | `src/lib/db/row-mapping.ts` *(Phase 42)* | snake_case database rows ↔ camelCase TypeScript types, at the snapshot loader and the function-result boundary only (S11) |
@@ -1846,12 +1843,12 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/grid-dnd.ts` | Grid DnD utilities — `gridCollisionDetection` (prioritizes node-drop over cell) |
 | `src/lib/utils/grid-explorer-search.ts` *(proposed; absent today)* | Pure Inbox Grid Explorer hierarchy traversal, exclusions, AND-token matching, relevance, duplicate disambiguation inputs, and stable result ordering; never global `searchAll()` |
 | `src/lib/constants/color-palette.ts` | Curated 10-color palette for node creation randomization |
-| `src/hooks/use-grid-data.ts` | Reactive hook — subscribes to Nodes + Bits for a given parentId (Dexie `liveQuery` until Phase 45, then the account snapshot) |
+| `src/hooks/use-grid-data.ts` | Reactive hook — subscribes to Nodes + Bits for a given parentId (reads the account snapshot) |
 | `src/hooks/use-bit-detail.ts` | Bit detail popup state — reads `?bit` param, fetches Bit + Chunks |
 | `src/hooks/use-search.ts` | Search state — query string, filtered results across all stores |
 | `src/hooks/use-calendar-data.ts` | Calendar data — all items with deadlines, pool items, drill-down state |
 | `src/hooks/use-dnd.ts` | Current shared DnD plus combined triage placement/sequential writes. Proposed triage role: Mouse/Touch sensors, drag snapshot, release-time drop intent, and feedback coordination only; general Grid/Calendar behavior stays separate |
-| `src/hooks/use-staged-candidates.ts` *(proposed; absent today)* | Reactive `StagedCandidate` query and authoritative Breakdown-source join plus Stage and Unstage command dispatch/reconciliation (confirmed-orphan dispatch until Phase 46); pending UI is a projection, and unresolved source miss is never a card/orphan proof |
+| `src/hooks/use-staged-candidates.ts` | Reactive `StagedCandidate` query and authoritative Breakdown-source join plus Stage and Unstage command dispatch/reconciliation (the confirmed-orphan dispatch was removed in Phase 46); pending UI is a projection, and unresolved source miss is never a card/orphan proof |
 | `src/hooks/use-grid-explorer-search.ts` *(proposed; absent today)* | Inbox-only full-hierarchy search subscription/request identity, cancellation, loading/error/stale result lifecycle |
 | `src/components/triage/grid-explorer-search-results.tsx` *(proposed; absent today)* | Dedicated Explorer search-mode result body; presentation only, with no global Search Overlay reuse |
 | `src/hooks/use-triage-placement.ts` *(proposed; absent today)* | `Q-NAME-03` placement state machine: direct type, staged Result Title, target confirmation, pending/reconcile/failure, navigation locks, and atomic command dispatch |
