@@ -144,8 +144,8 @@ Baseline gate (2026-10-26): `git diff --check`, `pnpm test` (2177), `pnpm test:d
 ## Task 229 — Seed browser checks through the database and settle MI-19
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 229 acceptance
+- Status: Accepted
+- Next: `/end-phase 45` (see the end-phase note in the Task 229 Log)
 - Open: mi-3 (deferred by the user to Task 249)
 
 ### Log
@@ -171,10 +171,14 @@ Baseline gate (2026-10-26): `git diff --check`, `pnpm test` (2177), `pnpm test:d
 - Stage 3 review applied (2026-10-29): (1) checked, no change: `finishExternalRemoval` (`triage-workspace.tsx:2152`) reads the sort and search from its render closure the same way, but its only await is the in-memory snapshot read, so no input can land in between; it is outside MI-19. (2) the script header now gives the full-grid message recipe (create in the Full folder until the dialog answers no empty cell, filling the block cells the measured breadcrumb leaves open), and the narrower-viewport claim is gone from mi-3. Decision: Stage 3 accepted (user, 2026-10-29).
 - Stage 3 committed `f4e68bd` (accepted 2026-10-29).
 - Review (expert, 2026-10-29, Finish): (1) low — after a local `db reset` (the SaaS lane's `pnpm test:db`), the fixture reused a stored session whose user no longer exists, and `dev.seed_fixture` then failed with `not a fixture test user` until the token expired — fixed: the script asks `GET /auth/v1/user` before reusing a stored session (no sign-in limit spent) and signs in again when it is refused; a test covers it. No other finding: grants, `search_path`, claims scope, the email check, locking and clearing, the local guard and the MI-19 hook change read clean.
+- Review (advisory, 2026-10-29, task finish): approve. Checked: commits `ef2edb4`, `36fa2ea`, `f4e68bd`, `51ec7d7` with a clean tree; `git diff --check origin/main...HEAD` clean; lint warnings 11 as at the baseline; the expert fix asks `GET /auth/v1/user` before reusing a stored session, so a fixture run after a SaaS-lane `db reset` signs in again instead of failing; nothing for production (`seed.sql` is not a migration, the `config.toml` line is local); no dev server, vitest or Playwright process left. What later tasks need from this one is in the script header (per-lane `label`, keys from `supabase status`, reseeding after a reset, the state switch scope, the Full folder recipe) and in this Log (mi-3 deferred to Task 249); no Task note is needed. For the phase close: Tasks 227–229 all checked without the Playwright MCP browser that CLAUDE.md Test data names; `.mcp.json` declares it, but no Claude Code project entry has approved it. Apply: none. Not applied: none.
 
+- Note for `/end-phase 45` (advisory, 2026-10-29): the Playwright MCP browser is not available in any session: `/mcp` lists no `playwright` server (checked by the user), `.mcp.json` declares `@playwright/mcp@0.0.83 --isolated`, and no Claude Code project entry has enabled it, so Tasks 227–229 checked in a headless Playwright script or the DevTools browser instead. At the close: add `"enabledMcpjsonServers": ["playwright"]` to `.claude/settings.json`, so every phase worktree enables it without a per-path approval; confirm in a fresh session that `/mcp` shows it connected and its browser tools load (`npx` fetches the package on first start, nothing is installed globally); record the gap and the fix in `docs/execution-plan/LEARNINGS.md`.
+- Decision: enable the Playwright MCP server at the Phase 45 close, as the note above says (user, 2026-10-29).
 ### Checkpoint
 - Changed: `supabase/seed.sql` (the local-only `dev.seed_fixture` and helpers), `supabase/config.toml` (`dev` exposed), `supabase/tests/dev-seed.db.test.ts`; `scripts/dev-fixtures/inbox-triage.js` and `src/lib/db/inbox-triage-dev-fixture.test.ts` (seed through the database as a local fixture user); `use-scratch-lifecycle-handoff.ts` and its test (Phase 35 MI-19 fixed).
 - Verified: `git diff --check`, `pnpm test` (2337, then the fixture file again with the reset fix: 6 pass), `pnpm test:db` (942), `pnpm lint` (0 errors, 11 warnings), `pnpm typecheck`, `pnpm build`; the browser run of Stage 2 (seed, reload into the seeded account, a `drag.js` placement that survives a reload, Trash, Archive View, Full folder 156 Bits).
 - Please check: only read the record. The fixture is exercised by the agent; MI-19 is closed by you (done 2026-10-29); mi-3 is deferred to Task 249 and the script header carries the full-grid recipe until then.
 - Unresolved: mi-3 (Full folder offers block cells the measured breadcrumb leaves open; deferred to Task 249).
 - Review: reset-session reuse → fixed (this commit).
+- Decision: Task 229 accepted (user, 2026-10-29), with the advisory's finish review and the `/end-phase 45` note recorded in the Log.

@@ -794,7 +794,7 @@ themes.
 
 **Commit message:** `feat(auth): add guest entry and the load-failure screen`.
 
-### Task 229: [ ] Seed browser checks through the database and settle MI-19
+### Task 229: [x] Seed browser checks through the database and settle MI-19
 
 **Files and actions:**
 - `supabase/seed.sql` (runs on local `db reset` only, never a migration):
