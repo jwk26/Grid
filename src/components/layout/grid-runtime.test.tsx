@@ -130,14 +130,34 @@ vi.mock("@/hooks/use-grid-actions", () => ({
   }),
 }));
 
-vi.mock("@/lib/db/datastore", async () => {
-  const { liveQuery } = await import("dexie");
-  return {
-    getDataStore: getDataStoreMock,
-    liveRead: (read: (store: unknown) => Promise<unknown>) =>
-      liveQuery(() => getDataStoreMock().then(read)),
-  };
-});
+vi.mock("@/lib/db/datastore", () => ({
+  getDataStore: getDataStoreMock,
+  // The mocked stores never change under a subscriber, so one run per subscription is the whole
+  // stream.
+  liveRead: (read: (store: unknown) => Promise<unknown>) => ({
+    subscribe: (observer: {
+      next?: (value: unknown) => void;
+      error?: (error: unknown) => void;
+    }) => {
+      let active = true;
+      void getDataStoreMock()
+        .then(read)
+        .then(
+          (value: unknown) => {
+            if (active) observer.next?.(value);
+          },
+          (error: unknown) => {
+            if (active) observer.error?.(error);
+          },
+        );
+      return {
+        unsubscribe: () => {
+          active = false;
+        },
+      };
+    },
+  }),
+}));
 
 vi.mock("@/lib/utils/bfs", () => ({
   findNearestEmptyCell: vi.fn(),

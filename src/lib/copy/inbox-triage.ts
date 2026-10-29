@@ -288,8 +288,6 @@ export interface InboxTriageCopy {
       readonly unstageNotApplied: string;
       readonly unstageRejected: string;
       readonly unstageConflict: string;
-      readonly orphanNode: string;
-      readonly orphanBit: string;
       readonly invalidatedDrag: string;
       readonly invalidatedPlacement: string;
     };
@@ -694,10 +692,6 @@ export const INBOX_TRIAGE_COPY = {
         "“{title}” is still staged. Drag it back to Breakdown to retry.",
       unstageRejected: "“{title}” can’t be returned from its current state.",
       unstageConflict: "“{title}” changed elsewhere and remains staged.",
-      orphanNode:
-        "A staged Node was removed because its source no longer exists.",
-      orphanBit:
-        "A staged Bit was removed because its source no longer exists.",
       invalidatedDrag: "“{title}” changed elsewhere. Drop canceled.",
       invalidatedPlacement:
         "Placement closed because “{title}” changed elsewhere.",

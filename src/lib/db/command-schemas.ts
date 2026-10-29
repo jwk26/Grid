@@ -1,7 +1,6 @@
 import { z } from "zod";
 import {
   bitSchema,
-  candidateOrphanAuditEventSchema,
   nodeSchema,
   repositoryOperationIdSchema,
   repositoryOperationStatusSchema,
@@ -9,8 +8,8 @@ import {
   stagedCandidateSchema,
 } from "@/lib/db/schema";
 
-// The Zod schemas of the Inbox/Triage commands and their results. Both stores parse a command at
-// the client write boundary (SPEC Architecture Rule 5); the Dexie store also parses its results.
+// The Zod schemas of the Inbox/Triage commands and their results. The store parses a command at
+// the client write boundary (SPEC Architecture Rule 5).
 
 export const commandVersionSchema = z.number().int().min(1);
 
@@ -63,33 +62,6 @@ export const unstageCandidateCommandSchema = z.object({
   candidateExpectedVersion: commandVersionSchema,
   sourceBreakdownId: z.string().uuid(),
   sourceExpectedVersion: commandVersionSchema,
-}).strict();
-
-export const confirmedCandidateOrphanProofSchema = z.discriminatedUnion("status", [
-  z.object({
-    status: z.literal("confirmed"),
-    cause: z.enum(["source_deleted", "source_tombstoned"]),
-    sourceBreakdownId: z.string().uuid(),
-  }).strict(),
-  z.object({
-    status: z.literal("unresolved"),
-    reason: z.enum(["cache_miss", "offline", "delayed_subscription"]),
-  }).strict(),
-  z.object({
-    status: z.literal("planned_aggregate"),
-    sourceBreakdownId: z.string().uuid(),
-  }).strict(),
-]);
-
-export const confirmedCandidateOrphanCleanupCommandSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  auditEventId: z.string().uuid(),
-  candidateId: z.string().uuid(),
-  candidateExpectedVersion: commandVersionSchema,
-  sourceBreakdownId: z.string().uuid(),
-  scratchBitId: z.string().uuid(),
-  resultType: z.enum(["node", "bit"]),
-  proof: confirmedCandidateOrphanProofSchema,
 }).strict();
 
 export const placementCommandShape = {
@@ -203,14 +175,6 @@ export const unstageCandidateResultSchema = z.object({
   status: repositoryOperationStatusSchema,
   candidate: stagedCandidateSchema.nullable(),
   source: scratchBreakdownSchema.nullable(),
-}).strict();
-
-export const confirmedCandidateOrphanCleanupResultSchema = z.object({
-  operationId: repositoryOperationIdSchema,
-  status: repositoryOperationStatusSchema,
-  candidate: stagedCandidateSchema.nullable(),
-  source: scratchBreakdownSchema.nullable(),
-  auditEvent: candidateOrphanAuditEventSchema.nullable(),
 }).strict();
 
 export const placementResultSchema = z.object({

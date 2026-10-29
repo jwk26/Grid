@@ -17,7 +17,6 @@ import type {
   AddBreakdownResult,
   ArchiveScratchCommand,
   ArchiveScratchResult,
-  ConfirmedCandidateOrphanCleanupResult,
   DataStore,
   DeleteBreakdownCommand,
   DeleteBreakdownResult,
@@ -93,8 +92,8 @@ import { isDeadlineAfter } from "@/lib/utils/deadline";
 
 // The DataStore over the account snapshot (SPEC Architecture Decisions 2 and 19). Task 226 is
 // the read side: every read is answered in memory over the snapshot view with SCHEMA Key
-// Queries semantics. Results come back in the order the Dexie store returns them: primary-key
-// `id` order, then the same sort where the Dexie read sorts. Task 227 Stage 2 adds the ordinary
+// Queries semantics. Results come back in primary-key
+// `id` order, then sorted where the read sorts. Task 227 Stage 2 adds the ordinary
 // writes (one call each, server-confirmed); the Inbox/Triage commands follow in Stage 3.
 
 type ReadKey =
@@ -171,25 +170,9 @@ type CommandWriteKey =
   | "undoDirectPlacement"
   | "reconcileDirectPlacementUndo";
 
-// Writes that send no request: the confirmed-orphan command cannot happen under foreign keys (S18),
-// and the breadcrumb-zone migration is client-only until Task 249 (S43 (4)).
-type NoRequestWriteKey =
-  | "cleanupConfirmedCandidateOrphan"
-  | "reconcileConfirmedCandidateOrphanCleanup"
-  | "runBreadcrumbZoneMigration";
-
-type WriteKey = Exclude<keyof DataStore, ReadKey>;
-
-// The writes only tests call; Phase 46 removes them from the interface. Listing each one as a key
-// makes the compiler fail here when DataStore gains a method that neither an ordinary write, a
-// command nor this list covers.
-const PENDING_WRITE_KEYS: Record<Exclude<WriteKey, OrdinaryWriteKey | CommandWriteKey | NoRequestWriteKey>, true> = {
-  createScratchBreakdown: true,
-  updateScratchBreakdown: true,
-  markScratchBreakdownConsumed: true,
-  unconsumeScratchBreakdown: true,
-  deleteScratchBreakdown: true,
-};
+// Writes that send no request: the breadcrumb-zone migration is client-only until Task 249
+// (S43 (4)).
+type NoRequestWriteKey = "runBreadcrumbZoneMigration";
 
 type SearchResult = Awaited<ReturnType<DataStore["searchAll"]>>[number];
 
@@ -259,22 +242,7 @@ export const WRITE_FUNCTION: Record<OrdinaryWriteKey | CommandWriteKey, string> 
   reconcileTrashScratch: "reconcile_trash_scratch",
 };
 
-export const NO_REQUEST_WRITE_METHODS: readonly string[] = [
-  "cleanupConfirmedCandidateOrphan",
-  "reconcileConfirmedCandidateOrphanCleanup",
-  "runBreadcrumbZoneMigration",
-];
-
-// Methods that throw "not supported" until Phase 46 removes them.
-export const UNSENT_WRITE_METHODS = Object.keys(PENDING_WRITE_KEYS);
-
-const orphanRejected = (operationId: string): ConfirmedCandidateOrphanCleanupResult => ({
-  operationId,
-  status: "rejected",
-  candidate: null,
-  source: null,
-  auditEvent: null,
-});
+export const NO_REQUEST_WRITE_METHODS: readonly string[] = ["runBreadcrumbZoneMigration"];
 
 const chunkUpdateSchema = chunkSchema.omit({ id: true, parentId: true }).partial();
 
@@ -925,20 +893,10 @@ export function createSupabaseStore(
       await refetchIfAlreadyApplied(envelope);
       return trashResult(parsed, envelope);
     },
-    // The orphan cannot occur under the composite foreign keys (S18): no request.
-    cleanupConfirmedCandidateOrphan: async (command) => orphanRejected(command.operationId),
-    reconcileConfirmedCandidateOrphanCleanup: async (command) => orphanRejected(command.operationId),
     // The breadcrumb zone stays client-only until Task 249 (S43 (4)).
     runBreadcrumbZoneMigration: async () => ({ relocated: 0 }),
   };
 
-  const pending = Object.fromEntries(
-    (Object.keys(PENDING_WRITE_KEYS) as Array<keyof typeof PENDING_WRITE_KEYS>).map((key) => [
-      key,
-      () => Promise.reject(new Error(`${key} is not supported by the Supabase store yet`)),
-    ]),
-  ) as unknown as Pick<DataStore, keyof typeof PENDING_WRITE_KEYS>;
-
-  const store: DataStore = { ...pending, ...ordinary, ...commands, ...reads };
+  const store: DataStore = { ...ordinary, ...commands, ...reads };
   return store;
 }

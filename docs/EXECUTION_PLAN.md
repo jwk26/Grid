@@ -23,7 +23,8 @@ Execution plan mode: scaled
 > (2026-10-25); Tasks 219–220 are accepted `[x]` and Phase 43 is closed
 > (2026-10-25); Tasks 221–224 are accepted `[x]` and Phase 44 is closed
 > (2026-10-26); Tasks 225–229 are accepted `[x]` and Phase 45 is closed
-> (2026-10-29); Tasks 180–208 and Phases 36–40 are retired as
+> (2026-10-29); Task 230 is accepted `[x]` and Phase 46 is closed
+> (2026-10-30); Tasks 180–208 and Phases 36–40 are retired as
 > superseded (feedback F28, promotion ②), their text in
 > [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
 > Phases 32–33 remain reserved.
@@ -145,8 +146,8 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 45 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29). The SaaS lane continues with Phase 46; the feedback lane continues with Phase 50. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 closed in Task 229 and MI-23 keeps its loading screen for Task 234; Phase 45 MI-24 goes to the theme stage, mi-1 to Task 245, mi-2 to Task 246 and mi-3 to Task 249. |
-| SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26, Phase 45 (Tasks 225–229) on 2026-10-29; the migrations of Phases 42–44 are on production, and Phase 45 changed none. The app runs on local Supabase. MI-8 is bound to Task 240. Phase 46 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
+| Execution lifecycle | Phase 46 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30). The SaaS lane continues with Phase 47; the feedback lane continues with Phase 50. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 closed in Task 229 and MI-23 keeps its loading screen for Task 234; Phase 45 MI-24 goes to the theme stage, mi-1 to Task 245, mi-2 to Task 246 and mi-3 to Task 249. |
+| SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26, Phase 45 (Tasks 225–229) on 2026-10-29, Phase 46 (Task 230) on 2026-10-30; the migrations of Phases 42–44 are on production, and Phases 45–46 changed none. The app runs on local Supabase; Dexie is removed. MI-8 is bound to Task 240. Phase 47 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
 | Feedback lane | `IN PROGRESS` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); its mi-1, mi-2 and mi-3 are bound to Task 248. Phase 50 waits for nothing more since the Phase 45 close (2026-10-29); it carries Phase 45 mi-1 (Task 245), mi-2 (Task 246) and mi-3 (Task 249) ([the phase waits](#lanes-and-phase-waits)). |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
@@ -248,7 +249,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 43 | Completed | [Ordinary write functions](execution-plan/archive/phase-43.md) | 219–220 | Accepted and archived (2026-10-25); migrations on production; MI-1 deferred to the Phase 44 gate watch in `Issues_Deferred.md`. Phase 44 may start. |
 | Phase 44 | Completed | [Inbox/Triage command functions](execution-plan/archive/phase-44.md) | 221–224 | Accepted and archived (2026-10-26); migrations on production; MI-1 closed (no recurrence). Phase 45 may start. |
 | Phase 45 | Completed | [Client switch](execution-plan/archive/phase-45.md) | 225–229 | Accepted and archived (2026-10-29); no migration; MI-19 closed; MI-24, mi-1, mi-2, mi-3 and Phase 35 MI-23 carried in `Issues_Deferred.md`. Phases 46 and 50 may start. |
-| Phase 46 | Planned / unstarted | [Dexie removal](#phase-46--dexie-removal) | 230 | Phase 45 close/main sync. |
+| Phase 46 | Completed | [Dexie removal](execution-plan/archive/phase-46.md) | 230 | Accepted and archived (2026-10-30); no migration; nothing carried over. Phase 47 may start. |
 | Phase 47 | Planned / unstarted | [Feel and resilience](#phase-47--feel-and-resilience) | 231–234 | Phase 46 and Phase 49 close/main sync. |
 | Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 | Phase 47 close/main sync. |
 | Phase 49 | Completed | [Feedback lane, part 1: theme set, status primitives, toasts](execution-plan/archive/phase-49.md) | 241–244 | Accepted and archived (2026-10-24); ISSUE-20-01 and MI-13 resolved in Task 241; mi-1, mi-2 and mi-3 bound to Task 248 in `Issues_Deferred.md`. Phases 45 and 47 no longer wait for it. |
@@ -600,8 +601,8 @@ applied (claude-workflow `b2b7671`, `6044e30`, `b27e9f3`).
   with no new Security Advisor warning (S29).
 - **Ported tests:** when a function replaces a Dexie path, the existing
   `src/lib/db/*.test.ts` scenarios for that behavior are ported to
-  `supabase/tests/` and serve as the answer key. The Dexie tests stay until
-  Phase 46.
+  `supabase/tests/` and serve as the answer key. The Dexie tests stayed until
+  Phase 46 removed them.
 - **Checkpoints:** a user-visible task is checked in the running app on local
   Supabase (from Phase 45) in `griddo`, `retro-mac` and `neumorphism` (S40),
   with the plain-Korean "what to look at" list.
@@ -655,32 +656,13 @@ screen, Task 234). Forward notes for Tasks 231, 232, 233, 234 and 235 are in
 [the Phase 45 ledger](issues/Issues_Phase_45.md) (the Task 226–228 logs);
 each task reads its notes at its start.
 
-## Phase 46 — Dexie Removal
+## Phase 46 — Completed / Archived
 
-### Task 230: [ ] Remove Dexie and the client orphan path
-
-**Files and actions:** delete `src/lib/db/indexeddb.ts`, its test utilities
-and the Dexie-only tests whose scenarios now live in `supabase/tests/`; remove
-`dexie` and `fake-indexeddb` from `package.json`; remove the `settings` store
-and the Dexie side of `runBreadcrumbZoneMigration` (the interface method and
-the Supabase no-op stay for Task 249 if it has not landed), the confirmed-orphan
-command, its reconcile method, its hook dispatch and Workspace caller and its
-orphan state and copy, the test-only Breakdown write methods, the Dexie backing
-of `liveRead`, `use-system-node-seeding.ts`, and the development slice page
-`src/app/dev/supabase-slice/` with its env variable.
-
-**Dependencies:** Phase 45 Final Close and `main` sync; this phase's lifecycle
-gate.
-
-**Authority:** S11, S18, S25, S41; SCHEMA §Not ported.
-
-**Observable acceptance:** no `dexie` import remains; every gate passes; the
-running app behaves as at the end of Phase 45.
-
-**Verification:** full gate; browser smoke of every route on local Supabase;
-`expert` review.
-
-**Commit message:** `refactor(db): remove Dexie and the client orphan path`.
+SaaS-lane Task 230 is accepted. Its task contract and completion-time scope
+are in [the Phase 46 archive](execution-plan/archive/phase-46.md). Dexie,
+`fake-indexeddb`, the development slice page and the client orphan path are
+gone; the Supabase store is the only `DataStore`. No migration changed, so
+nothing went to production. Nothing is carried over.
 
 ## Phase 47 — Feel And Resilience
 
