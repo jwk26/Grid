@@ -36,7 +36,6 @@ const getGridOccupancyMock = vi.hoisted(() => vi.fn());
 const getNodeMock = vi.hoisted(() => vi.fn());
 const createNodeMock = vi.hoisted(() => vi.fn());
 const createBitMock = vi.hoisted(() => vi.fn());
-const markScratchBreakdownConsumedMock = vi.hoisted(() => vi.fn());
 const findNearestEmptyCellMock = vi.hoisted(() => vi.fn());
 const useSensorMock = vi.hoisted(() =>
   vi.fn((sensor: unknown, options: unknown) => ({ sensor, options })),
@@ -312,7 +311,6 @@ beforeEach(() => {
     getNode: getNodeMock,
     createNode: createNodeMock,
     createBit: createBitMock,
-    markScratchBreakdownConsumed: markScratchBreakdownConsumedMock,
   });
   findNearestEmptyCellMock.mockReturnValue({ x: 0, y: 0 });
 });
@@ -1556,7 +1554,6 @@ describe("useTriageDnd — drop matrix", () => {
     expect(latestPlacementRelease()).toBeNull();
     expect(createNodeMock).not.toHaveBeenCalled();
     expect(createBitMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
   });
 
   it("keeps staged Drop release-only with no write", async () => {
@@ -1584,7 +1581,6 @@ describe("useTriageDnd — drop matrix", () => {
     });
 
     expect(createNodeMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
     expect(latestPlacementRelease()).not.toBeNull();
   });
 
@@ -1616,7 +1612,6 @@ describe("useTriageDnd — drop matrix", () => {
     });
 
     expect(createNodeMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
     expect(latestPlacementRelease()).not.toBeNull();
     expect(registerLocalPlacement).not.toHaveBeenCalled();
   });
@@ -1648,7 +1643,6 @@ describe("useTriageDnd — drop matrix", () => {
 
     expect(createNodeMock).not.toHaveBeenCalled();
     expect(createBitMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
     expect(latestPlacementRelease()).toEqual(placement);
   });
 
@@ -1679,7 +1673,6 @@ describe("useTriageDnd — drop matrix", () => {
 
     expect(createNodeMock).not.toHaveBeenCalled();
     expect(createBitMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
     expect(latestPlacementRelease()).toBeNull();
   });
 
@@ -1709,7 +1702,6 @@ describe("useTriageDnd — drop matrix", () => {
     expect(getDataStoreMock).not.toHaveBeenCalled();
     expect(createNodeMock).not.toHaveBeenCalled();
     expect(createBitMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
     expect(latestPlacementRelease()).toBeNull();
   });
 
@@ -1785,7 +1777,6 @@ describe("useTriageDnd — T84 direct breakdown → hierarchy path", () => {
     });
 
     expect(createBitMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
     expect(latestPlacementRelease()).not.toBeNull();
   });
 
@@ -1814,7 +1805,6 @@ describe("useTriageDnd — T84 direct breakdown → hierarchy path", () => {
 
     expect(createNodeMock).not.toHaveBeenCalled();
     expect(createBitMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
     expect(latestPlacementRelease()).toBeNull();
   });
 
@@ -1874,7 +1864,6 @@ describe("useTriageDnd — T85 remove-from-staging drop", () => {
     expect(getGridOccupancyMock).not.toHaveBeenCalled();
     expect(createNodeMock).not.toHaveBeenCalled();
     expect(createBitMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
   });
 
   it("ignores a breakdown row dropped on the remove target", async () => {
@@ -1893,7 +1882,6 @@ describe("useTriageDnd — T85 remove-from-staging drop", () => {
     expect(getGridOccupancyMock).not.toHaveBeenCalled();
     expect(createNodeMock).not.toHaveBeenCalled();
     expect(createBitMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
   });
 
   it("ignores a staged Node dropped on the remove target when no scratch is selected", async () => {
@@ -1917,7 +1905,6 @@ describe("useTriageDnd — T85 remove-from-staging drop", () => {
     expect(getGridOccupancyMock).not.toHaveBeenCalled();
     expect(createNodeMock).not.toHaveBeenCalled();
     expect(createBitMock).not.toHaveBeenCalled();
-    expect(markScratchBreakdownConsumedMock).not.toHaveBeenCalled();
   });
 });
 

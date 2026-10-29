@@ -8,13 +8,11 @@ import {
   createNodeSchema,
   bitSchema,
   chunkSchema,
-  createScratchBreakdownSchema,
   nodeSchema,
   scratchBreakdownSchema,
   stagedCandidateSchema,
 } from "@/lib/db/schema";
 import type {
-  CandidateOrphanAuditEvent,
   PendingOperationRecovery,
   RepositoryOperationCommand,
   RepositoryOperationId,
@@ -43,7 +41,6 @@ const publicTypeExports:
       RepositoryOperationResult,
       UnknownRepositoryOperationOutcome,
       StagedCandidate,
-      CandidateOrphanAuditEvent,
       PendingOperationRecovery,
     ]
   | undefined = undefined;
@@ -260,44 +257,8 @@ describe("schema", () => {
     ).not.toThrow();
   });
 
-  it("validates scratch breakdown creation payloads and defaults consumedAt", () => {
+  it("defaults consumedAt on a scratch breakdown", () => {
     const scratchBitId = crypto.randomUUID();
-
-    expect(() =>
-      createScratchBreakdownSchema.parse({
-        scratchBitId,
-        content: "",
-        order: 0,
-      }),
-    ).toThrow();
-
-    expect(() =>
-      createScratchBreakdownSchema.parse({
-        scratchBitId,
-        content: "a".repeat(1001),
-        order: 0,
-      }),
-    ).toThrow();
-
-    expect(() =>
-      createScratchBreakdownSchema.parse({
-        scratchBitId,
-        content: "Plan first pass",
-        order: -1,
-      }),
-    ).toThrow();
-
-    expect(
-      createScratchBreakdownSchema.parse({
-        scratchBitId,
-        content: "Plan first pass",
-        order: 0,
-      }),
-    ).toEqual({
-      scratchBitId,
-      content: "Plan first pass",
-      order: 0,
-    });
 
     expect(
       scratchBreakdownSchema.parse({
@@ -378,7 +339,6 @@ describe("schema", () => {
   it("keeps public create and update payloads free of system-managed fields", () => {
     const nodeUpdateSchema = getExportedSchema("updateNodeSchema");
     const bitUpdateSchema = getExportedSchema("updateBitSchema");
-    const breakdownUpdateSchema = getExportedSchema("updateScratchBreakdownSchema");
     const immutable = {
       id: crypto.randomUUID(),
       mtime: Date.now(),
@@ -419,16 +379,6 @@ describe("schema", () => {
     for (const field of [...Object.keys(createManaged), "status"]) {
       expect(bitCreate).not.toHaveProperty(field);
     }
-    const breakdownCreate = createScratchBreakdownSchema.parse({
-      scratchBitId: crypto.randomUUID(),
-      content: "Row",
-      order: 0,
-      consumedAt: Date.now(),
-      ...immutable,
-    });
-    for (const field of [...Object.keys(immutable), "consumedAt"]) {
-      expect(breakdownCreate).not.toHaveProperty(field);
-    }
     expect(
       nodeUpdateSchema.parse({
         title: "Renamed",
@@ -453,15 +403,6 @@ describe("schema", () => {
       status: "complete",
       pastDeadlineDismissed: true,
     });
-    expect(
-      breakdownUpdateSchema.parse({
-        content: "Updated row",
-        order: 2,
-        scratchBitId: crypto.randomUUID(),
-        consumedAt: Date.now(),
-        ...immutable,
-      }),
-    ).toEqual({ content: "Updated row", order: 2 });
   });
 
   it("defines durable candidates without duplicated display or placement state", () => {
@@ -504,8 +445,7 @@ describe("schema", () => {
     });
   });
 
-  it("keeps orphan evidence and reload recovery narrowly scoped", () => {
-    const auditSchema = getExportedSchema("candidateOrphanAuditEventSchema");
+  it("keeps reload recovery narrowly scoped", () => {
     const recoverySchema = getExportedSchema("pendingOperationRecoverySchema");
     const operationIdSchema = getExportedSchema("repositoryOperationIdSchema");
     const operationStatusSchema = getExportedSchema("repositoryOperationStatusSchema");
@@ -523,18 +463,6 @@ describe("schema", () => {
       expect(operationStatusSchema.parse(status)).toBe(status);
     }
     expect(operationStatusSchema.safeParse("unknown").success).toBe(false);
-    expect(
-      auditSchema.parse({
-        id: crypto.randomUUID(),
-        cause: "source_deleted",
-        candidateId: crypto.randomUUID(),
-        sourceBreakdownId: crypto.randomUUID(),
-        scratchBitId: crypto.randomUUID(),
-        occurredAt: timestamp,
-        operationStatus: "pending",
-      }),
-    ).not.toHaveProperty("operationStatus");
-
     const recovery = recoverySchema.parse({
       operationId,
       kind: "archive_scratch",

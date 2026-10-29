@@ -99,18 +99,18 @@ afterEach(() => {
 });
 
 describe("StagingZone", () => {
-  it("keeps the confirmed-orphan alert shape headlessly renderable without a production proof caller", () => {
+  it("renders the alert band with a dismiss button and no retry", () => {
     const onDismiss = vi.fn();
     render(
       <StagingAlertBand
-        copy="A staged Node was removed because its source no longer exists."
+        copy="A staged Node changed elsewhere."
         onDismiss={onDismiss}
       />,
     );
 
     expect(
       screen.getByText(
-        "A staged Node was removed because its source no longer exists.",
+        "A staged Node changed elsewhere.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /retry/i })).not.toBeInTheDocument();

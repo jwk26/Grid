@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getDataStore,
-  type ConfirmedCandidateOrphanCleanupCommand,
-  type ConfirmedCandidateOrphanCleanupResult,
   type StageCandidateCommand,
   type StageCandidateResult,
   type UnstageCandidateCommand,
@@ -24,7 +22,7 @@ export type StagedCandidateProjection = Readonly<
   }
 >;
 
-export type CandidateOperationKind = "stage" | "unstage" | "orphan_cleanup";
+export type CandidateOperationKind = "stage" | "unstage";
 
 export type CandidateOperationProjection = Readonly<{
   operationId: string;
@@ -57,19 +55,6 @@ export type CandidateIntegrityProjection = Readonly<{
     | "source-owner-mismatch"
     | "source-consumed";
 }>;
-
-export type CandidateIntegrityNotDispatched = Readonly<{
-  outcome: "not_dispatched";
-  reason:
-    | "proof_not_confirmed"
-    | "identity_mismatch"
-    | "reconciliation_required"
-    | "terminal_no_retry";
-}>;
-
-type CandidateIntegrityCommandOutcome =
-  | CandidateCommandOutcome<ConfirmedCandidateOrphanCleanupResult>
-  | CandidateIntegrityNotDispatched;
 
 export type StagedCandidateCounts = Readonly<{
   authoritative: number;
@@ -132,12 +117,6 @@ type UseStagedCandidatesResult = Readonly<{
   reconcileUnstageCandidate: (
     command: UnstageCandidateCommand,
   ) => Promise<CandidateCommandOutcome<UnstageCandidateResult>>;
-  cleanupConfirmedCandidateOrphan: (
-    command: ConfirmedCandidateOrphanCleanupCommand,
-  ) => Promise<CandidateIntegrityCommandOutcome>;
-  reconcileConfirmedCandidateOrphanCleanup: (
-    command: ConfirmedCandidateOrphanCleanupCommand,
-  ) => Promise<CandidateIntegrityCommandOutcome>;
 }>;
 
 const EMPTY_CANDIDATES: StagedCandidate[] = [];
@@ -174,10 +153,6 @@ export function useStagedCandidates(
   // Bumped on every (re)subscription so a result from an earlier selection is never held.
   const epochRef = useRef(0);
   const sequenceRef = useRef(0);
-  const confirmedOrphanCommandsRef = useRef(
-    new Map<string, ConfirmedCandidateOrphanCleanupCommand>(),
-  );
-  const terminalConfirmedOrphanOperationsRef = useRef(new Set<string>());
 
   useEffect(() => {
     // Operation projections belong only to the currently selected Scratch.
@@ -186,8 +161,6 @@ export function useStagedCandidates(
     setHeldState([]);
     snapshotRef.current = null;
     epochRef.current += 1;
-    confirmedOrphanCommandsRef.current.clear();
-    terminalConfirmedOrphanOperationsRef.current.clear();
 
     if (scratchBitId === null) return;
 
@@ -397,7 +370,6 @@ export function useStagedCandidates(
         // every later snapshot in the live-query callback. No timer is involved.
         const latest = snapshotRef.current;
         const held =
-          kind !== "orphan_cleanup" &&
           operationScratchId !== "" &&
           epochRef.current === operationEpoch &&
           isSuccessfulResult(result)
@@ -468,96 +440,6 @@ export function useStagedCandidates(
       }, "reconciling"),
     [dispatch],
   );
-  const cleanupConfirmedCandidateOrphan = useCallback(
-    async (
-      command: ConfirmedCandidateOrphanCleanupCommand,
-    ): Promise<CandidateIntegrityCommandOutcome> => {
-      if (command.proof.status !== "confirmed") {
-        return {
-          outcome: "not_dispatched",
-          reason: "proof_not_confirmed",
-        };
-      }
-      const existingCommand = confirmedOrphanCommandsRef.current.get(
-        command.operationId,
-      );
-      if (existingCommand !== undefined) {
-        return {
-          outcome: "not_dispatched",
-          reason: !isSameConfirmedOrphanCommand(existingCommand, command)
-            ? "identity_mismatch"
-            : terminalConfirmedOrphanOperationsRef.current.has(
-                  command.operationId,
-                )
-              ? "terminal_no_retry"
-              : "reconciliation_required",
-        };
-      }
-      const integrityCandidate = integrityCandidates.find(
-        ({ candidate }) => candidate.id === command.candidateId,
-      )?.candidate;
-      if (
-        integrityCandidate === undefined ||
-        command.proof.sourceBreakdownId !== command.sourceBreakdownId ||
-        integrityCandidate.version !== command.candidateExpectedVersion ||
-        integrityCandidate.sourceBreakdownId !== command.sourceBreakdownId ||
-        integrityCandidate.scratchBitId !== command.scratchBitId ||
-        integrityCandidate.resultType !== command.resultType ||
-        integrityCandidate.lifecycle !== "staged"
-      ) {
-        return { outcome: "not_dispatched", reason: "identity_mismatch" };
-      }
-
-      confirmedOrphanCommandsRef.current.set(command.operationId, command);
-      const outcome = await dispatch("orphan_cleanup", command, async () => {
-        const dataStore = await getDataStore();
-        return dataStore.cleanupConfirmedCandidateOrphan(command);
-      });
-      if (!("outcome" in outcome) && outcome.status === "not_applied") {
-        confirmedOrphanCommandsRef.current.delete(command.operationId);
-      } else if (!("outcome" in outcome)) {
-        terminalConfirmedOrphanOperationsRef.current.add(command.operationId);
-      }
-      return outcome;
-    },
-    [dispatch, integrityCandidates],
-  );
-  const reconcileConfirmedCandidateOrphanCleanup = useCallback(
-    async (
-      command: ConfirmedCandidateOrphanCleanupCommand,
-    ): Promise<CandidateIntegrityCommandOutcome> => {
-      const approvedCommand = confirmedOrphanCommandsRef.current.get(
-        command.operationId,
-      );
-      if (
-        (approvedCommand !== undefined &&
-          !isSameConfirmedOrphanCommand(approvedCommand, command)) ||
-        (approvedCommand === undefined &&
-          (command.scratchBitId !== scratchBitId ||
-            !isSelfConsistentConfirmedOrphanCommand(command)))
-      ) {
-        return { outcome: "not_dispatched", reason: "identity_mismatch" };
-      }
-      if (
-        terminalConfirmedOrphanOperationsRef.current.has(command.operationId)
-      ) {
-        return { outcome: "not_dispatched", reason: "terminal_no_retry" };
-      }
-
-      confirmedOrphanCommandsRef.current.set(command.operationId, command);
-      const outcome = await dispatch("orphan_cleanup", command, async () => {
-        const dataStore = await getDataStore();
-        return dataStore.reconcileConfirmedCandidateOrphanCleanup(command);
-      }, "reconciling");
-      if (!("outcome" in outcome) && outcome.status === "not_applied") {
-        confirmedOrphanCommandsRef.current.delete(command.operationId);
-      } else if (!("outcome" in outcome)) {
-        terminalConfirmedOrphanOperationsRef.current.add(command.operationId);
-      }
-      return outcome;
-    },
-    [dispatch, scratchBitId],
-  );
 
   return {
     isReady,
@@ -575,35 +457,5 @@ export function useStagedCandidates(
     reconcileStageCandidate,
     unstageCandidate,
     reconcileUnstageCandidate,
-    cleanupConfirmedCandidateOrphan,
-    reconcileConfirmedCandidateOrphanCleanup,
   };
-}
-
-function isSameConfirmedOrphanCommand(
-  left: ConfirmedCandidateOrphanCleanupCommand,
-  right: ConfirmedCandidateOrphanCleanupCommand,
-): boolean {
-  return (
-    left.operationId === right.operationId &&
-    left.auditEventId === right.auditEventId &&
-    left.candidateId === right.candidateId &&
-    left.candidateExpectedVersion === right.candidateExpectedVersion &&
-    left.sourceBreakdownId === right.sourceBreakdownId &&
-    left.scratchBitId === right.scratchBitId &&
-    left.resultType === right.resultType &&
-    left.proof.status === "confirmed" &&
-    right.proof.status === "confirmed" &&
-    left.proof.cause === right.proof.cause &&
-    left.proof.sourceBreakdownId === right.proof.sourceBreakdownId
-  );
-}
-
-function isSelfConsistentConfirmedOrphanCommand(
-  command: ConfirmedCandidateOrphanCleanupCommand,
-): boolean {
-  return (
-    command.proof.status === "confirmed" &&
-    command.proof.sourceBreakdownId === command.sourceBreakdownId
-  );
 }

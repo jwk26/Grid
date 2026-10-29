@@ -275,17 +275,9 @@ describe("an unknown outcome", () => {
 });
 
 describe("commands that send nothing", () => {
-  it("the confirmed-orphan pair is rejected with no request, the zone migration does nothing, the test-only writes are not supported", async () => {
+  it("the zone migration does nothing", async () => {
     w.calls.length = 0;
-    const orphan = {
-      operationId: randomUUID(), auditEventId: randomUUID(), candidateId: randomUUID(), candidateExpectedVersion: 1,
-      sourceBreakdownId: randomUUID(), scratchBitId: randomUUID(), resultType: "bit" as const,
-      proof: { status: "confirmed" as const, cause: "source_deleted" as const, sourceBreakdownId: randomUUID() },
-    };
-    expect(await w.store.cleanupConfirmedCandidateOrphan(orphan)).toMatchObject({ status: "rejected", candidate: null, source: null, auditEvent: null });
-    expect(await w.store.reconcileConfirmedCandidateOrphanCleanup(orphan)).toMatchObject({ status: "rejected" });
     expect(await w.store.runBreadcrumbZoneMigration(null, new Set(["0,0"]))).toEqual({ relocated: 0 });
-    await expect(w.store.deleteScratchBreakdown(randomUUID())).rejects.toThrow("not supported");
     expect(w.calls).toEqual([]);
   });
 });

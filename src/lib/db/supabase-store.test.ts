@@ -244,10 +244,6 @@ describe("snapshot store reads over the fixture", () => {
     expect(await createSupabaseStore(next).getBit(SPARE)).toBeUndefined();
     expect(await supabase.getBit(SPARE)).toBeDefined();
   });
-
-  it("the writes only tests call are not supported (Phase 46 removes them)", async () => {
-    await expect(supabase.createScratchBreakdown({} as never)).rejects.toThrow("not supported");
-  });
 });
 
 describe("snapshot store liveRead", () => {

@@ -1803,7 +1803,6 @@ function TriageWorkspaceContent({
   const toStagingOperationViews = useCallback(
     (projected: readonly CandidateOperationProjection[]) =>
       projected.flatMap((operation): StagingOperationView[] => {
-        if (operation.kind === "orphan_cleanup") return [];
         const kind = operation.kind;
         const candidate = authoritativeStagedCandidates.find(
           ({ id }) => id === operation.candidateId,

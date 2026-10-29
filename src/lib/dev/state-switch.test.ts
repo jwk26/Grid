@@ -65,7 +65,6 @@ describe("injectable method table", () => {
       "deleteBreakdown", "reconcileDeleteBreakdown",
       "stageCandidate", "reconcileStageCandidate",
       "unstageCandidate", "reconcileUnstageCandidate",
-      "cleanupConfirmedCandidateOrphan", "reconcileConfirmedCandidateOrphanCleanup",
       "placeStagedCandidate", "reconcileStagedPlacement",
       "placeDirectBreakdown", "reconcileDirectPlacement",
       "undoStagedPlacement", "reconcileStagedPlacementUndo",
@@ -75,7 +74,7 @@ describe("injectable method table", () => {
     ]) {
       expect(names.has(name), name).toBe(true);
     }
-    expect(names.size).toBe(25);
+    expect(names.size).toBe(23);
   });
 
   it("offers each method only the outcomes its real path can return", () => {
@@ -104,7 +103,6 @@ describe("injectable method table", () => {
     );
     expect(new Set(rejecting)).toEqual(
       new Set([
-        "reconcileConfirmedCandidateOrphanCleanup",
         "reconcileStagedPlacementUndo",
         "reconcileDirectPlacementUndo",
       ]),

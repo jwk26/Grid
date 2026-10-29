@@ -2,9 +2,9 @@
 
 > **Scope:** This document specifies the data model. Architecture decisions live in SPEC.md.
 > **Storage:** Supabase Postgres, one dataset per account, isolated by RLS
-> ([Postgres Target](#postgres-target)). Until Phase 46 removes it, the Dexie
-> IndexedDB store ([Dexie Migration Target](#dexie-migration-target)) is the
-> running implementation.
+> ([Postgres Target](#postgres-target)). The Dexie IndexedDB store was removed
+> in Phase 46; [Dexie Migration Target](#dexie-migration-target) is kept as a
+> historical record.
 > **Validation:** Zod schemas with TypeScript type inference.
 > **Production derivation evidence:** Fresh reviewed SCHEMA SHA-256
 > `9338ecee14adb1f5d7b131391ad8a808db438e9b633c1cb3dfc2cb37a4a62a6b`
@@ -181,8 +181,8 @@
 ## Current Implementation And Canonical Target
 
 > **Historical (Dexie v3 → v4).** This section records the 2026-07-28
-> starting point. Phase 23 installed Dexie v4, which runs until Phase 46. The
-> SaaS target is [Postgres Target](#postgres-target).
+> starting point. Phase 23 installed Dexie v4, which ran until Phase 46 removed
+> it. The SaaS target is [Postgres Target](#postgres-target).
 
 The current production source baseline is commit
 `a3c679cf7ca09559ecc5e1690fd2a3707d40916c`, with `src` tree
@@ -228,7 +228,7 @@ to use the Fresh canonical chain.
 | Scratch aggregate revision | Use the Scratch Bit's `version` for both title CAS and Breakdown-membership ABA protection. | An intervening Add/Delete conservatively conflicts an older title edit instead of allowing stale overwrite. A future split revision requires a new SCHEMA amendment. |
 | Forced-Archive reload recovery | Store only the narrow non-authoritative reload/check-again descriptor in `sessionStorage` and fail closed when it cannot be written. | The descriptor never proves success and is not a durable operation log; authoritative state is re-read after reload. |
 | Invalid legacy v4 row | Abort and roll back the v4 migration when required legacy values cannot be normalized safely. | No partial migration or guessed default is allowed; recovery UX is implementation-owned but may not weaken rollback. |
-| Orphan-audit retention | Retain `candidateOrphanAuditEvents` indefinitely in v4 unless a later approved retention contract replaces it. | No automatic expiry is inferred. The store remains narrow integrity evidence, never a general journal/outbox. Superseded by SaaS S18: not ported to Postgres; Phase 46 removes the store. |
+| Orphan-audit retention | Retain `candidateOrphanAuditEvents` indefinitely in v4 unless a later approved retention contract replaces it. | No automatic expiry is inferred. The store remains narrow integrity evidence, never a general journal/outbox. Superseded by SaaS S18: not ported to Postgres; Phase 46 removed the store. |
 
 ---
 
@@ -243,7 +243,7 @@ Each store below is one Postgres table ([Postgres Target](#postgres-target));
 the field tables remain the camelCase TypeScript contract. In the Postgres
 target a `Date.now()` default means the server clock: the write function sets
 every timestamp from its transaction time (S11), and ids stay client-generated
-UUIDs. The **Indexes** tables are the Dexie declarations in use until Phase 46;
+UUIDs. The **Indexes** tables are the former Dexie declarations, kept as a historical record (Phase 46 removed Dexie);
 the Postgres indexes are listed in the target section, because reads run in
 memory over the account snapshot (S19).
 
@@ -418,7 +418,7 @@ staged or already-consumed rows at the repository boundary.
 ### stagedCandidates
 
 Durable, synchronized Node/Bit placement candidates scoped to one Scratch.
-The canonical TypeScript entity and Dexie store are both named
+The canonical TypeScript entity and the table are both named
 `StagedCandidate` / `stagedCandidates`.
 
 | Column | Type | Constraints | Default | Description |
@@ -468,8 +468,8 @@ cleanup (S18).
 
 Removed from the target by SaaS S18 (2026-10-22). The foreign key from a
 candidate to its source makes an orphan impossible, so the confirmed-orphan
-command and this append-only audit store are not ported to Postgres. The Dexie
-store and its client path remain until Phase 46 removes them. The former
+command and this append-only audit store are not ported to Postgres. Phase 46
+removed the Dexie store and its client path. The former
 contract is in Git history (`af5aa13:docs/SCHEMA.md`).
 
 ---
@@ -670,9 +670,9 @@ The demo seed fits the guest limits.
   `runBreadcrumbZoneMigration` in the Supabase store as a no-op, and the zone
   guards stay client-only (S43 (4), the plan under feedback F33). Feedback F26
   (Phase 50, Task 249) then removes the zone, the method from the `DataStore`
-  interface and both stores, and every `settings` use. The Dexie `settings`
-  store keeps its declaration, with no schema version bump, until Phase 46
-  removes Dexie; if Phase 46 lands first, nothing of it remains to change.
+  interface and the Supabase store, and every `settings` use. The Dexie
+  `settings` store went with Dexie in Phase 46, so nothing of it remains to
+  change.
 - `candidateOrphanAuditEvents` and the confirmed-orphan command (S18).
 - Local IndexedDB data: discarded, with no export, import or migration (S04).
 - Device preferences (color theme, Inbox sorts and, from Phase 50, the last
@@ -1063,10 +1063,10 @@ function (S31). Every function follows the SQL function checklist in
 
 - Names are the snake_case form of the `DataStore` method (`updateNode` →
   `update_node`).
-- Write methods that only tests call today (`createScratchBreakdown`,
+- The write methods that only tests called (`createScratchBreakdown`,
   `updateScratchBreakdown`, `markScratchBreakdownConsumed`,
-  `unconsumeScratchBreakdown`, `deleteScratchBreakdown`) are not ported;
-  Phase 46 removes them from the interface.
+  `unconsumeScratchBreakdown`, `deleteScratchBreakdown`) were not ported;
+  Phase 46 removed them from the interface.
 - One user action is one call. An action that today calls several `DataStore`
   writes in a row becomes one function: Empty Trash (`empty_trash()`; today one
   `hardDelete*` call per item), the deadline-conflict answer that extends the
@@ -1357,7 +1357,7 @@ Supabase database linter (Security Advisor) shows no new warning (S29).
 
 ## Application Hooks
 
-No database triggers (S13). Every side effect below runs inside the write function that causes it, in the same transaction, never in a component; until Phase 46 the Dexie repository enforces them. Where a hook says `Date.now()`, the Postgres target uses the function's transaction time (S11).
+No database triggers (S13). Every side effect below runs inside the write function that causes it, in the same transaction, never in a component; the Dexie repository enforced them until Phase 46 removed it. Where a hook says `Date.now()`, the Postgres target uses the function's transaction time (S11).
 
 ### 1. mtime Cascade
 
@@ -1418,8 +1418,8 @@ with two or more Chunks now incomplete, the Bit was completed by hand and stays
 `"complete"`; with one incomplete Chunk it was auto-completed and returns to
 `"active"`.
 
-Which writes recompute the Bit's status (user, 2026-10-25; today Dexie
-recomputes on every `updateChunk`, so a Chunk title edit or a reorder returns
+Which writes recompute the Bit's status (user, 2026-10-25; the removed Dexie
+store recomputed on every `updateChunk`, so a Chunk title edit or a reorder returns
 a hand-completed Bit to `"active"`; this replaces that behavior):
 
 - A Chunk status change, a Chunk create and a Chunk delete recompute it:
@@ -1688,7 +1688,7 @@ before setting `archivedAt`.
 ## Key Queries
 
 In the Postgres target these queries run in memory over the account snapshot
-(S19); the patterns stay and the index hints apply to the Dexie store only.
+(S19); the patterns stay and the index hints applied to the former Dexie store only.
 Trash auto-cleanup and the reconciliation queries run inside database
 functions.
 
@@ -1719,10 +1719,10 @@ functions.
 
 ## Dexie Migration Target
 
-> **Current store until Phase 46.** Phase 23 installed this v4 target. The
-> SaaS conversion does not migrate local IndexedDB data; it is discarded (S04).
-> Phase 46 removes this implementation together with `settings` and
-> `candidateOrphanAuditEvents`.
+> **Removed in Phase 46.** Phase 23 installed this v4 target; the SaaS
+> conversion discarded local IndexedDB data (S04), and Phase 46 removed the
+> implementation together with `settings` and `candidateOrphanAuditEvents`. The
+> section below stays as a historical record.
 
 The current database remains v3 until implementation work is separately
 approved. The canonical implementation target is **Dexie version 4**, declared

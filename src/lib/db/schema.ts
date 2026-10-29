@@ -151,20 +151,7 @@ export const scratchBreakdownSchema = z.object({
   version: versionSchema,
 });
 
-export const createScratchBreakdownSchema = scratchBreakdownSchema.omit({
-  id: true,
-  createdAt: true,
-  consumedAt: true,
-  version: true,
-});
-
-export const updateScratchBreakdownSchema = scratchBreakdownSchema
-  .pick({ content: true, order: true })
-  .partial();
-
 export type ScratchBreakdown = z.infer<typeof scratchBreakdownSchema>;
-export type CreateScratchBreakdown = z.infer<typeof createScratchBreakdownSchema>;
-export type UpdateScratchBreakdown = z.infer<typeof updateScratchBreakdownSchema>;
 
 // --- Staged Candidate ---
 
@@ -189,19 +176,6 @@ export const createStagedCandidateSchema = stagedCandidateSchema.omit({
 
 export type StagedCandidate = z.infer<typeof stagedCandidateSchema>;
 export type CreateStagedCandidate = z.infer<typeof createStagedCandidateSchema>;
-
-// --- Candidate Orphan Audit Event ---
-
-export const candidateOrphanAuditEventSchema = z.object({
-  id: idSchema,
-  cause: z.enum(["source_deleted", "source_tombstoned"]),
-  candidateId: idSchema,
-  sourceBreakdownId: idSchema,
-  scratchBitId: idSchema,
-  occurredAt: timestampSchema,
-});
-
-export type CandidateOrphanAuditEvent = z.infer<typeof candidateOrphanAuditEventSchema>;
 
 // --- Operation Recovery ---
 
