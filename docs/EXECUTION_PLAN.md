@@ -673,7 +673,9 @@ nothing went to production. Nothing is carried over.
 layer; rollback on `rejected` or error; the unknown-outcome rule (refetch,
 keep or roll back, never resend); parent-change moves pick the nearest empty
 cell from the snapshot (S43 (3)); tests for each group and for the S32 cases
-across real calls.
+across real calls. `src/lib/dev/state-switch.ts` and test: the ordinary write
+methods join the injectable list (today it holds only the Inbox command
+methods), so the switch can answer one with `rejected`.
 
 **Dependencies:** Phase 46 and Phase 49 Final Close and `main` sync; this
 phase's lifecycle gate.
@@ -697,7 +699,9 @@ rejection.
   hidden tab, close button on failures and warnings (F13, F14).
 - `src/lib/copy/feedback.ts`: the SPEC §Feedback copy toast rows.
 - The 17 kept `toast(` calls move to the helper with their aligned copy (F16);
-  rolled-back writes and account limits use their kinds.
+  rolled-back writes and account limits use their kinds. The eighteenth call,
+  `toast("Cell reserved by breadcrumb")` in `use-dnd.ts`, does not move: Task
+  249 deletes it (F16 dropped toast).
 - Group 3 controls show the feedback F03 loader (Task 243's `status-icon`)
   after `DISPLAY_DELAY_MS` and a busy state (the request timeout itself is Task
   227's).
@@ -1380,15 +1384,15 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** the SaaS lane continues with Phase 43 / Task 219; the feedback lane continues with Phase 50 / Task 245 after the Phase 45 close. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** the SaaS lane continues with Phase 47 / Task 231; the feedback lane continues with Phase 50 / Task 245. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers:** Phase 51 / Task 251. Planned Phases 42–50 and
   Tasks 213–250 are allocated; retired Phases 36–40 and Tasks 180–208 keep
   their numbers; none may be reused for another meaning.
-- Graph reconciliation: 95 accepted tasks (101–163 plus 105A, 166–172, 171A,
-  173–179 plus 176A and 179A, 209–212, 213–218, and 241–244), fourteen
-  completed archives (Phases 23–31, 34, 35, 41, 42 and 49), two historical
+- Graph reconciliation: 107 accepted tasks (101–163 plus 105A, 166–172, 171A,
+  173–179 plus 176A and 179A, 209–212, 213–230, and 241–244), eighteen
+  completed archives (Phases 23–31, 34, 35, 41–46 and 49), two historical
   unaccepted transfer records (164/165), 29 retired tasks (180–208) in retired
-  Phases 36–40, 22 unaccepted tasks (219–240) in Phases 43–48, 6 unaccepted tasks
+  Phases 36–40, 10 unaccepted tasks (231–240) in Phases 47–48, 6 unaccepted tasks
   (245–250) in Phase 50, and two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.
