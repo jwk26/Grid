@@ -182,3 +182,14 @@ Baseline gate (2026-10-26): `git diff --check`, `pnpm test` (2177), `pnpm test:d
 - Unresolved: mi-3 (Full folder offers block cells the measured breadcrumb leaves open; deferred to Task 249).
 - Review: reset-session reuse → fixed (this commit).
 - Decision: Task 229 accepted (user, 2026-10-29), with the advisory's finish review and the `/end-phase 45` note recorded in the Log.
+
+## Phase close — 2026-10-29
+
+- Audit: Tasks 225–229 `[x]` (user-accepted); no Open, In Progress or Awaiting User Decision item: MI-24, mi-1, mi-2 and mi-3 carry the user's deferral decisions in their task logs; `origin/main` (0f52e5d) is an ancestor of the branch, so no merge was needed. Every file in `git diff origin/main...HEAD` is named in a task log or checkpoint.
+- Gate (close, before the close commit): `git diff --check origin/main...HEAD`, `pnpm test` 2338/2338 (output saved), `pnpm test:db` 942/942 after a reset, `pnpm lint` (0 errors, 11 existing warnings), `pnpm typecheck`, `pnpm build` pass.
+- Close review against `PLANNING_STANDARD.md` §6: no Blocking finding. Only `indexeddb.ts` imports `dexie` and only `session.ts` and `supabase-client.ts` import `@supabase/supabase-js`; components import only types from `datastore.ts`; no theme-id branch added; no migration changed and no secret in Git (the fixture test uses placeholder keys); the `dev` function had its `expert` SQL review in Task 229. Advisory: the plan's Task 229 verification named the Playwright MCP browser, which no session had; the checks ran in the DevTools browser and a headless script (Task 229 log).
+- Documents reconciled at close: SPEC Key File Paths gains the Phase 45 files (`supabase-command-calls.ts`, `command-schemas.ts`, `write-errors.ts`, `read-helpers.ts`, `placement-undo-verdict.ts`, `seed.sql` with `scripts/dev-fixtures/`) and the `providers.tsx` row names the app frame; `.claude/settings.json` enables the `.mcp.json` Playwright server (user, 2026-10-29; to confirm in a fresh session that `/mcp` shows it connected); LEARNINGS gains the live-read request loop and the MCP enablement lessons.
+- Production: nothing to apply (no migration; `seed.sql` is local only).
+- Phase 35 MI-19: closed by the user in Task 229; moved to the resolved list in `Issues_Deferred.md`. Phase 35 MI-23: the load-failure screen landed in Task 228; the loading screen stays with Task 234.
+- Forward notes: Task 231 (Task 226 log), Task 232 (Task 227 log), Tasks 233, 234 and 235 (Task 228 log); each task reads its notes at its start. The plan's Phase 45 stub points here.
+- Carried over to `Issues_Deferred.md`: MI-24 (theme stage), mi-1 (Task 245), mi-2 (Task 246), mi-3 (Task 249), Phase 35 MI-23 (Task 234).

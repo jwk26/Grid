@@ -1782,7 +1782,7 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/app/globals.css` | CSS custom properties, Tailwind v4 `@theme` bridge, dark mode variant — single source of truth for all design tokens |
 | `src/app/layout.tsx` | Root layout — font variables, color-theme no-flash init script (from Task 241 built from the one shared theme id list), ThemeProvider/DataStore provider shell |
 | `src/app/(grid)/layout.tsx` | Route-group layout — renders GridRuntime for all grid pages |
-| `src/app/providers.tsx` | Client-side providers wrapper — ThemeProvider, ColorThemeProvider, DataStoreProvider. Zustand stores require no provider. |
+| `src/app/providers.tsx` | Client-side providers wrapper — ThemeProvider, ColorThemeProvider and, from Phase 45, the app frame around the app and its overlays. Zustand stores require no provider. |
 | `src/components/layout/grid-runtime.tsx` | Client wrapper: route state, sidebar, breadcrumb, shared DnD boundary, add-flow orchestration |
 | `src/components/layout/add-flow-context.tsx` | Minimal React context — pages call `useAddFlow().openAddAtCell(x, y)` to trigger add-flow |
 | `src/components/layout/color-theme-provider.tsx` | Applies the persisted color theme to `<html data-color-theme="...">` |
@@ -1797,6 +1797,11 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/db/supabase-calls.ts` *(Phase 42)* | One typed wrapper per database function the snapshot store calls (`get_snapshot`, `ensure_account`, `update_node`; later tasks add theirs), and the reserved breadcrumb cells passed until Task 249 |
 | `src/lib/db/boundary-cases.ts` *(Phase 42)* | One table of boundary values per field rule, run against the Zod schemas and the database CHECKs so both give the same verdict (S12, S33) |
 | `src/lib/db/supabase-store.ts` *(Phase 45)* | `DataStore` implementation: reads over the snapshot, one RPC per write |
+| `src/lib/db/supabase-command-calls.ts` *(Phase 45)* | Typed arguments of the Inbox/Triage command and reconcile functions, beside `supabase-calls.ts` for the ordinary writes |
+| `src/lib/db/command-schemas.ts` *(Phase 45)* | Zod schemas of the Inbox/Triage commands and their results, shared by both stores at the client write boundary |
+| `src/lib/db/write-errors.ts` *(Phase 45)* | The write errors callers catch: `DeadlineConflictError`, `WriteRejectedError` (a `rejected` envelope) and `WriteOutcomeUnknownError` (no answer) |
+| `src/lib/db/read-helpers.ts` *(Phase 45)* | Read ordering shared by both stores (Grid position, Chunk order, Node title path) |
+| `src/lib/db/placement-undo-verdict.ts` *(Phase 45)* | Pure Undo verdict of a placement from account rows; `DataStore.getPlacementUndoTruth()` uses it over the snapshot with no request, so Undo availability never calls a reconcile function, which runs only after an unknown outcome |
 | `src/lib/db/connection-monitor.ts` *(Phase 47)* | Connection state from request results: normal, unstable, offline; recovery probe |
 | `src/lib/auth/session.ts` *(Phase 45)* | Guest entry (anonymous sign-in, later Turnstile), OAuth, sign-out, refresh-failure detection, `ensure_account()` call |
 | `src/components/layout/app-frame.tsx` *(Phase 45)* | The app-level frame: loading, failure, session-expired, account-being-deleted, security-check and narrow-window screens |
@@ -1817,6 +1822,7 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/components/layout/home-button.tsx`, `src/hooks/use-breadcrumb-reveal.ts` *(Phase 50)* | Sidebar Home button and the breadcrumb reveal state: triggers, hiding, `Esc`, drag (F21–F25) |
 | `src/lib/copy/feedback.ts` *(Phase 49)* | Toast, app-state and blocking copy (F14); Task 244 creates it with the create-dialog sentence |
 | `supabase/config.toml`, `supabase/migrations/`, `supabase/tests/` *(Phase 42)* | Local Supabase configuration, migrations in Git, `pnpm test:db` suites |
+| `supabase/seed.sql`, `scripts/dev-fixtures/` *(Phase 45, local only)* | `dev.seed_fixture()` and the browser-check fixture that signs in as a local `@griddo.test` user and seeds through it; usage in each script header |
 | `vitest.db.config.ts` *(Phase 42)* | Vitest configuration for `pnpm test:db` (local Supabase), kept apart from `pnpm test` |
 | `scripts/verify/` *(Phase 42)* | Hosted Supabase checks run locally with `--local` and then on production: the write-role proof, `pg_cron`, the API surface and the D8 measurement; production values live outside Git (README) |
 | `.env.local.example` *(Phase 42)* | Names of the public env vars; values live in git-ignored `.env.local` |

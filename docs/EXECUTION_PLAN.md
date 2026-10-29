@@ -22,7 +22,8 @@ Execution plan mode: scaled
 > (2026-10-24); Tasks 213–218 are accepted `[x]` and Phase 42 is closed
 > (2026-10-25); Tasks 219–220 are accepted `[x]` and Phase 43 is closed
 > (2026-10-25); Tasks 221–224 are accepted `[x]` and Phase 44 is closed
-> (2026-10-26); Tasks 180–208 and Phases 36–40 are retired as
+> (2026-10-26); Tasks 225–229 are accepted `[x]` and Phase 45 is closed
+> (2026-10-29); Tasks 180–208 and Phases 36–40 are retired as
 > superseded (feedback F28, promotion ②), their text in
 > [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
 > Phases 32–33 remain reserved.
@@ -144,9 +145,9 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 44 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26). The SaaS lane continues with Phase 45; the feedback lane continues with Phase 50 after Phase 45. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 is bound to Task 229 and MI-23 is absorbed by Tasks 228 and 234. |
-| SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26; the migrations of Phases 42–44 are on production. MI-1 closed at the Phase 44 close (no recurrence); MI-8 is bound to Task 240. Phase 45 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
-| Feedback lane | `IN PROGRESS` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); its mi-1, mi-2 and mi-3 are bound to Task 248. Phase 50 waits for Phase 45 ([the phase waits](#lanes-and-phase-waits)). |
+| Execution lifecycle | Phase 45 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29). The SaaS lane continues with Phase 46; the feedback lane continues with Phase 50. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 closed in Task 229 and MI-23 keeps its loading screen for Task 234; Phase 45 MI-24 goes to the theme stage, mi-1 to Task 245, mi-2 to Task 246 and mi-3 to Task 249. |
+| SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26, Phase 45 (Tasks 225–229) on 2026-10-29; the migrations of Phases 42–44 are on production, and Phase 45 changed none. The app runs on local Supabase. MI-8 is bound to Task 240. Phase 46 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
+| Feedback lane | `IN PROGRESS` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); its mi-1, mi-2 and mi-3 are bound to Task 248. Phase 50 waits for nothing more since the Phase 45 close (2026-10-29); it carries Phase 45 mi-1 (Task 245), mi-2 (Task 246) and mi-3 (Task 249) ([the phase waits](#lanes-and-phase-waits)). |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
 | Headless/base UI | Tasks 127–163 accepted | Task 163 integration and bounded R01/I01 corrections are included in the Phase 31 Final Close transaction. Original task evidence is retained; correction/candidate evidence is separate. |
@@ -246,7 +247,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 42 | Completed | [Database foundation, end-to-end slice and early production](execution-plan/archive/phase-42.md) | 213–218 | Accepted and archived (2026-10-25); MI-1 deferred to the Phase 43 gate watch and MI-8 bound to Task 240 in `Issues_Deferred.md`. Phase 43 may start. |
 | Phase 43 | Completed | [Ordinary write functions](execution-plan/archive/phase-43.md) | 219–220 | Accepted and archived (2026-10-25); migrations on production; MI-1 deferred to the Phase 44 gate watch in `Issues_Deferred.md`. Phase 44 may start. |
 | Phase 44 | Completed | [Inbox/Triage command functions](execution-plan/archive/phase-44.md) | 221–224 | Accepted and archived (2026-10-26); migrations on production; MI-1 closed (no recurrence). Phase 45 may start. |
-| Phase 45 | Planned / unstarted | [Client switch](#phase-45--client-switch) | 225–229 | Phase 44 and Phase 49 close/main sync; implements the S43 (4) zone-migration no-op. |
+| Phase 45 | Completed | [Client switch](execution-plan/archive/phase-45.md) | 225–229 | Accepted and archived (2026-10-29); no migration; MI-19 closed; MI-24, mi-1, mi-2, mi-3 and Phase 35 MI-23 carried in `Issues_Deferred.md`. Phases 46 and 50 may start. |
 | Phase 46 | Planned / unstarted | [Dexie removal](#phase-46--dexie-removal) | 230 | Phase 45 close/main sync. |
 | Phase 47 | Planned / unstarted | [Feel and resilience](#phase-47--feel-and-resilience) | 231–234 | Phase 46 and Phase 49 close/main sync. |
 | Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 | Phase 47 close/main sync. |
@@ -641,196 +642,18 @@ recurrence; nothing is carried over. The function contracts are in SCHEMA
 Task 227 are in [the Phase 44 ledger](issues/Issues_Phase_44.md) (the Task
 227 notes in each task log); Task 227 reads them at its start.
 
-## Phase 45 — Client Switch
+## Phase 45 — Completed / Archived
 
-The app moves to local Supabase: snapshot reads, RPC writes (all
-server-confirmed at first), automatic guest entry, the load-failure screen and
-the fixtures. Optimistic feel waits for Phase 47, so a regression in one cannot
-hide in the other. S43 (4) is the plan (feedback F33): F26 ships in Phase 50,
-after this phase, so the Supabase store implements `runBreadcrumbZoneMigration`
-as a no-op and the zone guards stay client-only until Task 249.
-
-### Task 225: [x] Confirm the SaaS surfaces decision `DP-SAAS-01`
-
-**Files and actions:** `DP-SAAS-01` was decided in Task 242 (Phase 49) on the
-same option sheet as `DP-FB-01` (feedback F33). Compare the recorded choice in
-DESIGN_TOKENS §SaaS App-State Surfaces with the current SPEC surfaces (App-level
-screens, Account icon and modal); show the user any surface SPEC has added or
-changed since Task 242; the user re-confirms or adjusts, and an adjustment is
-recorded in the same section.
-
-**Dependencies:** Phase 44 and Phase 49 Final Close and `main` sync; this
-phase's lifecycle gate.
-
-**Authority:** S27, S40; feedback F33; DESIGN_TOKENS `DP-SAAS-01`.
-
-**Observable acceptance:** the user confirms or adjusts each surface; the
-section matches SPEC; no implementation file changes.
-
-**Verification:** `git diff --check`; the user confirms the recorded text.
-
-**Commit message:** `docs(design): confirm DP-SAAS-01`.
-
-### Task 226: [x] Move reads to the snapshot and replace the live queries
-
-**Files and actions:**
-- `DataStore.liveRead(read)` in `src/lib/db/datastore.ts`, with a `liveRead`
-  helper hooks import from there: an observable with Dexie `liveQuery`'s
-  subscribe shape that re-runs a DataStore read on every data change. The
-  Dexie implementation backs it with `liveQuery` inside `indexeddb.ts`, so no
-  hook imports `dexie` (PLANNING_STANDARD §6 DataStore facade); the Supabase
-  store backs it with snapshot subscriptions.
-- The 19 `liveQuery` call sites in the 17 hook files (`use-bit-detail`,
-  `use-breadcrumb-chain`, `use-calendar-data`, `use-can-archive-scratch`,
-  `use-explorer-remote-status`, `use-external-scratch-removal-data`,
-  `use-global-urgency`, `use-grid-data`, `use-grid-explorer-search`,
-  `use-inbox`, `use-node`, `use-node-urgency`, `use-scratch-breakdowns`,
-  `use-staged-candidates`, `use-trash-data`, `use-trash-scratch`,
-  `use-triage-newly-placed`) move to `liveRead`; return shapes unchanged;
-  every test that mocks `dexie` (13 files today: 12 hook tests and
-  `src/components/triage/hierarchy-explorer.test.tsx`) moves to mocking
-  `liveRead`.
-- `src/lib/db/supabase-store.ts`: every `DataStore` read method answered in
-  memory over the snapshot with SCHEMA Key Queries semantics, `searchAll()`
-  included (S19); unit tests without a database.
-
-**Dependencies:** Task 225.
-
-**Authority:** S07, S19; SPEC Architecture Decisions 2, 3, 19; SCHEMA Key
-Queries.
-
-**Observable acceptance:** hook tests against the mocked `DataStore` stay
-green; every read method gives the same result over a snapshot as the Dexie
-store over the same data (shared fixture); the app still runs on Dexie after
-this task.
-
-**Verification:** full gate; `expert` review (reactive boundary).
-
-**Commit message:** `refactor(hooks): move reads to liveRead and the snapshot`.
-
-### Task 227: [x] Send every write as a database function call
-
-**Files and actions:**
-- `src/lib/db/supabase-store.ts`: every production `DataStore` write method
-  calls its function and applies the envelope to the snapshot base after the
-  answer (server-confirmed, no optimistic overlay yet); every call without an
-  answer within `REQUEST_TIMEOUT_MS` ends as an unknown outcome, so Inbox
-  commands reconcile through their reconcile functions; `rejected` codes reach
-  the callers' existing failure paths, keeping the thrown messages callers
-  match today (`GRID_FULL` in `trash-group.tsx`, `Node not found:` in
-  `use-trash-actions.ts`); an Inbox `account_limit` rejection shows as that
-  command's existing rejected state with the reason in
-  `src/lib/copy/inbox-triage.ts`; `ensureSystemNodes()` calls
-  `ensure_account()`; the confirmed-orphan command and its reconcile method
-  return `rejected` with no call, since an orphan cannot occur (S18); the five
-  test-only Breakdown writes throw "not supported" until Phase 46 removes them;
-  `runBreadcrumbZoneMigration` is a no-op (S43 (4); Task 249 removes it).
-- One action, one call (SCHEMA §Exposed functions): `DataStore` gains
-  `emptyTrash()` and `reorderChunks()`, and the Bit and Chunk updates take the
-  parent extension; `use-trash-actions.ts`, `bit-detail-popup.tsx`
-  (`handleDeadlineConflictUpdateParent`), `chunk-pool.tsx` (reorder) and
-  `use-dnd.ts` (the Calendar Chunk-time answer) call them once. The Dexie
-  store implements them too, so the app keeps running on Dexie until Task
-  228.
-- Reserved cells (feedback F34): until Task 249 the Supabase store passes the
-  top-left 3×2 block (`getStaticBlockedCells()` in
-  `src/lib/utils/breadcrumb-zone.ts`) as `p_reserved_cells` to `restore_*`,
-  `unarchive_*`, `promote_bit_to_node` and the system-Node show path of
-  `update_node`.
-
-**Dependencies:** Task 226.
-
-**Authority:** S08, S16 (no resend), S31; SPEC §Write feel (group 4), SCHEMA
-§Database Functions.
-
-**Observable acceptance:** store tests in `supabase/tests/` (run by
-`pnpm test:db`) show every write method reaching its function, Inbox commands reconciling after a forced
-timeout, and each one-call action sending exactly one request; the app still
-runs on Dexie.
-
-**Verification:** full gate; `expert` review.
-
-**Commit message:** `feat(db): send every write as a database function call`.
-
-### Task 228: [x] Add guest entry and the load-failure screen
-
-**Files and actions:**
-- `src/lib/auth/session.ts`: anonymous sign-in on local Supabase (no
-  Turnstile yet), `ensure_account()`, snapshot load; refresh-failure
-  classification (an auth-server rejection sets the session-expired marker; a
-  network failure goes to the connection path; the screen comes in Task 234);
-  the cross-tab rule of SPEC §Account entry (a user change in another tab drops
-  the snapshot and repeats entry; two first-visit tabs converge on one
-  session).
-- `src/components/layout/app-frame.tsx` and test: gates the app until the
-  snapshot is ready (no loading indicator yet); the load-failure and
-  guest-creation-failure screens with reason lines and `Retry`, and the
-  automatic retry on reconnect, in the `DP-SAAS-01` look with copy from
-  `src/lib/copy/feedback.ts` (created here if absent).
-- `src/app/providers.tsx`: mount the frame; `TrashAutoCleanup` calls
-  `cleanup_expired_trash()`; `SystemNodeSeeding` is replaced by
-  `ensure_account()`.
-- `src/lib/db/datastore.ts`: `getDataStore()` returns the Supabase store, once
-  the session and snapshot bootstrap above is in place.
-- Reserved cells (feedback F34): `session.ts` passes the same top-left 3×2
-  block to `ensure_account()` until Task 249.
-
-**Dependencies:** Task 227.
-
-**Authority:** S10, S13, S16, S23, S26; F19; SPEC §Account entry, §App-level
-screens; absorbs Phase 35 MI-23.
-
-**Observable acceptance:** a fresh browser becomes a guest with its system
-Nodes; the same browser returns to the same guest after reload; with local
-Supabase stopped the load-failure screen shows its reason and `Retry` works
-after a restart; an empty Grid never flashes before the data; two tabs opened
-on a first visit end on the same guest; Grid,
-Calendar, Bit detail, Trash, Archive View and Inbox flows work on local
-Supabase and a reload shows every change; if Task 243 is on `main`, the state
-switch's outcome injection still works on the Supabase store.
-
-**Verification:** full gate; `expert` review; browser checkpoint in the three
-themes.
-
-**Commit message:** `feat(auth): add guest entry and the load-failure screen`.
-
-### Task 229: [x] Seed browser checks through the database and settle MI-19
-
-**Files and actions:**
-- `supabase/seed.sql` (runs on local `db reset` only, never a migration):
-  creates a `dev` schema with `dev.seed_fixture(user_id, scenario)`, granted
-  only to `service_role`; `supabase/config.toml` exposes `dev` locally. The
-  function first calls `ensure_account()` for that user with the top-left 3×2
-  block as `p_reserved_cells` (feedback F34; `seed.sql` is development-only, so
-  the block simply stays in this function after Task 249), clears every row
-  except the `accounts` row and the system Nodes, then inserts the scenario
-  with times
-  relative to now (aged, past-deadline, created-order and old-Trash states)
-  and with the account's existing system Node ids in place of the fixture's;
-  neither the system Nodes nor any scenario item uses a cell with `x` < 3 and
-  `y` < 2 at any level (feedback F34), checked by a database test.
-- `scripts/dev-fixtures/inbox-triage.js`: signs in as a local test user, calls
-  `dev.seed_fixture` with the local service key, refuses to run against a
-  non-local URL, and returns the scenario ids (`IDS`, `inboxRoute`) per run.
-  Fault injection (`armFault`) is replaced by the development state switch
-  (feedback F30) and by stopping local Supabase. `drag.js` unchanged.
-- `src/lib/db/inbox-triage-dev-fixture.test.ts` updated.
-- Phase 35 MI-19: read the Pool query and sort after
-  `await readTerminalSnapshot` in the lifecycle handoff, with a test, or show
-  in the ledger that the new read path makes it moot.
-
-**Dependencies:** Task 228.
-
-**Authority:** S20, S39; CLAUDE.md Test data.
-
-**Observable acceptance:** every scenario the fixture offered on IndexedDB is
-reachable on local Supabase; MI-19 is fixed or shown moot for the user to
-close.
-
-**Verification:** full gate; `expert` review (the `dev` function follows the
-SQL checklist); fixture run in the Playwright MCP browser.
-
-**Commit message:** `chore(fixtures): seed browser checks through the database`.
+SaaS-lane Tasks 225–229 are accepted. Their task contracts and
+completion-time scope are in
+[the Phase 45 archive](execution-plan/archive/phase-45.md). The app runs on
+local Supabase; no migration changed, so nothing went to production. Phase 35
+MI-19 closed in Task 229. Carried items are in
+[Issues_Deferred.md](issues/Issues_Deferred.md): MI-24 (theme stage), mi-1
+(Task 245), mi-2 (Task 246), mi-3 (Task 249) and Phase 35 MI-23 (its loading
+screen, Task 234). Forward notes for Tasks 231, 232, 233, 234 and 235 are in
+[the Phase 45 ledger](issues/Issues_Phase_45.md) (the Task 226–228 logs);
+each task reads its notes at its start.
 
 ## Phase 46 — Dexie Removal
 
