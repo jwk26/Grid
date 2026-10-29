@@ -10,18 +10,11 @@ import {
   type InjectableMethod,
   type InjectionOutcome,
 } from "@/lib/dev/state-switch";
-import type { IndexedDBDataStore } from "@/lib/db/indexeddb";
-import {
-  TRANSACTION_TEST_IDS,
-  createSevenStoreSeed,
-  openTransactionTestDatabase,
-  seedSevenStores,
-  snapshotSevenStores,
-  transactionTestUuid,
-} from "@/lib/db/indexeddb.test-utils";
-import { IndexedDBDataStore as RealIndexedDBDataStore } from "@/lib/db/indexeddb";
 
-const OPERATION_ID = transactionTestUuid(4001);
+const uuid = (n: number) => `00000000-0000-4000-8000-${n.toString(16).padStart(12, "0")}`;
+const SCRATCH_BIT = uuid(2);
+const OPERATION_ID = uuid(4001);
+
 
 /** A fake whose every injectable method answers with that method's own marker. */
 function makeFakeStore() {
@@ -336,33 +329,66 @@ describe("state switch store", () => {
   });
 });
 
-describe("withDevInjection over the real IndexedDB store", () => {
-  async function withRealStore(
-    run: (store: DataStore, raw: IndexedDBDataStore) => Promise<void>,
+/**
+ * A small stateful store with the real commands' contract: the Scratch carries a version, Add
+ * writes one row and increments it once, and the reconcile twin reads without writing.
+ */
+function makeStatefulStore() {
+  const state = {
+    scratch: { id: SCRATCH_BIT, version: 4, title: "Scratch" },
+    rows: new Map<string, { id: string; content: string }>(),
+  };
+  const reconcile = async (command: { breakdownId: string }) => {
+    const row = state.rows.get(command.breakdownId) ?? null;
+    return {
+      status: row === null ? "not_applied" : "already_applied",
+      scratch: { ...state.scratch },
+      breakdown: row === null ? null : { ...row },
+    };
+  };
+  const store = {
+    addBreakdown: async (command: { operationId: string; breakdownId: string; content: string }) => {
+      if (state.rows.has(command.breakdownId)) {
+        return { operationId: command.operationId, ...(await reconcile(command)) };
+      }
+      state.rows.set(command.breakdownId, { id: command.breakdownId, content: command.content });
+      state.scratch.version += 1;
+      return {
+        operationId: command.operationId,
+        status: "applied",
+        scratch: { ...state.scratch },
+        breakdown: { ...state.rows.get(command.breakdownId)! },
+      };
+    },
+    reconcileAddBreakdown: reconcile,
+    saveScratchTitle: vi.fn(),
+    reconcileSaveScratchTitle: async () => ({ status: "not_applied", scratch: { ...state.scratch } }),
+    getScratchBreakdowns: async () => [...state.rows.values()],
+  };
+  return { state, store: store as unknown as DataStore, raw: store };
+}
+
+describe("withDevInjection over a stateful store", () => {
+  async function withStore(
+    run: (
+      store: DataStore,
+      ctx: ReturnType<typeof makeStatefulStore>,
+    ) => Promise<void>,
   ) {
-    const database = await openTransactionTestDatabase();
-    try {
-      const seed = createSevenStoreSeed();
-      seed.scratchBreakdowns = [];
-      seed.stagedCandidates = [];
-      await seedSevenStores(database, seed);
-      const raw = new RealIndexedDBDataStore(database);
-      await run(withDevInjection(raw), raw);
-    } finally {
-      database.close();
-    }
+    const ctx = makeStatefulStore();
+    await run(withDevInjection(ctx.store), ctx);
   }
 
   const addCommand = () => ({
     operationId: OPERATION_ID,
-    breakdownId: transactionTestUuid(4002),
-    scratchBitId: TRANSACTION_TEST_IDS.scratchBit,
+    breakdownId: uuid(4002),
+    scratchBitId: SCRATCH_BIT,
     scratchExpectedVersion: 4,
     content: "Added through the switch",
   });
 
   it("an answer lost after commit reconciles to success with the version incremented once", async () => {
-    await withRealStore(async (store, raw) => {
+    await withStore(async (store, { raw }) => {
       useStateSwitchStore.getState().queueInjection({
         method: "addBreakdown",
         outcome: "unknown-after-commit",
@@ -383,13 +409,12 @@ describe("withDevInjection over the real IndexedDB store", () => {
         status: "already_applied",
         scratch: { version: 5 },
       });
-      const rows = await raw.getScratchBreakdowns(TRANSACTION_TEST_IDS.scratchBit);
-      expect(rows).toHaveLength(1);
+      expect(await raw.getScratchBreakdowns()).toHaveLength(1);
     });
   });
 
   it("an answer lost before send reconciles to not applied, then Retry applies it", async () => {
-    await withRealStore(async (store) => {
+    await withStore(async (store) => {
       useStateSwitchStore.getState().queueInjection({
         method: "addBreakdown",
         outcome: "unknown-before-send",
@@ -412,7 +437,7 @@ describe("withDevInjection over the real IndexedDB store", () => {
   it.each(["rejected", "conflict"] as const)(
     "an injected %s carries the current records and writes nothing",
     async (outcome) => {
-      await withRealStore(async (store) => {
+      await withStore(async (store) => {
         useStateSwitchStore.getState().queueInjection({
           method: "addBreakdown",
           outcome,
@@ -434,36 +459,29 @@ describe("withDevInjection over the real IndexedDB store", () => {
   );
 
   it("an injected conflict on a Scratch title save carries the current Scratch", async () => {
-    await withRealStore(async (store) => {
+    await withStore(async (store) => {
       useStateSwitchStore.getState().queueInjection({
         method: "saveScratchTitle",
         outcome: "conflict",
         delayMs: 0,
         count: 1,
       });
-      const seed = createSevenStoreSeed();
       const result = await store.saveScratchTitle({
-        operationId: transactionTestUuid(4003),
-        scratchBitId: TRANSACTION_TEST_IDS.scratchBit,
-        expectedVersion: seed.bits[0]!.version,
-        baseTitle: seed.bits[0]!.title,
+        operationId: uuid(4003),
+        scratchBitId: SCRATCH_BIT,
+        expectedVersion: 4,
+        baseTitle: "Scratch",
         title: "Renamed",
       });
       expect(result.status).toBe("conflict");
       // A non-null Scratch, so the editor shows its conflict view, not the recovery view.
-      expect(result.scratch).toMatchObject({ id: TRANSACTION_TEST_IDS.scratchBit });
+      expect(result.scratch).toMatchObject({ id: SCRATCH_BIT });
     });
   });
 
-  it("leaves the stores untouched by an injected answer", async () => {
-    const database = await openTransactionTestDatabase();
-    try {
-      const seed = createSevenStoreSeed();
-      seed.scratchBreakdowns = [];
-      seed.stagedCandidates = [];
-      await seedSevenStores(database, seed);
-      const store = withDevInjection(new RealIndexedDBDataStore(database));
-      const before = await snapshotSevenStores(database);
+  it("leaves the stored data untouched by an injected answer", async () => {
+    await withStore(async (store, { state }) => {
+      const before = structuredClone({ scratch: state.scratch, rows: [...state.rows] });
       useStateSwitchStore.getState().queueInjection({
         method: "addBreakdown",
         outcome: "conflict",
@@ -471,9 +489,7 @@ describe("withDevInjection over the real IndexedDB store", () => {
         count: 1,
       });
       await store.addBreakdown(addCommand());
-      expect(await snapshotSevenStores(database)).toEqual(before);
-    } finally {
-      database.close();
-    }
+      expect({ scratch: state.scratch, rows: [...state.rows] }).toEqual(before);
+    });
   });
 });

@@ -1,8 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { baseEntities } from "@/lib/db/boundary-cases";
 import type { DataStore } from "@/lib/db/datastore";
-import { IndexedDBDataStore, type GridDODatabase } from "@/lib/db/indexeddb";
-import { openTransactionTestDatabase } from "@/lib/db/indexeddb.test-utils";
 import {
   bitToRow,
   chunkToRow,
@@ -115,107 +113,114 @@ function snapshotRows() {
   };
 }
 
-let database: GridDODatabase;
-let dexie: DataStore;
 let snapshot: SnapshotStore;
 let supabase: DataStore;
 
 beforeEach(async () => {
-  database = await openTransactionTestDatabase();
-  await database.nodes.bulkPut(nodes);
-  await database.bits.bulkPut(bits);
-  await database.chunks.bulkPut(chunks);
-  await database.scratchBreakdowns.bulkPut(breakdowns);
-  await database.stagedCandidates.bulkPut(candidates);
-  dexie = new IndexedDBDataStore(database);
   snapshot = new SnapshotStore({ fetchSnapshot: async () => snapshotRows() });
   await snapshot.load();
   supabase = createSupabaseStore(snapshot);
 });
 
-afterEach(() => {
-  database.close();
-});
+const ids = (rows: Array<{ id: string }>) => rows.map((row) => row.id);
+const ns = (...n: number[]) => n.map(id);
 
-// The same call on both stores must give the same rows in the same order.
-async function same<T>(call: (store: DataStore) => Promise<T>): Promise<T> {
-  const expected = await call(dexie);
-  const actual = await call(supabase);
-  expect(actual).toEqual(expected);
-  return actual;
-}
-
-describe("snapshot store reads match the Dexie store over the same data", () => {
+// Expected ids and order are explicit values, taken from the Dexie store's output over this same
+// fixture before it was removed (Task 230). Reads sort by primary key unless a method orders them.
+describe("snapshot store reads over the fixture", () => {
   it("Node reads", async () => {
-    expect((await same((s) => s.getNode(PROJ_A)))?.title).toBe("Alpha plan");
-    expect(await same((s) => s.getNode(id(999)))).toBeUndefined();
-    expect((await same((s) => s.getNodes(null))).length).toBeGreaterThan(0);
-    await same((s) => s.getNodes(PROJ_A));
-    await same((s) => s.getNodes(PROJ_TRASHED));
-    await same((s) => s.getAllActiveNodes());
+    expect(await supabase.getNode(PROJ_A)).toEqual(nodes[1]);
+    expect(await supabase.getNode(id(999))).toBeUndefined();
+    expect(ids(await supabase.getNodes(null))).toEqual(ns(90, 10, 70, 20));
+    expect(ids(await supabase.getNodes(PROJ_A))).toEqual(ns(62, 60));
+    expect(await supabase.getNodes(PROJ_TRASHED)).toEqual([]);
+    expect(ids(await supabase.getAllActiveNodes())).toEqual(ns(10, 20, 60, 62, 70, 90));
   });
 
   it("Bit reads", async () => {
-    await same((s) => s.getBit(BIT_A1));
-    await same((s) => s.getBit(id(999)));
-    await same((s) => s.getBits(PROJ_A));
-    await same((s) => s.getBits(INBOX));
-    await same((s) => s.getBitsForNode(PROJ_A));
-    await same((s) => s.getBitsForNode(INBOX));
-    await same((s) => s.getAllActiveBits());
+    expect(await supabase.getBit(BIT_A1)).toEqual(bits[0]);
+    expect(await supabase.getBit(id(999))).toBeUndefined();
+    expect(ids(await supabase.getBits(PROJ_A))).toEqual(ns(95, 41, 42, 40));
+    expect(ids(await supabase.getBits(INBOX))).toEqual(ns(15, 80));
+    expect(ids(await supabase.getBitsForNode(PROJ_A))).toEqual(ns(40, 41, 42, 95));
+    expect(ids(await supabase.getBitsForNode(INBOX))).toEqual(ns(15, 80));
+    expect(ids(await supabase.getAllActiveBits())).toEqual(ns(12, 15, 40, 41, 42, 80, 95));
   });
 
   it("Breakdown, Candidate and Chunk reads", async () => {
-    await same((s) => s.getScratchBreakdowns(SCRATCH));
-    await same((s) => s.getScratchBreakdowns(SCRATCH_DONE));
-    await same((s) => s.getAllScratchBreakdowns());
-    await same((s) => s.getStagedCandidates(SCRATCH));
-    await same((s) => s.getStagedCandidates(SCRATCH_DONE));
-    await same((s) => s.getAllStagedCandidates());
-    await same((s) => s.getChunks(BIT_A1));
-    await same((s) => s.getChunks(BIT_ARCHIVED));
+    expect(ids(await supabase.getScratchBreakdowns(SCRATCH))).toEqual(ns(75, 25));
+    expect(ids(await supabase.getScratchBreakdowns(SCRATCH_DONE))).toEqual(ns(35));
+    expect(ids(await supabase.getAllScratchBreakdowns())).toEqual(ns(25, 35, 75));
+    expect(ids(await supabase.getStagedCandidates(SCRATCH))).toEqual(ns(14, 55));
+    expect(await supabase.getStagedCandidates(SCRATCH_DONE)).toEqual([]);
+    expect(ids(await supabase.getAllStagedCandidates())).toEqual(ns(14, 55));
+    expect(ids(await supabase.getChunks(BIT_A1))).toEqual(ns(45, 85));
+    expect(ids(await supabase.getChunks(BIT_ARCHIVED))).toEqual(ns(47));
   });
 
   it("grid contents hide trashed, archived and L0 hiddenFromGrid items", async () => {
-    const root = await same((s) => s.getActiveGridContents(null));
+    const root = await supabase.getActiveGridContents(null);
+    expect(ids(root.nodes)).toEqual(ns(10, 70, 20));
     expect(root.nodes.map((n) => n.systemRole)).not.toContain("inbox");
-    await same((s) => s.getActiveGridContents(PROJ_A));
-    await same((s) => s.getActiveGridContents(INBOX));
-    await same(async (s) => [...(await s.getGridOccupancy(null))]);
-    await same(async (s) => [...(await s.getGridOccupancy(PROJ_A))]);
-    await same(async (s) => [...(await s.getGridOccupancy(INBOX))]);
+    expect(root.bits).toEqual([]);
+    // getNodes(null) still lists the hidden Inbox; the grid contents do not.
+    expect(ids(await supabase.getNodes(null))).toContain(INBOX);
+    const alpha = await supabase.getActiveGridContents(PROJ_A);
+    expect(ids(alpha.nodes)).toEqual(ns(62, 60));
+    expect(ids(alpha.bits)).toEqual(ns(95, 41, 42, 40));
+    const inbox = await supabase.getActiveGridContents(INBOX);
+    expect(inbox.nodes).toEqual([]);
+    expect(ids(inbox.bits)).toEqual(ns(15, 80));
+    // Occupancy leaves out archived items and the hidden root Node.
+    expect([...(await supabase.getGridOccupancy(null))]).toEqual(["1,0", "1,1", "2,0"]);
+    expect([...(await supabase.getGridOccupancy(PROJ_A))]).toEqual(["0,1", "1,0", "3,2", "1,2", "2,2", "0,0"]);
+    expect([...(await supabase.getGridOccupancy(INBOX))]).toEqual(["0,0"]);
   });
 
   it("calendar, trash and archive reads", async () => {
-    const calendar = await same((s) => s.getCalendarItems());
-    expect(calendar.chunks.map((c) => c.id)).not.toContain(id(47));
-    await same((s) => s.getTrashedItems());
-    const archived = await same((s) => s.getArchivedItems());
+    const calendar = await supabase.getCalendarItems();
+    expect(ids(calendar.bits)).toEqual(ns(42, 95, 12, 40));
+    expect(ids(calendar.chunks)).toEqual(ns(46, 85));
+    expect(ids(calendar.chunks)).not.toContain(id(47));
+    const trashed = await supabase.getTrashedItems();
+    expect(ids(trashed.nodes)).toEqual(ns(50, 61));
+    expect(ids(trashed.bits)).toEqual(ns(11, 13));
+    const archived = await supabase.getArchivedItems();
+    expect(ids(archived.nodes)).toEqual(ns(30));
+    expect(ids(archived.bits)).toEqual(ns(16, 96));
     expect(archived.nodes.every((n) => n.systemRole === null)).toBe(true);
   });
 
   it("search, including Chunks under archived and trashed parents", async () => {
-    const hits = await same((s) => s.searchAll("alpha"));
+    const hits = await supabase.searchAll("alpha");
+    expect(hits.map((hit) => hit.item.id)).toEqual(ns(60, 70, 95, 85));
     expect(hits.map((hit) => hit.item.id)).not.toContain(id(47));
     expect(hits.map((hit) => hit.item.id)).not.toContain(id(48));
-    await same((s) => s.searchAll("  PLAN "));
-    await same((s) => s.searchAll("chunk"));
-    await same((s) => s.searchAll("task"));
-    expect(await same((s) => s.searchAll("   "))).toEqual([]);
+    expect((await supabase.searchAll("  PLAN ")).map((hit) => hit.item.id)).toEqual(ns(70));
+    expect((await supabase.searchAll("chunk")).map((hit) => hit.item.id)).toEqual(ns(45, 46, 85));
+    expect((await supabase.searchAll("task")).map((hit) => hit.item.id)).toEqual(ns(40, 95));
+    expect(await supabase.searchAll("   ")).toEqual([]);
   });
 
   it("child deadline conflicts", async () => {
-    await same((s) => s.getChildDeadlineConflicts(PROJ_A, T0 + DAY + 1, false));
-    await same((s) => s.getChildDeadlineConflicts(PROJ_A, T0 + 4 * DAY, true));
-    await same((s) => s.getChildDeadlineConflicts(CHILD, T0, false));
+    expect(ids(await supabase.getChildDeadlineConflicts(PROJ_A, T0 + DAY + 1, false))).toEqual(ns(40, 42, 95));
+    expect(ids(await supabase.getChildDeadlineConflicts(PROJ_A, T0 + 4 * DAY, true))).toEqual(ns(40));
+    expect(ids(await supabase.getChildDeadlineConflicts(CHILD, T0, false))).toEqual(ns(12));
   });
 
   it("Scratch archive eligibility", async () => {
-    expect((await same((s) => s.getScratchArchiveEligibility(SCRATCH))).eligible).toBe(false);
-    expect((await same((s) => s.getScratchArchiveEligibility(SCRATCH_DONE))).eligible).toBe(true);
-    await same((s) => s.getScratchArchiveEligibility(id(16)));
-    await same((s) => s.getScratchArchiveEligibility(id(999)));
-    await same((s) => s.getScratchArchiveEligibility(BIT_A1));
+    const eligibility = (scratch: string | null, eligible: boolean, consumed = 0, unconsumed = 0, staged = 0) => ({
+      eligible,
+      scratch: scratch === null ? null : expect.objectContaining({ id: scratch }),
+      consumedCount: consumed,
+      unconsumedCount: unconsumed,
+      stagedCandidateCount: staged,
+    });
+    expect(await supabase.getScratchArchiveEligibility(SCRATCH)).toEqual(eligibility(SCRATCH, false, 1, 1, 2));
+    expect(await supabase.getScratchArchiveEligibility(SCRATCH_DONE)).toEqual(eligibility(SCRATCH_DONE, true, 1));
+    expect(await supabase.getScratchArchiveEligibility(id(16))).toEqual(eligibility(id(16), false));
+    expect(await supabase.getScratchArchiveEligibility(id(999))).toEqual(eligibility(null, false));
+    expect(await supabase.getScratchArchiveEligibility(BIT_A1)).toEqual(eligibility(BIT_A1, false));
   });
 
   it("views pending writes: a read sees the snapshot view", async () => {
