@@ -659,28 +659,67 @@ each task reads its notes at its start.
 
 ### Task 230: [ ] Remove Dexie and the client orphan path
 
-**Files and actions:** delete `src/lib/db/indexeddb.ts`, its test utilities
-and the Dexie-only tests whose scenarios now live in `supabase/tests/`; remove
-`dexie` and `fake-indexeddb` from `package.json`; remove the `settings` store
-and the Dexie side of `runBreadcrumbZoneMigration` (the interface method and
-the Supabase no-op stay for Task 249 if it has not landed), the confirmed-orphan
-command, its reconcile method, its hook dispatch and Workspace caller and its
-orphan state and copy, the test-only Breakdown write methods, the Dexie backing
-of `liveRead`, `use-system-node-seeding.ts`, and the development slice page
-`src/app/dev/supabase-slice/` with its env variable.
+**Files and actions:** three stages, each with its own checkpoint and commit
+after the user accepts it; the gate is green at the end of every stage.
+
+1. **Tests off Dexie.** Before deleting anything, the ledger records a mapping
+   table: each `src/lib/db/*.test.ts` file that imports `indexeddb.ts` or its
+   test utilities, each scenario's counterpart in `supabase/tests/`, and the
+   verdict (delete, or rewrite onto the Supabase store). A scenario with no
+   counterpart stops the task for the user's decision. Then delete the
+   Dexie-only tests and rewrite the tests whose subject stays: the
+   `withDevInjection` tests in `src/lib/dev/state-switch.test.ts` (over the
+   Supabase store or a fake, not `IndexedDBDataStore`); the `liveQuery` from
+   `dexie` used in `src/components/layout/grid-runtime.test.tsx`,
+   `src/components/triage/triage-workspace.test.tsx` and
+   `src/hooks/use-triage-dnd.test.ts`; and in `src/lib/db/supabase-store.test.ts`
+   the read-parity block against the Dexie store is deleted, since its
+   reference leaves (its Phase 45 run is the evidence).
+2. **Dexie out.** Delete `src/lib/db/indexeddb.ts` with its `settings` store,
+   the Dexie side of `runBreadcrumbZoneMigration` (the interface method and the
+   Supabase no-op stay for Task 249 if it has not landed) and the Dexie backing
+   of `liveRead`, and `indexeddb.test-utils.ts`; remove `dexie` and
+   `fake-indexeddb` from `package.json`; delete the development slice page
+   `src/app/dev/supabase-slice/` and `NEXT_PUBLIC_GRIDDO_SUPABASE_SLICE` from
+   `.env.local.example`. Browser smoke of every route on local Supabase.
+3. **Interface trimmed and documents current.** Remove from the `DataStore`
+   interface and the Supabase store the confirmed-orphan command, its reconcile
+   method, its hook dispatch in `use-staged-candidates.ts`, its Workspace
+   caller in `triage-workspace.tsx`, and its orphan state, copy, Zod schemas
+   and types (`schema.ts`, `command-schemas.ts`, `src/types/index.ts`); remove
+   the five test-only Breakdown writes (`createScratchBreakdown`,
+   `updateScratchBreakdown`, `markScratchBreakdownConsumed`,
+   `unconsumeScratchBreakdown`, `deleteScratchBreakdown`) and
+   `UNSENT_WRITE_METHODS`, and their mocks and tests
+   (`supabase-store.test.ts`, `breakdown-panel.test.tsx`,
+   `use-scratch-breakdowns.test.tsx`, `use-triage-dnd.test.ts`,
+   `use-staged-candidates.test.tsx`, `schema.test.ts`). Rewrite every "until
+   Phase 46" passage as done: `CLAUDE.md` Key Paths; SPEC §Tech Stack, §File
+   Organization Conventions, §Durable Staging (the orphan path), §Environments
+   And Hosting (the slice page) and §Key File Paths; SCHEMA's header note,
+   §Current Implementation And Canonical Target, §Object Stores,
+   §candidateOrphanAuditEvents (removed), §Not ported (`settings`), §Exposed
+   functions (the test-only writes), §Application Hooks (the side-effects
+   paragraph) and §Dexie Migration Target, which stays as a historical record
+   under a one-line "removed in Phase 46" note; and the code comments that name
+   Phase 46.
+
+`src/hooks/use-system-node-seeding.ts` is already gone (Task 226).
 
 **Dependencies:** Phase 45 Final Close and `main` sync; this phase's lifecycle
 gate.
 
 **Authority:** S11, S18, S25, S41; SCHEMA §Not ported.
 
-**Observable acceptance:** no `dexie` import remains; every gate passes; the
-running app behaves as at the end of Phase 45.
+**Observable acceptance:** no `dexie` or `fake-indexeddb` import remains; every
+gate passes; the running app behaves as at the end of Phase 45.
 
-**Verification:** full gate; browser smoke of every route on local Supabase;
-`expert` review.
+**Verification:** full gate at each stage; browser smoke of every route on
+local Supabase after Stages 2 and 3; `expert` review before acceptance.
 
-**Commit message:** `refactor(db): remove Dexie and the client orphan path`.
+**Commit message:** Stage 1 `test(db): move tests off Dexie`; Stage 2
+`refactor(db): remove Dexie`; Stage 3 `refactor(db): remove the client orphan
+path`.
 
 ## Phase 47 — Feel And Resilience
 
