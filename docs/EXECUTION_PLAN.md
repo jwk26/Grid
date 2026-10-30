@@ -678,7 +678,7 @@ Task 234. Nothing is carried over.
 
 ## Phase 48 — Accounts And Launch
 
-### Task 235: [ ] Add the account modal, sign-out and account deletion
+### Task 235: [x] Add the account modal, sign-out and account deletion
 
 **Files and actions:** `src/components/layout/account-modal.tsx` and test (the
 guest and account variants, copy and privacy note from SPEC §Feedback copy, the
