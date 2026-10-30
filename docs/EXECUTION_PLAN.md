@@ -1064,8 +1064,10 @@ and dark, at 1024px with the Pool open (`Check again` width).
   reconcile again (never a resend); it turns unavailable at once, a terminal
   answer applies as the command's result and releases the lock, a check that
   fails returns to `?`. A Scratch removed elsewhere while a Staging command is
-  held gets one background read-only check, never retried on its own; if it
-  fails, the remaining lock is a residual bound to Task 233's browser check.
+  held, or a held command's candidate that leaves the list while its Scratch
+  stays selected (Phase 50 mi-2), gets one background read-only check, at
+  most one per command and never retried on its own; if it fails, the
+  remaining lock is a residual bound to Task 233's browser check.
 - `src/components/triage/hierarchy-explorer.tsx` or CSS only: the `Confirm
   placement` reason (Phase 45 mi-2).
 - `src/app/globals.css`: the `staging-node-grid` (one card's minimum width,
@@ -1075,7 +1077,7 @@ and dark, at 1024px with the Pool open (`Check again` width).
 
 **Dependencies:** Task 245.
 
-**Authority:** F06–F10; MI-21 (Staging part); Phase 45 mi-2; Phase 50 mi-1;
+**Authority:** F06–F10; MI-21 (Staging part); Phase 45 mi-2; Phase 50 mi-1, mi-2;
 SPEC §Durable Staging, §Item status presentation; DESIGN_TOKENS
 `DP-VQ06-STAGING` amendment (Unknown recovery).
 

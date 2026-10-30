@@ -846,9 +846,11 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   read-only check (`Check again`; the tooltip adds `Select to check again.`).
   It turns unavailable at once; a terminal answer applies as the command's
   own result would and releases the lock; a check that fails returns to `?`.
-  When the Scratch is removed elsewhere while a Staging command is held, one
-  read-only check runs in the background and is never retried on its own
-  (Phase 50 mi-1, user 2026-10-30). No repeated pulse or
+  When the Scratch is removed elsewhere while a Staging command is held, or
+  the held command's candidate leaves the list while its Scratch stays
+  selected, one read-only check runs in the background and is never retried
+  on its own; a held command gets at most one such automatic check (Phase 50
+  mi-1, mi-2, user 2026-10-30). No repeated pulse or
   layout-changing motion is permitted.
 - A transient drag-time Staging target and the whole Breakdown section drop-
   back invoke the same Unstage command; there is no permanent unstage button.
