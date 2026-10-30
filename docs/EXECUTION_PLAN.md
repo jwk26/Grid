@@ -705,6 +705,9 @@ rejection.
 - Group 3 controls show the feedback F03 loader (Task 243's `status-icon`)
   after `DISPLAY_DELAY_MS` and a busy state (the request timeout itself is Task
   227's).
+- A create the server refuses inside a dialog (the Node and Bit create
+  dialogs, the Scratch capture modal) shows its SPEC §Feedback copy dialog
+  line inline, keeps the typed title and raises no toast.
 - The Toaster's position, colour and stack limit stay as Task 244 set them.
   If Task 245 has landed, its inline-editor offline toast moves to the helper
   too; otherwise Task 245 uses the helper.
