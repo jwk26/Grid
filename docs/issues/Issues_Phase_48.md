@@ -71,8 +71,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 ## Task 236 — Add OAuth and Turnstile
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 236 acceptance
+- Status: Accepted
+- Next: Task 237
 - Open: none (mi-2 and mi-3 Deferred)
 
 ### Log
@@ -140,3 +140,4 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Review: `expert` ran twice, once on Stage 2 (PKCE return, URL cleanup, flag handling) and once on the Back-button return, which together cover every logic file of the task; Stage 1's Turnstile module was read in the first run. Findings → fixed with tests (the cancelled-from-expired-screen flag, `replaceState` state, a start that throws, the two-tab flag over an account, the marker's age). No further review at Finish: nothing changed after the second run except those fixes.
 - Please check: the acceptance observables of the plan — GitHub and Google sign-in open an own account with its system Nodes; a cancel returns to the same guest with the modal and its inline error; the pass key signs a guest in; the interactive key shows the widget; the failing key shows the reason and `Retry`; `git grep` finds no secret — all seen, as above. Nothing new to look at.
 - Unresolved: mi-2 (Retro Mac frame text on the dither) and mi-3 (`next dev` blank after Back) are Deferred by the user. Production auth settings (provider secrets, Turnstile secret, Site URL, redirect URLs) are Task 240's (Decision above). Captcha is off in the committed `config.toml` and the local server.
+- Decision: Task 236 accepted (user, 2026-10-31).

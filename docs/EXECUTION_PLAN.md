@@ -731,7 +731,7 @@ checkpoint in the three themes.
 
 **Commit message:** `feat(account): add the account modal and deletion`.
 
-### Task 236: [ ] Add OAuth and Turnstile
+### Task 236: [x] Add OAuth and Turnstile
 
 **Files and actions:**
 - Already registered (user, 2026-10-26, ahead of this task): GitHub OAuth
