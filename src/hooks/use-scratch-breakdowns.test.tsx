@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getConnectionMonitor } from "@/lib/db/connection";
 import type {
   AddBreakdownCommand,
   DataStore,
@@ -179,6 +180,7 @@ describe("useScratchBreakdowns", () => {
   let dataStore: ReturnType<typeof createDataStore>;
 
   beforeEach(() => {
+    getConnectionMonitor().setForced(null);
     vi.clearAllMocks();
     subscriptions.length = 0;
     dataStore = createDataStore();
@@ -935,14 +937,9 @@ describe("useScratchBreakdowns", () => {
   it("keeps the draft and shows the offline toast, without a phase change, an RPC or a lock, when saving offline", async () => {
     const lock = createOperationLock();
     const acquire = vi.spyOn(lock, "acquire");
-    const online = vi.fn(() => false);
-    const { result, rerender } = renderHook(
-      ({ isOnline }) =>
-        useScratchBreakdowns("scratch-1", "DESC", {
-          operationLock: lock,
-          isOnline,
-        }),
-      { initialProps: { isOnline: online } },
+    getConnectionMonitor().setForced("offline");
+    const { result } = renderHook(() =>
+      useScratchBreakdowns("scratch-1", "DESC", { operationLock: lock }),
     );
     act(() => {
       result.current.editor.openScratchTitle(createScratch());
@@ -972,8 +969,7 @@ describe("useScratchBreakdowns", () => {
       expect.objectContaining({ id: toastWarning.mock.calls[0][1]?.id, icon: expect.anything() }),
     );
 
-    const nowOnline = vi.fn(() => true);
-    rerender({ isOnline: nowOnline });
+    act(() => getConnectionMonitor().setForced(null));
     dataStore.saveScratchTitle.mockImplementation(async (command) => ({
       operationId: command.operationId,
       status: "not_applied",

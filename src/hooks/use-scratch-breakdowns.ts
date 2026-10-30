@@ -154,7 +154,6 @@ export type ConditionalEditorSnapshot = Readonly<{
 
 export type ConditionalEditorOptions = Readonly<{
   operationLock?: TriageOperationLock;
-  isOnline?: () => boolean;
   titleBlockerHandle?: ScratchTitleBlockerHandle;
 }>;
 
@@ -628,7 +627,7 @@ export function useScratchBreakdowns(
         beforeAction?.();
         return true;
       }
-      if ((editorOptions.isOnline ?? isBrowserOnline)() === false) {
+      if (isBrowserOnline() === false) {
         // Offline write attempt (F05, F18): nothing changes on screen and the
         // draft stays; only the shared offline toast appears.
         reportOfflineWrite();
