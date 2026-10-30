@@ -857,6 +857,59 @@ describe("StagingZone — commit-to-snapshot repair (Task 176A)", () => {
     });
   });
 
+  describe("the card root while a status shows (SPEC §Item status presentation)", () => {
+    function renderWith(op: View | null, check = false) {
+      useDraggableMock.mockReturnValue({
+        setNodeRef: vi.fn(),
+        setActivatorNodeRef: vi.fn(),
+        attributes: { role: "button", tabIndex: 0, "aria-describedby": "dnd-hint" },
+        listeners: {},
+        isDragging: false,
+      });
+      const staged = createCandidate({ id: "candidate-1", content: "Keep me" });
+      render(
+        <StagingZone
+          type="node"
+          projection={{
+            candidates: [staged],
+            integrityCandidates: [],
+            operations: op === null ? [] : [op],
+          }}
+          onCheckAgain={check ? vi.fn() : undefined}
+        />,
+      );
+      return screen.getByTestId("node-candidate-card");
+    }
+
+    it("points at the status sentence next to dnd-kit's own description", () => {
+      const card = renderWith(operation({ phase: "unknown" }));
+      const ids = card.getAttribute("aria-describedby")!.split(" ");
+      expect(ids[0]).toBe("dnd-hint");
+      expect(document.getElementById(ids[1])).toHaveTextContent(
+        "We couldn’t confirm whether “Keep me” was returned.",
+      );
+    });
+
+    it("keeps only dnd-kit's description when no status shows", () => {
+      const card = renderWith(null);
+      expect(card).toHaveAttribute("aria-describedby", "dnd-hint");
+      expect(card).toHaveAttribute("role", "button");
+    });
+
+    it("drops the button role and tab stop while a `?` check is on the card", () => {
+      const card = renderWith(operation({ phase: "unknown" }), true);
+      expect(card).not.toHaveAttribute("role");
+      expect(card).not.toHaveAttribute("tabindex");
+      expect(within(card).getByRole("button")).toBeInTheDocument();
+    });
+
+    it("keeps the role and tab stop without a check", () => {
+      const card = renderWith(operation({ phase: "unknown" }), false);
+      expect(card).toHaveAttribute("role", "button");
+      expect(card).toHaveAttribute("tabindex", "0");
+    });
+  });
+
   describe("an Unstage failure on the candidate", () => {
     function renderFailed(copy: string) {
       const staged = createCandidate({ id: "candidate-1", content: "Keep me" });

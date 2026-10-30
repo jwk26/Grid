@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { FileText, Folder, X } from "lucide-react";
 import {
@@ -463,6 +463,40 @@ const BIT_ROW_CLASS =
   "triage-staging__bit flex min-h-[2rem] w-full select-none items-center rounded-lg border border-border/60 bg-background px-3 py-1.5 transition-[background-color,border-color,color,opacity] focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none";
 const BIT_ROW_DRAGGABLE_CLASS = "touch-none cursor-grab active:cursor-grabbing";
 
+// The card root is the draggable host, so its own attributes carry dnd-kit's role, tabIndex and
+// description. While a status shows, the card also points at the status sentence (SPEC §Item
+// status presentation); while a `?` check is on the card, the card is locked, so it drops the
+// `role="button"` and tab stop that would nest the check button inside a button.
+function draggableHostProps(
+  attributes: Record<string, unknown>,
+  sentenceId: string,
+  hasSentence: boolean,
+  hasCheck: boolean,
+): Record<string, unknown> {
+  const describedBy = [attributes["aria-describedby"], hasSentence ? sentenceId : undefined]
+    .filter((id): id is string => typeof id === "string")
+    .join(" ");
+  const props: Record<string, unknown> = {
+    ...attributes,
+    "aria-describedby": describedBy === "" ? undefined : describedBy,
+  };
+  if (hasCheck) {
+    props.role = undefined;
+    props.tabIndex = undefined;
+    props["aria-roledescription"] = undefined;
+  }
+  return props;
+}
+
+function StatusSentenceText({ id, state, presentation }: { id: string; state: StagingItemState | null; presentation: StatusPresentation }) {
+  if (state === null || presentation.glyph === null) return null;
+  return (
+    <span className="sr-only" id={id}>
+      {state.sentence}
+    </span>
+  );
+}
+
 // What an item's status icon shows and says (feedback F06-F09). Pending shows its loader after
 // the display delay; unknown and reconciling show `?`; an Unstage failure or an unresolved source
 // shows `!`. The icon sits at the Node card's top-right corner and at a Bit row's end.
@@ -724,6 +758,13 @@ function NodeCandidateCard({
       ? forcedItemState(forced, candidate)
       : itemState(operation, failure, candidate.content, onCheckAgain);
   const presentation = useStatusPresentation(state?.status ?? null, state?.phaseKey ?? "");
+  const sentenceId = useId();
+  const hostProps = draggableHostProps(
+    attributes as unknown as Record<string, unknown>,
+    sentenceId,
+    state !== null && presentation.glyph !== null,
+    state?.checkOperationId !== undefined,
+  );
 
   return (
     <div
@@ -746,9 +787,10 @@ function NodeCandidateCard({
       data-triage-drag-source="staged-root"
       data-triage-role="staging-node-card"
       data-triage-state={operation?.phase ?? "staged"}
-      {...attributes}
+      {...hostProps}
       {...listeners}
     >
+      <StatusSentenceText id={sentenceId} presentation={presentation} state={state} />
       <div className="triage-staging__node-content flex h-full w-full flex-col items-center justify-center p-2">
         <Folder
           aria-hidden="true"
@@ -839,6 +881,13 @@ function BitCandidateRow({
       ? forcedItemState(forced, candidate)
       : itemState(operation, failure, candidate.content, onCheckAgain);
   const presentation = useStatusPresentation(state?.status ?? null, state?.phaseKey ?? "");
+  const sentenceId = useId();
+  const hostProps = draggableHostProps(
+    attributes as unknown as Record<string, unknown>,
+    sentenceId,
+    state !== null && presentation.glyph !== null,
+    state?.checkOperationId !== undefined,
+  );
 
   return (
     <div
@@ -861,9 +910,10 @@ function BitCandidateRow({
       data-triage-drag-source="staged-root"
       data-triage-role="staging-bit-row"
       data-triage-state={operation?.phase ?? "staged"}
-      {...attributes}
+      {...hostProps}
       {...listeners}
     >
+      <StatusSentenceText id={sentenceId} presentation={presentation} state={state} />
       <FileText
         aria-hidden="true"
         className={cn(

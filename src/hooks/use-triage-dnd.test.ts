@@ -644,6 +644,70 @@ describe("useTriageDnd — Task 145 durable Stage/Unstage adapters", () => {
       await waitFor(() => expect(operationLockState.release).toHaveBeenCalled());
     });
 
+    async function holdUnknownUnstage(isCandidateListed?: (id: string) => boolean) {
+      unstageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        outcome: "unknown",
+      }));
+      reconcileUnstageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        outcome: "unknown",
+      }));
+      const hook = renderHook(() =>
+        useTriageDnd("scratch-1", { ...durableCandidateOptions(), isCandidateListed }),
+      );
+      await act(async () => {
+        await completeDrag(
+          hook.result.current,
+          makeDragEndEvent(makeStagedDragData(), { kind: "triage-remove-drop" }),
+        );
+      });
+      return { ...hook, command: unstageCandidateMock.mock.calls[0]?.[0] };
+    }
+
+    it("checks a held Unstage once in the background when its candidate leaves the list, and never again", async () => {
+      const { result, command } = await holdUnknownUnstage(() => true);
+      expect(reconcileUnstageCandidateMock).toHaveBeenCalledTimes(1);
+      reconcileUnstageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        outcome: "unknown",
+      }));
+
+      await act(async () => result.current.notifyCandidateGone(command.candidateId));
+      await act(async () => result.current.notifyCandidateGone(command.candidateId));
+
+      expect(reconcileUnstageCandidateMock).toHaveBeenCalledTimes(2);
+      expect(operationLockState.release).not.toHaveBeenCalled();
+      expect(unstageCandidateMock).toHaveBeenCalledOnce();
+    });
+
+    it("releases the lock when the disappearance check gets a terminal answer", async () => {
+      const { result, command } = await holdUnknownUnstage(() => true);
+      reconcileUnstageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        status: "already_applied",
+        candidate: null,
+        source: null,
+        scratch: null,
+      }));
+
+      await act(async () => result.current.notifyCandidateGone(command.candidateId));
+
+      expect(operationLockState.release).toHaveBeenCalledWith(
+        command.operationId,
+        "already_applied",
+      );
+    });
+
+    it("checks at once when the candidate had already left the list when the command was held", async () => {
+      reconcileUnstageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        outcome: "unknown",
+      }));
+      await holdUnknownUnstage(() => false);
+      await waitFor(() => expect(reconcileUnstageCandidateMock).toHaveBeenCalledTimes(2));
+    });
+
     it("releases the lock when the background check gets a terminal answer", async () => {
       const { rerender, command } = await holdUnknownStage();
       reconcileStageCandidateMock.mockImplementationOnce(async (c) => ({

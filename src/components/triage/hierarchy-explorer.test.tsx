@@ -2102,10 +2102,26 @@ describe("HierarchyExplorer Task 153 placement reliability rail", () => {
     },
   );
 
-  it("brings the placement status into view when it appears, since the card can be taller than its column", () => {
-    const scrollIntoView = vi.fn();
-    const original = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = scrollIntoView;
+  it("keeps the whole placement card in view when a terminal answer arrives, since it can be taller than its column", () => {
+    const original = HTMLElement.prototype.getBoundingClientRect;
+    const scrolls: number[] = [];
+    HTMLElement.prototype.getBoundingClientRect = function () {
+      const box = (top: number, bottom: number) =>
+        ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top, toJSON() {} }) as DOMRect;
+      if (this.hasAttribute("data-triage-explorer-column")) return box(0, 100);
+      if (this.dataset.triageRole === "placement-affordance") return box(0, 300);
+      return box(0, 0);
+    };
+    const scrollTop = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+    Object.defineProperty(Element.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return 0;
+      },
+      set(value: number) {
+        scrolls.push(value);
+      },
+    });
     try {
       setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
       render(
@@ -2120,11 +2136,13 @@ describe("HierarchyExplorer Task 153 placement reliability rail", () => {
           })}
         />,
       );
-      const rail = screen.getByRole("status", { name: "Placement status" });
-      expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
-      expect(scrollIntoView.mock.contexts[0]).toBe(rail);
+      // The card's bottom is 200px below the column's: scroll down by that much, never back to 0.
+      expect(scrolls).toContain(200);
+      expect(scrolls).not.toContain(0);
     } finally {
-      Element.prototype.scrollIntoView = original;
+      HTMLElement.prototype.getBoundingClientRect = original;
+      if (scrollTop) Object.defineProperty(Element.prototype, "scrollTop", scrollTop);
+      else delete (Element.prototype as { scrollTop?: number }).scrollTop;
     }
   });
 

@@ -394,6 +394,7 @@ export function useTriageDnd(
   {
     beginPlacement,
     focusUnstagedSource,
+    isCandidateListed,
     isPlacementOpen,
     operationLock,
     reconcileStageCandidate,
@@ -403,6 +404,8 @@ export function useTriageDnd(
   }: {
     beginPlacement: (release: TriagePlacementRelease) => boolean;
     focusUnstagedSource: (sourceBreakdownId: string) => void;
+    /** Whether the candidate is in the authoritative list now; omitted: never checked. */
+    isCandidateListed?: (candidateId: string) => boolean;
     isPlacementOpen: () => boolean;
     operationLock: TriageOperationLock;
     reconcileStageCandidate: (
@@ -431,6 +434,8 @@ export function useTriageDnd(
   targetFeedback: TriageTargetFeedback;
   /** One read-only check of a held unknown Stage or Unstage; never a resend. */
   checkUnknownOperation: (operationId: string) => Promise<void>;
+  /** Tells a held Unstage that its candidate left the list. */
+  notifyCandidateGone: (candidateId: string) => void;
 } {
   const [activeDragItem, setActiveDragItem] =
     useState<TriageActiveDragItem>(null);
@@ -551,6 +556,7 @@ export function useTriageDnd(
       string,
       {
         scratchId: string | null;
+        candidateId: string;
         checking: boolean;
         backgroundChecked: boolean;
         run: () => Promise<boolean>;
@@ -565,13 +571,16 @@ export function useTriageDnd(
   }, [selectedScratchId]);
 
   const hold = (
+    kind: "stage" | "unstage",
     operationId: string,
+    candidateId: string,
     run: () => Promise<CandidateCommandOutcome<{ status: RepositoryOperationStatus }>>,
     onTerminal: (status: RepositoryOperationStatus) => void,
   ) => {
     const scratchId = selectedScratchId;
     heldUnknownRef.current.set(operationId, {
       scratchId,
+      candidateId,
       checking: false,
       backgroundChecked: false,
       run: async () => {
@@ -583,9 +592,12 @@ export function useTriageDnd(
         return true;
       },
     });
-    // Its Scratch was removed elsewhere while the command was out: the effect below already ran,
-    // so the one background check happens now.
-    if (selectedScratchIdRef.current !== scratchId) {
+    // Its Scratch was removed elsewhere while the command was out (the effect below already ran),
+    // or its candidate had already left the list: the one background check happens now.
+    if (
+      selectedScratchIdRef.current !== scratchId ||
+      (kind === "unstage" && isCandidateListed?.(candidateId) === false)
+    ) {
       const held = heldUnknownRef.current.get(operationId);
       if (held !== undefined) {
         held.backgroundChecked = true;
@@ -600,7 +612,7 @@ export function useTriageDnd(
       outcome = await reconcileStageCandidate(command);
     }
     if ("outcome" in outcome) {
-      hold(command.operationId, () => reconcileStageCandidate(command), () => {});
+      hold("stage", command.operationId, command.candidateId, () => reconcileStageCandidate(command), () => {});
       return;
     }
     operationLock.release(command.operationId, outcome.status);
@@ -619,7 +631,7 @@ export function useTriageDnd(
       }
     };
     if ("outcome" in outcome) {
-      hold(command.operationId, () => reconcileUnstageCandidate(command), onTerminal);
+      hold("unstage", command.operationId, command.candidateId, () => reconcileUnstageCandidate(command), onTerminal);
       return;
     }
     operationLock.release(command.operationId, outcome.status);
@@ -634,6 +646,17 @@ export function useTriageDnd(
       await held.run();
     } finally {
       held.checking = false;
+    }
+  };
+
+  // A held Unstage whose candidate left the list while its Scratch stays selected has no `?` left
+  // to press: it gets the same one background check (SPEC §Durable Staging, Unknown recovery).
+  const notifyCandidateGone = (candidateId: string): void => {
+    for (const [operationId, held] of heldUnknownRef.current) {
+      if (held.candidateId === candidateId && !held.backgroundChecked) {
+        held.backgroundChecked = true;
+        void checkUnknownOperation(operationId);
+      }
     }
   };
 
@@ -982,6 +1005,7 @@ export function useTriageDnd(
     refreshRenderedTarget: updateRenderedTarget,
     targetFeedback,
     checkUnknownOperation,
+    notifyCandidateGone,
   };
 }
 

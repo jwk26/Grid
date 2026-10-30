@@ -1395,6 +1395,13 @@ function TriageWorkspaceContent({
   } = stagedCandidates;
   // Alert and new-candidate state carry the Scratch they were raised for; a
   // mismatch with the selection reads as empty in the same commit.
+  // The Scratch selected now. A command that ends after its Scratch left (the one background check)
+  // runs this workspace's old closures; their Scratch-scoped setters must not touch the new
+  // Scratch's state.
+  const selectedScratchIdRef = useRef(selectedScratchId);
+  useEffect(() => {
+    selectedScratchIdRef.current = selectedScratchId;
+  }, [selectedScratchId]);
   const [stagingAlertState, setStagingAlertState] = useState<{
     scratchId: string | null;
     alert: StagingAlertState;
@@ -1411,6 +1418,7 @@ function TriageWorkspaceContent({
         | ((current: StagingAlertState | null) => StagingAlertState | null),
     ) =>
       setStagingAlertState((current) => {
+        if (selectedScratchIdRef.current !== selectedScratchId) return current;
         const currentAlert =
           current?.scratchId === selectedScratchId ? current.alert : null;
         const value = typeof next === "function" ? next(currentAlert) : next;
@@ -1458,6 +1466,7 @@ function TriageWorkspaceContent({
   const setUnstageFailure = useCallback(
     (candidateId: string, failure: UnstageFailure | null) =>
       setUnstageFailureState((current) => {
+        if (selectedScratchIdRef.current !== selectedScratchId) return current;
         const previous =
           current?.scratchId === selectedScratchId ? current.failures : null;
         if (failure === null && !previous?.has(candidateId)) return current;
@@ -1616,7 +1625,7 @@ function TriageWorkspaceContent({
         current?.candidateId === command.candidateId ? null : current,
       );
       setUnstageFailure(command.candidateId, null);
-      setUnstageAnnouncementState(null);
+      if (selectedScratchIdRef.current === selectedScratchId) setUnstageAnnouncementState(null);
       return meta;
     },
     [
@@ -1654,11 +1663,13 @@ function TriageWorkspaceContent({
         kind === "unstage" ? stagingTerminalCopy("unstage", outcome.status, meta) : null;
       if (failureCopy !== null) {
         setUnstageFailure(meta.candidateId, { copy: failureCopy });
-        setUnstageAnnouncementState({
-          scratchId: selectedScratchId,
-          operationId: outcome.operationId,
-          copy: failureCopy,
-        });
+        if (selectedScratchIdRef.current === selectedScratchId) {
+          setUnstageAnnouncementState({
+            scratchId: selectedScratchId,
+            operationId: outcome.operationId,
+            copy: failureCopy,
+          });
+        }
         return;
       }
       const alert = kind === "stage" ? stagingStageAlert(outcome.status, meta) : null;
@@ -1824,7 +1835,6 @@ function TriageWorkspaceContent({
 
     focusPlacementSource(release);
     // This alert projects an invalidation from the authoritative live-query owners.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStagingAlert({
       kind: "invalidated-placement",
       copy: stagingTemplate(
@@ -1849,9 +1859,11 @@ function TriageWorkspaceContent({
       focusPlacementSource(current.release);
     }
   }, [focusPlacementSource, placement]);
+  const listedCandidateIdsRef = useRef<ReadonlySet<string>>(new Set());
   const {
     activeDragItem,
     checkUnknownOperation,
+    notifyCandidateGone,
     collisionDetection,
     handleDragCancel,
     handleDragEnd,
@@ -1864,6 +1876,7 @@ function TriageWorkspaceContent({
   } = useTriageDnd(selectedScratchId, {
     beginPlacement: placement.begin,
     focusUnstagedSource,
+    isCandidateListed: (candidateId) => listedCandidateIdsRef.current.has(candidateId),
     isPlacementOpen: () => placement.snapshot !== null,
     operationLock,
     reconcileStageCandidate,
@@ -2053,12 +2066,21 @@ function TriageWorkspaceContent({
     stagedCandidates.isReady,
   ]);
 
+  // A held Unstage whose candidate leaves the list gets its one background check (mi-2).
+  useEffect(() => {
+    if (!stagedCandidates.isReady) return;
+    const next = new Set(authoritativeArrivalCandidates.map(({ id }) => id));
+    for (const id of listedCandidateIdsRef.current) {
+      if (!next.has(id)) notifyCandidateGone(id);
+    }
+    listedCandidateIdsRef.current = next;
+  }, [authoritativeArrivalCandidates, notifyCandidateGone, stagedCandidates.isReady]);
+
   useEffect(() => {
     if (!stagedCandidates.isReady || unstageFailures.size === 0) return;
     // Authoritative disappearance is the receipt-defined clear signal for an Unstage failure.
     for (const candidateId of unstageFailures.keys()) {
       if (!authoritativeArrivalCandidates.some(({ id }) => id === candidateId)) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUnstageFailure(candidateId, null);
       }
     }

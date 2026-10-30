@@ -958,7 +958,15 @@ The attached family maps through Staging-native theme roles:
   only; Staging still has no Retry.
 - **Nodes zone** (F10, MI-21). The `Nodes` well is never narrower than one
   Node card and lays its cards in an auto-fill grid: one column when two do
-  not fit, two as today when they do; every theme shares it.
+  not fit, two as today when they do; every theme shares it. Values:
+  `--triage-staging-node-card-min` 4.5rem (the narrowest a card gets; the
+  Nodes column is that plus 2rem), a card's own `max-w-[80px] mx-auto` caps it
+  in every theme that does not realize its own size (no theme overrides
+  `max-inline-size` on `.triage-staging__node`, so a Stage projection card and
+  a candidate card keep one size), `--triage-staging-node-gap` 0.5rem
+  (12px in `neumorphism`), and the two-column threshold is two minimum cards
+  plus one gap (a well of 152px with the 0.5rem gap; the theme's well padding
+  counts against it).
 - Counts, arrival, neutral/invalid reasons and focus rules are unchanged. The
   Motion row's "no spinner" yields to the F03 loader only.
 

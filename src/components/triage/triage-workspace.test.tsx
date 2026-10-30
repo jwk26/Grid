@@ -445,7 +445,12 @@ type DndState = {
   handlePlacementCancel: ReturnType<typeof vi.fn>;
   refreshRenderedTarget: ReturnType<typeof vi.fn>;
   targetFeedback: TriageTargetFeedback;
+  checkUnknownOperation?: (operationId: string) => Promise<void>;
+  notifyCandidateGone?: (candidateId: string) => void;
 };
+
+const checkUnknownOperationMock = vi.hoisted(() => vi.fn());
+const notifyCandidateGoneMock = vi.hoisted(() => vi.fn());
 
 function createDndState(overrides: Partial<DndState> = {}): DndState {
   return {
@@ -462,6 +467,8 @@ function createDndState(overrides: Partial<DndState> = {}): DndState {
     handlePlacementCancel: handlePlacementCancelMock,
     refreshRenderedTarget: vi.fn(),
     targetFeedback: null,
+    checkUnknownOperation: checkUnknownOperationMock,
+    notifyCandidateGone: notifyCandidateGoneMock,
     ...overrides,
   };
 }
@@ -1649,6 +1656,60 @@ describe("TriageWorkspace", () => {
       view.rerender(<TriageWorkspace node={createNode()} />);
 
       await waitFor(() => expect(failureFor(candidate.id)).toBeUndefined());
+    });
+
+    it("tells a held Unstage when its candidate leaves the list", async () => {
+      const { view } = await failUnstage("conflict");
+      notifyCandidateGoneMock.mockClear();
+
+      useStagedCandidatesMock.mockReturnValue({
+        ...projection,
+        candidates: [],
+        counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
+      });
+      view.rerender(<TriageWorkspace node={createNode()} />);
+
+      await waitFor(() => expect(notifyCandidateGoneMock).toHaveBeenCalledWith(candidate.id));
+    });
+
+    it("leaves the new Scratch's band notice and failures alone when a command of the old Scratch ends late", async () => {
+      useStagedCandidatesMock.mockReturnValue(projection);
+      render(<TriageWorkspace node={createNode()} />);
+      const oldOptions = useTriageDndMock.mock.calls[0]?.[1] as DndOptions;
+      act(() => useTriageStore.getState().selectScratch("scratch-2"));
+      const newOptions = useTriageDndMock.mock.calls.at(-1)?.[1] as DndOptions & {
+        stageCandidate: (command: Record<string, unknown>) => Promise<unknown>;
+      };
+      stageCandidateMock.mockResolvedValue({
+        operationId: "stage-9",
+        status: "conflict",
+        candidate: null,
+        source: candidate.source,
+      });
+      await act(async () => {
+        await newOptions.stageCandidate({
+          operationId: "stage-9",
+          candidateId: "candidate-9",
+          scratchBitId: "scratch-2",
+          sourceBreakdownId: "breakdown-9",
+          sourceExpectedVersion: 1,
+          resultType: "bit",
+        });
+      });
+      expect(screen.getByRole("button", { name: "Dismiss Staging alert" })).toBeInTheDocument();
+
+      unstageCandidateMock.mockResolvedValue({
+        operationId: "unstage-1",
+        status: "conflict",
+        candidate,
+        source: candidate.source,
+      });
+      await act(async () => {
+        await oldOptions.unstageCandidate(command("unstage-1"));
+      });
+
+      expect(screen.getByRole("button", { name: "Dismiss Staging alert" })).toBeInTheDocument();
+      expect(failureFor(candidate.id)).toBeUndefined();
     });
 
     it("does not carry across a Scratch switch", async () => {
