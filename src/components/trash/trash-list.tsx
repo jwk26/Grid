@@ -1,6 +1,7 @@
 "use client";
 
-import { toast } from "sonner";
+import { toastCopy } from "@/lib/copy/feedback";
+import { showToast } from "@/lib/feedback/toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,9 +59,9 @@ export function TrashList({ items }: { items: TrashItems }) {
   async function handleEmptyTrash() {
     try {
       await emptyTrash();
-      toast.success("Trash emptied.");
+      showToast(toastCopy.emptyTrashSucceeded);
     } catch {
-      toast.error("Unable to empty trash.");
+      showToast(toastCopy.emptyTrashFailed);
     }
   }
 

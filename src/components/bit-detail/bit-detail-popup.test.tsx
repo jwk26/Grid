@@ -1,3 +1,5 @@
+import { WriteRejectedError } from "@/lib/db/write-errors";
+import { markReported } from "@/lib/db/write-failure";
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { startOfDay, startOfToday } from "date-fns";
@@ -429,5 +431,42 @@ describe("BitDetailPopup", () => {
       { deadline: nextDeadline, deadlineAllDay: true },
       { extendParent: true },
     );
+  });
+
+  it("leaves a refused deadline change to the store's toast: no conflict modal, no unhandled rejection", async () => {
+    updateBitMock.mockRejectedValueOnce(
+      markReported(new WriteRejectedError("rejected", { code: "rejected" })),
+    );
+    mockBitDetail(
+      createBit({ deadline: new Date(2026, 3, 10, 9, 30).getTime() }),
+      [],
+      createNode({ deadline: new Date(2026, 3, 12, 9, 30).getTime() }),
+    );
+
+    render(<BitDetailPopup />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Choose April 13" }));
+    });
+
+    expect(screen.queryByTestId("deadline-conflict-modal")).not.toBeInTheDocument();
+  });
+
+  it("drops a refused title edit the store reported and keeps the typed draft", async () => {
+    updateBitMock.mockRejectedValueOnce(
+      markReported(new WriteRejectedError("rejected", { code: "rejected" })),
+    );
+    mockBitDetail(createBit({ title: "Saved title" }), [], createNode());
+
+    render(<BitDetailPopup />);
+
+    const field = screen.getByDisplayValue("Saved title");
+    fireEvent.change(field, { target: { value: "Typed draft" } });
+    await act(async () => {
+      fireEvent.blur(field);
+    });
+
+    expect(updateBitMock).toHaveBeenCalledWith("bit-1", { title: "Typed draft" });
+    expect(screen.getByDisplayValue("Typed draft")).toBeInTheDocument();
   });
 });

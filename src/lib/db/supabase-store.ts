@@ -55,6 +55,7 @@ import type {
   ChangeRow,
   Envelope,
   PendingEffect,
+  RefetchResult,
   SnapshotStore,
 } from "@/lib/db/snapshot-store";
 import * as commandCalls from "@/lib/db/supabase-command-calls";
@@ -94,6 +95,7 @@ import {
   WriteOutcomeUnknownError,
   WriteRejectedError,
 } from "@/lib/db/write-errors";
+import { limitItemsOf, markReported, type ReportWriteFailure, type WriteFailure, type WriteFailureKind } from "@/lib/db/write-failure";
 import { isDeadlineAfter } from "@/lib/utils/deadline";
 
 // The DataStore over the account snapshot (SPEC Architecture Decisions 2 and 19). Task 226 is
@@ -252,9 +254,15 @@ export const NO_REQUEST_WRITE_METHODS: readonly string[] = ["runBreadcrumbZoneMi
 
 const chunkUpdateSchema = chunkSchema.omit({ id: true, parentId: true }).partial();
 
+export type SupabaseStoreOptions = Readonly<{
+  /** Told once about each ordinary write that was shown at once and then rolled back. */
+  reportFailure?: ReportWriteFailure;
+}>;
+
 export function createSupabaseStore(
   snapshot: SnapshotStore,
   getClient: () => GriddoSupabaseClient = getSupabaseClient,
+  storeOptions: SupabaseStoreOptions = {},
 ): DataStore {
   const view = (): AccountView => snapshot.getState().view;
   const nodes = () => byId(view().nodes);
@@ -508,18 +516,54 @@ export function createSupabaseStore(
     }
   };
 
+  // Whether a change shown at once is on the server, read from the view after a refetch: `null`
+  // when the refetch failed (nothing is known).
+  const keptAfterRefetch = async (
+    effects: readonly PendingEffect[],
+    refetched: Promise<RefetchResult> | undefined,
+  ): Promise<boolean | null> => {
+    if ((await refetched) !== "applied") return null;
+    // The base, not the view: the view also carries later writes that are still pending.
+    const current = snapshot.getBase();
+    return effects.every((effect) => {
+      const row = current[effect.table].get(effect.kind === "create" ? effect.record.id : effect.id) as
+        | Record<string, unknown>
+        | undefined;
+      switch (effect.kind) {
+        case "create":
+          return row !== undefined;
+        case "remove":
+          return row === undefined || row.deletedAt != null || row.archivedAt != null;
+        case "patch":
+          return (
+            row !== undefined &&
+            Object.entries(effect.patch).every(([key, value]) => JSON.stringify(row[key]) === JSON.stringify(value))
+          );
+      }
+    });
+  };
+
   // Sends one call and returns its envelope when it was applied. A rejection, an error or an
   // unknown outcome throws; an unknown outcome is never resent, the snapshot store refetches
   // (S16). With `effects` the write shows at once through the pending layer (groups 1 and 2 of
   // SPEC §Write feel) and the view returns to the base on a refusal or an error; without them it
   // is a command and the view waits for the answer (group 3). The chain `key` is the same either way.
+  // `failure` names what to tell the feedback layer when the shown change is rolled back: once,
+  // here, so no caller reports it again. A deadline conflict is not reported (its dialog shows it).
   const send = async (
     key: string,
     call: (client: GriddoSupabaseClient) => Promise<Envelope>,
     about: Rejected,
     effects: readonly PendingEffect[] = [],
+    failure: WriteFailure | null = null,
   ): Promise<Envelope> => {
     const sendRequest = () => call(client());
+    // Tells the feedback layer once and marks the error, so a caller can drop it.
+    const report = <E extends Error>(error: E, extra?: Partial<WriteFailure>): E => {
+      if (!failure) return error;
+      storeOptions.reportFailure?.({ ...failure, ...extra });
+      return markReported(error);
+    };
     const outcome =
       effects.length > 0
         ? await snapshot.write({ key, effects, send: sendRequest })
@@ -527,12 +571,27 @@ export function createSupabaseStore(
     switch (outcome.outcome) {
       case "applied":
         return outcome.envelope as Envelope;
-      case "rejected":
-        throw rejectionError(outcome.envelope as Envelope, about);
+      case "rejected": {
+        const envelope = outcome.envelope as Envelope;
+        const error = rejectionError(envelope, about);
+        if (error instanceof DeadlineConflictError) throw error;
+        const rejection = envelope.rejection;
+        const items = limitItemsOf(rejection?.table);
+        throw report(
+          error,
+          rejection?.code === "account_limit" && rejection.limit !== undefined && items
+            ? { accountLimit: { limit: rejection.limit, items } }
+            : undefined,
+        );
+      }
       case "error":
-        throw outcome.error instanceof Error ? outcome.error : new Error(String(outcome.error));
-      case "unknown":
-        throw new WriteOutcomeUnknownError();
+        throw report(outcome.error instanceof Error ? outcome.error : new Error(String(outcome.error)));
+      case "unknown": {
+        if (effects.length === 0) throw new WriteOutcomeUnknownError();
+        const kept = await keptAfterRefetch(effects, outcome.refetched);
+        const unknown = new WriteOutcomeUnknownError(kept);
+        throw kept === false ? report(unknown) : unknown;
+      }
     }
   };
 
@@ -553,12 +612,33 @@ export function createSupabaseStore(
   ];
   const removeEffect = (table: "nodes" | "bits", id: string): PendingEffect[] => [{ kind: "remove", table, id }];
 
+  // The item's title as the view shows it now, before the write changes it.
+  const titleOf = (table: "nodes" | "bits" | "chunks", id: string): string =>
+    (view()[table].get(id) as { title?: string } | undefined)?.title ?? "this item";
+  const failureOf = (kind: WriteFailureKind, table: "nodes" | "bits" | "chunks", id: string): WriteFailure => ({
+    kind,
+    title: titleOf(table, id),
+  });
+  // Which rolled-back sentence an edit gets: a deadline, a position, a completion, else an edit.
+  const editKind = (patch: object, extendParent: boolean): WriteFailureKind => {
+    const given = new Set(Object.keys(definedOnly(patch)));
+    if (extendParent) return "deadline-extension";
+    if (given.has("deadline")) return "deadline";
+    if (["parentId", "x", "y"].some((field) => given.has(field))) return "move";
+    if (given.has("status")) return "completion";
+    return "edit";
+  };
+
+  // A create made inside a dialog turns the store's report off: the dialog shows its own line.
+  const createFailure = (title: string, options?: { report?: boolean }): WriteFailure | null =>
+    options?.report === false ? null : { kind: "create", title };
+
   const nodeAbout = (id: string): Rejected => ({ label: "Node", id });
   const bitAbout = (id: string): Rejected => ({ label: "Bit", id });
   const chunkAbout = (id: string): Rejected => ({ label: "Chunk", id, chunk: true });
 
   const ordinary: Pick<DataStore, OrdinaryWriteKey> = {
-    createNode: async (data) => {
+    createNode: async (data, options) => {
       const parsed = createNodeSchema.parse(data);
       const id = crypto.randomUUID();
       const now = Date.now();
@@ -575,19 +655,35 @@ export function createSupabaseStore(
         hiddenFromGrid: false,
         pastDeadlineDismissed: false,
       };
-      const envelope = await send(`nodes:${id}`, (c) => callCreateNode(c, id, nodeCreateToRow(parsed)), nodeAbout(id), [
-        { kind: "create", table: "nodes", record },
-      ]);
+      const envelope = await send(
+        `nodes:${id}`,
+        (c) => callCreateNode(c, id, nodeCreateToRow(parsed)),
+        nodeAbout(id),
+        [{ kind: "create", table: "nodes", record }],
+        createFailure(parsed.title, options),
+      );
       return nodeFromRow(upserted(envelope, "nodes", id) as never);
     },
-    updateNode: async (id, data) => {
+    updateNode: async (id, data, options) => {
       const parsed = updateNodeSchema.parse(data);
       // A moved Node's own level follows its new parent; its descendants' levels come with the answer.
       const shown = parsed.parentId === undefined ? parsed : { ...parsed, level: levelOfParent(parsed.parentId) };
-      await send(`nodes:${id}`, (c) => callUpdateNode(c, id, parsed), nodeAbout(id), patchEffect("nodes", id, shown));
+      await send(
+        `nodes:${id}`,
+        (c) => callUpdateNode(c, id, parsed),
+        nodeAbout(id),
+        patchEffect("nodes", id, shown),
+        options?.report === false ? null : failureOf(editKind(parsed, false), "nodes", id),
+      );
     },
     softDeleteNode: async (id) => {
-      await send(`nodes:${id}`, (c) => callById(c, "soft_delete_node", id), nodeAbout(id), removeEffect("nodes", id));
+      await send(
+        `nodes:${id}`,
+        (c) => callById(c, "soft_delete_node", id),
+        nodeAbout(id),
+        removeEffect("nodes", id),
+        failureOf("trash", "nodes", id),
+      );
     },
     restoreNode: async (id) => {
       await send(`nodes:${id}`, (c) => callWithReserved(c, "restore_node", id), nodeAbout(id));
@@ -597,7 +693,13 @@ export function createSupabaseStore(
       return { status: "deleted" };
     },
     archiveNode: async (id) => {
-      await send(`nodes:${id}`, (c) => callById(c, "archive_node", id), nodeAbout(id), removeEffect("nodes", id));
+      await send(
+        `nodes:${id}`,
+        (c) => callById(c, "archive_node", id),
+        nodeAbout(id),
+        removeEffect("nodes", id),
+        failureOf("archive", "nodes", id),
+      );
     },
     unarchiveNode: async (id) => {
       await send(`nodes:${id}`, (c) => callWithReserved(c, "unarchive_node", id), nodeAbout(id));
@@ -633,9 +735,13 @@ export function createSupabaseStore(
         archivedAt: null,
         pastDeadlineDismissed: false,
       };
-      const envelope = await send(`bits:${id}`, (c) => callCreateBit(c, id, bitCreateToRow(parsed)), bitAbout(id), [
-        { kind: "create", table: "bits", record },
-      ]);
+      const envelope = await send(
+        `bits:${id}`,
+        (c) => callCreateBit(c, id, bitCreateToRow(parsed)),
+        bitAbout(id),
+        [{ kind: "create", table: "bits", record }],
+        createFailure(parsed.title, options),
+      );
       return bitFromRow(upserted(envelope, "bits", id) as never);
     },
     updateBit: async (id, data, options) => {
@@ -645,10 +751,17 @@ export function createSupabaseStore(
         (c) => callUpdateBit(c, id, bitPatchToRow(parsed), options?.extendParent === true),
         bitAbout(id),
         patchEffect("bits", id, parsed),
+        failureOf(editKind(parsed, options?.extendParent === true), "bits", id),
       );
     },
     softDeleteBit: async (id) => {
-      await send(`bits:${id}`, (c) => callById(c, "soft_delete_bit", id), bitAbout(id), removeEffect("bits", id));
+      await send(
+        `bits:${id}`,
+        (c) => callById(c, "soft_delete_bit", id),
+        bitAbout(id),
+        removeEffect("bits", id),
+        failureOf("trash", "bits", id),
+      );
     },
     restoreBit: async (id) => {
       await send(`bits:${id}`, (c) => callWithReserved(c, "restore_bit", id), bitAbout(id));
@@ -658,18 +771,28 @@ export function createSupabaseStore(
       return { status: "deleted" };
     },
     archiveBit: async (id) => {
-      await send(`bits:${id}`, (c) => callById(c, "archive_bit", id), bitAbout(id), removeEffect("bits", id));
+      await send(
+        `bits:${id}`,
+        (c) => callById(c, "archive_bit", id),
+        bitAbout(id),
+        removeEffect("bits", id),
+        failureOf("archive", "bits", id),
+      );
     },
     unarchiveBit: async (id) => {
       await send(`bits:${id}`, (c) => callWithReserved(c, "unarchive_bit", id), bitAbout(id));
     },
-    createChunk: async (data) => {
+    createChunk: async (data, options) => {
       const parsed = createChunkSchema.parse(data);
       const id = crypto.randomUUID();
       const record: Chunk = { ...parsed, id, status: "incomplete" };
-      const envelope = await send(`chunks:${id}`, (c) => callCreateChunk(c, id, chunkCreateToRow(parsed)), chunkAbout(id), [
-        { kind: "create", table: "chunks", record },
-      ]);
+      const envelope = await send(
+        `chunks:${id}`,
+        (c) => callCreateChunk(c, id, chunkCreateToRow(parsed)),
+        chunkAbout(id),
+        [{ kind: "create", table: "chunks", record }],
+        createFailure(parsed.title, options),
+      );
       return chunkFromRow(upserted(envelope, "chunks", id) as never);
     },
     updateChunk: async (id, data, options) => {
@@ -682,6 +805,7 @@ export function createSupabaseStore(
         (c) => callUpdateChunk(c, id, chunkPatchToRow(parsed), options?.extendParent === true),
         chunkAbout(id),
         patchEffect("chunks", id, parsed),
+        failureOf(editKind(parsed, options?.extendParent === true), "chunks", id),
       );
     },
     deleteChunk: async (id) => {
@@ -690,7 +814,13 @@ export function createSupabaseStore(
     reorderChunks: async (bitId, chunkIds) => {
       // Chunk i of the list takes order i (reorder_chunks), shown together.
       const effects = chunkIds.flatMap((chunkId, order): PendingEffect[] => patchEffect("chunks", chunkId, { order }));
-      await send(`bits:${bitId}`, (c) => callReorderChunks(c, bitId, chunkIds), bitAbout(bitId), effects);
+      await send(
+        `bits:${bitId}`,
+        (c) => callReorderChunks(c, bitId, chunkIds),
+        bitAbout(bitId),
+        effects,
+        failureOf("edit", "bits", bitId),
+      );
     },
     promoteBitToNode: async (bitId) => {
       const envelope = await send(`bits:${bitId}`, (c) => callWithReserved(c, "promote_bit_to_node", bitId), bitAbout(bitId));

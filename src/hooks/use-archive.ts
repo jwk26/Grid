@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getDataStore } from "@/lib/db/datastore";
+import { dropReportedFailure } from "@/lib/db/write-failure";
 import type { Bit, Node } from "@/types";
 
 export type ArchiveItem = {
@@ -134,10 +135,11 @@ export function useArchiveActions(): {
 } {
   async function archive(type: "node" | "bit", id: string): Promise<void> {
     const dataStore = await getDataStore();
+    // The Archive control has no message of its own: the store reports a refused archive.
     if (type === "node") {
-      await dataStore.archiveNode(id);
+      await dataStore.archiveNode(id).catch(dropReportedFailure);
     } else {
-      await dataStore.archiveBit(id);
+      await dataStore.archiveBit(id).catch(dropReportedFailure);
     }
   }
   return { archive };

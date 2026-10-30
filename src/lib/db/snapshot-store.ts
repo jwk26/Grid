@@ -68,6 +68,8 @@ export type WriteOutcome = {
   outcome: "applied" | "rejected" | "error" | "unknown";
   envelope?: Envelope;
   error?: unknown;
+  /** Unknown outcome only: the refetch that was started, so the caller can see what the server has. */
+  refetched?: Promise<RefetchResult>;
 };
 
 export type StoreStatus =
@@ -253,6 +255,9 @@ export class SnapshotStore {
   // Stable between changes, so it works as a useSyncExternalStore snapshot.
   getState = (): StoreState => this.state;
 
+  /** The rows the server last answered with, without any pending write shown on top. */
+  getBase = (): AccountView => this.base;
+
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -427,8 +432,7 @@ export class SnapshotStore {
         if (result === TIMED_OUT) {
           timedOut = true;
           this.settle(entry, null);
-          if (epoch === this.epoch) void this.refetch();
-          return { outcome: "unknown" };
+          return { outcome: "unknown", refetched: epoch === this.epoch ? this.refetch() : undefined };
         }
         this.settle(entry, result.changes);
         const outcome = result.status === "applied" || result.status === "already_applied" ? "applied" : "rejected";
@@ -444,8 +448,7 @@ export class SnapshotStore {
       } catch (error) {
         this.settle(entry, null);
         if (error instanceof UnknownOutcomeError) {
-          if (epoch === this.epoch) void this.refetch();
-          return { outcome: "unknown", error };
+          return { outcome: "unknown", error, refetched: epoch === this.epoch ? this.refetch() : undefined };
         }
         return { outcome: "error", error };
       } finally {

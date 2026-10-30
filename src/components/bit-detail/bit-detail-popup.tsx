@@ -43,7 +43,7 @@ import { NODE_TITLE_MAX_LENGTH } from "@/lib/constants";
 import { NODE_ICON_MAP, NODE_ICON_NAMES } from "@/lib/constants/node-icons";
 import { cn } from "@/lib/utils";
 import type { Bit } from "@/types";
-import { toast } from "sonner";
+import { dropReportedFailure } from "@/lib/db/write-failure";
 
 type Priority = Bit["priority"];
 const PRIORITY_CYCLE: Priority[] = ["high", "mid", "low", null];
@@ -155,7 +155,8 @@ export function BitDetailPopup() {
         return;
       }
 
-      toast.error("Unable to update deadline.");
+      // Anything else was reported by the store (the previous deadline is back).
+      dropReportedFailure(error);
     }
   }
 
@@ -167,14 +168,14 @@ export function BitDetailPopup() {
       return;
     }
     if (trimmed !== bit.title) {
-      await updateBit(bit.id, { title: trimmed });
+      await updateBit(bit.id, { title: trimmed }).catch(dropReportedFailure);
     }
   }
 
   async function handleDescriptionBlur() {
     if (!bit) return;
     if (localDescription !== bit.description) {
-      await updateBit(bit.id, { description: localDescription });
+      await updateBit(bit.id, { description: localDescription }).catch(dropReportedFailure);
     }
     if (!localDescription.trim()) {
       setIsDescriptionOpen(false);
@@ -183,14 +184,14 @@ export function BitDetailPopup() {
 
   async function handlePriorityToggle() {
     if (!bit) return;
-    await updateBit(bit.id, { priority: nextPriority(bit.priority) });
+    await updateBit(bit.id, { priority: nextPriority(bit.priority) }).catch(dropReportedFailure);
   }
 
   async function handleIconSelect(iconName: string) {
     if (!bit) return;
     setIconPickerOpen(false);
     if (iconName !== bit.icon) {
-      await updateBit(bit.id, { icon: iconName });
+      await updateBit(bit.id, { icon: iconName }).catch(dropReportedFailure);
     }
   }
 
@@ -207,8 +208,9 @@ export function BitDetailPopup() {
         { extendParent: true },
       );
       setPendingDeadlineConflict(null);
-    } catch {
-      toast.error("Unable to update deadlines.");
+    } catch (error) {
+      // The store reported the refused extension; the conflict dialog stays open.
+      dropReportedFailure(error);
     }
   }
 
@@ -216,7 +218,7 @@ export function BitDetailPopup() {
     if (!bit) return;
     // The Bit hides at once (SPEC Write feel, group 2), so the popup closes before the answer
     // instead of showing "Loading…" for the round trip.
-    const trashed = softDeleteBit(bit.id);
+    const trashed = softDeleteBit(bit.id).catch(dropReportedFailure);
     close();
     await trashed;
   }
@@ -225,7 +227,7 @@ export function BitDetailPopup() {
     if (!bit) return;
     await updateBit(bit.id, {
       status: bit.status === "complete" ? "active" : "complete",
-    });
+    }).catch(dropReportedFailure);
   }
 
   async function handlePromoteToNode() {

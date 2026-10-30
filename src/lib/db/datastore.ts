@@ -225,6 +225,8 @@ export type LiveObservable<T> = {
  */
 export type ExtendParentOption = Readonly<{ extendParent?: boolean }>;
 
+export type ReportOption = Readonly<{ report?: boolean }>;
+
 export interface DataStore {
   /**
    * Re-runs `read` against this store on every data change and emits each
@@ -235,8 +237,9 @@ export interface DataStore {
   // --- Nodes ---
   getNode(id: string): Promise<Node | undefined>;
   getNodes(parentId: string | null): Promise<Node[]>;
-  createNode(data: CreateNode): Promise<Node>;
-  updateNode(id: string, data: UpdateNode): Promise<void>;
+  /** `options.report: false`: the caller shows a refusal itself (a create dialog), so the store reports none. */
+  createNode(data: CreateNode, options?: ReportOption): Promise<Node>;
+  updateNode(id: string, data: UpdateNode, options?: ReportOption): Promise<void>;
   softDeleteNode(id: string): Promise<void>;
   restoreNode(id: string): Promise<void>;
   hardDeleteNode(id: string): Promise<AggregateHardDeleteResult>;
@@ -252,7 +255,7 @@ export interface DataStore {
   getBitsForNode(nodeId: string): Promise<Bit[]>;
   getAllActiveBits(): Promise<Bit[]>;
   /** `options.id`: the caller picks the id, so it can register it before the new Bit shows (Inbox capture). */
-  createBit(data: CreateBit, options?: { id?: string }): Promise<Bit>;
+  createBit(data: CreateBit, options?: ReportOption & { id?: string }): Promise<Bit>;
   updateBit(id: string, data: UpdateBit, options?: ExtendParentOption): Promise<void>;
   softDeleteBit(id: string): Promise<void>;
   restoreBit(id: string): Promise<void>;
@@ -348,7 +351,7 @@ export interface DataStore {
 
   // --- Chunks ---
   getChunks(bitId: string): Promise<Chunk[]>;
-  createChunk(data: CreateChunk): Promise<Chunk>;
+  createChunk(data: CreateChunk, options?: ReportOption): Promise<Chunk>;
   updateChunk(id: string, data: Partial<Chunk>, options?: ExtendParentOption): Promise<void>;
   /** Writes `order` 0..n-1 in the given sequence; the list must be exactly the Bit's Chunks. */
   reorderChunks(bitId: string, chunkIds: readonly string[]): Promise<void>;
@@ -421,10 +424,13 @@ let dataStorePromise: Promise<DataStore> | null = null;
 async function createDataStore(): Promise<DataStore> {
   // Production store (Phase 45): the Supabase store over the account snapshot. It exists once
   // entry has made a session, prepared the account and loaded the snapshot.
-  const [{ getSessionController }, { createSupabaseStore }] = await Promise.all([
+  const [{ getSessionController }, { createSupabaseStore }, { reportWriteFailure }] = await Promise.all([
     import("@/lib/auth/session"),
     import("@/lib/db/supabase-store"),
+    import("@/lib/feedback/write-failure-toast"),
   ]);
+  // A rolled-back ordinary write is reported here, once, as a toast (SPEC §Toasts).
+  const storeOptions = { reportFailure: reportWriteFailure };
   const controller = getSessionController();
   await controller.whenReady();
   if (process.env.NODE_ENV === "development") {
@@ -434,9 +440,9 @@ async function createDataStore(): Promise<DataStore> {
       import("@/lib/dev/state-switch"),
       import("@/lib/db/supabase-client"),
     ]);
-    return withDevInjection(createSupabaseStore(controller.store, withDevClient(getSupabaseClient)));
+    return withDevInjection(createSupabaseStore(controller.store, withDevClient(getSupabaseClient), storeOptions));
   }
-  return createSupabaseStore(controller.store);
+  return createSupabaseStore(controller.store, undefined, storeOptions);
 }
 
 export function getDataStore(): Promise<DataStore> {

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ChevronDown, ChevronRight, RotateCcw, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toastCopy } from "@/lib/copy/feedback";
+import { showToast } from "@/lib/feedback/toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -122,23 +123,23 @@ function NodeTrashGroup({
   async function handleRestore() {
     try {
       await restoreNode(node.id);
-      toast.success("Node restored.");
+      showToast(toastCopy.restoreSucceeded, node.title);
     } catch (error) {
       if (error instanceof Error && error.message === "GRID_FULL") {
-        toast.error("Parent grid is full. Free up space first.");
+        showToast(toastCopy.restoreBlocked, node.title);
         return;
       }
 
-      toast.error("Unable to restore node.");
+      showToast(toastCopy.restoreFailed, node.title);
     }
   }
 
   async function handlePermanentDelete() {
     try {
       await hardDeleteNode(node.id);
-      toast.success("Node permanently deleted.");
+      showToast(toastCopy.permanentDeleteSucceeded, node.title);
     } catch {
-      toast.error("Unable to permanently delete node.");
+      showToast(toastCopy.permanentDeleteFailed, node.title);
     }
   }
 
@@ -241,23 +242,23 @@ function StandaloneBitTrashGroup({ bit }: { bit: Bit }) {
   async function handleRestore() {
     try {
       await restoreBit(bit.id);
-      toast.success("Bit restored.");
+      showToast(toastCopy.restoreSucceeded, bit.title);
     } catch (error) {
       if (error instanceof Error && error.message === "GRID_FULL") {
-        toast.error("Parent grid is full. Free up space first.");
+        showToast(toastCopy.restoreBlocked, bit.title);
         return;
       }
 
-      toast.error("Unable to restore bit.");
+      showToast(toastCopy.restoreFailed, bit.title);
     }
   }
 
   async function handlePermanentDelete() {
     try {
       await hardDeleteBit(bit.id);
-      toast.success("Bit permanently deleted.");
+      showToast(toastCopy.permanentDeleteSucceeded, bit.title);
     } catch {
-      toast.error("Unable to permanently delete bit.");
+      showToast(toastCopy.permanentDeleteFailed, bit.title);
     }
   }
 

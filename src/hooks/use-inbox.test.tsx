@@ -1,3 +1,4 @@
+import { WriteOutcomeUnknownError } from "@/lib/db/write-errors";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataStore } from "@/lib/db/datastore";
@@ -146,8 +147,27 @@ describe("useInbox", () => {
         deadlineAllDay: false,
         priority: null,
       },
-      { id: expect.any(String) },
+      { id: expect.any(String), report: false },
     );
+  });
+
+  it("counts a capture whose unknown outcome was kept as created, and rethrows a refusal", async () => {
+    const inbox = createNode({ id: crypto.randomUUID(), systemRole: "inbox" });
+    const createBitMock = vi
+      .fn()
+      .mockRejectedValueOnce(new WriteOutcomeUnknownError(true))
+      .mockRejectedValueOnce(new WriteOutcomeUnknownError(false));
+    getDataStoreMock.mockResolvedValue({
+      getAllActiveNodes: vi.fn().mockResolvedValue([inbox]),
+      createBit: createBitMock,
+    } as unknown as DataStore);
+
+    const { result } = renderHook(() => useInbox());
+    await waitFor(() => expect(result.current.inboxNodeId).toBe(inbox.id));
+
+    const keptId = await result.current.createScratchBit("Idea");
+    expect(keptId).toBe((createBitMock.mock.calls[0][1] as { id: string }).id);
+    await expect(result.current.createScratchBit("Idea")).rejects.toBeInstanceOf(WriteOutcomeUnknownError);
   });
 
   it("exposes inboxNodeId as undefined when no node has systemRole inbox", async () => {

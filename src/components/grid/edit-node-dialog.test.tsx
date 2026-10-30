@@ -1,7 +1,8 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentPropsWithoutRef, PropsWithChildren } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
 import type { Node } from "@/types";
 
 type DivProps = PropsWithChildren<ComponentPropsWithoutRef<"div">>;
@@ -30,9 +31,11 @@ vi.mock("@/components/shared/date-first-deadline-picker", () => ({
   DateFirstDeadlinePicker: () => <div data-testid="deadline-picker" />,
 }));
 
+const updateNodeMock = vi.hoisted(() => vi.fn());
+
 vi.mock("@/hooks/use-node-actions", () => ({
   useNodeActions: () => ({
-    updateNode: vi.fn(),
+    updateNode: updateNodeMock,
   }),
 }));
 
@@ -93,5 +96,51 @@ describe("EditNodeDialog", () => {
 
     expect(screen.getByText("Deadline")).toBeInTheDocument();
     expect(screen.getByTestId("deadline-picker")).toBeInTheDocument();
+  });
+
+  describe("a save the server refuses", () => {
+    function save(onOpenChange = vi.fn()) {
+      render(
+        <EditNodeDialog
+          level={1}
+          node={createNode({ level: 1, title: "Saved title" })}
+          onOpenChange={onOpenChange}
+          open={true}
+        />,
+      );
+      fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Typed title" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      return onOpenChange;
+    }
+
+    it("saves without the store's toast and closes on success", async () => {
+      updateNodeMock.mockResolvedValue(undefined);
+      const onOpenChange = save();
+      await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+      expect(updateNodeMock.mock.calls[0][2]).toEqual({ report: false });
+    });
+
+    it("shows the saved title inline and keeps the typed values", async () => {
+      updateNodeMock.mockRejectedValue(new WriteRejectedError("rejected", { code: "rejected" }));
+      const onOpenChange = save();
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Couldn't save the changes to “Saved title”. Try again.",
+      );
+      expect(screen.getByLabelText("Title")).toHaveValue("Typed title");
+      expect(onOpenChange).not.toHaveBeenCalled();
+    });
+
+    it("shows the line when the unknown outcome was rolled back", async () => {
+      updateNodeMock.mockRejectedValue(new WriteOutcomeUnknownError(false));
+      save();
+      expect(await screen.findByRole("alert")).toHaveTextContent("Try again.");
+    });
+
+    it("closes when the unknown outcome was kept", async () => {
+      updateNodeMock.mockRejectedValue(new WriteOutcomeUnknownError(true));
+      const onOpenChange = save();
+      await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+      expect(screen.getByRole("alert")).toHaveTextContent("");
+    });
   });
 });

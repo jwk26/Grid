@@ -1,5 +1,6 @@
 "use client";
 
+import { classifyCreateRefusal } from "@/lib/feedback/create-refusal";
 import { Check, CornerDownLeft, Loader2, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -75,6 +76,8 @@ function ScratchModalContent({
   const [isFocused, setIsFocused] = useState(false);
   const [submissionState, setSubmissionState] =
     useState<SubmissionState>("idle");
+  // The server refused the capture: an inline line, the typed title stays (SPEC Feedback copy).
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const trimmedTitle = title.trim();
   const hasContent = trimmedTitle.length > 0;
   const isSubmitting = submissionState === "submitting";
@@ -250,6 +253,7 @@ function ScratchModalContent({
     }
 
     setSubmissionState("submitting");
+    setSubmitError(null);
 
     try {
       const capturedId = await onSubmit(trimmedTitle);
@@ -257,7 +261,13 @@ function ScratchModalContent({
         capturedIdRef.current = capturedId;
       }
       setSubmissionState("success");
-    } catch {
+    } catch (error) {
+      const refusal = classifyCreateRefusal(error, trimmedTitle);
+      if (refusal.outcome === "kept") {
+        setSubmissionState("success");
+        return;
+      }
+      if (refusal.outcome === "line") setSubmitError(refusal.text);
       setSubmissionState("idle");
     }
   }
@@ -376,7 +386,10 @@ function ScratchModalContent({
                     className="min-w-0 flex-1 bg-transparent text-lg text-foreground placeholder:text-muted-foreground/60 outline-none disabled:cursor-not-allowed"
                     disabled={isSubmitting}
                     onBlur={() => setIsFocused(false)}
-                    onChange={(event) => setTitle(event.target.value)}
+                    onChange={(event) => {
+                      setTitle(event.target.value);
+                      setSubmitError(null);
+                    }}
                     onFocus={() => setIsFocused(true)}
                     placeholder="Capture your ideas..."
                     ref={inputRef}
@@ -404,6 +417,11 @@ function ScratchModalContent({
                     )}
                   </button>
                 </form>
+                {submitError !== null && (
+                  <p className="mt-2 pl-8 text-xs text-destructive" role="alert">
+                    {submitError}
+                  </p>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

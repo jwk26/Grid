@@ -9,6 +9,21 @@ export function createDialogNoEmptyCell(target: string): string {
   return `“${target}” has no empty cell. Move or delete an item to make room.`;
 }
 
+/** A create the server refused inside a dialog, for the account limit (inline, no toast). */
+export function createDialogAccountLimit(limit: number, items: string): string {
+  return `This account has reached its limit of ${limit} ${items}.`;
+}
+
+/** A create the server refused inside a dialog, for any other reason (inline, no toast). */
+export function createDialogFailed(title: string): string {
+  return `Couldn't create “${title}”. Try again.`;
+}
+
+/** A Node edit the server refused inside the edit dialog (inline, no toast). `title` is the saved title. */
+export function editDialogFailed(title: string): string {
+  return `Couldn't save the changes to “${title}”. Try again.`;
+}
+
 // App-level screens (SPEC §Feedback copy, App-level screens). The Loading screen's copy comes
 // with Task 234.
 const UNREACHABLE_REASON = "The server can't be reached. Check your connection and try again.";

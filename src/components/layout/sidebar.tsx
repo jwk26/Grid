@@ -46,7 +46,9 @@ import { findNearestEmptyCell } from "@/lib/utils/bfs";
 import { useEditModeStore } from "@/stores/edit-mode-store";
 import { useSearchStore } from "@/stores/search-store";
 import type { Node } from "@/types";
-import { toast } from "sonner";
+import { toastCopy } from "@/lib/copy/feedback";
+import { dropReportedFailure } from "@/lib/db/write-failure";
+import { showToast } from "@/lib/feedback/toast";
 
 type SidebarIconButtonProps = {
   className?: string;
@@ -216,7 +218,7 @@ function SystemNodeItem({
 
   async function handleGridVisibilityToggle() {
     if (!node.hiddenFromGrid) {
-      await updateNode(node.id, { hiddenFromGrid: true });
+      await updateNode(node.id, { hiddenFromGrid: true }).catch(dropReportedFailure);
       return;
     }
 
@@ -224,7 +226,7 @@ function SystemNodeItem({
     const cell = findNearestEmptyCell(occupied, 0, 0, new Set());
 
     if (cell === null) {
-      toast.error("Grid is full. Reorganize or move items to make space.");
+      showToast(toastCopy.homeFull, label);
       return;
     }
 
@@ -232,7 +234,7 @@ function SystemNodeItem({
       hiddenFromGrid: false,
       x: cell.x,
       y: cell.y,
-    });
+    }).catch(dropReportedFailure);
   }
 
   return (

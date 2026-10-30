@@ -26,6 +26,7 @@ import {
 import { ArrowUpDown, Trash2 } from "lucide-react";
 import { ChunkItem } from "@/components/bit-detail/chunk-item";
 import { useChunkActions } from "@/hooks/use-chunk-actions";
+import { dropReportedFailure } from "@/lib/db/write-failure";
 import type { Chunk } from "@/types";
 
 type ChunkPoolProps = {
@@ -111,6 +112,9 @@ export const ChunkPool = forwardRef<ChunkPoolHandle, ChunkPoolProps>(
         });
         setNewTitle("");
         setIsAdding(false);
+      } catch (error) {
+        // The store reported the refusal; the typed title stays in the field.
+        dropReportedFailure(error);
       } finally {
         isSubmittingRef.current = false;
       }
@@ -132,11 +136,11 @@ export const ChunkPool = forwardRef<ChunkPoolHandle, ChunkPoolProps>(
     async function handleToggle(chunk: Chunk) {
       await updateChunk(chunk.id, {
         status: chunk.status === "complete" ? "incomplete" : "complete",
-      });
+      }).catch(dropReportedFailure);
     }
 
     async function handleEdit(chunkId: string, title: string) {
-      await updateChunk(chunkId, { title });
+      await updateChunk(chunkId, { title }).catch(dropReportedFailure);
     }
 
     async function handleDelete(chunkId: string) {
@@ -158,9 +162,10 @@ export const ChunkPool = forwardRef<ChunkPoolHandle, ChunkPoolProps>(
           bitId,
           reordered.map((chunk) => chunk.id),
         );
-      } catch {
-        // The list no longer matches the Bit's Chunks (another tab added or removed one): nothing
-        // was written, and the live list shows the current order.
+      } catch (error) {
+        // A refused reorder (for example the list no longer matches the Bit's Chunks) or an unknown
+        // outcome was reported by the store; the live list shows the order the server has.
+        dropReportedFailure(error);
       }
     }
 

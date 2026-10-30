@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getDataStore, liveRead } from "@/lib/db/datastore";
+import { WriteOutcomeUnknownError } from "@/lib/db/write-errors";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
 import { useTriageStore } from "@/stores/triage-store";
 import type { Bit, Node } from "@/types";
@@ -295,20 +296,27 @@ export function useInbox(): {
       const id = crypto.randomUUID();
       localCreatedScratchIds.add(id);
       unconfirmedLocalScratchIds.add(id);
-      const created = await dataStore.createBit(
-        {
-        parentId: inboxNodeId,
-        title,
-        description: "",
-        icon: "sparkles",
-        x: 0,
-        y: 0,
-        deadline: null,
-        deadlineAllDay: false,
-        priority: null,
-        },
-        { id },
-      );
+      // The capture modal shows a refusal as its own line, so the store reports none.
+      const created = await dataStore
+        .createBit(
+          {
+            parentId: inboxNodeId,
+            title,
+            description: "",
+            icon: "sparkles",
+            x: 0,
+            y: 0,
+            deadline: null,
+            deadlineAllDay: false,
+            priority: null,
+          },
+          { id, report: false },
+        )
+        .catch((error: unknown) => {
+          // An unknown outcome whose refetch found the Scratch is a created Scratch.
+          if (error instanceof WriteOutcomeUnknownError && error.kept === true) return { id };
+          throw error;
+        });
       // Cleared only on success: after a refusal the rolled-back view reaches the pool asynchronously.
       unconfirmedLocalScratchIds.delete(id);
       return created.id;

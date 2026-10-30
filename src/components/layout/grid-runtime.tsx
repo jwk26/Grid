@@ -39,6 +39,8 @@ import { hexToHsl } from "@/lib/utils/color";
 import { findNearestEmptyCell } from "@/lib/utils/bfs";
 import { isDeadlineAfter } from "@/lib/utils/deadline";
 import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
+import { classifyCreateRefusal } from "@/lib/feedback/create-refusal";
+import { dropReportedFailure } from "@/lib/db/write-failure";
 import { useQuickCaptureStore } from "@/stores/quick-capture-store";
 import { useToastAnchorStore } from "@/stores/toast-anchor-store";
 import type { Node } from "@/types";
@@ -270,14 +272,21 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
         level: nodeId === null ? 0 : displayLevel,
         x: cell.x,
         y: cell.y,
-      });
+      }, { report: false });
       setOpenDialogType(null);
     } catch (submissionError) {
-      setError(
-        submissionError instanceof Error
-          ? submissionError.message
-          : "Unable to create node.",
-      );
+      const refusal = classifyCreateRefusal(submissionError, title.trim());
+      if (refusal.outcome === "kept") {
+        setOpenDialogType(null);
+      } else if (refusal.outcome === "line") {
+        setError(refusal.text);
+      } else {
+        setError(
+          submissionError instanceof Error
+            ? submissionError.message
+            : "Unable to create node.",
+        );
+      }
     }
   }
 
@@ -351,14 +360,21 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
         parentId: effectiveParentId,
         x: cell.x,
         y: cell.y,
-      });
+      }, { report: false });
       setOpenDialogType(null);
     } catch (submissionError) {
-      setError(
-        submissionError instanceof Error
-          ? submissionError.message
-          : "Unable to create bit.",
-      );
+      const refusal = classifyCreateRefusal(submissionError, title.trim());
+      if (refusal.outcome === "kept") {
+        setOpenDialogType(null);
+      } else if (refusal.outcome === "line") {
+        setError(refusal.text);
+      } else {
+        setError(
+          submissionError instanceof Error
+            ? submissionError.message
+            : "Unable to create bit.",
+        );
+      }
     }
   }
 
@@ -368,9 +384,9 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
     }
 
     if (pendingDelete.type === "node") {
-      await softDeleteNode(pendingDelete.id);
+      await softDeleteNode(pendingDelete.id).catch(dropReportedFailure);
     } else {
-      await softDeleteBit(pendingDelete.id);
+      await softDeleteBit(pendingDelete.id).catch(dropReportedFailure);
     }
 
     setPendingDelete(null);
