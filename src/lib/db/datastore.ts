@@ -251,7 +251,8 @@ export interface DataStore {
   getBits(parentId: string): Promise<Bit[]>;
   getBitsForNode(nodeId: string): Promise<Bit[]>;
   getAllActiveBits(): Promise<Bit[]>;
-  createBit(data: CreateBit): Promise<Bit>;
+  /** `options.id`: the caller picks the id, so it can register it before the new Bit shows (Inbox capture). */
+  createBit(data: CreateBit, options?: { id?: string }): Promise<Bit>;
   updateBit(id: string, data: UpdateBit, options?: ExtendParentOption): Promise<void>;
   softDeleteBit(id: string): Promise<void>;
   restoreBit(id: string): Promise<void>;

@@ -50,7 +50,13 @@ import {
   nodeCreateToRow,
   nodeFromRow,
 } from "@/lib/db/row-mapping";
-import type { AccountView, ChangeRow, Envelope, SnapshotStore } from "@/lib/db/snapshot-store";
+import type {
+  AccountView,
+  ChangeRow,
+  Envelope,
+  PendingEffect,
+  SnapshotStore,
+} from "@/lib/db/snapshot-store";
 import * as commandCalls from "@/lib/db/supabase-command-calls";
 import {
   chunkSchema,
@@ -502,15 +508,22 @@ export function createSupabaseStore(
     }
   };
 
-  // Sends one call as a command on `key` and returns its envelope when it was applied. A rejection,
-  // an error or an unknown outcome throws; an unknown outcome is never resent, the snapshot store
-  // refetches (S16).
+  // Sends one call and returns its envelope when it was applied. A rejection, an error or an
+  // unknown outcome throws; an unknown outcome is never resent, the snapshot store refetches
+  // (S16). With `effects` the write shows at once through the pending layer (groups 1 and 2 of
+  // SPEC §Write feel) and the view returns to the base on a refusal or an error; without them it
+  // is a command and the view waits for the answer (group 3). The chain `key` is the same either way.
   const send = async (
     key: string,
     call: (client: GriddoSupabaseClient) => Promise<Envelope>,
     about: Rejected,
+    effects: readonly PendingEffect[] = [],
   ): Promise<Envelope> => {
-    const outcome = await snapshot.command({ key, send: () => call(client()) });
+    const sendRequest = () => call(client());
+    const outcome =
+      effects.length > 0
+        ? await snapshot.write({ key, effects, send: sendRequest })
+        : await snapshot.command({ key, send: sendRequest });
     switch (outcome.outcome) {
       case "applied":
         return outcome.envelope as Envelope;
@@ -529,6 +542,17 @@ export function createSupabaseStore(
     return row;
   };
 
+  // What the client shows before the answer (the server's row replaces it at the answer). Only the
+  // keys the caller gave are patched; `version` and `mtime` come from the answer.
+  const definedOnly = (values: object): Record<string, unknown> =>
+    Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined));
+  const levelOfParent = (parentId: string | null): number =>
+    parentId === null ? 0 : (view().nodes.get(parentId)?.level ?? 0) + 1;
+  const patchEffect = (table: "nodes" | "bits" | "chunks", id: string, values: object): PendingEffect[] => [
+    { kind: "patch", table, id, patch: definedOnly(values) },
+  ];
+  const removeEffect = (table: "nodes" | "bits", id: string): PendingEffect[] => [{ kind: "remove", table, id }];
+
   const nodeAbout = (id: string): Rejected => ({ label: "Node", id });
   const bitAbout = (id: string): Rejected => ({ label: "Bit", id });
   const chunkAbout = (id: string): Rejected => ({ label: "Chunk", id, chunk: true });
@@ -537,15 +561,33 @@ export function createSupabaseStore(
     createNode: async (data) => {
       const parsed = createNodeSchema.parse(data);
       const id = crypto.randomUUID();
-      const envelope = await send(`nodes:${id}`, (c) => callCreateNode(c, id, nodeCreateToRow(parsed)), nodeAbout(id));
+      const now = Date.now();
+      const record: Node = {
+        ...parsed,
+        id,
+        level: levelOfParent(parsed.parentId),
+        mtime: now,
+        createdAt: now,
+        version: 1,
+        deletedAt: null,
+        archivedAt: null,
+        systemRole: null,
+        hiddenFromGrid: false,
+        pastDeadlineDismissed: false,
+      };
+      const envelope = await send(`nodes:${id}`, (c) => callCreateNode(c, id, nodeCreateToRow(parsed)), nodeAbout(id), [
+        { kind: "create", table: "nodes", record },
+      ]);
       return nodeFromRow(upserted(envelope, "nodes", id) as never);
     },
     updateNode: async (id, data) => {
       const parsed = updateNodeSchema.parse(data);
-      await send(`nodes:${id}`, (c) => callUpdateNode(c, id, parsed), nodeAbout(id));
+      // A moved Node's own level follows its new parent; its descendants' levels come with the answer.
+      const shown = parsed.parentId === undefined ? parsed : { ...parsed, level: levelOfParent(parsed.parentId) };
+      await send(`nodes:${id}`, (c) => callUpdateNode(c, id, parsed), nodeAbout(id), patchEffect("nodes", id, shown));
     },
     softDeleteNode: async (id) => {
-      await send(`nodes:${id}`, (c) => callById(c, "soft_delete_node", id), nodeAbout(id));
+      await send(`nodes:${id}`, (c) => callById(c, "soft_delete_node", id), nodeAbout(id), removeEffect("nodes", id));
     },
     restoreNode: async (id) => {
       await send(`nodes:${id}`, (c) => callWithReserved(c, "restore_node", id), nodeAbout(id));
@@ -555,7 +597,7 @@ export function createSupabaseStore(
       return { status: "deleted" };
     },
     archiveNode: async (id) => {
-      await send(`nodes:${id}`, (c) => callById(c, "archive_node", id), nodeAbout(id));
+      await send(`nodes:${id}`, (c) => callById(c, "archive_node", id), nodeAbout(id), removeEffect("nodes", id));
     },
     unarchiveNode: async (id) => {
       await send(`nodes:${id}`, (c) => callWithReserved(c, "unarchive_node", id), nodeAbout(id));
@@ -576,10 +618,24 @@ export function createSupabaseStore(
         throw error;
       });
     },
-    createBit: async (data) => {
+    createBit: async (data, options) => {
       const parsed = createBitSchema.parse(data);
-      const id = crypto.randomUUID();
-      const envelope = await send(`bits:${id}`, (c) => callCreateBit(c, id, bitCreateToRow(parsed)), bitAbout(id));
+      const id = options?.id ?? crypto.randomUUID();
+      const now = Date.now();
+      const record: Bit = {
+        ...parsed,
+        id,
+        status: "active",
+        mtime: now,
+        createdAt: now,
+        version: 1,
+        deletedAt: null,
+        archivedAt: null,
+        pastDeadlineDismissed: false,
+      };
+      const envelope = await send(`bits:${id}`, (c) => callCreateBit(c, id, bitCreateToRow(parsed)), bitAbout(id), [
+        { kind: "create", table: "bits", record },
+      ]);
       return bitFromRow(upserted(envelope, "bits", id) as never);
     },
     updateBit: async (id, data, options) => {
@@ -588,10 +644,11 @@ export function createSupabaseStore(
         `bits:${id}`,
         (c) => callUpdateBit(c, id, bitPatchToRow(parsed), options?.extendParent === true),
         bitAbout(id),
+        patchEffect("bits", id, parsed),
       );
     },
     softDeleteBit: async (id) => {
-      await send(`bits:${id}`, (c) => callById(c, "soft_delete_bit", id), bitAbout(id));
+      await send(`bits:${id}`, (c) => callById(c, "soft_delete_bit", id), bitAbout(id), removeEffect("bits", id));
     },
     restoreBit: async (id) => {
       await send(`bits:${id}`, (c) => callWithReserved(c, "restore_bit", id), bitAbout(id));
@@ -601,7 +658,7 @@ export function createSupabaseStore(
       return { status: "deleted" };
     },
     archiveBit: async (id) => {
-      await send(`bits:${id}`, (c) => callById(c, "archive_bit", id), bitAbout(id));
+      await send(`bits:${id}`, (c) => callById(c, "archive_bit", id), bitAbout(id), removeEffect("bits", id));
     },
     unarchiveBit: async (id) => {
       await send(`bits:${id}`, (c) => callWithReserved(c, "unarchive_bit", id), bitAbout(id));
@@ -609,7 +666,10 @@ export function createSupabaseStore(
     createChunk: async (data) => {
       const parsed = createChunkSchema.parse(data);
       const id = crypto.randomUUID();
-      const envelope = await send(`chunks:${id}`, (c) => callCreateChunk(c, id, chunkCreateToRow(parsed)), chunkAbout(id));
+      const record: Chunk = { ...parsed, id, status: "incomplete" };
+      const envelope = await send(`chunks:${id}`, (c) => callCreateChunk(c, id, chunkCreateToRow(parsed)), chunkAbout(id), [
+        { kind: "create", table: "chunks", record },
+      ]);
       return chunkFromRow(upserted(envelope, "chunks", id) as never);
     },
     updateChunk: async (id, data, options) => {
@@ -621,13 +681,16 @@ export function createSupabaseStore(
         `chunks:${id}`,
         (c) => callUpdateChunk(c, id, chunkPatchToRow(parsed), options?.extendParent === true),
         chunkAbout(id),
+        patchEffect("chunks", id, parsed),
       );
     },
     deleteChunk: async (id) => {
       await send(`chunks:${id}`, (c) => callDeleteChunk(c, id), chunkAbout(id));
     },
     reorderChunks: async (bitId, chunkIds) => {
-      await send(`bits:${bitId}`, (c) => callReorderChunks(c, bitId, chunkIds), bitAbout(bitId));
+      // Chunk i of the list takes order i (reorder_chunks), shown together.
+      const effects = chunkIds.flatMap((chunkId, order): PendingEffect[] => patchEffect("chunks", chunkId, { order }));
+      await send(`bits:${bitId}`, (c) => callReorderChunks(c, bitId, chunkIds), bitAbout(bitId), effects);
     },
     promoteBitToNode: async (bitId) => {
       const envelope = await send(`bits:${bitId}`, (c) => callWithReserved(c, "promote_bit_to_node", bitId), bitAbout(bitId));

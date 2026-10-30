@@ -8,6 +8,9 @@ import type { Bit, Node } from "@/types";
 
 const INBOX_LOOKUP_RETRY_MS = 100;
 const localCreatedScratchIds = new Set<string>();
+// A local create is shown before the server answers (SPEC Write feel, group 1). Until it is
+// answered its Scratch is not a delete when it leaves the view, since a refused create rolls it back.
+const unconfirmedLocalScratchIds = new Set<string>();
 const SYSTEM_NODE_ORDER: Record<NonNullable<Node["systemRole"]>, number> = {
   inbox: 0,
   archive_view: 1,
@@ -230,7 +233,9 @@ export function useInbox(): {
               changes.push({ kind: "archive", scratchId });
             } else if (
               current === "deleted" ||
-              (current === undefined && previous !== "deleted")
+              (current === undefined &&
+                previous !== "deleted" &&
+                !unconfirmedLocalScratchIds.has(scratchId))
             ) {
               changes.push({ kind: "delete", scratchId });
             }
@@ -286,7 +291,12 @@ export function useInbox(): {
       }
 
       const dataStore = await getDataStore();
-      const created = await dataStore.createBit({
+      // The id is made and registered first: the new Scratch shows before createBit answers.
+      const id = crypto.randomUUID();
+      localCreatedScratchIds.add(id);
+      unconfirmedLocalScratchIds.add(id);
+      const created = await dataStore.createBit(
+        {
         parentId: inboxNodeId,
         title,
         description: "",
@@ -296,8 +306,11 @@ export function useInbox(): {
         deadline: null,
         deadlineAllDay: false,
         priority: null,
-      });
-      localCreatedScratchIds.add(created.id);
+        },
+        { id },
+      );
+      // Cleared only on success: after a refusal the rolled-back view reaches the pool asynchronously.
+      unconfirmedLocalScratchIds.delete(id);
       return created.id;
     },
     [inboxNodeId],
