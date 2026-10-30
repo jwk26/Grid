@@ -1310,6 +1310,10 @@ is never shown again and is cleaned up 7 days later.
   completes the sign-in in the browser; there is no server code (S21). Sign-up
   is open to anyone, and a new real account starts with its system Nodes only
   (S10).
+- Each sign-in asks the provider for its account chooser
+  (`prompt=select_account`), so the visitor can pick another account instead
+  of being sent straight back as the account the browser is already signed in
+  to, for example after deleting that account (user, 2026-10-31).
 - If the visitor cancels at the provider or the provider returns an error, the
   current guest session stays, the error parameters are removed from the URL,
   and the account modal opens again with an inline error (a problem inside a
