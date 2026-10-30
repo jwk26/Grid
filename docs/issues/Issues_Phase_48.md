@@ -71,9 +71,9 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 ## Task 236 — Add OAuth and Turnstile
 
 ### Current state
-- Status: Implemented, awaiting acceptance (Stage 2)
-- Next: Stage 2 acceptance after your private-window rerun on the production build at http://localhost:3001 (GitHub and Google sign-in with the account chooser, Sign out, the provider's Back button and a cancel at each provider)
-- Open: none (mi-2 Deferred to the theme stage)
+- Status: Implemented, awaiting acceptance
+- Next: Task 236 acceptance
+- Open: none (mi-2 and mi-3 Deferred)
 
 ### Log
 - Work plan: `session.ts` is the owner of entry, so OAuth, the Turnstile token and the new failure reasons all land there; the UI files only call it. No SQL, no `ensure_account()` call site is added (the reserved block is untouched).
@@ -133,3 +133,10 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Unresolved: (a) the real round-trip results wait for your rerun (since passed: see the Stage 2 acceptance Decision); (b) `next dev` (port 3000) shows a blank page after any browser Back from another address, with or without a sign-in (reproduced with a plain navigation to the auth server's health URL and Back); the production build is fine. It predates this task and I did not dig into the cause; it is why this check runs on the production build. Say if it should become an issue.
 - mi-3 [Deferred]: `next dev` (port 3000) shows a blank page after a browser Back from another address — cause: not found; it reproduces with a plain navigation to the auth server's health URL and Back, so it is not part of the sign-in flow, and the page's scripts load but the app does not render and entry never starts; the production build (`next start`) is fine — fix: none in Task 236; destination `Issues_Deferred.md` at the Phase 48 close (dev tooling, no task bound); browser checks that use Back run on the production build until it is fixed (user, 2026-10-31).
 - Playwright browser (2026-10-31): closed per the advisory review, so its in-memory profile, which held the user's Google session, is discarded; the dev (3000) and production (3001) servers are stopped.
+
+### Checkpoint — Task 236 (Finish, 2026-10-31)
+- Changed: Stage 1 (7194211) and Stage 2 (26c7279): `supabase/config.toml` (GitHub and Google enabled from `.env.local`, Turnstile declared and left off, `localhost` redirect allow list), `.env.local.example`, `turnstile.ts`, `session.ts` (captcha token, `security-check`, PKCE return and URL cleanup, account chooser, sign-in-started marker and bfcache restore), `supabase-client.ts` (PKCE), `account-modal.tsx`, `account-button.tsx`, `app-frame.tsx`, `feedback.ts` + tests. No SQL, no new `ensure_account()` call site.
+- Verified (full gate on 26c7279, working tree clean): `git diff --check`, `pnpm test` (2320), `pnpm test:db` (955), `pnpm lint` (0 errors, 11 warnings, as the baseline), `pnpm typecheck`, `pnpm build`; `git grep` finds no OAuth secret. Local Supabase, captcha on in a bounded window: pass, interactive and always-block test keys; your private-window GitHub and Google round trip: account chooser, sign-in into an own account, Sign out, Back and cancel.
+- Review: `expert` ran twice, once on Stage 2 (PKCE return, URL cleanup, flag handling) and once on the Back-button return, which together cover every logic file of the task; Stage 1's Turnstile module was read in the first run. Findings → fixed with tests (the cancelled-from-expired-screen flag, `replaceState` state, a start that throws, the two-tab flag over an account, the marker's age). No further review at Finish: nothing changed after the second run except those fixes.
+- Please check: the acceptance observables of the plan — GitHub and Google sign-in open an own account with its system Nodes; a cancel returns to the same guest with the modal and its inline error; the pass key signs a guest in; the interactive key shows the widget; the failing key shows the reason and `Retry`; `git grep` finds no secret — all seen, as above. Nothing new to look at.
+- Unresolved: mi-2 (Retro Mac frame text on the dither) and mi-3 (`next dev` blank after Back) are Deferred by the user. Production auth settings (provider secrets, Turnstile secret, Site URL, redirect URLs) are Task 240's (Decision above). Captcha is off in the committed `config.toml` and the local server.
