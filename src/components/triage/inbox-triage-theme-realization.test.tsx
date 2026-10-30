@@ -462,11 +462,10 @@ describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__remove \{[^}]*block-size: 40px;[^}]*border-radius: 18px;[^}]*bottom: 16px;[^}]*inline-size: auto;[^}]*inset-inline: 16px;/);
   });
 
-  it("realizes DP-VQ06-STAGING as an inset alert well, raised count and alert action, and an inset status line", () => {
+  it("realizes DP-VQ06-STAGING as an inset alert well, raised count and alert action", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging \.staging-local-alert \{[^}]*border: 0;[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging :is\(\.staging-alert-action, \.staging-arrival-count\) \{[^}]*box-shadow: var\(--theme-shadow-card-xs\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging :is\(\.staging-alert-action, \.staging-arrival-count\):not\(:disabled\):active \{\s*box-shadow: var\(--theme-shadow-inset-sm\);/);
-    expect(css).toMatch(/color-theme="neumorphism"\] \.staging-operation-status,\s*:root\[data-color-theme="neumorphism"\] \[data-triage-role="staging-integrity-status"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);/);
     expect(css).not.toMatch(/color-theme="neumorphism"\] \.staging-(?:operation-status|target-reason)[^{]*\{[^}]*content:/);
   });
 
@@ -481,7 +480,7 @@ describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
     expect(stage).toMatch(/\.triage-staging__well \{[^}]*border-color: transparent;[^}]*box-shadow: none;/);
     expect(stage).toMatch(/\.triage-staging__subsection\[data-triage-state="valid"\] \{[^}]*color-mix[^}]*box-shadow: var\(--theme-shadow-inset\), var\(--theme-shadow-inset-sm\);/);
     expect(stage).toMatch(/\[data-triage-state="invalid"\]\) \{[^}]*box-shadow: none;/);
-    expect(stage).toMatch(/\.triage-shell__subsection-heading, \.triage-staging__well > :is\(\.grid, \.flex-col\)\) \{[^}]*opacity: 0\.7;/);
+    expect(stage).toMatch(/\.triage-shell__subsection-heading, \.triage-staging__well > :is\(\.staging-node-grid, \.flex-col\)\) \{[^}]*opacity: 0\.7;/);
     expect(stage).not.toMatch(/outline|border-style|dashed|(?:^|[^a-z])ring/);
   });
 });

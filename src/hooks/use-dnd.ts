@@ -41,6 +41,7 @@ import {
   isCellBlocked,
 } from "@/lib/utils/breadcrumb-zone";
 import type { CandidateCommandOutcome } from "@/hooks/use-staged-candidates";
+import type { RepositoryOperationStatus } from "@/lib/db/schema";
 import type { TriageOperationLock } from "@/hooks/use-triage-operation-lock";
 import type { TriagePlacementRelease } from "@/hooks/use-triage-placement";
 
@@ -428,6 +429,8 @@ export function useTriageDnd(
   overTargetId: string | null;
   refreshRenderedTarget: (point: { x: number; y: number }) => void;
   targetFeedback: TriageTargetFeedback;
+  /** One read-only check of a held unknown Stage or Unstage; never a resend. */
+  checkUnknownOperation: (operationId: string) => Promise<void>;
 } {
   const [activeDragItem, setActiveDragItem] =
     useState<TriageActiveDragItem>(null);
@@ -540,12 +543,66 @@ export function useTriageDnd(
     return true;
   }, [clearDragTarget, selectedScratchId]);
 
+  // A Stage or Unstage whose request and automatic check both failed stays held with the lock
+  // (SPEC §Durable Staging, Unknown recovery). It is checked again only read-only, on the item's
+  // `?` or once in the background when its Scratch is removed elsewhere; it is never resent.
+  const heldUnknownRef = useRef(
+    new Map<
+      string,
+      {
+        scratchId: string | null;
+        checking: boolean;
+        backgroundChecked: boolean;
+        run: () => Promise<boolean>;
+      }
+    >(),
+  );
+
+  // The Scratch selected right now, for a command that ends after its Scratch already left.
+  const selectedScratchIdRef = useRef(selectedScratchId);
+  useEffect(() => {
+    selectedScratchIdRef.current = selectedScratchId;
+  }, [selectedScratchId]);
+
+  const hold = (
+    operationId: string,
+    run: () => Promise<CandidateCommandOutcome<{ status: RepositoryOperationStatus }>>,
+    onTerminal: (status: RepositoryOperationStatus) => void,
+  ) => {
+    const scratchId = selectedScratchId;
+    heldUnknownRef.current.set(operationId, {
+      scratchId,
+      checking: false,
+      backgroundChecked: false,
+      run: async () => {
+        const outcome = await run();
+        if ("outcome" in outcome) return false;
+        heldUnknownRef.current.delete(operationId);
+        operationLock.release(operationId, outcome.status);
+        onTerminal(outcome.status);
+        return true;
+      },
+    });
+    // Its Scratch was removed elsewhere while the command was out: the effect below already ran,
+    // so the one background check happens now.
+    if (selectedScratchIdRef.current !== scratchId) {
+      const held = heldUnknownRef.current.get(operationId);
+      if (held !== undefined) {
+        held.backgroundChecked = true;
+        void checkUnknownOperation(operationId);
+      }
+    }
+  };
+
   const finishStage = async (command: StageCandidateCommand): Promise<void> => {
     let outcome = await stageCandidate(command);
     if ("outcome" in outcome) {
       outcome = await reconcileStageCandidate(command);
     }
-    if ("outcome" in outcome) return;
+    if ("outcome" in outcome) {
+      hold(command.operationId, () => reconcileStageCandidate(command), () => {});
+      return;
+    }
     operationLock.release(command.operationId, outcome.status);
   };
 
@@ -556,12 +613,40 @@ export function useTriageDnd(
     if ("outcome" in outcome) {
       outcome = await reconcileUnstageCandidate(command);
     }
-    if ("outcome" in outcome) return;
+    const onTerminal = (status: RepositoryOperationStatus) => {
+      if (status === "applied" || status === "already_applied") {
+        focusUnstagedSource(command.sourceBreakdownId);
+      }
+    };
+    if ("outcome" in outcome) {
+      hold(command.operationId, () => reconcileUnstageCandidate(command), onTerminal);
+      return;
+    }
     operationLock.release(command.operationId, outcome.status);
-    if (outcome.status === "applied" || outcome.status === "already_applied") {
-      focusUnstagedSource(command.sourceBreakdownId);
+    onTerminal(outcome.status);
+  };
+
+  const checkUnknownOperation = async (operationId: string): Promise<void> => {
+    const held = heldUnknownRef.current.get(operationId);
+    if (held === undefined || held.checking) return;
+    held.checking = true;
+    try {
+      await held.run();
+    } finally {
+      held.checking = false;
     }
   };
+
+  // The selected Scratch left while a command is held (removed elsewhere; selecting another
+  // Scratch is refused while the lock is held): one background check, never retried on its own.
+  useEffect(() => {
+    for (const [operationId, held] of heldUnknownRef.current) {
+      if (held.scratchId !== selectedScratchId && !held.backgroundChecked) {
+        held.backgroundChecked = true;
+        void checkUnknownOperation(operationId);
+      }
+    }
+  }, [selectedScratchId]);
 
   useEffect(() => {
     const cancelOnEscape = (event: KeyboardEvent) => {
@@ -896,6 +981,7 @@ export function useTriageDnd(
     overTargetId,
     refreshRenderedTarget: updateRenderedTarget,
     targetFeedback,
+    checkUnknownOperation,
   };
 }
 

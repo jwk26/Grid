@@ -1466,7 +1466,7 @@ describe("TriageWorkspace", () => {
     ).toBeInTheDocument();
   });
 
-  it("clears an Unstage failure only after the authoritative candidate disappears", async () => {
+  describe("Unstage failures belong to the candidate", () => {
     const candidate = {
       id: "candidate-1",
       scratchBitId: "scratch-1",
@@ -1501,49 +1501,163 @@ describe("TriageWorkspace", () => {
       unstageCandidate: unstageCandidateMock,
       reconcileUnstageCandidate: reconcileUnstageCandidateMock,
     };
-    unstageCandidateMock.mockResolvedValue({
-      operationId: "unstage-1",
-      status: "conflict",
-      candidate,
-      source: candidate.source,
+    const command = (operationId: string) => ({
+      operationId,
+      candidateId: candidate.id,
+      candidateExpectedVersion: 1,
+      sourceBreakdownId: candidate.sourceBreakdownId,
+      sourceExpectedVersion: 1,
     });
-    useStagedCandidatesMock.mockReturnValue(projection);
-    useTriageDndMock.mockReturnValue(
-      createDndState({
-        activeDragItem: {
-          kind: "triage-staged-bit",
-          id: candidate.id,
-          label: candidate.content,
-        },
-      }),
-    );
-    const view = render(<TriageWorkspace node={createNode()} />);
-    const options = useTriageDndMock.mock.calls[0]?.[1] as {
+    type DndOptions = {
       unstageCandidate: (command: Record<string, unknown>) => Promise<unknown>;
     };
+    const failureFor = (id: string) => {
+      const last = stagingZoneRenderMock.mock.calls.at(-1)?.[0] as {
+        projection?: { unstageFailures?: ReadonlyMap<string, { copy: string }> };
+      };
+      return last.projection?.unstageFailures?.get(id);
+    };
 
-    await act(async () => {
-      await options.unstageCandidate({
+    async function failUnstage(status: "conflict" | "rejected" | "not_applied") {
+      unstageCandidateMock.mockResolvedValue({
         operationId: "unstage-1",
-        candidateId: candidate.id,
-        candidateExpectedVersion: 1,
-        sourceBreakdownId: candidate.sourceBreakdownId,
-        sourceExpectedVersion: 1,
+        status,
+        candidate,
+        source: candidate.source,
       });
-    });
-    expect(screen.getByRole("button", { name: "Dismiss Staging alert" })).toBeInTheDocument();
+      useStagedCandidatesMock.mockReturnValue(projection);
+      const view = render(<TriageWorkspace node={createNode()} />);
+      const options = useTriageDndMock.mock.calls[0]?.[1] as DndOptions;
+      await act(async () => {
+        await options.unstageCandidate(command("unstage-1"));
+      });
+      return { view, options };
+    }
 
-    useStagedCandidatesMock.mockReturnValue({
-      ...projection,
-      candidates: [],
-      counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
-    });
-    view.rerender(<TriageWorkspace node={createNode()} />);
+    it.each([
+      ["conflict", "“Project” changed elsewhere and remains staged."],
+      ["rejected", "“Project” can’t be returned from its current state."],
+    ] as const)("%s shows on the candidate, announced once, with no alert band", async (status, copy) => {
+      await failUnstage(status);
 
-    await waitFor(() => {
-      expect(
-        screen.queryByRole("button", { name: "Dismiss Staging alert" }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Dismiss Staging alert" })).toBeNull();
+      expect(failureFor(candidate.id)).toEqual({ copy });
+      expect(screen.getAllByText(copy)).toHaveLength(1);
+    });
+
+    it("still announces a later Stage's pending sentence while the candidate keeps its failure", async () => {
+      const { view } = await failUnstage("conflict");
+      expect(screen.getByTestId("staging-live-region")).toHaveTextContent(
+        "“Project” changed elsewhere and remains staged.",
+      );
+
+      useStagedCandidatesMock.mockReturnValue({
+        ...projection,
+        pendingOperations: [
+          {
+            operationId: "stage-1",
+            candidateId: candidate.id,
+            sourceBreakdownId: candidate.sourceBreakdownId,
+            scratchBitId: "scratch-1",
+            kind: "stage",
+            phase: "pending",
+            resultType: "bit",
+          },
+        ],
+      });
+      view.rerender(<TriageWorkspace node={createNode()} />);
+
+      expect(failureFor(candidate.id)).toBeDefined();
+      expect(screen.getByTestId("staging-live-region")).not.toHaveTextContent(
+        "changed elsewhere",
+      );
+      expect(screen.getByTestId("staging-live-region")).not.toBeEmptyDOMElement();
+    });
+
+    it("does not come back when the Scratch is selected again", async () => {
+      const { view } = await failUnstage("conflict");
+      act(() => useTriageStore.getState().selectScratch("scratch-2"));
+      act(() => useTriageStore.getState().selectScratch("scratch-1"));
+      view.rerender(<TriageWorkspace node={createNode()} />);
+
+      expect(failureFor(candidate.id)).toBeUndefined();
+      expect(screen.getByTestId("staging-live-region")).toHaveTextContent(/^$/);
+    });
+
+    it("is announced even while a band notice stays up, and a later band notice replaces it", async () => {
+      stageCandidateMock.mockResolvedValue({
+        operationId: "stage-1",
+        status: "conflict",
+        candidate: null,
+        source: candidate.source,
+      });
+      useStagedCandidatesMock.mockReturnValue(projection);
+      render(<TriageWorkspace node={createNode()} />);
+      const options = useTriageDndMock.mock.calls[0]?.[1] as {
+        stageCandidate: (command: Record<string, unknown>) => Promise<unknown>;
+        unstageCandidate: (command: Record<string, unknown>) => Promise<unknown>;
+      };
+      await act(async () => {
+        await options.stageCandidate({
+          operationId: "stage-1",
+          candidateId: "candidate-9",
+          scratchBitId: "scratch-1",
+          sourceBreakdownId: "breakdown-9",
+          sourceExpectedVersion: 1,
+          resultType: "bit",
+        });
+      });
+      expect(screen.getByRole("button", { name: "Dismiss Staging alert" })).toBeInTheDocument();
+
+      unstageCandidateMock.mockResolvedValue({
+        operationId: "unstage-1",
+        status: "conflict",
+        candidate,
+        source: candidate.source,
+      });
+      await act(async () => {
+        await options.unstageCandidate(command("unstage-1"));
+      });
+
+      expect(screen.getByRole("button", { name: "Dismiss Staging alert" })).toBeInTheDocument();
+      expect(screen.getByTestId("staging-live-region")).toHaveTextContent(
+        "“Project” changed elsewhere and remains staged.",
+      );
+    });
+
+    it("clears when a new operation starts for the candidate", async () => {
+      const { options } = await failUnstage("conflict");
+      expect(failureFor(candidate.id)).toBeDefined();
+
+      unstageCandidateMock.mockResolvedValue({ operationId: "unstage-2", status: "applied" });
+      await act(async () => {
+        await options.unstageCandidate(command("unstage-2"));
+      });
+
+      expect(failureFor(candidate.id)).toBeUndefined();
+    });
+
+    it("clears after the authoritative candidate disappears", async () => {
+      const { view } = await failUnstage("conflict");
+      expect(failureFor(candidate.id)).toBeDefined();
+
+      useStagedCandidatesMock.mockReturnValue({
+        ...projection,
+        candidates: [],
+        counts: { nodes: 0, bits: 0, visibleNodes: 0, visibleBits: 0 },
+      });
+      view.rerender(<TriageWorkspace node={createNode()} />);
+
+      await waitFor(() => expect(failureFor(candidate.id)).toBeUndefined());
+    });
+
+    it("does not carry across a Scratch switch", async () => {
+      await failUnstage("conflict");
+      expect(failureFor(candidate.id)).toBeDefined();
+
+      act(() => useTriageStore.getState().selectScratch("scratch-2"));
+
+      expect(failureFor(candidate.id)).toBeUndefined();
     });
   });
 
@@ -1564,8 +1678,17 @@ describe("TriageWorkspace", () => {
     expect(globalsCss).not.toMatch(/color-theme="(?!neumorphism)[a-z-]+"\][^{]*heading-icon/);
   });
 
+  it("lays Node cards in an auto-fill grid of at least one card, at most two columns, in a column that never drops below one card", () => {
+    expect(globalsCss).toMatch(
+      /\.staging-node-grid \{[^}]*grid-template-columns: repeat\(\s*auto-fill,\s*minmax\(max\(var\(--triage-staging-node-card-min\), calc\(\(100% - 0\.5rem\) \/ 2\)\), 1fr\)\s*\);/,
+    );
+    expect(globalsCss).toMatch(
+      /\.triage-shell__staging \{[^}]*grid-template-columns:\s*minmax\(calc\(var\(--triage-staging-node-card-min\) \+ 2rem\), 7fr\)/,
+    );
+  });
+
   it("binds the static Staging status family to reduced motion and all eight themes", () => {
-    expect(globalsCss).toContain(".staging-operation-status");
+    expect(globalsCss).toContain(".staging-status-slot");
     expect(globalsCss).toContain(".staging-arrival-count");
     expect(globalsCss).toContain(".staging-local-alert");
     expect(globalsCss).toContain("@media (prefers-reduced-motion: reduce)");

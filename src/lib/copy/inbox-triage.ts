@@ -271,6 +271,8 @@ export interface InboxTriageCopy {
       readonly dismiss: string;
     };
   };
+  /** Added to a status tooltip whose icon runs a read-only check when selected (Tasks 246, 247). */
+  readonly statusHint: { readonly checkAgain: string; readonly tryAgain: string };
   readonly stagingStatus: {
     readonly operation: {
       readonly stagePending: string;
@@ -672,6 +674,10 @@ export const INBOX_TRIAGE_COPY = {
       reviewNew: "Review new",
       dismiss: "Dismiss",
     },
+  },
+  statusHint: {
+    checkAgain: "Select to check again.",
+    tryAgain: "Select to try again.",
   },
   stagingStatus: {
     operation: {

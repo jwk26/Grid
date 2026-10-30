@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { FileText, Folder, X } from "lucide-react";
 import {
@@ -19,6 +19,19 @@ import {
   getTriageNodeZoneDropId,
   type TriageDropData,
 } from "@/lib/grid-dnd";
+import {
+  StatusIcon,
+  statusEmphasisProps,
+  useStatusPresentation,
+  type StatusPresentation,
+} from "@/components/feedback/status-icon";
+import { StatusTooltip } from "@/components/feedback/status-tooltip";
+import {
+  forcedItemKeys,
+  useForcedItemStatus,
+  type ForcedItemStatus,
+} from "@/lib/feedback/forced-item-status";
+import type { ItemStatus } from "@/lib/feedback/item-status";
 import { cn } from "@/lib/utils";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import { useTriageStore } from "@/stores/triage-store";
@@ -33,10 +46,15 @@ export type StagingOperationView = Omit<
     title: string;
   }>;
 
+type UnstageFailures = NonNullable<StagingZoneProjection["unstageFailures"]>;
+const NO_UNSTAGE_FAILURES: UnstageFailures = new Map();
+
 export type StagingZoneProjection = Readonly<{
   candidates: StagedCandidateProjection[];
   integrityCandidates: CandidateIntegrityProjection[];
   operations: StagingOperationView[];
+  /** Candidates whose last Unstage ended without moving them, with the sentence for each. */
+  unstageFailures?: ReadonlyMap<string, Readonly<{ copy: string }>>;
 }>;
 
 interface StagingZoneProps {
@@ -46,6 +64,8 @@ interface StagingZoneProps {
   projection?: StagingZoneProjection;
   newCandidateIds?: ReadonlySet<string>;
   onObservedTop?: () => void;
+  /** Runs one read-only check of a held unknown command; never a resend (Phase 50 mi-1). */
+  onCheckAgain?: (operationId: string) => void;
 }
 
 type DropZoneState =
@@ -167,6 +187,7 @@ export function StagingZone({
   overTargetId = null,
   projection,
   newCandidateIds = new Set<string>(),
+  onCheckAgain,
   onObservedTop,
 }: StagingZoneProps) {
   const operationLock = useTriageOperationLockContext();
@@ -189,6 +210,7 @@ export function StagingZone({
       overTargetId={overTargetId}
       projection={projection}
       type={type}
+      onCheckAgain={onCheckAgain}
       onObservedTop={onObservedTop}
     />
   );
@@ -213,6 +235,7 @@ function StagingZoneContent({
   activeDragItem = null,
   isInteractionLocked,
   newCandidateIds = new Set<string>(),
+  onCheckAgain,
   onObservedTop,
   overTargetId = null,
   projection,
@@ -224,6 +247,7 @@ function StagingZoneContent({
   const stagedCandidates = projection.candidates;
   const integrityCandidates = projection.integrityCandidates;
   const operations = projection.operations;
+  const unstageFailures = projection.unstageFailures ?? NO_UNSTAGE_FAILURES;
   const candidates = stagedCandidates
     .filter((candidate) => candidate.resultType === type)
     .toSorted((left, right) => {
@@ -243,9 +267,11 @@ function StagingZoneContent({
         )}
         isInteractionLocked={isInteractionLocked}
         newCandidateIds={newCandidateIds}
+        onCheckAgain={onCheckAgain}
         onObservedTop={onObservedTop}
         operations={operations.filter(({ resultType }) => resultType === "node")}
         overTargetId={overTargetId}
+        unstageFailures={unstageFailures}
       />
     );
   }
@@ -259,9 +285,11 @@ function StagingZoneContent({
       )}
       isInteractionLocked={isInteractionLocked}
       newCandidateIds={newCandidateIds}
+      onCheckAgain={onCheckAgain}
       onObservedTop={onObservedTop}
       operations={operations.filter(({ resultType }) => resultType === "bit")}
       overTargetId={overTargetId}
+      unstageFailures={unstageFailures}
     />
   );
 }
@@ -272,18 +300,22 @@ function NodeStagingZone({
   integrityCandidates,
   isInteractionLocked,
   newCandidateIds,
+  onCheckAgain,
   onObservedTop,
   operations,
   overTargetId,
+  unstageFailures,
 }: {
   activeDragItem: TriageDragItem;
   candidates: StagedCandidateProjection[];
   integrityCandidates: CandidateIntegrityProjection[];
   isInteractionLocked: boolean;
   newCandidateIds: ReadonlySet<string>;
+  onCheckAgain?: (operationId: string) => void;
   onObservedTop?: () => void;
   operations: StagingOperationView[];
   overTargetId: string | null;
+  unstageFailures: UnstageFailures;
 }) {
   const dropId = getTriageNodeZoneDropId();
   const state = getDropZoneState({
@@ -308,9 +340,13 @@ function NodeStagingZone({
       }}
     >
       {candidates.length > 0 || operations.length > 0 || integrityCandidates.length > 0 ? (
-        <div className="grid w-full grid-cols-2 gap-2 pb-1">
+        <div className="staging-node-grid">
           {stageProjections(operations, candidates).map((operation) => (
-            <NodeStatusCard key={operation.operationId} operation={operation} />
+            <NodeStatusCard
+              key={operation.operationId}
+              operation={operation}
+              onCheckAgain={onCheckAgain}
+            />
           ))}
           {candidates.map((candidate) => {
             const operation = operations.find(
@@ -321,7 +357,9 @@ function NodeStagingZone({
                 key={candidate.id}
                 candidate={candidate}
                 disabled={isInteractionLocked || operation?.held === true}
+                failure={unstageFailures.get(candidate.id)}
                 isNew={newCandidateIds.has(candidate.id)}
+                onCheckAgain={onCheckAgain}
                 operation={operation}
               />
             );
@@ -342,18 +380,22 @@ function BitStagingZone({
   integrityCandidates,
   isInteractionLocked,
   newCandidateIds,
+  onCheckAgain,
   onObservedTop,
   operations,
   overTargetId,
+  unstageFailures,
 }: {
   activeDragItem: TriageDragItem;
   candidates: StagedCandidateProjection[];
   integrityCandidates: CandidateIntegrityProjection[];
   isInteractionLocked: boolean;
   newCandidateIds: ReadonlySet<string>;
+  onCheckAgain?: (operationId: string) => void;
   onObservedTop?: () => void;
   operations: StagingOperationView[];
   overTargetId: string | null;
+  unstageFailures: UnstageFailures;
 }) {
   const dropId = getTriageBitZoneDropId();
   const state = getDropZoneState({
@@ -380,7 +422,11 @@ function BitStagingZone({
       {candidates.length > 0 || operations.length > 0 || integrityCandidates.length > 0 ? (
         <div className="flex w-full flex-col gap-1.5 pb-1">
           {stageProjections(operations, candidates).map((operation) => (
-            <BitStatusRow key={operation.operationId} operation={operation} />
+            <BitStatusRow
+              key={operation.operationId}
+              operation={operation}
+              onCheckAgain={onCheckAgain}
+            />
           ))}
           {candidates.map((candidate) => {
             const operation = operations.find(
@@ -391,7 +437,9 @@ function BitStagingZone({
                 key={candidate.id}
                 candidate={candidate}
                 disabled={isInteractionLocked || operation?.held === true}
+                failure={unstageFailures.get(candidate.id)}
                 isNew={newCandidateIds.has(candidate.id)}
+                onCheckAgain={onCheckAgain}
                 operation={operation}
               />
             );
@@ -409,18 +457,173 @@ function BitStagingZone({
 // The durable candidate's layout, shared with its Stage projection so the swap
 // from projection to card changes no size, shape or content.
 const NODE_CARD_CLASS =
-  "triage-staging__node mx-auto aspect-square h-auto w-full max-w-[80px] select-none overflow-hidden rounded-lg border border-border/80 bg-background transition-[background-color,border-color,color,opacity] focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none";
+  "triage-staging__node relative mx-auto aspect-square h-auto w-full max-w-[80px] select-none overflow-hidden rounded-lg border border-border/80 bg-background transition-[background-color,border-color,color,opacity] focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none";
 const NODE_CARD_DRAGGABLE_CLASS = "touch-none cursor-grab active:cursor-grabbing";
 const BIT_ROW_CLASS =
   "triage-staging__bit flex min-h-[2rem] w-full select-none items-center rounded-lg border border-border/60 bg-background px-3 py-1.5 transition-[background-color,border-color,color,opacity] focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none";
 const BIT_ROW_DRAGGABLE_CLASS = "touch-none cursor-grab active:cursor-grabbing";
 
-// Pending, and a hold from pending, show no in-card line: the sentence stays in
-// the Staging live region. Unknown and reconciling keep the line.
-function showsOperationLine(
+// What an item's status icon shows and says (feedback F06-F09). Pending shows its loader after
+// the display delay; unknown and reconciling show `?`; an Unstage failure or an unresolved source
+// shows `!`. The icon sits at the Node card's top-right corner and at a Bit row's end.
+type StagingItemState = Readonly<{
+  status: ItemStatus;
+  /** What the icon says; a problem sentence leads with the full title unless it has it. */
+  sentence: string;
+  /** Restarts the display delay when a new operation begins. */
+  phaseKey: string;
+  /** Present on an unknown or reconciling command: its `?` runs the read-only check. */
+  checkOperationId?: string;
+  /** The hidden slot role: the operation line's or the integrity line's. */
+  role: "staging-operation-status" | "staging-integrity-status";
+}>;
+
+function leadWithTitle(title: string, sentence: string): string {
+  return sentence.includes(title) ? sentence : `“${title}”: ${sentence}`;
+}
+
+function operationState(
   operation: StagingOperationView | undefined,
-): operation is StagingOperationView {
-  return operation !== undefined && operation.phase !== "pending";
+  onCheckAgain: ((operationId: string) => void) | undefined,
+): StagingItemState | null {
+  if (operation === undefined) return null;
+  const checkable =
+    onCheckAgain !== undefined &&
+    (operation.phase === "unknown" || operation.phase === "reconciling");
+  const sentence = operationCopy(operation);
+  return {
+    status: operation.phase,
+    sentence:
+      checkable && operation.phase === "unknown"
+        ? `${sentence} ${INBOX_TRIAGE_COPY.statusHint.checkAgain}`
+        : sentence,
+    phaseKey: operation.operationId,
+    ...(checkable ? { checkOperationId: operation.operationId } : {}),
+    role: "staging-operation-status",
+  };
+}
+
+// The development state switch forces a state onto a staged candidate (feedback F30); it shows
+// the Unstage sentences, since a candidate's own commands are Unstage.
+function forcedItemState(
+  forced: ForcedItemStatus,
+  candidate: StagedCandidateProjection,
+): StagingItemState | null {
+  if (forced.status === null) return null;
+  const copy = INBOX_TRIAGE_COPY.stagingStatus;
+  const raw = {
+    "delayed-pending": copy.operation.unstagePending,
+    reconciling: copy.operation.unstageReconciling,
+    unknown: copy.operation.unstageUnknown,
+    "not-applied": copy.alert.unstageNotApplied,
+    rejected: copy.alert.unstageRejected,
+    conflict: copy.alert.unstageConflict,
+    integrity: copy.integrity[candidate.resultType],
+    "editor-offline": "",
+  }[forced.state].replace("{title}", candidate.content);
+  return {
+    status: forced.status,
+    sentence: leadWithTitle(candidate.content, raw),
+    phaseKey: `forced:${forced.state}`,
+    role: "staging-operation-status",
+  };
+}
+
+function itemState(
+  operation: StagingOperationView | undefined,
+  failure: Readonly<{ copy: string }> | undefined,
+  title: string,
+  onCheckAgain: ((operationId: string) => void) | undefined,
+): StagingItemState | null {
+  const fromOperation = operationState(operation, onCheckAgain);
+  if (fromOperation !== null) return fromOperation;
+  if (failure === undefined) return null;
+  return {
+    status: "problem",
+    sentence: leadWithTitle(title, failure.copy),
+    phaseKey: failure.copy,
+    role: "staging-operation-status",
+  };
+}
+
+/**
+ * The status slot: the icon, with the sentence as tooltip on hover or focus. The icon is
+ * focusable where its host is not in the Tab order (a Stage projection, an integrity slot); an
+ * unknown command's `?` is a button that runs the read-only check, unavailable while it runs.
+ */
+function StagingStatusSlot({
+  focusable = false,
+  onCheckAgain,
+  presentation,
+  state,
+}: {
+  focusable?: boolean;
+  onCheckAgain?: (operationId: string) => void;
+  presentation: StatusPresentation;
+  state: StagingItemState | null;
+}) {
+  // The tooltip's open flag lives in the inner component, which only exists while a glyph shows,
+  // so a status that appears later never opens a tooltip latched from an earlier one.
+  if (state === null || presentation.glyph === null) return null;
+  return (
+    <VisibleStagingStatusSlot
+      focusable={focusable}
+      presentation={presentation}
+      state={state}
+      onCheckAgain={onCheckAgain}
+    />
+  );
+}
+
+function VisibleStagingStatusSlot({
+  focusable,
+  onCheckAgain,
+  presentation,
+  state,
+}: {
+  focusable: boolean;
+  onCheckAgain?: (operationId: string) => void;
+  presentation: StatusPresentation;
+  state: StagingItemState;
+}) {
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+  const checkOperationId = state.checkOperationId;
+  const icon = (
+    <StatusIcon
+      focusable={focusable && checkOperationId === undefined}
+      presentation={presentation}
+      sentence={state.sentence}
+    />
+  );
+  return (
+    <StatusTooltip
+      open={isTooltipOpen}
+      sentence={state.sentence}
+      onOpenChange={setIsTooltipOpen}
+    >
+      <span
+        className="staging-status-slot"
+        data-triage-role={state.role}
+        data-triage-state={state.status}
+      >
+        {checkOperationId === undefined ? (
+          icon
+        ) : (
+          <button
+            aria-disabled={state.status === "reconciling" ? "true" : undefined}
+            className="staging-status-action"
+            data-triage-role="staging-check-again"
+            type="button"
+            onClick={() => {
+              if (state.status === "unknown") onCheckAgain?.(checkOperationId);
+            }}
+          >
+            {icon}
+          </button>
+        )}
+      </span>
+    </StatusTooltip>
+  );
 }
 
 // Stage projections not yet listed render at the top, newest first, where the
@@ -460,12 +663,16 @@ function isCandidateDimmed(
 function NodeCandidateCard({
   candidate,
   disabled,
+  failure,
   isNew,
+  onCheckAgain,
   operation,
 }: {
   candidate: StagedCandidateProjection;
   disabled: boolean;
+  failure?: Readonly<{ copy: string }>;
   isNew: boolean;
+  onCheckAgain?: (operationId: string) => void;
   operation?: StagingOperationView;
 }) {
   const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
@@ -511,6 +718,12 @@ function NodeCandidateCard({
   );
 
   const isDimmed = isCandidateDimmed(isDragging, operation);
+  const forced = useForcedItemStatus(forcedItemKeys.candidate(candidate.id));
+  const state =
+    forced !== null
+      ? forcedItemState(forced, candidate)
+      : itemState(operation, failure, candidate.content, onCheckAgain);
+  const presentation = useStatusPresentation(state?.status ?? null, state?.phaseKey ?? "");
 
   return (
     <div
@@ -529,6 +742,7 @@ function NodeCandidateCard({
       data-triage-dimmed={isDimmed || undefined}
       data-triage-hold={operation?.held || undefined}
       data-testid="node-candidate-card"
+      {...statusEmphasisProps(presentation)}
       data-triage-drag-source="staged-root"
       data-triage-role="staging-node-card"
       data-triage-state={operation?.phase ?? "staged"}
@@ -551,8 +765,12 @@ function NodeCandidateCard({
         >
           {candidate.content}
         </div>
-        {showsOperationLine(operation) ? <OperationStatus operation={operation} /> : null}
       </div>
+      <StagingStatusSlot
+        presentation={presentation}
+        state={state}
+        onCheckAgain={onCheckAgain}
+      />
     </div>
   );
 }
@@ -560,12 +778,16 @@ function NodeCandidateCard({
 function BitCandidateRow({
   candidate,
   disabled,
+  failure,
   isNew,
+  onCheckAgain,
   operation,
 }: {
   candidate: StagedCandidateProjection;
   disabled: boolean;
+  failure?: Readonly<{ copy: string }>;
   isNew: boolean;
+  onCheckAgain?: (operationId: string) => void;
   operation?: StagingOperationView;
 }) {
   const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
@@ -611,6 +833,12 @@ function BitCandidateRow({
   );
 
   const isDimmed = isCandidateDimmed(isDragging, operation);
+  const forced = useForcedItemStatus(forcedItemKeys.candidate(candidate.id));
+  const state =
+    forced !== null
+      ? forcedItemState(forced, candidate)
+      : itemState(operation, failure, candidate.content, onCheckAgain);
+  const presentation = useStatusPresentation(state?.status ?? null, state?.phaseKey ?? "");
 
   return (
     <div
@@ -629,6 +857,7 @@ function BitCandidateRow({
       data-triage-dimmed={isDimmed || undefined}
       data-triage-hold={operation?.held || undefined}
       data-testid="bit-candidate-row"
+      {...statusEmphasisProps(presentation)}
       data-triage-drag-source="staged-root"
       data-triage-role="staging-bit-row"
       data-triage-state={operation?.phase ?? "staged"}
@@ -650,7 +879,11 @@ function BitCandidateRow({
       >
         {candidate.content}
       </div>
-      {showsOperationLine(operation) ? <OperationStatus operation={operation} /> : null}
+      <StagingStatusSlot
+        presentation={presentation}
+        state={state}
+        onCheckAgain={onCheckAgain}
+      />
     </div>
   );
 }
@@ -669,24 +902,21 @@ function operationCopy(operation: StagingOperationView): string {
   );
 }
 
-function OperationStatus({ operation }: { operation: StagingOperationView }) {
-  return (
-    <div
-      className="staging-operation-status"
-      data-triage-role="staging-operation-status"
-      data-triage-state={operation.phase}
-    >
-      {operationCopy(operation)}
-    </div>
-  );
-}
-
-function NodeStatusCard({ operation }: { operation: StagingOperationView }) {
+function NodeStatusCard({
+  operation,
+  onCheckAgain,
+}: {
+  operation: StagingOperationView;
+  onCheckAgain?: (operationId: string) => void;
+}) {
+  const state = operationState(operation, onCheckAgain);
+  const presentation = useStatusPresentation(state?.status ?? null, state?.phaseKey ?? "");
   return (
     <div
       className={cn(NODE_CARD_CLASS, "cursor-default")}
       data-triage-hold={operation.held || undefined}
       data-testid="node-operation-card"
+      {...statusEmphasisProps(presentation)}
       data-triage-role="staging-node-card"
       data-triage-state={operation.phase}
     >
@@ -698,18 +928,32 @@ function NodeStatusCard({ operation }: { operation: StagingOperationView }) {
         <div className="triage-staging__node-label mt-auto w-full truncate px-1 pb-1 text-center text-[10px] font-semibold text-foreground">
           {operation.title}
         </div>
-        {showsOperationLine(operation) ? <OperationStatus operation={operation} /> : null}
       </div>
+      <StagingStatusSlot
+        focusable
+        presentation={presentation}
+        state={state}
+        onCheckAgain={onCheckAgain}
+      />
     </div>
   );
 }
 
-function BitStatusRow({ operation }: { operation: StagingOperationView }) {
+function BitStatusRow({
+  operation,
+  onCheckAgain,
+}: {
+  operation: StagingOperationView;
+  onCheckAgain?: (operationId: string) => void;
+}) {
+  const state = operationState(operation, onCheckAgain);
+  const presentation = useStatusPresentation(state?.status ?? null, state?.phaseKey ?? "");
   return (
     <div
       className={cn(BIT_ROW_CLASS, "cursor-default")}
       data-testid="bit-operation-row"
       data-triage-hold={operation.held || undefined}
+      {...statusEmphasisProps(presentation)}
       data-triage-role="staging-bit-row"
       data-triage-state={operation.phase}
     >
@@ -717,29 +961,58 @@ function BitStatusRow({ operation }: { operation: StagingOperationView }) {
       <div className="min-w-0 flex-1 truncate text-left text-xs font-medium text-foreground">
         {operation.title}
       </div>
-      {showsOperationLine(operation) ? <OperationStatus operation={operation} /> : null}
+      <StagingStatusSlot
+        focusable
+        presentation={presentation}
+        state={state}
+        onCheckAgain={onCheckAgain}
+      />
     </div>
   );
 }
 
+// A staged candidate whose source can't be resolved has no title to show: its `!` is the only
+// signal, and the host is not in the Tab order, so the icon takes focus.
+function integrityState(sentence: string): StagingItemState {
+  return {
+    status: "problem",
+    sentence,
+    phaseKey: "source-unresolved",
+    role: "staging-integrity-status",
+  };
+}
+
 function NodeIntegrityCard() {
+  const state = integrityState(INBOX_TRIAGE_COPY.stagingStatus.integrity.node);
+  const presentation = useStatusPresentation(state.status, state.phaseKey);
   return (
-    <div className="staging-node-status-card" data-testid="node-integrity-card" data-triage-role="staging-node-card">
-      <Folder aria-hidden="true" className="h-6 w-6" />
-      <div data-triage-role="staging-integrity-status" data-triage-state="source-unresolved">
-        {INBOX_TRIAGE_COPY.stagingStatus.integrity.node}
+    <div
+      className={cn(NODE_CARD_CLASS, "staging-node-status-card cursor-default")}
+      data-testid="node-integrity-card"
+      {...statusEmphasisProps(presentation)}
+      data-triage-role="staging-node-card"
+    >
+      <div className="triage-staging__node-content flex h-full w-full flex-col items-center justify-center p-2">
+        <Folder aria-hidden="true" className="h-6 w-6 flex-shrink-0 text-muted-foreground" />
       </div>
+      <StagingStatusSlot focusable presentation={presentation} state={state} />
     </div>
   );
 }
 
 function BitIntegrityRow() {
+  const state = integrityState(INBOX_TRIAGE_COPY.stagingStatus.integrity.bit);
+  const presentation = useStatusPresentation(state.status, state.phaseKey);
   return (
-    <div className="staging-bit-status-row" data-testid="bit-integrity-row" data-triage-role="staging-bit-row">
+    <div
+      className={cn(BIT_ROW_CLASS, "staging-bit-status-row cursor-default")}
+      data-testid="bit-integrity-row"
+      {...statusEmphasisProps(presentation)}
+      data-triage-role="staging-bit-row"
+    >
       <FileText aria-hidden="true" className="triage-staging__bit-icon" />
-      <div data-triage-role="staging-integrity-status" data-triage-state="source-unresolved">
-        {INBOX_TRIAGE_COPY.stagingStatus.integrity.bit}
-      </div>
+      <div className="min-w-0 flex-1" />
+      <StagingStatusSlot focusable presentation={presentation} state={state} />
     </div>
   );
 }

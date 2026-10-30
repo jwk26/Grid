@@ -482,6 +482,189 @@ describe("useTriageDnd — Task 145 durable Stage/Unstage adapters", () => {
     expect(reconcileUnstageCandidateMock).toHaveBeenCalledOnce();
   });
 
+  describe("a command whose automatic check also failed (Phase 50 mi-1)", () => {
+    async function holdUnknownStage(scratchId = "scratch-1") {
+      stageCandidateMock.mockImplementationOnce(async (command) => ({
+        operationId: command.operationId,
+        outcome: "unknown",
+      }));
+      reconcileStageCandidateMock.mockImplementationOnce(async (command) => ({
+        operationId: command.operationId,
+        outcome: "unknown",
+      }));
+      const hook = renderHook(
+        ({ scratch }: { scratch: string | null }) =>
+          useTriageDnd(scratch, durableCandidateOptions()),
+        { initialProps: { scratch: scratchId as string | null } },
+      );
+      await act(async () => {
+        await completeDrag(
+          hook.result.current,
+          makeDragEndEvent(makeBreakdownDragData(), { kind: "triage-node-zone-drop" }),
+        );
+      });
+      const command = stageCandidateMock.mock.calls[0]?.[0];
+      return { ...hook, command };
+    }
+
+    it("runs one more read-only check on request and releases the lock on a terminal answer, never resending", async () => {
+      const { result, command } = await holdUnknownStage();
+      expect(operationLockState.release).not.toHaveBeenCalled();
+      reconcileStageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        status: "not_applied",
+        candidate: null,
+        source: null,
+        scratch: null,
+      }));
+
+      await act(async () => {
+        await result.current.checkUnknownOperation(command.operationId);
+      });
+
+      expect(reconcileStageCandidateMock).toHaveBeenCalledTimes(2);
+      expect(reconcileStageCandidateMock).toHaveBeenLastCalledWith(command);
+      expect(stageCandidateMock).toHaveBeenCalledOnce();
+      expect(operationLockState.release).toHaveBeenCalledWith(
+        command.operationId,
+        "not_applied",
+      );
+    });
+
+    it("keeps the lock when the check fails again and allows another check", async () => {
+      const { result, command } = await holdUnknownStage();
+      reconcileStageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        outcome: "unknown",
+      }));
+
+      await act(async () => {
+        await result.current.checkUnknownOperation(command.operationId);
+      });
+      expect(operationLockState.release).not.toHaveBeenCalled();
+
+      reconcileStageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        status: "already_applied",
+        candidate: null,
+        source: null,
+        scratch: null,
+      }));
+      await act(async () => {
+        await result.current.checkUnknownOperation(command.operationId);
+      });
+      expect(reconcileStageCandidateMock).toHaveBeenCalledTimes(3);
+      expect(operationLockState.release).toHaveBeenCalledWith(
+        command.operationId,
+        "already_applied",
+      );
+    });
+
+    it("ignores a check for an operation it does not hold, and a second request while one is out", async () => {
+      const { result, command } = await holdUnknownStage();
+      await act(async () => {
+        await result.current.checkUnknownOperation("unknown-operation");
+      });
+      expect(reconcileStageCandidateMock).toHaveBeenCalledTimes(1);
+
+      let resolve!: (value: unknown) => void;
+      reconcileStageCandidateMock.mockImplementationOnce(
+        () => new Promise((r) => (resolve = r)),
+      );
+      let first!: Promise<void>;
+      act(() => {
+        first = result.current.checkUnknownOperation(command.operationId);
+      });
+      await act(async () => {
+        await result.current.checkUnknownOperation(command.operationId);
+      });
+      expect(reconcileStageCandidateMock).toHaveBeenCalledTimes(2);
+      await act(async () => {
+        resolve({ operationId: command.operationId, outcome: "unknown" });
+        await first;
+      });
+    });
+
+    it("runs one background check when the Scratch is removed elsewhere, releases on a terminal answer and never retries a failure", async () => {
+      const { rerender, command } = await holdUnknownStage();
+      reconcileStageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        outcome: "unknown",
+      }));
+
+      rerender({ scratch: "scratch-2" });
+      await waitFor(() => expect(reconcileStageCandidateMock).toHaveBeenCalledTimes(2));
+      expect(operationLockState.release).not.toHaveBeenCalled();
+
+      rerender({ scratch: null });
+      rerender({ scratch: "scratch-3" });
+      await act(async () => {});
+      expect(reconcileStageCandidateMock).toHaveBeenCalledTimes(2);
+      expect(stageCandidateMock).toHaveBeenCalledOnce();
+      expect(command.operationId).toBeDefined();
+    });
+
+    it("checks once in the background when the command ends after its Scratch already left", async () => {
+      let answerStage!: (outcome: unknown) => void;
+      stageCandidateMock.mockImplementationOnce(
+        () => new Promise((resolve) => (answerStage = resolve)),
+      );
+      reconcileStageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        outcome: "unknown",
+      }));
+      const hook = renderHook(
+        ({ scratch }: { scratch: string | null }) =>
+          useTriageDnd(scratch, durableCandidateOptions()),
+        { initialProps: { scratch: "scratch-1" as string | null } },
+      );
+      let drag!: Promise<unknown>;
+      act(() => {
+        drag = (async () =>
+          completeDrag(
+            hook.result.current,
+            makeDragEndEvent(makeBreakdownDragData(), { kind: "triage-node-zone-drop" }),
+          ))();
+      });
+      hook.rerender({ scratch: "scratch-2" });
+      stageCandidateMock.mockClear();
+      reconcileStageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        status: "not_applied",
+        candidate: null,
+        source: null,
+        scratch: null,
+      }));
+      await act(async () => {
+        answerStage({ operationId: "op", outcome: "unknown" });
+        await drag;
+      });
+
+      await waitFor(() => expect(reconcileStageCandidateMock).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(operationLockState.release).toHaveBeenCalled());
+    });
+
+    it("releases the lock when the background check gets a terminal answer", async () => {
+      const { rerender, command } = await holdUnknownStage();
+      reconcileStageCandidateMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        status: "not_applied",
+        candidate: null,
+        source: null,
+        scratch: null,
+      }));
+
+      rerender({ scratch: "scratch-2" });
+
+      await waitFor(() =>
+        expect(operationLockState.release).toHaveBeenCalledWith(
+          command.operationId,
+          "not_applied",
+        ),
+      );
+    });
+  });
+
   it("dispatches exact Unstage CAS identity and restores source focus only after confirmed success", async () => {
     const { result } = renderHook(() =>
       useTriageDnd("scratch-1", durableCandidateOptions()),

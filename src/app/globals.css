@@ -3331,9 +3331,25 @@
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
 }
 
+/* The Nodes column is never narrower than one Node card plus the subsection's own padding (F10). */
 .triage-shell__staging {
+  --triage-staging-node-card-min: 5rem;
   display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 13fr);
+  grid-template-columns:
+    minmax(calc(var(--triage-staging-node-card-min) + 2rem), 7fr)
+    minmax(0, 13fr);
+}
+
+/* Cards fill auto-fit tracks of at least one card; the half-width floor caps it at two columns. */
+.staging-node-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(max(var(--triage-staging-node-card-min), calc((100% - 0.5rem) / 2)), 1fr)
+  );
+  inline-size: 100%;
+  padding-block-end: 0.25rem;
 }
 
 .triage-shell__section-heading,
@@ -3579,10 +3595,6 @@
   display: grid; grid-template-rows: 20px 12px;
   justify-items: center; padding: 8px; gap: 8px;
 }
-:root[data-color-theme="retro-mac"] .triage-staging__node-content:has(.staging-operation-status) {
-  grid-template-rows: 20px 12px var(--triage-staging-footer-height);
-  padding: 4px; gap: 0;
-}
 :root[data-color-theme="retro-mac"] .staging-node-status-card {
   display: grid; grid-template-rows: 20px var(--triage-staging-footer-height);
   align-content: center; justify-items: center; gap: 4px; padding: 4px;
@@ -3596,18 +3608,12 @@
   margin-top: 0; padding: 0; font-size: 8px; line-height: 12px; font-weight: 700; text-transform: uppercase;
 }
 :root[data-color-theme="retro-mac"] .triage-staging__bit {
-  display: grid; grid-template-columns: 20px minmax(0, 1fr); grid-template-rows: 20px;
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; grid-template-rows: 20px;
   gap: 0 8px; padding: 6px 8px; height: var(--triage-staging-bit-height); min-height: var(--triage-staging-bit-height);
 }
 :root[data-color-theme="retro-mac"] .triage-staging__bit > div:first-of-type {
   grid-column: 2; grid-row: 1 / -1; align-self: center;
   font-size: 9px; line-height: 13.5px; font-weight: 700; text-transform: uppercase;
-}
-:root[data-color-theme="retro-mac"] .triage-staging__bit:has(.staging-operation-status) {
-  grid-template-rows: 12px 12px; padding: 4px 8px;
-}
-:root[data-color-theme="retro-mac"] .triage-staging__bit:has(.staging-operation-status) > div:first-of-type {
-  grid-row: 1; line-height: 12px;
 }
 :root[data-color-theme="retro-mac"] .triage-staging__bit-icon {
   display: block; grid-column: 1; grid-row: 1 / -1; align-self: center;
@@ -3615,16 +3621,11 @@
   border: var(--triage-staging-icon-frame); padding: 4px;
 }
 :root[data-color-theme="retro-mac"] .staging-bit-status-row {
-  display: grid; grid-template-columns: 20px minmax(0, 1fr); grid-template-rows: 12px 12px;
-  gap: 0 8px; padding: 4px 8px; height: var(--triage-staging-bit-height);
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; grid-template-rows: 20px;
+  gap: 0 8px; padding: 6px 8px; height: var(--triage-staging-bit-height);
 }
-:root[data-color-theme="retro-mac"] .staging-operation-status,
-:root[data-color-theme="retro-mac"] [data-triage-role="staging-integrity-status"] {
-  width: 100%; font-family: var(--triage-staging-font); color: var(--triage-staging-ink);
-}
-:root[data-color-theme="retro-mac"] :is(.triage-staging__bit, .staging-bit-status-row) > :is(.staging-operation-status, [data-triage-role="staging-integrity-status"]) {
-  grid-column: 2; grid-row: 2; font-size: 8px; line-height: 10px;
-  min-block-size: 12px; padding-block-start: 0;
+:root[data-color-theme="retro-mac"] :is(.triage-staging__bit, .staging-bit-status-row) > .staging-status-slot {
+  grid-column: 3; grid-row: 1 / -1; align-self: center; margin-inline-start: 0;
 }
 :root[data-color-theme="retro-mac"] .triage-staging__remove {
   font-family: var(--triage-staging-font); font-size: 10px;
@@ -3708,24 +3709,42 @@
   outline-offset: 2px;
 }
 
-.staging-operation-status,
-[data-triage-role="staging-integrity-status"] {
-  border-block-start: 1px solid hsl(var(--border));
-  color: hsl(var(--muted-foreground));
-  font-family: var(--theme-font);
-  font-size: 0.5625rem;
-  line-height: 0.75rem;
-  min-block-size: 0.875rem;
-  overflow: hidden;
-  padding-block-start: 0.125rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* The status icon of a Staging item (feedback F06): top-right corner of a Node card, end of a Bit row. */
+.staging-status-slot {
+  --status-icon-size: 16px;
+  align-items: center;
+  display: flex;
+  flex: none;
 }
 
-/* A Node card's status line is fitted to the card width, so it ellipsizes in every theme. */
-.triage-staging__node-content > .staging-operation-status {
-  align-self: stretch;
-  max-inline-size: 100%;
+.triage-staging__node > .staging-status-slot {
+  inset-block-start: 0.25rem;
+  inset-inline-end: 0.25rem;
+  position: absolute;
+}
+
+.triage-staging__bit > .staging-status-slot {
+  margin-inline-start: 0.25rem;
+}
+
+.staging-status-action {
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  padding: 0;
+}
+
+.staging-status-action[aria-disabled="true"] {
+  cursor: default;
+}
+
+.staging-status-action:focus-visible,
+.staging-status-slot [data-feedback-role="status-icon"]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
 }
 
 .staging-node-status-card,
@@ -6495,8 +6514,8 @@
 :root[data-color-theme="neumorphism"] .staging-node-status-card { max-inline-size: none; }
 :root[data-color-theme="neumorphism"] .triage-staging__node { overflow: visible; }
 :root[data-color-theme="neumorphism"] .triage-staging__bit,
-:root[data-color-theme="neumorphism"] .staging-bit-status-row { padding-block: 9px; }
-:root[data-color-theme="neumorphism"] .triage-staging__well > :is(.grid, .flex-col) { gap: 12px; }
+:root[data-color-theme="neumorphism"] .staging-bit-status-row { padding-block: 9px; padding-inline: 6px; }
+:root[data-color-theme="neumorphism"] .triage-staging__well > :is(.staging-node-grid, .flex-col) { gap: 12px; }
 /* The dimmed card fades its surface by alpha, never by ancestor opacity, so an attached status line stays at full ink. */
 :root[data-color-theme="neumorphism"] .triage-staging :is(.triage-staging__node, .triage-staging__bit)[data-triage-dimmed] {
   box-shadow: none;
@@ -6606,7 +6625,7 @@
   box-shadow: none;
 }
 /* Dim the heading and the candidates, never the reason note that explains the state. */
-:root[data-color-theme="neumorphism"] .triage-staging__subsection:is([data-triage-state="unavailable"], [data-triage-state="invalid"]) :is(.triage-shell__subsection-heading, .triage-staging__well > :is(.grid, .flex-col)) {
+:root[data-color-theme="neumorphism"] .triage-staging__subsection:is([data-triage-state="unavailable"], [data-triage-state="invalid"]) :is(.triage-shell__subsection-heading, .triage-staging__well > :is(.staging-node-grid, .flex-col)) {
   opacity: 0.7;
 }
 :root[data-color-theme="neumorphism"] .triage-staging__subsection[data-triage-state="invalid"] { cursor: not-allowed; }
@@ -6661,19 +6680,6 @@
 @media (prefers-reduced-motion: reduce) {
   :root[data-color-theme="neumorphism"] .triage-staging :is(.staging-alert-action, .staging-arrival-count):hover { transform: none; }
 }
-:root[data-color-theme="neumorphism"] .staging-operation-status,
-:root[data-color-theme="neumorphism"] [data-triage-role="staging-integrity-status"] {
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
-  box-shadow: var(--theme-shadow-inset-xs);
-  color: hsl(var(--foreground) / 0.72);
-  padding: 1px 6px;
-}
-:root[data-color-theme="neumorphism"] .staging-node-status-card > .staging-operation-status,
-:root[data-color-theme="neumorphism"] .staging-node-status-card > [data-triage-role="staging-integrity-status"] {
-  max-inline-size: 100%;
-}
 :root[data-color-theme="neumorphism"] .staging-target-reason {
   background: transparent;
   border: 0;
@@ -6687,10 +6693,6 @@
   align-items: center;
   display: flex;
   gap: 10px;
-}
-:root[data-color-theme="neumorphism"] .staging-bit-status-row > :is(.staging-operation-status, [data-triage-role="staging-integrity-status"]) {
-  flex: 1;
-  min-inline-size: 0;
 }
 
 /* Task 176 Stage 1 (L4, neumorphism): Explorer base chrome. Raised frame comes from the shared

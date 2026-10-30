@@ -1676,6 +1676,40 @@ export function HierarchyExplorer({
   );
 }
 
+
+// The confirm card can be taller than its Explorer column (neumorphism at 1280px), so a status
+// that appears or changes is brought into view instead of staying clipped below the fold
+// (Phase 45 mi-2).
+function PlacementReliabilityRail({
+  copy,
+  state,
+}: {
+  copy: string;
+  state: string | null | undefined;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.scrollIntoView?.({ block: "nearest" });
+  }, [copy]);
+  return (
+    <div
+      ref={ref}
+      aria-atomic="true"
+      aria-label="Placement status"
+      aria-live="polite"
+      className="placement-reliability-rail"
+      role="status"
+    >
+      <span
+        aria-hidden="true"
+        className="placement-reliability-mark"
+        data-placement-reliability-mark={state ?? undefined}
+      />
+      <span>{copy}</span>
+    </div>
+  );
+}
+
 function PlacementAffordance({
   snapshot,
   onCancel,
@@ -1814,20 +1848,7 @@ function PlacementAffordance({
   const placementReliability = (
           <div className="placement-reliability-slot" data-triage-role="placement-reliability-slot">
             {reliabilityCopy === null ? null : (
-            <div
-              aria-atomic="true"
-              aria-label="Placement status"
-              aria-live="polite"
-              className="placement-reliability-rail"
-              role="status"
-            >
-              <span
-                aria-hidden="true"
-                className="placement-reliability-mark"
-                data-placement-reliability-mark={reliabilityState}
-              />
-              <span>{reliabilityCopy}</span>
-            </div>
+              <PlacementReliabilityRail copy={reliabilityCopy} state={reliabilityState} />
             )}
           </div>
   );

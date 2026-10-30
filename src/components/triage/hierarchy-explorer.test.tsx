@@ -2102,6 +2102,32 @@ describe("HierarchyExplorer Task 153 placement reliability rail", () => {
     },
   );
 
+  it("brings the placement status into view when it appears, since the card can be taller than its column", () => {
+    const scrollIntoView = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollIntoView;
+    try {
+      setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+      render(
+        <HierarchyExplorer
+          {...defaultProps}
+          placementSnapshot={placementSnapshot({
+            phase: "terminal",
+            resultType: "node",
+            terminalKind: "account-limit",
+            terminalStatus: "rejected",
+            rejection: { code: "account_limit", table: "nodes", limit: 300 },
+          })}
+        />,
+      );
+      const rail = screen.getByRole("status", { name: "Placement status" });
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+      expect(scrollIntoView.mock.contexts[0]).toBe(rail);
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it.each([
     ["nodes", "“Project” wasn’t placed. This account has reached its limit of 300 Nodes. Your source is unchanged."],
     ["bits", "“Project” wasn’t placed. This account has reached its limit of 300 Bits. Your source is unchanged."],
