@@ -1530,6 +1530,7 @@ writes shows one counted toast (S28).
 | Create refused by the server inside a dialog, any other reason (same dialogs and rules) | `Couldn't create “{title}”. Try again.` |
 | Node edit dialog, save refused by the server (inline error, typed values kept, no toast; an unknown outcome whose change is kept closes the dialog; user, 2026-10-30) | `Couldn't save the changes to “{title}”. Try again.` (`{title}` is the saved title) |
 | Home button (label and tooltip) | `Home` |
+| Account icon (accessible name, guest and account alike; no tooltip in the normal state, the connection sentence as tooltip and description while unstable or offline; user, 2026-10-30) | `Account` |
 | Tab title | A Node's Grid: `{title} – {app name}`. Inbox, Archive, Calendar (weekly and monthly) and Trash: `Inbox – {app name}`, `Archive – {app name}`, `Calendar – {app name}`, `Trash – {app name}`. L0: `{app name}` alone. `{app name}` is `APP_NAME`: `GridDO` until Task 239 names the product `grid`. Each page sets its title, so client navigation never leaves a stale one (user, 2026-10-22) |
 
 **Connection** (tooltip, and the polite announcement on entering the state)
