@@ -1337,6 +1337,11 @@ that shows an action moves focus to its first action (F19).
 - The session-expired screen creates no guest account before the visitor
   chooses (F20). `Continue as guest` on it, and on the account-being-deleted
   and account-deleted screens, signs out and starts a new guest.
+- After the cleanup has deleted an account, another browser whose access token
+  has already expired cannot refresh it, and the auth server refuses that
+  refresh exactly as it refuses any other, so that browser shows the
+  session-expired screen, not the account-deleted screen (user, 2026-10-30,
+  Task 235).
 - The narrow-window notice is the one screen laid over the app instead of
   replacing it; the others replace the app until they are resolved.
 - A loading or failure screen never replaces a surface for an ordinary
@@ -1567,6 +1572,8 @@ writes shows one counted toast (S28).
 | Privacy note | `grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.` |
 | Account actions | `Sign out`, `Delete account` |
 | Delete confirmation | `Delete your account?` / `Your tasks and all other data are deleted permanently. This can't be undone.` / `Delete account`, `Cancel` |
+| Deletion did not complete (inline, in the confirmation) | `Couldn't delete your account. Try again.` (a failure or an unknown outcome; a request the server did record shows the account-being-deleted screen after the next read) |
+| Close (both variants) | `Close` (its place in the modal is a theme-stage item, Phase 48 mi-1) |
 
 ### Development state switch
 

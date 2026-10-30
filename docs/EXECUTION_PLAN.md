@@ -821,7 +821,9 @@ entry step 1.
 **Observable acceptance:** a guest idle for more than 7 days is deleted with
 all its rows, and one with an open tab is kept; an account with a deletion
 request is deleted with all its rows on the next run, and a second browser
-profile still signed in to it then shows the account-deleted screen; narrowing the window shows the
+profile still signed in to it with a valid access token then shows the
+account-deleted screen (one whose token has already expired shows the
+session-expired screen, SPEC §App-level screens); narrowing the window shows the
 notice, and widening it returns to the same screen with drafts intact.
 
 **Verification:** full gate; `expert` review with the SQL checklist; browser
