@@ -69,6 +69,10 @@ export const GUEST_CREATION_FAILURE = {
   retry: "Retry",
 } as const;
 
+export const SECURITY_CHECK = {
+  title: "Confirm you're human to continue.",
+} as const;
+
 export const SESSION_EXPIRED = {
   account: {
     title: "Your sign-in expired.",

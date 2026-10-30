@@ -6,6 +6,7 @@ import { callDeleteMyAccount, callEnsureAccount } from "@/lib/db/supabase-calls"
 import { getSupabaseClient, type GriddoSupabaseClient } from "@/lib/db/supabase-client";
 import { SnapshotStore, UnknownOutcomeError, type AccountRejectionCode } from "@/lib/db/snapshot-store";
 import { resetAppForUserChange } from "@/lib/auth/user-change";
+import { CaptchaError, getAppTurnstile, type CaptchaProvider } from "@/lib/auth/turnstile";
 
 // Account entry (SPEC §Account entry, §Session expiry): the session, `ensure_account()` and the
 // snapshot load, as one external store the app-level frame reads. Entry is one function that any
@@ -20,6 +21,8 @@ export type EntryState =
   | { phase: "ready" }
   | { phase: "load-failure"; reason: LoadFailureReason }
   | { phase: "guest-failure"; reason: GuestFailureReason }
+  // Turnstile needs an interactive check; the app-level frame shows its widget (SPEC §Account entry).
+  | { phase: "security-check" }
   | { phase: "session-expired"; variant: SessionVariant }
   // A function answered `account_deleting` (the deletion was requested, its rows go within 24
   // hours) or `account_missing` (the account is gone). Both replace the app (SPEC §App-level screens).
@@ -70,6 +73,8 @@ export type SessionControllerOptions = {
    * app keeps for the old user's session starts over, e.g. the Inbox selection.
    */
   onUserChange?: () => void;
+  /** Turnstile for the anonymous sign-in; none means no check (tests, and a local app without a site key). */
+  captcha?: CaptchaProvider | null;
   /** Told how each request to the server ended (SPEC §Connection states). */
   connection?: { report: (result: RequestResult, detail?: { snapshotRead?: boolean }) => void };
 };
@@ -89,6 +94,10 @@ function isUnreachable(error: unknown): boolean {
 }
 
 function classifyGuestFailure(error: unknown): GuestFailureReason {
+  if (error instanceof CaptchaError) {
+    // A script that cannot load, or a widget that cannot reach Cloudflare, is a network problem when offline.
+    return typeof navigator !== "undefined" && !navigator.onLine ? "unreachable" : "turnstile";
+  }
   if (isUnreachable(error)) return "unreachable";
   const code = (error as { code?: unknown } | null)?.code;
   const status = (error as { status?: unknown } | null)?.status;
@@ -235,7 +244,19 @@ export function createSessionController(options: SessionControllerOptions) {
           if (stale() || (!skipMarker && read(SESSION_EXPIRED_KEY))) throw new SupersededError();
           const again = await client.auth.getSession();
           if (again.data.session?.user) return again.data.session.user as AuthUser;
-          const created = await client.auth.signInAnonymously();
+          // A fresh token per attempt; an interactive check shows the widget in its own screen.
+          const captchaToken = await options.captcha?.solve({
+            onInteractive: () => {
+              if (!stale()) setState({ phase: "security-check" });
+            },
+            onInteractiveEnd: () => {
+              if (!stale()) setState({ phase: "entering" });
+            },
+          });
+          if (stale()) throw new SupersededError();
+          const created = await (captchaToken
+            ? client.auth.signInAnonymously({ options: { captchaToken } })
+            : client.auth.signInAnonymously());
           if (created.error || !created.data.user) throw created.error ?? new Error("no user");
           return created.data.user as AuthUser;
         });
@@ -423,6 +444,7 @@ export function getSessionController(): SessionController {
       getClient: getSupabaseClient,
       storage: window.localStorage,
       connection,
+      captcha: getAppTurnstile(),
       onUserChange: resetAppForUserChange,
     });
     const created = controller;

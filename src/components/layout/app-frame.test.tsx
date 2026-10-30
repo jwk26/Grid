@@ -156,6 +156,35 @@ describe("AppFrame", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toHaveFocus();
   });
 
+  it("shows the security-check screen with the widget's gap and no action", () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site");
+    const fake = fakeController({ phase: "entering" });
+    render(
+      <AppFrame controller={fake.controller}>
+        <App />
+      </AppFrame>,
+    );
+    const host = document.querySelector<HTMLElement>('[data-app-role="turnstile-host"]');
+    expect(host).toHaveAttribute("aria-hidden", "true");
+    fake.set({ phase: "security-check" });
+    expect(screen.getByRole("heading", { name: "Confirm you're human to continue." })).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
+    // The same element is shown, not replaced: moving an iframe would reload the widget.
+    expect(document.querySelector('[data-app-role="turnstile-host"]')).toBe(host);
+    expect(host).not.toHaveAttribute("aria-hidden");
+    vi.unstubAllEnvs();
+  });
+
+  it("mounts no widget host without a site key", () => {
+    const { controller } = fakeController({ phase: "load-failure", reason: "other" });
+    render(
+      <AppFrame controller={controller}>
+        <App />
+      </AppFrame>,
+    );
+    expect(document.querySelector('[data-app-role="turnstile-host"]')).toBeNull();
+  });
+
   it("moves focus to the first action when the screen changes", () => {
     const fake = fakeController({ phase: "load-failure", reason: "other" });
     render(

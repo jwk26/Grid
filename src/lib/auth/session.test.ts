@@ -1,6 +1,7 @@
 import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSessionController, SESSION_EXPIRED_KEY } from "@/lib/auth/session";
+import { CaptchaError, type CaptchaProvider } from "@/lib/auth/turnstile";
 
 type AuthEvent = "SIGNED_IN" | "SIGNED_OUT" | "TOKEN_REFRESHED" | "INITIAL_SESSION";
 type Listener = (event: AuthEvent, session: { user: { id: string; is_anonymous?: boolean } } | null) => void;
@@ -731,5 +732,90 @@ describe("expert review of Task 235", () => {
     await settle();
     expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
     expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+  });
+});
+
+describe("session controller Turnstile", () => {
+  function withCaptcha(solve: CaptchaProvider["solve"]) {
+    const t = setup();
+    const captcha: CaptchaProvider = { solve: vi.fn(solve) };
+    const controller = createSessionController({
+      getClient: () => ({ auth: t.auth, rpc: t.rpc }) as never,
+      storage: t.storage,
+      runExclusive: (_name, task) => task(),
+      defer: (task) => task(),
+      captcha,
+    });
+    return { ...t, controller, captcha };
+  }
+
+  it("passes the token to the anonymous sign-in", async () => {
+    const t = withCaptcha(async () => "token-1");
+    await t.controller.start();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledWith({ options: { captchaToken: "token-1" } });
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("asks for no token when a session already exists", async () => {
+    const t = setup({ session: { id: "guest-a" } });
+    const solve = vi.fn(async () => "unused");
+    const controller = createSessionController({
+      getClient: () => ({ auth: t.auth, rpc: t.rpc }) as never,
+      storage: t.storage,
+      runExclusive: (_name, task) => task(),
+      defer: (task) => task(),
+      captcha: { solve },
+    });
+    await controller.start();
+    expect(solve).not.toHaveBeenCalled();
+  });
+
+  it("shows the security-check screen while an interactive check runs, then enters", async () => {
+    let release: (token: string) => void = () => undefined;
+    const t = withCaptcha(
+      (handlers) =>
+        new Promise<string>((resolve) => {
+          handlers.onInteractive();
+          release = (token) => {
+            handlers.onInteractiveEnd();
+            resolve(token);
+          };
+        }),
+    );
+    const started = t.controller.start();
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "security-check" });
+    release("token-2");
+    await started;
+    expect(t.auth.signInAnonymously).toHaveBeenCalledWith({ options: { captchaToken: "token-2" } });
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("a failed or unloadable widget is the turnstile failure, and Retry asks for a new token", async () => {
+    const t = withCaptcha(async () => {
+      throw new CaptchaError("widget", "failed");
+    });
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "guest-failure", reason: "turnstile" });
+    t.captcha.solve = vi.fn(async () => "token-3");
+    await t.controller.retry();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.auth.signInAnonymously).toHaveBeenCalledWith({ options: { captchaToken: "token-3" } });
+  });
+
+  it("a script that cannot load while offline is the unreachable failure", async () => {
+    const online = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    const t = withCaptcha(async () => {
+      throw new CaptchaError("load", "script");
+    });
+    await t.controller.start();
+    online.mockRestore();
+    expect(t.controller.getState()).toEqual({ phase: "guest-failure", reason: "unreachable" });
+  });
+
+  it("without a captcha the anonymous sign-in is called as before", async () => {
+    const t = setup();
+    await t.controller.start();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledWith();
   });
 });
