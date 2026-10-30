@@ -161,6 +161,11 @@ begin
   perform set_config('request.jwt.claims',
     jsonb_build_object('sub', p_user_id::text, 'role', 'authenticated')::text, true);
 
+  -- A fixture user whose account was marked for deletion (Task 235 browser checks) starts clean.
+  -- The L0 Grid lock first keeps the lock order of ensure_account() and delete_my_account().
+  perform internal.lock_grid(p_user_id, null);
+  update app.accounts set deletion_requested_at = null where user_id = p_user_id;
+
   v_envelope := public.ensure_account(dev.reserved_cells());
   if v_envelope ->> 'status' <> 'applied' then
     raise exception 'ensure_account answered %', v_envelope::text;
