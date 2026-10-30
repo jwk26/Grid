@@ -1512,6 +1512,9 @@ title; `{target}` the target Node's title; `{count}` the counted number;
 | Permanent delete failed (kept, Node and Bit) | `Couldn't delete “{title}”. It's still in Trash.` | — |
 | Empty Trash succeeded (kept, `trash-list.tsx`) | `Trash emptied.` | — |
 | Empty Trash failed (kept) | `Couldn't empty Trash. Nothing was deleted.` | — |
+| Promotion failed (Bit to Node; user, 2026-10-30) | `Couldn't promote “{title}”. It's still a Bit.` | — |
+| Step delete failed (user, 2026-10-30) | `Couldn't delete “{title}”. It's still there.` | — |
+| Archive restore failed (Node and Bit; user, 2026-10-30) | `Couldn't restore “{title}”. It's still in Archive.` | — |
 | Account deleted | `Your account and its data were deleted.` (fallback: `Your account will be deleted within 24 hours.`) | — |
 
 A counted form reuses the kind's single form when the count is one. The
