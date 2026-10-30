@@ -6058,6 +6058,27 @@
   opacity: 0.5;
 }
 
+/* Task 235: the account modal's buttons respond like the Pool and Breakdown controls (mi-12): 1px
+   lift and stronger ink on hover, inset-sm on press (the shared dialog rule above). Scoped to the
+   account modal, so the Scratch Trash and Breakdown delete dialogs keep their accepted look. */
+:root[data-color-theme="neumorphism"] [data-app-role="account-modal"] button:not(:disabled):not([data-variant="destructive"]):hover {
+  color: hsl(var(--foreground) / 0.9);
+}
+:root[data-color-theme="neumorphism"] [data-app-role="account-modal"] button:not(:disabled):not(.transition-none) {
+  transition-duration: var(--triage-pool-motion-duration);
+  transition-property: box-shadow, transform, color;
+  transition-timing-function: ease-out;
+}
+:root[data-color-theme="neumorphism"] [data-app-role="account-modal"] button:not(:disabled):not(.transition-none):hover {
+  transform: translateY(-1px);
+}
+:root[data-color-theme="neumorphism"] [data-app-role="account-modal"] button:not(:disabled):not(.transition-none):active {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-color-theme="neumorphism"] [data-app-role="account-modal"] button:hover { transform: none; }
+}
+
 /* Neumorphism L2 (Task 174): Selected Scratch Context. Fixed 104px plate (the source's
    110px/py-7 is not adopted); the working-dot pulse is not adopted. */
 :root[data-color-theme="neumorphism"] .triage-shell .triage-fixed-context {
