@@ -1056,14 +1056,28 @@ and dark, at 1024px with the Pool open (`Check again` width).
   test: route Unstage failures to the candidate instead of the alert; the
   stale-invalidation notices (changed-elsewhere drop cancellation, placement
   closed) stay in the band.
+- Unknown recovery (Phase 50 mi-1, user 2026-10-30): `src/hooks/use-dnd.ts`
+  (`useTriageDnd`, `finishStage`/`finishUnstage`) and test,
+  `staging-zone.tsx`, `triage-workspace.tsx`: when the automatic read-only
+  check after an unknown Stage or Unstage also fails, the command stays held
+  with the lock, and the item's `?` is a button that runs the read-only
+  reconcile again (never a resend); it turns unavailable at once, a terminal
+  answer applies as the command's result and releases the lock, a check that
+  fails returns to `?`. A Scratch removed elsewhere while a Staging command is
+  held gets one background read-only check, never retried on its own; if it
+  fails, the remaining lock is a residual bound to Task 233's browser check.
+- `src/components/triage/hierarchy-explorer.tsx` or CSS only: the `Confirm
+  placement` reason (Phase 45 mi-2).
 - `src/app/globals.css`: the `staging-node-grid` (one card's minimum width,
   auto-fill, one or two columns) (F10).
-- `src/lib/copy/inbox-triage.ts`; `inbox-triage-theme-realization.test.tsx`.
+- `src/lib/copy/inbox-triage.ts` (`Select to check again.`, which Task 247
+  reuses); `inbox-triage-theme-realization.test.tsx`.
 
 **Dependencies:** Task 245.
 
-**Authority:** F06–F10; MI-21 (Staging part); Phase 45 mi-2; SPEC §Durable
-Staging; DESIGN_TOKENS `DP-VQ06-STAGING` amendment.
+**Authority:** F06–F10; MI-21 (Staging part); Phase 45 mi-2; Phase 50 mi-1;
+SPEC §Durable Staging, §Item status presentation; DESIGN_TOKENS
+`DP-VQ06-STAGING` amendment (Unknown recovery).
 
 **Observable acceptance:** at 1024px with the Pool open a Node card is never
 narrower than one card and the well shows one column, two when they fit;
@@ -1073,10 +1087,14 @@ the band, and so do the stale-invalidation notices; the status icon of a Stage
 projection or integrity slot is reachable by keyboard and shows its sentence on
 focus; in `neumorphism` at 1280px the rejected placement reason inside the
 `Confirm placement` card in the Home column shows in full, not clipped
-(Phase 45 mi-2).
+(Phase 45 mi-2); with Stage or Unstage and its reconcile both answered
+`Unknown — request lost`, the item keeps `?` and selecting it sends one
+read-only check and no second command, a terminal answer ends in the right
+state and other Inbox writes work again without reload, and a check that
+fails again returns to `?` (Phase 50 mi-1).
 
-**Verification:** gate; `expert` review (failure routing); browser checkpoint
-with the state switch.
+**Verification:** gate; `expert` review (failure routing, lock release);
+browser checkpoint with the state switch.
 
 **Commit message:** `feat(inbox): show Staging statuses on the item and widen the Nodes zone`.
 

@@ -948,6 +948,14 @@ The attached family maps through Staging-native theme roles:
   title on its own line, since the label truncates, unless the sentence
   already contains it. Where the host is not in the Tab order (a Stage
   projection, an integrity slot), the status icon is focusable.
+- **Unknown recovery** (Phase 50 mi-1, user 2026-10-30). When the automatic
+  read-only check after an unknown Stage or Unstage also fails, the item's `?`
+  is a button that runs that check again, as the Undo slot's `?` does: the
+  unknown sentence plus `Select to check again.` as tooltip, unavailable at
+  once while it checks, the loader after `DISPLAY_DELAY_MS`, back to `?` if
+  the check fails. It never resends the command. This supersedes "no action
+  … exists before authority" in the Pending/reconcile copy row for unknown
+  only; Staging still has no Retry.
 - **Nodes zone** (F10, MI-21). The `Nodes` well is never narrower than one
   Node card and lays its cards in an auto-fill grid: one column when two do
   not fit, two as today when they do; every theme shares it.

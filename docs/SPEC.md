@@ -690,7 +690,8 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   emphasis on the field, `Retry Add` beside Add. Staging Node card: the
   top-right corner. Staging Bit row: the row end. Explorer Newly row: the Undo
   slot ([Actual-card Newly Placed and Undo](#actual-card-newly-placed-and-undo)).
-  Staging has no recovery controls.
+  Staging's only recovery control is the `?` of an unknown Stage or Unstage
+  (Phase 50 mi-1); Staging has no Retry.
 - **Decision surfaces keep their sentences** (F08): the Placement plate, the
   Archive completion card, the Scratch Trash dialog and the inline-editor
   conflict view. A Stage failure whose item disappears keeps the Staging
@@ -839,7 +840,15 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   Active source. A rejected/conflict result instead applies returned authority:
   a modified row refreshes, an already-staged row shows its existing candidate,
   and a deleted row leaves the list; none is auto-staged from the drag snapshot.
-  An unknown outcome reconciles before a repeat drag. No repeated pulse or
+  An unknown outcome is checked once, read-only, right after it, and never
+  resent. If that check fails too, the Stage projection or candidate keeps
+  `?` and the operation lock, and its `?` is a button that runs the same
+  read-only check (`Check again`; the tooltip adds `Select to check again.`).
+  It turns unavailable at once; a terminal answer applies as the command's
+  own result would and releases the lock; a check that fails returns to `?`.
+  When the Scratch is removed elsewhere while a Staging command is held, one
+  read-only check runs in the background and is never retried on its own
+  (Phase 50 mi-1, user 2026-10-30). No repeated pulse or
   layout-changing motion is permitted.
 - A transient drag-time Staging target and the whole Breakdown section drop-
   back invoke the same Unstage command; there is no permanent unstage button.
