@@ -666,7 +666,7 @@ nothing went to production. Nothing is carried over.
 
 ## Phase 47 — Feel And Resilience
 
-### Task 231: [ ] Make ordinary writes immediate with rollback
+### Task 231: [x] Make ordinary writes immediate with rollback
 
 **Files and actions:** `src/lib/db/supabase-store.ts` and
 `snapshot-store.ts`: groups 1 and 2 of SPEC §Write feel through the pending
@@ -1384,7 +1384,7 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** the SaaS lane continues with Phase 47 / Task 231; the feedback lane continues with Phase 50 / Task 245. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** the SaaS lane continues with Phase 47 / Task 232; the feedback lane continues with Phase 50 / Task 245. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers:** Phase 51 / Task 251. Planned Phases 42–50 and
   Tasks 213–250 are allocated; retired Phases 36–40 and Tasks 180–208 keep
   their numbers; none may be reused for another meaning.

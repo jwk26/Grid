@@ -9,8 +9,8 @@ Plan fixes at start: Task 231 names the state switch's injectable list for ordin
 ## Task 231 — Make ordinary writes immediate with rollback
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 231 acceptance (the user's feel check in the prepared window)
+- Status: Accepted
+- Next: none (Task 231 accepted)
 - Open: none
 
 ### Log
@@ -27,6 +27,9 @@ Plan fixes at start: Task 231 names the state switch's injectable list for ordin
 - Review (advisory, 2026-10-30, Stage 3 checkpoint / task finish): approve with changes. Checked: commits `f5c1af2`, `34afb6a`, `5b38967` split per stage; the 20 ordinary writes are injected at `rpc` below the pending layer and `withDevInjection` skips the `write` kind, so nothing is injected twice; every `rpc` call site awaits the call directly (no builder chaining), so the wrapper's Promise is safe; the popup starts the trash before closing, a needed group 2 fix outside the planned file list; related tests (493) and `git diff --check origin/main...HEAD` rerun and pass; the only processes are the dev server (3047) and the Playwright MCP window prepared for Please check. Apply: (1) the agent runs the rest of the planned browser checks and records each result: a Bit dragged to an empty cell and onto a Node, a title edit, a completion toggle, a Node create, a Bit trashed and archived, each with a 1500 ms delay and seen at once, and `rejected` forced on an edit and seen rolling back; then it seeds again and returns the window to the recorded Please check state; Please check keeps only the user's feel of "moves at once, snaps back on a refusal". (2) The Stage 3 tests were written after the code: show they can fail with two deliberate breaks (`injectedRpc` passing every call through; `isStoreInjectable` not excluding `write`) and record the result. (3) and (4) the Task 233 note and the Task 232 note addition below. (5) The expert entry reads `Review (expert, 2026-10-30): …`. Not applied: none.
 - Task 233 note (advisory, 2026-10-30): the offline write gate (F18, "nothing changes on screen") must stop a write before `snapshot.write` registers its effect, in the store method or above it; a gate at the `rpc` level, where `withDevClient` injects today, would show the change and then roll it back. The network states for the state switch can extend `withDevClient`.
 - Task 232 note (advisory, 2026-10-30): a refused ordinary write throws to callers that do not catch it (`handleDragEnd` in `use-dnd.ts`, the popup's Move to trash), which ends as an unhandled rejection; Task 232 decides where the rollback toast is raised, once in the store or in each caller, so these paths show it too.
+- Review (advisory, 2026-10-30, task finish, round 2): approve. Checked: `6d9eb09` touches only this ledger and the tree is clean; the remaining browser checks, the two deliberate breaks (5 and 1 failing tests, reverted) and the dated expert entry are recorded; the breadcrumb drop not reached is acceptable (same parent-change path as the Node-on-Node check; Tasks 248–249 rebuild the breadcrumb). Apply: the Task 232 note below. Not applied: none.
+- Task 232 note (advisory, 2026-10-30): when a title edit is refused while the popup is open, the card returns to the old title but the popup's field keeps the typed draft (local input state); keeping it is right, so the rollback toast must make plain that the change was not saved.
+- Decision: Task 231 accepted (user, 2026-10-30).
 
 ### Checkpoint
 - Stage 1 (pending layer, several effects per write): `SnapshotStore.write` takes `{ key, effects }` beside `{ effect }`; entries hold an effects array; four new tests in `snapshot-store.test.ts` (shown together, rollback, chain order, unknown outcome shows the base until the refetch). Tests, typecheck, lint pass. Accepted (user, 2026-10-30). The four new tests were run before the code and failed (4 failed, 39 passed: `write` did not accept `effects`); they pass after it.
