@@ -182,7 +182,9 @@ export function createSessionController(options: SessionControllerOptions) {
     let user: AuthUser | null = restored.data.session?.user ?? null;
     if (restored.error) {
       if (isSessionRejection(restored.error)) return expire(lastKind());
-      return setState({ phase: "load-failure", reason: isUnreachable(restored.error) ? "unreachable" : "other" });
+      const unreachable = isUnreachable(restored.error);
+      if (unreachable) options.connection?.report("unreachable");
+      return setState({ phase: "load-failure", reason: unreachable ? "unreachable" : "other" });
     }
 
     if (!user) {

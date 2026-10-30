@@ -396,6 +396,24 @@ describe("snapshot reads report to the connection monitor (Task 233)", () => {
     return { controller, report };
   }
 
+  it("a session restore that fails on the network reports unreachable (Task 234)", async () => {
+    const report = vi.fn();
+    const auth = {
+      getSession: vi.fn(async () => ({ data: { session: null }, error: new AuthRetryableFetchError("fetch failed", 0) })),
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+    };
+    const controller = createSessionController({
+      getClient: () => ({ auth, rpc: vi.fn() }) as never,
+      storage: memoryStorage(),
+      runExclusive: (_name, task) => task(),
+      defer: (task) => task(),
+      connection: { report },
+    });
+    await controller.start();
+    expect(report).toHaveBeenCalledWith("unreachable");
+    expect(controller.getState()).toEqual({ phase: "load-failure", reason: "unreachable" });
+  });
+
   it("a good read is reachable and is itself a snapshot read", async () => {
     const { controller, report } = withConnection({ data: emptySnapshot, error: null, status: 200 });
     await controller.start();

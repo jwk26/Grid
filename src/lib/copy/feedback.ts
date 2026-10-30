@@ -44,8 +44,9 @@ export const CONNECTION_SENTENCE = {
   recovered: "Back online.",
 } as const;
 
-// App-level screens (SPEC §Feedback copy, App-level screens). The Loading screen's copy comes
-// with Task 234.
+// App-level screens (SPEC §Feedback copy, App-level screens).
+export const LOADING = { title: "Loading your grid…" } as const;
+
 const UNREACHABLE_REASON = "The server can't be reached. Check your connection and try again.";
 
 export const LOAD_FAILURE = {
