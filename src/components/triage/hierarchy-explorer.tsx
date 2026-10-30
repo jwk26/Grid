@@ -45,6 +45,7 @@ import {
   getTriageHierarchyDropId,
   type TriageDropData,
 } from "@/lib/grid-dnd";
+import type { ItemStatus } from "@/lib/feedback/item-status";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import { cn } from "@/lib/utils";
 import {
@@ -136,7 +137,51 @@ type NewlyUndoPresentation = Readonly<{
   copy: string;
   disabled: boolean;
   state: string;
+  /** The Undo slot (feedback F07): its status, delay key, tooltip sentence and button name. */
+  status: ItemStatus | null;
+  phaseKey: string;
+  sentence: string;
+  label: string;
 }>;
+
+type NewlyUndoCore = Omit<
+  NewlyUndoPresentation,
+  "status" | "phaseKey" | "sentence" | "label"
+>;
+
+function newlyUndoSlot(
+  core: NewlyUndoCore,
+  state: TriageNewlyPlacedUndoState,
+  title: string,
+): NewlyUndoPresentation {
+  const hints = INBOX_TRIAGE_COPY.statusHint;
+  const status: ItemStatus | null =
+    core.state === "pending"
+      ? "pending"
+      : core.state === "unknown"
+        ? "unknown"
+        : core.state === "reconciling"
+          ? "reconciling"
+          : core.state === "not-applied" || core.state === "conflict"
+            ? "problem"
+            : null;
+  const hint =
+    core.state === "unknown"
+      ? hints.checkAgain
+      : core.state === "not-applied"
+        ? hints.tryAgain
+        : "";
+  return {
+    ...core,
+    status,
+    phaseKey: state.command?.operationId ?? "",
+    sentence: hint === "" ? core.copy : `${core.copy} ${hint}`,
+    label:
+      core.actionLabel === INBOX_TRIAGE_COPY.newlyPlacedUndo.actions.undo
+        ? `Undo placement of ${title}`
+        : core.actionLabel,
+  };
+}
 
 function newlyUndoTemplate(template: string, title: string): string {
   return template.replace("{title}", title);
@@ -146,6 +191,13 @@ function getNewlyUndoPresentation(
   state: TriageNewlyPlacedUndoState,
   title: string,
 ): NewlyUndoPresentation {
+  return newlyUndoSlot(getNewlyUndoCore(state, title), state, title);
+}
+
+function getNewlyUndoCore(
+  state: TriageNewlyPlacedUndoState,
+  title: string,
+): NewlyUndoCore {
   const copy = INBOX_TRIAGE_COPY.newlyPlacedUndo;
   if (state.phase === "checking") {
     return {
@@ -241,18 +293,6 @@ function getNewlyUndoPresentation(
   };
 }
 
-// Ordinary Finder alone adopts the tooltip amendment for three nonterminal states: available,
-// result-mutated and an open placement. Search keeps the shared projection and visible rail;
-// terminal copy equality is irrelevant.
-function getOrdinaryNewlyUndoPresentation(state: TriageNewlyPlacedUndoState, title: string) {
-  const presentation = getNewlyUndoPresentation(state, title);
-  const tooltip = (state.phase === "available" && state.reason === "available") ||
-    (state.phase === "blocked" &&
-      (state.reason === "result-mutated" || state.reason === "placement-open") &&
-      state.terminalStatus === null);
-  return { ...presentation, tooltip: tooltip ? presentation.copy : undefined };
-}
-
 function useNewlyUndoActionFocus(state: TriageNewlyPlacedUndoState) {
   const ref = useRef<HTMLButtonElement>(null);
   const previousPhaseRef = useRef(state.phase);
@@ -270,32 +310,22 @@ function useNewlyUndoActionFocus(state: TriageNewlyPlacedUndoState) {
   return ref;
 }
 
-function NewlyUndoStatusRail({
+// The Undo sentence is announced here, visually hidden; the slot's tooltip is its description.
+function NewlyUndoAnnouncement({
   presentation,
-  statusId,
-  tooltip = false,
 }: {
   presentation: NewlyUndoPresentation;
-  tooltip?: boolean;
-  statusId: string;
 }) {
   const ownsLiveStatus = presentation.state !== "success";
   return (
     <div
       aria-atomic={ownsLiveStatus ? "true" : undefined}
       aria-live={ownsLiveStatus ? "polite" : undefined}
-      className={tooltip ? "newly-status-announcement sr-only" : "newly-status-rail"}
+      className="sr-only"
       data-undo-state={presentation.state}
       role={ownsLiveStatus ? "status" : undefined}
     >
-      <span
-        aria-hidden="true"
-        className="newly-status-mark"
-        data-undo-status-mark={presentation.state}
-      />
-      <p className="newly-status-reason" id={statusId}>
-        {presentation.copy}
-      </p>
+      <p>{presentation.copy}</p>
     </div>
   );
 }
@@ -1533,12 +1563,16 @@ export function HierarchyExplorer({
             return presentation.action === "none"
               ? null
               : {
-                  actionLabel: presentation.actionLabel,
                   copy: presentation.copy,
                   disabled: presentation.disabled,
+                  label: presentation.label,
                   onActivate: () =>
                     activateSearchResultUndo(result, presentation.action),
+                  phaseKey: presentation.phaseKey,
+                  reason: presentation.state,
+                  sentence: presentation.sentence,
                   state: presentation.state,
+                  status: presentation.status,
                 };
           }}
           onClose={closeSearchAndFocusEntry}
@@ -2482,8 +2516,7 @@ function NodeDropCell({
   targetFeedback: TriageTargetFeedback;
 }) {
   const undoState = undo.getState("node", node.id);
-  const undoPresentation = getOrdinaryNewlyUndoPresentation(undoState, node.title);
-  const undoStatusId = useId();
+  const undoPresentation = getNewlyUndoPresentation(undoState, node.title);
   const undoActionRef = useNewlyUndoActionFocus(undoState);
   const dropId = getTriageHierarchyDropId(node.id);
   const dropData = {
@@ -2556,9 +2589,11 @@ function NodeDropCell({
           undo={
             isNewlyPlaced && undoPresentation.action !== "none"
               ? {
-                  describedBy: undoStatusId,
                   disabled: undoPresentation.disabled,
-                  label: undoPresentation.actionLabel,
+                  label: undoPresentation.label,
+                  status: undoPresentation.status,
+                  phaseKey: undoPresentation.phaseKey,
+                  sentence: undoPresentation.sentence,
                   onActivate: () => {
                     if (undoPresentation.action === "check-again") {
                       void undo.reconcile("node", node.id);
@@ -2569,17 +2604,12 @@ function NodeDropCell({
                     }
                   },
                   reason: undoState.reason,
-                  tooltip: undoPresentation.tooltip,
                 }
               : undefined
           }
         />
         {isNewlyPlaced ? (
-          <NewlyUndoStatusRail
-            presentation={undoPresentation}
-            tooltip={undoPresentation.tooltip !== undefined}
-            statusId={undoStatusId}
-          />
+          <NewlyUndoAnnouncement presentation={undoPresentation} />
         ) : null}
       </div>
     </div>
@@ -2602,8 +2632,7 @@ function BitContextRow({
   parentColor: string;
 }) {
   const undoState = undo.getState("bit", bit.id);
-  const undoPresentation = getOrdinaryNewlyUndoPresentation(undoState, bit.title);
-  const undoStatusId = useId();
+  const undoPresentation = getNewlyUndoPresentation(undoState, bit.title);
   const undoActionRef = useNewlyUndoActionFocus(undoState);
   return (
     <div
@@ -2629,9 +2658,11 @@ function BitContextRow({
         undo={
           isNewlyPlaced && undoPresentation.action !== "none"
             ? {
-                describedBy: undoStatusId,
                 disabled: undoPresentation.disabled,
-                label: undoPresentation.actionLabel,
+                label: undoPresentation.label,
+                status: undoPresentation.status,
+                phaseKey: undoPresentation.phaseKey,
+                sentence: undoPresentation.sentence,
                 onActivate: () => {
                   if (undoPresentation.action === "check-again") {
                     void undo.reconcile("bit", bit.id);
@@ -2642,17 +2673,12 @@ function BitContextRow({
                   }
                 },
                 reason: undoState.reason,
-                tooltip: undoPresentation.tooltip,
               }
             : undefined
         }
       />
       {isNewlyPlaced ? (
-        <NewlyUndoStatusRail
-          presentation={undoPresentation}
-          tooltip={undoPresentation.tooltip !== undefined}
-          statusId={undoStatusId}
-        />
+        <NewlyUndoAnnouncement presentation={undoPresentation} />
       ) : null}
     </div>
   );

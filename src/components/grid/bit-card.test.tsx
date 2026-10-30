@@ -9,6 +9,21 @@ import { BitCard } from "./bit-card";
 
 const dndState = vi.hoisted(() => ({ active: null as { id: string } | null }));
 
+import type { NewlyUndoSlotModel } from "./newly-undo-slot";
+
+function slot(over: Partial<NewlyUndoSlotModel> = {}): NewlyUndoSlotModel {
+  return {
+    status: null,
+    phaseKey: "",
+    sentence: "Undo this placement.",
+    disabled: false,
+    label: "Undo placement of item",
+    onActivate: vi.fn(),
+    reason: "available",
+    ...over,
+  };
+}
+
 vi.mock("@dnd-kit/core", () => ({
   useDndContext: () => ({ active: dndState.active }),
 }));
@@ -80,7 +95,7 @@ describe("BitCard", () => {
   ])("projects Finder $status overdue=$overdue without importing Grid commands", ({status, overdue, label, struck}) => {
     const bit = createBit({title: "Readable state", status, icon: "Star", priority: "high", deadline: Date.now() + (overdue ? -86400000 : 86400000)});
     const activateUndo = vi.fn();
-    const view = render(<BitCard presentation="inbox-explorer" aria-label={bit.title} bit={bit} parentColor="red" chunkStats={{completed: 1, total: 4}} onClick={vi.fn()} isNewlyPlaced undo={{disabled: false, reason: "available", onActivate: activateUndo}} />);
+    const view = render(<BitCard presentation="inbox-explorer" aria-label={bit.title} bit={bit} parentColor="red" chunkStats={{completed: 1, total: 4}} onClick={vi.fn()} isNewlyPlaced undo={slot({ label: "Undo placement of Readable state",disabled: false, reason: "available", onActivate: activateUndo})} />);
     const card = screen.getByRole("button", {name: bit.title});
     expect(card).toHaveClass("cursor-default");
     expect(card).not.toHaveClass("cursor-grab", "active:cursor-grabbing", "opacity-50");
@@ -112,7 +127,7 @@ describe("BitCard", () => {
     const ref = { current: null as HTMLDivElement | null };
     const view = render(<BitCard presentation="inbox-explorer" aria-label={bit.title} bit={bit} parentColor="red"
       chunkStats={{ completed: 1, total: 4 }} onClick={navigate} ref={ref} isNewlyPlaced
-      undo={{ disabled: false, reason: "available", onActivate: activateUndo }} />);
+      undo={slot({ label: "Undo placement of Mixed Case Bit", disabled: false, reason: "available", onActivate: activateUndo })} />);
     const card = screen.getByRole("button", { name: bit.title });
     expect(card).toHaveAttribute("data-card-presentation", "inbox-explorer");
     expect(card).toHaveAttribute("data-triage-role", "explorer-card-bit");
@@ -170,7 +185,7 @@ describe("BitCard", () => {
         isNewlyPlaced={true}
         onClick={navigate}
         parentColor="hsl(221, 83%, 53%)"
-        undo={{ disabled: false, onActivate: activateUndo, reason: "available" }}
+        undo={slot({ label: "Undo placement of Undo bit", disabled: false, onActivate: activateUndo, reason: "available" })}
       />,
     );
 
@@ -190,7 +205,7 @@ describe("BitCard", () => {
         isNewlyPlaced={true}
         onClick={vi.fn()}
         parentColor="hsl(221, 83%, 53%)"
-        undo={{ disabled: true, onActivate: activateUndo, reason: "dependencies" }}
+        undo={slot({ label: "Undo placement of Blocked bit", disabled: true, onActivate: activateUndo, reason: "dependencies" })}
       />,
     );
 
@@ -385,7 +400,7 @@ describe("Task170 Newly Undo pilot Bit Q01", () => {
   });
   it("renders an ordinary inbox Undo2 independently and exposes the exact tooltip reason", () => {
     const item=createBit({title:"Pilot bit"}); const navigate=vi.fn(), activate=vi.fn();
-    const {container}=render(<BitCard presentation="inbox-explorer" bit={item} parentColor="red" chunkStats={{completed:1,total:4}} onClick={navigate} isNewlyPlaced undo={{disabled:false,reason:"available",tooltip:"Undo this placement.",onActivate:activate}} />);
+    const {container}=render(<BitCard presentation="inbox-explorer" bit={item} parentColor="red" chunkStats={{completed:1,total:4}} onClick={navigate} isNewlyPlaced undo={slot({ label: "Undo placement of Pilot bit",disabled:false,reason:"available",sentence:"Undo this placement.",onActivate:activate})} />);
     const action=screen.getByRole("button",{name:"Undo placement of Pilot bit"});
     expect(action.querySelector("svg.lucide-undo-2")).not.toBeNull();
     expect(action).not.toHaveTextContent("Undo");
@@ -402,7 +417,7 @@ it("Task170 Bit unavailable Undo exposes its exact reason on semantic focus and 
   // JSDOM has no layout observer; this shim enables semantic tooltip DOM only.
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   const item=createBit({title:"Tooltip bit"});const activate=vi.fn(),navigate=vi.fn(),ref=vi.fn();
-  render(<BitCard presentation="inbox-explorer" bit={item} parentColor="red" chunkStats={{completed:1,total:4}} onClick={navigate} isNewlyPlaced undoActionRef={ref} undo={{disabled:true,reason:"result-mutated",tooltip:"This item changed after placement. Undo is unavailable.",onActivate:activate}} />);
+  render(<BitCard presentation="inbox-explorer" bit={item} parentColor="red" chunkStats={{completed:1,total:4}} onClick={navigate} isNewlyPlaced undoActionRef={ref} undo={slot({ label: "Undo placement of Tooltip bit",disabled:true,reason:"result-mutated",sentence:"This item changed after placement. Undo is unavailable.",onActivate:activate})} />);
   const action=screen.getByRole("button",{name:"Undo placement of Tooltip bit"});
   expect(action).toHaveAttribute("aria-disabled","true");expect(action).not.toBeDisabled();expect(ref).toHaveBeenCalledWith(action);
   fireEvent.focus(action);expect(await screen.findByRole("tooltip")).toHaveTextContent("This item changed after placement. Undo is unavailable.");
@@ -442,7 +457,7 @@ describe("Task 179A Explorer truncated-title tooltip", () => {
   const open = () => document.querySelector(TITLE_ROLE);
   const title = () => document.querySelector('[data-triage-role="explorer-card-title"]') as HTMLElement;
   const root = () => document.querySelector('[data-triage-role="explorer-card-bit"]') as HTMLElement;
-  const undoProps = { disabled: false, reason: "available", tooltip: "Undo this placement.", onActivate: vi.fn() };
+  const undoProps = slot();
   const hover = () => fireEvent.pointerMove(title(), { pointerType: "mouse" });
 
   it("shows the full title above a truncated title on pointer hover and none for a fitting title", async () => {
@@ -485,18 +500,6 @@ describe("Task 179A Explorer truncated-title tooltip", () => {
     vi.restoreAllMocks();
   });
 
-  it("does not leave the card in the undo state after hovering an Undo that has no tooltip", async () => {
-    view = render(<BitCard presentation="inbox-explorer" bit={item} parentColor="#fff" chunkStats={{ completed: 0, total: 0 }} onClick={vi.fn()} isNewlyPlaced undo={{ ...undoProps, tooltip: undefined }} />);
-    const undo = screen.getByRole("button", { name: /Undo placement of/ });
-    fireEvent.pointerMove(undo, { pointerType: "mouse" });
-    fireEvent.focus(undo);
-    fireEvent.pointerLeave(undo);
-    fireEvent.blur(undo);
-    view.rerender(<BitCard presentation="inbox-explorer" bit={item} parentColor="#fff" chunkStats={{ completed: 0, total: 0 }} onClick={vi.fn()} isNewlyPlaced undo={undoProps} />);
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).toBeNull();
-  });
-
   it("opens on card-root focus only when it matches :focus-visible and the card root is the target", async () => {
     view = render(<BitCard presentation="inbox-explorer" bit={item} parentColor="#fff" chunkStats={{ completed: 0, total: 0 }} onClick={vi.fn()} />);
     focusVisible = false;
@@ -514,7 +517,7 @@ describe("Task 179A Explorer truncated-title tooltip", () => {
   it("does not open when a descendant, not the card root, takes focus", async () => {
     view = render(<BitCard presentation="inbox-explorer" bit={item} parentColor="#fff" chunkStats={{ completed: 0, total: 0 }} onClick={vi.fn()} isNewlyPlaced undo={undoProps} />);
     fireEvent.focus(screen.getByRole("button", { name: /Undo placement of/ }));
-    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).not.toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-feedback-role="status-tooltip"]')).not.toBeNull());
     expect(open()).toBeNull();
   });
 
@@ -586,12 +589,12 @@ describe("Task 179A Explorer truncated-title tooltip", () => {
     view = render(<BitCard presentation="inbox-explorer" bit={item} parentColor="#fff" chunkStats={{ completed: 0, total: 0 }} onClick={vi.fn()} isNewlyPlaced undo={undoProps} />);
     const undo = screen.getByRole("button", { name: /Undo placement of/ });
     fireEvent.focus(undo);
-    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).not.toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-feedback-role="status-tooltip"]')).not.toBeNull());
     hover();
     await waitFor(() => expect(open()).not.toBeNull());
-    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-feedback-role="status-tooltip"]')).toBeNull());
     fireEvent.focus(undo);
-    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).not.toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-feedback-role="status-tooltip"]')).not.toBeNull());
     await waitFor(() => expect(open()).toBeNull());
   });
 
@@ -610,5 +613,43 @@ describe("Task 179A Explorer truncated-title tooltip", () => {
     fireEvent.focus(root());
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(open()).toBeNull();
+  });
+});
+
+
+describe("Task 247 Undo slot status (BitCard)", () => {
+  const label = "Undo placement of Slot item";
+
+  it.each([
+    ["pending", "pending", "loader", false],
+    ["unknown", "unknown", "question", true],
+    ["reconciling", "reconciling", "question", true],
+    ["problem", "problem", "exclamation", true],
+  ] as const)("shows the %s status in the slot and emphasis only with ? and !", async (_name, status, glyph, emphasis) => {
+    vi.useRealTimers();
+    const undo = slot({ label, status, sentence: "Slot sentence." });
+    const { container } = render(<BitCard presentation="inbox-explorer" bit={createBit({ title: "Slot item" })} parentColor="red" chunkStats={{ completed: 0, total: 0 }} onClick={vi.fn()} isNewlyPlaced undo={undo} />);
+    // The loader waits out the display delay; ? and ! show at once.
+    if (glyph === "loader") {
+      await waitFor(() => expect(container.querySelector('[data-glyph="loader"]')).not.toBeNull());
+    } else {
+      expect(container.querySelector(`[data-glyph="${glyph}"]`)).not.toBeNull();
+    }
+    const button = screen.getByRole("button", { name: label });
+    expect(button.querySelector('[data-feedback-role="status-icon"]')).toHaveAttribute("aria-hidden", "true");
+    expect(button.querySelector("svg.lucide-undo-2")).toBeNull();
+    expect(container.querySelector('[data-triage-role="explorer-card-bit"]')?.hasAttribute("data-status-emphasis")).toBe(emphasis);
+    expect(container.querySelector('[data-newly-action-kind]')).toBeNull();
+  });
+
+  it("describes the slot with the tooltip sentence once and keeps aria-disabled, never disabled", () => {
+    const undo = slot({ label, status: "problem", disabled: true, sentence: "Conflict. Slot sentence." });
+    render(<BitCard presentation="inbox-explorer" bit={createBit({ title: "Slot item" })} parentColor="red" chunkStats={{ completed: 0, total: 0 }} onClick={vi.fn()} isNewlyPlaced undo={undo} />);
+    const button = screen.getByRole("button", { name: label });
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).not.toBeDisabled();
+    const ids = (button.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean);
+    expect(ids).toHaveLength(1);
+    expect(document.getElementById(ids[0])).toHaveTextContent("Conflict. Slot sentence.");
   });
 });

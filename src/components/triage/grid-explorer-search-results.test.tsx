@@ -1,10 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GridExplorerSearchResult } from "@/lib/utils/grid-explorer-search";
-import { GridExplorerSearchResults } from "./grid-explorer-search-results";
+import { GridExplorerSearchResults, type GridExplorerSearchResultUndo } from "./grid-explorer-search-results";
 
 function result(
   key: GridExplorerSearchResult["key"],
@@ -60,6 +60,28 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
+
+// Radix tooltips measure with ResizeObserver, which jsdom lacks.
+beforeAll(() => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+});
+
+function undoItem(
+  over: Partial<GridExplorerSearchResultUndo> = {},
+): GridExplorerSearchResultUndo {
+  return {
+    copy: "Undo this placement.",
+    disabled: false,
+    label: "Undo placement of Alpha",
+    onActivate: vi.fn(),
+    phaseKey: "",
+    reason: "available",
+    sentence: "Undo this placement.",
+    state: "available",
+    status: null,
+    ...over,
+  };
+}
 
 describe("GridExplorerSearchResults", () => {
   it("delivers the sole input and close control through the header while retaining native focus intent", () => {
@@ -153,13 +175,7 @@ describe("GridExplorerSearchResults", () => {
         results={[result("node:alpha"), result("bit:alpha-note")]}
         getResultUndo={(item) =>
           item.key === "node:alpha"
-            ? {
-                actionLabel: "Undo",
-                copy: "Undo this placement.",
-                disabled: false,
-                onActivate,
-                state: "available",
-              }
+            ? undoItem({ onActivate })
             : null
         }
         onSelectResult={onSelectResult}
@@ -176,9 +192,8 @@ describe("GridExplorerSearchResults", () => {
       "data-triage-role",
       "explorer-search-undo",
     );
-    expect(undo).toHaveAttribute("data-undo-action", "Undo");
     expect(undo).not.toHaveAttribute("draggable");
-    expect(screen.getByText("Undo this placement.")).toBeVisible();
+    expect(undo.getAttribute("aria-describedby")).not.toBeNull();
 
     fireEvent.click(undo);
     expect(onActivate).toHaveBeenCalledOnce();
@@ -193,13 +208,15 @@ describe("GridExplorerSearchResults", () => {
         query="alpha"
         status="ready"
         results={[item]}
-        getResultUndo={() => ({
-          actionLabel: "Undo",
-          copy: "Undoing “Alpha”…",
-          disabled: true,
-          onActivate: vi.fn(),
-          state: "pending",
-        })}
+        getResultUndo={() =>
+          undoItem({
+            copy: "Undoing “Alpha”…",
+            disabled: true,
+            sentence: "Undoing “Alpha”…",
+            state: "pending",
+            status: "pending",
+          })
+        }
       />,
     );
 
@@ -210,13 +227,15 @@ describe("GridExplorerSearchResults", () => {
         query="alpha"
         status="ready"
         results={[item]}
-        getResultUndo={() => ({
-          actionLabel: "Check again",
-          copy: "We couldn’t confirm whether “Alpha” was undone.",
-          disabled: false,
-          onActivate: vi.fn(),
-          state: "unknown",
-        })}
+        getResultUndo={() =>
+          undoItem({
+            copy: "We couldn’t confirm whether “Alpha” was undone.",
+            label: "Check again",
+            sentence: "We couldn’t confirm whether “Alpha” was undone. Select to check again.",
+            state: "unknown",
+            status: "unknown",
+          })
+        }
       />,
     );
 
@@ -387,13 +406,15 @@ describe("GridExplorerSearchResults", () => {
 
 
 it("owns the result shell and attached Undo reason separately from row activation", () => {
-  render(<GridExplorerSearchResults {...defaultProps} query="alpha" status="ready" results={[result("node:alpha")]} getResultUndo={() => ({ actionLabel: "Undo", copy: "Undo this placement.", disabled: false, onActivate: vi.fn(), state: "available" })} />);
+  render(<GridExplorerSearchResults {...defaultProps} query="alpha" status="ready" results={[result("node:alpha")]} getResultUndo={() => undoItem()} />);
   const field = screen.getByRole("searchbox", { name: "Search all Nodes and Bits" });
   expect(field.parentElement).toHaveAttribute("data-triage-role", "explorer-search-find-strip");
   const shell = screen.getByRole("listitem");
   expect(shell).toHaveAttribute("data-triage-role", "explorer-search-result-shell");
-  const reason = screen.getByText("Undo this placement.").closest<HTMLElement>('[role="status"]');
+  const reason = shell.querySelector<HTMLElement>('[data-triage-role="explorer-search-undo-status"]');
+  expect(reason).toHaveTextContent("Undo this placement.");
   expect(reason).toHaveAttribute("data-triage-role", "explorer-search-undo-status");
+  expect(reason).toHaveClass("sr-only");
   expect(reason).not.toContainElement(screen.getByRole("button", { name: "Undo placement of Alpha" }));
   expect(renderedResultRows()[0]).not.toContainElement(reason);
 });

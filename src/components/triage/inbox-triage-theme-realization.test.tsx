@@ -578,7 +578,9 @@ describe("Neumorphism L4 replacement search (Task 176 Stage 3)", () => {
 
   it("draws an inset field, an inset state trough and raised result rows, without CSS-injected copy", () => {
     expect(stage).toMatch(/\.explorer-search-field \{[^}]*border-radius: 999px;[^}]*box-shadow: var\(--theme-shadow-inset\);/);
-    expect(stage).toMatch(/\.explorer-search-status,[\s\S]*?explorer-search-undo-status"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);/);
+    expect(stage).toMatch(/\.explorer-search-status,[\s\S]*?\.explorer-reveal-status \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);/);
+    expect(stage).not.toContain("explorer-search-undo-status");
+    expect(stage).toMatch(/\.explorer-search-undo \{[^}]*inline-size: 28px;[^}]*block-size|\.explorer-search-undo \{[^}]*block-size: 28px;[^}]*inline-size: 28px;/);
     expect(stage).toMatch(/\.explorer-search-result \{[^}]*border-radius: 18px;[^}]*box-shadow: var\(--theme-shadow-card\);/);
     expect(stage).toMatch(/\.explorer-search-status:empty \{[^}]*box-shadow: none;/);
     expect(stage).not.toMatch(/(?:^|[\s{;])content:/);
@@ -629,8 +631,9 @@ describe("Inbox/Triage shared theme realization — L4 replacement search", () =
       query: "note", resultScrollTop: 37, status: "ready" as const,
       results: [{ key: "bit:note" as const, id: "note", type: "bit" as const, title: "Note", icon: "FileText", color: null, breadcrumb: "Home / Documents", ancestorIds: ["documents"], nodePathIds: ["documents"], hierarchyOrder: 0, relevance: "title-prefix" as const, rank: 1 as const, duplicate: null }],
       onClose: vi.fn(), onFocusInput: vi.fn(), onFocusResult: vi.fn(), onQueryChange: vi.fn(), onRetry: vi.fn(), onScrollTopChange: vi.fn(), onSelectResult: vi.fn(),
-      getResultUndo: () => ({ actionLabel: "Check again", copy: "We couldn’t confirm whether “Note” was undone.", disabled: false, onActivate: activate, state: "unknown" }),
+      getResultUndo: () => ({ copy: "We couldn’t confirm whether “Note” was undone.", disabled: false, label: "Check again", onActivate: activate, phaseKey: "op", reason: "unknown", sentence: "We couldn’t confirm whether “Note” was undone. Select to check again.", state: "unknown", status: "unknown" as const }),
     };
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     const view = render(<GridExplorerSearchResults {...props} />);
     const input = screen.getByRole("searchbox");
     const row = document.querySelector('[data-triage-role="explorer-search-result"]')!;
@@ -647,7 +650,7 @@ describe("Inbox/Triage shared theme realization — L4 replacement search", () =
         expect(document.querySelector('[data-triage-role="explorer-search-result"]')).toBe(row);
         expect(viewport.scrollTop).toBe(37);
         expect(undo).toHaveFocus();
-        expect(screen.getByText(props.getResultUndo().copy)).toBeVisible();
+        expect(document.querySelector('[data-triage-role="explorer-search-undo-status"]')).toHaveTextContent(props.getResultUndo().copy);
         expect(document.querySelector('[data-triage-role="explorer-search-undo-status"]')).toBeInTheDocument();
       }
     }
