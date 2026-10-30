@@ -2,11 +2,13 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import type { LucideIcon } from "lucide-react";
-import { Calendar, Home, Inbox, Layers, Pencil, Plus, Search, Trash2, X, Zap } from "lucide-react";
-import { motion, type HTMLMotionProps, type MotionProps, useReducedMotion } from "motion/react";
+import { Calendar, Inbox, Layers, Pencil, Plus, Search, Trash2, X, Zap } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { forwardRef, Suspense, useState } from "react";
+import { Suspense, useState } from "react";
 import { AccountButton } from "@/components/layout/account-button";
+import { HomeButton } from "@/components/layout/home-button";
+import { SidebarIconButton } from "@/components/layout/sidebar-icon-button";
 import { ColorThemeToggle } from "@/components/layout/color-theme-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
@@ -51,66 +53,6 @@ import type { Node } from "@/types";
 import { toastCopy } from "@/lib/copy/feedback";
 import { dropReportedFailure } from "@/lib/db/write-failure";
 import { showToast } from "@/lib/feedback/toast";
-
-type SidebarIconButtonProps = {
-  className?: string;
-  disabled?: boolean;
-  icon: LucideIcon;
-  title?: string | null;
-  label: string;
-  motionProps?: Pick<MotionProps, "animate" | "initial" | "transition">;
-  onClick?: () => void;
-  isActive?: boolean;
-  children?: React.ReactNode;
-};
-
-const SidebarIconButton = forwardRef<
-  HTMLButtonElement,
-  SidebarIconButtonProps & Omit<HTMLMotionProps<"button">, "children" | "title" | "onClick">
->(function SidebarIconButton(
-  {
-    className,
-    disabled = false,
-    icon: Icon,
-    title,
-    label,
-    motionProps,
-    onClick,
-    isActive = false,
-    children,
-    ...rest
-  },
-  ref,
-) {
-  const buttonTitle = title === undefined ? label : title;
-
-  return (
-    <motion.button
-      ref={ref}
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      title={buttonTitle ?? undefined}
-      className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-lg border border-transparent p-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-        isActive
-          ? "bg-accent text-foreground"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground",
-        className,
-      )}
-      initial={motionProps?.initial}
-      animate={motionProps?.animate}
-      onClick={onClick}
-      transition={motionProps?.transition}
-      {...rest}
-    >
-      <span className="relative flex h-5 w-5 items-center justify-center">
-        <Icon className="h-5 w-5" />
-        {children}
-      </span>
-    </motion.button>
-  );
-});
 
 function DeleteDropTarget() {
   const { isOver, setNodeRef } = useDroppable({
@@ -327,7 +269,6 @@ export function Sidebar({
   const toggleEditMode = useEditModeStore((state) => state.toggle);
   const isCalendarRoute = pathname.startsWith("/calendar/");
   const isTrashRoute = pathname === "/trash";
-  const isSystemNodeRoute = systemNodes.some((n) => pathname === `/grid/${n.id}`);
   const isGridItemDrag = dragActiveItem?.type === "node" || dragActiveItem?.type === "bit";
 
   function navigate(href: string) {
@@ -349,14 +290,7 @@ export function Sidebar({
         <TriageRouteFocusOwner />
       </Suspense>
       <aside className="fixed left-0 top-0 z-40 flex h-full w-12 flex-col items-center gap-1 border-r border-border bg-background py-3">
-      {(isCalendarRoute || isSystemNodeRoute) ? (
-        <SidebarIconButton
-          className="active:scale-95"
-          icon={Home}
-          label="Home"
-          onClick={() => navigate("/")}
-        />
-      ) : null}
+      <HomeButton isCurrent={pathname === "/"} onNavigate={navigate} />
       <AccountButton variant={sessionVariant} />
       {isCalendarRoute ? (
         <Popover open={isChooserOpen} onOpenChange={setIsChooserOpen}>

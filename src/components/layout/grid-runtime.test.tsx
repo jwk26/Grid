@@ -1562,12 +1562,13 @@ describe("GridRuntime", () => {
       expect(useToastAnchorStore.getState().dragActive).toBe(false);
     });
 
-    it("clears the drag when it is cancelled, even though useDnd keeps its active item", () => {
+    it("clears the toast drag flag and the useDnd drag state when a drag is cancelled", () => {
       useParamsMock.mockReturnValue({});
       useNodeMock.mockReturnValue(null);
-      // useDnd has no cancel handler: an Escape-cancelled drag leaves its activeItem set.
+      const handleDragCancel = vi.fn();
       useDndMock.mockReturnValue({
         ...useDndMock(),
+        handleDragCancel,
         activeItem: { id: "bit-1", type: "bit", title: "Ship launch" },
       });
 
@@ -1582,6 +1583,38 @@ describe("GridRuntime", () => {
 
       act(() => dndContextProps.current?.onDragCancel?.({ active: { id: "draggable-bit-1" } }));
       expect(useToastAnchorStore.getState().dragActive).toBe(false);
+      expect(handleDragCancel).toHaveBeenCalledOnce();
+    });
+
+    it("sets the tab title: app name on L0, the Node's name, Inbox and Archive", () => {
+      const cases: Array<[Record<string, unknown>, string | null, string]> = [
+        [{}, null, "GridDO"],
+        [{ nodeId: "n1" }, createNode({ id: "n1", title: "Plans" }) as never, "Plans – GridDO"],
+        [{ nodeId: "i1" }, createNode({ id: "i1", title: "Inbox", systemRole: "inbox" }) as never, "Inbox – GridDO"],
+        [{ nodeId: "a1" }, createNode({ id: "a1", title: "x", systemRole: "archive_view" }) as never, "Archive – GridDO"],
+      ];
+      for (const [params, node, title] of cases) {
+        useParamsMock.mockReturnValue(params);
+        useNodeMock.mockReturnValue(node);
+        const { unmount } = render(
+          <GridRuntime>
+            <RuntimeProbe />
+          </GridRuntime>,
+        );
+        expect(document.title).toBe(title);
+        unmount();
+      }
+    });
+
+    it("does not use the previous Node's name while the routed Node has not arrived", () => {
+      useParamsMock.mockReturnValue({ nodeId: "n2" });
+      useNodeMock.mockReturnValue(createNode({ id: "n1", title: "Plans" }));
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(document.title).toBe("GridDO");
     });
 
     it("measures the breadcrumb when it appears after a stale Inbox node on client navigation", () => {

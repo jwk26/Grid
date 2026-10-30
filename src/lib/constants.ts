@@ -1,3 +1,6 @@
+// The product name in tab titles (SPEC §Feedback copy); Task 239 renames it to "grid".
+export const APP_NAME = "GridDO";
+
 // Grid dimensions
 export const GRID_COLS = 18;
 export const GRID_ROWS = 9;

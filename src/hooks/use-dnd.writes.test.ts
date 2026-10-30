@@ -105,3 +105,24 @@ describe("useDnd write failures", () => {
     expect(showToast).toHaveBeenCalledWith(toastCopy.targetGridFull, "Dragged", "Home");
   });
 });
+
+describe("useDnd drag cancel", () => {
+  it("clears the active item and the over target without a write", () => {
+    const { result } = renderHook(() => useDnd(() => new Set()));
+    act(() => {
+      result.current.handleDragStart({
+        active: { data: { current: { id: "n1", type: "node", title: "Dragged" } } },
+      } as never);
+      result.current.handleDragOver({ over: { id: "grid-cell:1:1" } } as never);
+    });
+    expect(result.current.activeItem).toMatchObject({ id: "n1" });
+    expect(result.current.overTargetId).toBe("grid-cell:1:1");
+
+    act(() => result.current.handleDragCancel());
+
+    expect(result.current.activeItem).toBeNull();
+    expect(result.current.overTargetId).toBeNull();
+    expect(store.updateNode).not.toHaveBeenCalled();
+    expect(store.updateBit).not.toHaveBeenCalled();
+  });
+});

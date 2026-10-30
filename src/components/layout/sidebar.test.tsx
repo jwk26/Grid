@@ -364,6 +364,31 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("button", { name: "Node" })).not.toBeInTheDocument();
   });
 
+  it("puts Home first, then the account icon, then Add item, on every route", () => {
+    for (const path of ["/", "/grid/some-regular-node", "/trash", "/calendar/weekly"]) {
+      usePathnameMock.mockReturnValue(path);
+      const { unmount } = render(<Sidebar />);
+      const home = screen.getByRole("button", { name: "Home" });
+      const account = screen.getByLabelText("Account");
+      const add = screen.getByRole("button", { name: "Add item" });
+      expect(home.compareDocumentPosition(account) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(account.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(home.closest("aside")?.querySelector("button")).toBe(home);
+      unmount();
+    }
+  });
+
+  it("marks Home as the current page only on L0", () => {
+    usePathnameMock.mockReturnValue("/");
+    const { unmount } = render(<Sidebar />);
+    expect(screen.getByRole("button", { name: "Home" })).toHaveAttribute("aria-current", "page");
+    unmount();
+
+    usePathnameMock.mockReturnValue("/trash");
+    render(<Sidebar />);
+    expect(screen.getByRole("button", { name: "Home" })).not.toHaveAttribute("aria-current");
+  });
+
   it("puts the account icon above Add item, named Account", () => {
     usePathnameMock.mockReturnValue("/");
 
@@ -421,18 +446,14 @@ describe("Sidebar", () => {
     expect(pushMock).toHaveBeenCalledWith("/");
   });
 
-  it("does not show Home button on standard grid routes", () => {
+  it("sends Home on a standard grid route through the departure guard", () => {
     usePathnameMock.mockReturnValue("/grid/some-regular-node");
-    useInboxMock.mockReturnValue({
-      inboxNodeId: undefined,
-      createScratchBit: vi.fn(),
-      scratchCount: 0,
-      systemNodes: [],
-    });
 
     render(<Sidebar />);
+    fireEvent.click(screen.getByRole("button", { name: "Home" }));
 
-    expect(screen.queryByRole("button", { name: "Home" })).not.toBeInTheDocument();
+    expect(departureState.destination).toMatchObject({ id: "/", kind: "route" });
+    expect(pushMock).toHaveBeenCalledWith("/");
   });
 
   it("calls onNodeCreate and closes chooser when Node option is clicked", () => {

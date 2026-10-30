@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useDnd } from "@/hooks/use-dnd";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useGridActions } from "@/hooks/use-grid-actions";
 import { useNode } from "@/hooks/use-node";
 import { GRID_COLS, GRID_ROWS } from "@/lib/constants";
@@ -93,10 +94,23 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
   const isInboxRoute = node?.systemRole === "inbox";
   const isArchiveRoute = node?.systemRole === "archive_view";
   const showsBreadcrumb = !isInboxRoute && !isArchiveRoute;
+  // `useNode` keeps the previous node until the new one arrives: its name and
+  // role count only once it is the routed Node.
+  const routedNode = node?.id === nodeId ? node : null;
+  useDocumentTitle(
+    nodeId === null
+      ? null
+      : routedNode?.systemRole === "inbox"
+        ? "Inbox"
+        : routedNode?.systemRole === "archive_view"
+          ? "Archive"
+          : (routedNode?.title ?? null),
+  );
   const displayLevel = nodeId === null ? 0 : (node?.level ?? 0) + 1;
   const isLeafLevel = displayLevel >= 3;
   const {
     activeItem,
+    handleDragCancel,
     handleDragEnd,
     handleDragOver,
     handleDragStart,
@@ -409,9 +423,11 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
         collisionDetection={gridCollisionDetection}
         // The toast stack turns translucent and lets the pointer through while a
         // Node or Bit is dragged, so the cells under it stay droppable (F12). It
-        // follows the drag events, not `activeItem`: `useDnd` has no cancel
-        // handler, so an Escape-cancelled drag leaves `activeItem` set.
-        onDragCancel={() => setToastDragActive(false)}
+        // follows the drag events; a cancelled drag clears both it and `activeItem`.
+        onDragCancel={() => {
+          setToastDragActive(false);
+          handleDragCancel();
+        }}
         onDragEnd={async (event) => {
           setToastDragActive(false);
           const deleteRequest = await handleDragEnd(event);

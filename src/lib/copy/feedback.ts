@@ -1,3 +1,5 @@
+import { APP_NAME } from "@/lib/constants";
+
 // Toast, app-state and blocking copy (SPEC §Feedback copy). Later tasks add
 // their sentences here.
 
@@ -36,6 +38,13 @@ export const PENDING_SENTENCE = {
 // The account icon and the connection states (SPEC §Feedback copy, Connection). The icon's
 // name is the same for a guest and an account; the sentence is its tooltip and description only
 // while the connection is unstable or offline.
+export const HOME_BUTTON_LABEL = "Home";
+
+/** The tab title of a page: `{name} – {app name}`, or the app name alone when there is no page name. */
+export function tabTitle(pageName?: string | null): string {
+  return pageName ? `${pageName} – ${APP_NAME}` : APP_NAME;
+}
+
 export const ACCOUNT_BUTTON_LABEL = "Account";
 
 export const CONNECTION_SENTENCE = {

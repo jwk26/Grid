@@ -1013,6 +1013,7 @@ export function useDnd(getBlockedCells: () => Set<string>): {
   sensors: ReturnType<typeof useSensors>;
   handleDragStart: (event: DragStartEvent) => void;
   handleDragEnd: (event: DragEndEvent) => Promise<{ id: string; type: "node" | "bit"; title: string } | undefined>;
+  handleDragCancel: () => void;
   handleDragOver: (event: DragOverEvent) => void;
   handleConflictUpdateParent: () => Promise<void>;
   handleConflictKeepChild: () => void;
@@ -1365,10 +1366,17 @@ export function useDnd(getBlockedCells: () => Set<string>): {
     setOverTargetId(event.over?.id ? String(event.over.id) : null);
   };
 
+  // An Escape-cancelled drag ends without a write: it clears what `endDrag` clears.
+  const handleDragCancel = () => {
+    setOverTargetId(null);
+    setActiveItem(null);
+  };
+
   return {
     sensors,
     handleDragStart,
     handleDragEnd,
+    handleDragCancel,
     handleDragOver,
     handleConflictUpdateParent,
     handleConflictKeepChild,
