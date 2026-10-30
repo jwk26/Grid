@@ -1037,7 +1037,7 @@ and dark, at 1024px with the Pool open (`Check again` width).
 
 **Commit message:** `fix(inbox): check an inline-editor save whose outcome is unknown`.
 
-### Task 246: [ ] Show Staging statuses on the item and widen the Nodes zone
+### Task 246: [x] Show Staging statuses on the item and widen the Nodes zone
 
 **Files and actions:**
 - `src/components/triage/staging-zone.tsx` and test: the status icon at a Node
