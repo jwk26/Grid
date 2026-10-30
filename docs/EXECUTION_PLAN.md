@@ -691,7 +691,7 @@ rejection.
 
 **Commit message:** `feat(sync): make ordinary writes immediate with rollback`.
 
-### Task 232: [ ] Add the toast rules, server-confirmed pending and the request timeout
+### Task 232: [x] Add the toast rules, server-confirmed pending and the request timeout
 
 **Files and actions:**
 - `src/lib/feedback/toast.ts` and test: kinds, counted bursts, at most three
