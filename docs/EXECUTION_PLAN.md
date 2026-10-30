@@ -1152,7 +1152,8 @@ are judged under real latency (SPEC §Write feel).
 - `src/components/layout/breadcrumbs.tsx`, `breadcrumb-deadline.tsx` and tests:
   the reveal surface in DOM order right after the Home button (no positive
   `tabindex`); only segments and the chip take the pointer; during a drag each
-  ancestor segment is a drop target with its signal, the surface keeps its
+  ancestor segment is a drop target and only the one under the pointer shows
+  a light signal (user, 2026-10-31), the surface keeps its
   resting look (no added transparency; user, 2026-10-31) and the chip is
   hidden; the chip in the breadcrumb row (F24, F25).
 - Tab titles of SPEC §Feedback copy: `src/components/layout/grid-runtime.tsx`
