@@ -364,6 +364,17 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("button", { name: "Node" })).not.toBeInTheDocument();
   });
 
+  it("puts the account icon above Add item, named Account", () => {
+    usePathnameMock.mockReturnValue("/");
+
+    render(<Sidebar />);
+
+    const account = screen.getByLabelText("Account");
+    const add = screen.getByRole("button", { name: "Add item" });
+    expect(account.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(account).toHaveAttribute("data-app-role", "account-button");
+  });
+
   it("shows Home button on system node routes and navigates to root on click", () => {
     const inbox = createNode({ id: "inbox-id", systemRole: "inbox" });
     usePathnameMock.mockReturnValue(`/grid/inbox-id`);

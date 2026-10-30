@@ -90,6 +90,15 @@ describe("session controller entry", () => {
     expect(t.controller.getState()).toEqual({ phase: "ready" });
   });
 
+  it("reports the kind of the signed-in user for the account icon", async () => {
+    const guest = setup();
+    await guest.controller.start();
+    expect(guest.controller.getVariant()).toBe("guest");
+    const account = setup({ session: { id: "oauth-a", anon: false } });
+    await account.controller.start();
+    expect(account.controller.getVariant()).toBe("account");
+  });
+
   it("returns to the same guest on a later visit without signing in again", async () => {
     const t = setup({ session: { id: "guest-a" } });
     await t.controller.start();

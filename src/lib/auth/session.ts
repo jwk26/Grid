@@ -268,6 +268,8 @@ export function createSessionController(options: SessionControllerOptions) {
   return {
     store,
     getState: (): EntryState => state,
+    /** The kind of the last signed-in user (the account icon's glyph). */
+    getVariant: (): SessionVariant => lastKind(),
     subscribe(listener: () => void): () => void {
       listeners.add(listener);
       return () => listeners.delete(listener);

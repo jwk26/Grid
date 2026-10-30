@@ -6,6 +6,7 @@ import { Calendar, Home, Inbox, Layers, Pencil, Plus, Search, Trash2, X, Zap } f
 import { motion, type HTMLMotionProps, type MotionProps, useReducedMotion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { forwardRef, Suspense, useState } from "react";
+import { AccountButton } from "@/components/layout/account-button";
 import { ColorThemeToggle } from "@/components/layout/color-theme-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
@@ -42,6 +43,7 @@ import {
 } from "@/lib/constants";
 import { getGridDeleteDropId } from "@/lib/grid-dnd";
 import { cn } from "@/lib/utils";
+import { useSessionVariant } from "@/lib/auth/use-session-variant";
 import { findNearestEmptyCell } from "@/lib/utils/bfs";
 import { useEditModeStore } from "@/stores/edit-mode-store";
 import { useSearchStore } from "@/stores/search-store";
@@ -318,6 +320,7 @@ export function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const [isChooserOpen, setIsChooserOpen] = useState(false);
+  const sessionVariant = useSessionVariant();
   const globalUrgency = useGlobalUrgency();
   const { systemNodes, scratchCount } = useInbox();
   const isEditMode = useEditModeStore((state) => state.isEditMode);
@@ -354,6 +357,7 @@ export function Sidebar({
           onClick={() => navigate("/")}
         />
       ) : null}
+      <AccountButton variant={sessionVariant} />
       {isCalendarRoute ? (
         <Popover open={isChooserOpen} onOpenChange={setIsChooserOpen}>
           <PopoverTrigger asChild>

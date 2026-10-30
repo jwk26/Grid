@@ -33,6 +33,17 @@ export const PENDING_SENTENCE = {
   deleteStep: "Deleting…",
 } as const;
 
+// The account icon and the connection states (SPEC §Feedback copy, Connection). The icon's
+// name is the same for a guest and an account; the sentence is its tooltip and description only
+// while the connection is unstable or offline.
+export const ACCOUNT_BUTTON_LABEL = "Account";
+
+export const CONNECTION_SENTENCE = {
+  unstable: "Connection is unstable. Changes may take longer to save.",
+  offline: "You're offline. You can look around, but changes can't be saved.",
+  recovered: "Back online.",
+} as const;
+
 // App-level screens (SPEC §Feedback copy, App-level screens). The Loading screen's copy comes
 // with Task 234.
 const UNREACHABLE_REASON = "The server can't be reached. Check your connection and try again.";
