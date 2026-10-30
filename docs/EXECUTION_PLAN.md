@@ -683,13 +683,28 @@ Task 234. Nothing is carried over.
 **Files and actions:** `src/components/layout/account-modal.tsx` and test (the
 guest and account variants, copy and privacy note from SPEC §Feedback copy, the
 deletion confirmation); the account icon becomes its button; sign-out drops the
-snapshot and starts a new guest; migration for `delete_my_account()` under its
-own role, with its tests (S42 (1), S29), or the SCHEMA fallback if Task 218
-recorded it (the deletion request, `account_deleting` in `ensure_account()`,
-`get_snapshot()`, the reconcile and write functions, and the
-account-being-deleted screen); in either branch `account_missing` in
-`get_snapshot()`, the reconcile and write functions, and the account-deleted
-screen; sign-out from one tab followed by the other tabs.
+snapshot and starts a new guest; sign-out from one tab followed by the other
+tabs.
+- Account deletion: the SCHEMA fallback only. Task 218 recorded that hosted
+  Supabase refuses the dedicated role (`postgres` has no grant option on
+  `auth.users`; Phase 42 ledger, 2026-10-24), so no dedicated role is built.
+  Migration: `delete_my_account()` as a write function owned by
+  `griddo_writer` that records `accounts.deletion_requested_at` for the caller
+  only, and `account_deleting` in `ensure_account()`, `get_snapshot()`, the
+  reconcile functions and every write function, with its tests (S42 (1): it
+  marks only the caller's account, and each of those functions rejects a
+  marked account); the client signs out to a new guest with the fallback toast; the
+  account-being-deleted screen. The rows are deleted by Task 238's daily
+  cleanup.
+- Account deleted: `account_missing` is already returned by `ensure_account()`,
+  `get_snapshot()`, the reconcile and write functions (Phases 42–44); this task
+  adds the client's account-deleted screen for it.
+- User change (Phase 50 mi-1, user, 2026-10-30): a sign-out or any other user
+  change also resets the app-session state of `src/stores/triage-store.ts`
+  (selection, Pool expansion and its manual exception, Pool query and scroll,
+  Explorer path and columns), with a test, so the new account enters through
+  the saved-Scratch or first-Scratch fallback, not the external-removal hold;
+  SPEC §Inbox/Triage State Ownership, App session row, gains that reset.
 - Reserved cells (feedback F34): every `ensure_account()` call site added here
   passes the top-left 3×2 block until Task 249 is on `main`, and none after.
 
@@ -697,17 +712,19 @@ screen; sign-out from one tab followed by the other tabs.
 gate.
 
 **Authority:** S23, S29, S42 (1); SCHEMA §Account deletion; SPEC §Account icon
-and modal, §App-level screens.
+and modal, §App-level screens, §Inbox/Triage State Ownership; Phase 50 mi-1.
 
 **Observable acceptance:** the modal shows the right variant; sign-out lands on
-a new guest; deletion removes every row of the account and shows the
-account-deleted toast; a second browser profile still signed in to the
-deleted account shows the account-deleted screen on its next read or write,
-never an empty Grid, while another tab in the same browser follows the new
-guest;
-signing out in one tab moves every tab to the same new guest; under the
-fallback, a sign-in before cleanup shows the account-being-deleted screen and
-the data never appears.
+a new guest; `Delete account` records the request, lands on a new guest and
+shows the fallback toast (`Your account will be deleted within 24 hours.`); a
+second browser profile still signed in to that account, or a new sign-in to it
+before the cleanup, shows the account-being-deleted screen on its next read or
+write and the data never appears, while another tab in the same browser
+follows the new guest; once the account's auth user is gone (in this task by a
+test-only delete; from Task 238 by the cleanup), the next read or write shows
+the account-deleted screen, never an empty Grid; signing out in one tab moves
+every tab to the same new guest; after a sign-out the new account's Inbox
+opens through the ordinary selection fallback, with no external-removal hold.
 
 **Verification:** full gate; `expert` review with the SQL checklist; browser
 checkpoint in the three themes.
@@ -717,14 +734,20 @@ checkpoint in the three themes.
 ### Task 236: [ ] Add OAuth and Turnstile
 
 **Files and actions:**
-- Local: the user creates development GitHub and Google OAuth apps with the
-  local Supabase callback URL; their client secrets go only into the
-  git-ignored `.env.local`, which `supabase/config.toml` reads, and
-  `.env.local.example` lists the names. Local Turnstile uses Cloudflare's
-  public test keys (SPEC §Environments And Hosting).
-- Production: the user creates the production OAuth apps and Turnstile keys and
-  sets the provider secrets, the Turnstile secret, the Site URL and the
-  redirect URLs in the dashboard; nothing secret enters Git.
+- Already registered (user, 2026-10-26, ahead of this task): GitHub OAuth
+  apps `grid (dev)` and `grid`; Google Cloud project `grid` with web clients
+  `grid dev` and `grid` (consent screen External, still in Testing with the
+  user's accounts as test users); Cloudflare Turnstile widget `grid` (Managed,
+  hostname the stable Vercel production domain). The dev callbacks use
+  `http://127.0.0.1:54321/auth/v1/callback`. Their ids and secrets live only in
+  the user's password manager; the user enters them, and they are never asked
+  for or pasted in a session. Nothing is enabled in the Supabase dashboard yet.
+- Local: the dev client ids and secrets go only into the git-ignored
+  `.env.local`, which `supabase/config.toml` reads, and `.env.local.example`
+  lists the names. Local Turnstile uses Cloudflare's public test keys (SPEC
+  §Environments And Hosting).
+- Production: the user sets the provider secrets, the Turnstile secret, the
+  Site URL and the redirect URLs in the dashboard; nothing secret enters Git.
 - `session.ts`: OAuth sign-in returning to `/`; a cancel or provider error
   keeps the guest session, cleans the URL and reopens the account modal with
   its inline error; Turnstile on anonymous sign-in with the widget in the
@@ -780,12 +803,13 @@ checkpoint.
 
 ### Task 238: [ ] Add guest cleanup and the narrow-window notice
 
-**Files and actions:** migration: `internal.cleanup_guests()` scheduled daily
-with `pg_cron` (or the recorded fallback from Task 218: a scheduled GitHub
-Actions workflow that calls it over a database connection string kept in
-GitHub Actions secrets, never in Git),
-deleting guests 7 days after `last_visit_at`, and deletion requests under the
-account-deletion fallback; `app-frame.tsx`: the narrow-window notice over the
+**Files and actions:** migration: `create extension if not exists pg_cron`
+(off by default on the free plan; Task 218 proved that a job scheduled by
+`postgres` deletes from `auth.users` with the cascade, so the S22 GitHub
+Actions fallback is not used) and `internal.cleanup_guests()` scheduled daily,
+deleting guests 7 days after `last_visit_at` and every account with a
+deletion request (the account-deletion fallback, Task 235), with the S29 test
+that an account with a staged candidate is deleted; `app-frame.tsx`: the narrow-window notice over the
 mounted, `inert` app below 1024px, and no guest creation while narrow
 (S42 (4)).
 
@@ -795,7 +819,9 @@ mounted, `inert` app below 1024px, and no guest creation while narrow
 entry step 1.
 
 **Observable acceptance:** a guest idle for more than 7 days is deleted with
-all its rows, and one with an open tab is kept; narrowing the window shows the
+all its rows, and one with an open tab is kept; an account with a deletion
+request is deleted with all its rows on the next run, and a second browser
+profile still signed in to it then shows the account-deleted screen; narrowing the window shows the
 notice, and widening it returns to the same screen with drafts intact.
 
 **Verification:** full gate; `expert` review with the SQL checklist; browser
@@ -831,7 +857,8 @@ Docker stopped reports failure.
 
 **Files and actions:** production auth settings final (anonymous sign-in with
 Turnstile, both providers, rate limits), confirmed by the user in the
-dashboard; the Security Advisor on production shows no warning other than the
+dashboard; the Google OAuth consent screen published out of Testing, so any
+Google account can sign in, confirmed by the user in Google Cloud; the Security Advisor on production shows no warning other than the
 accepted lint 0012 and one `authenticated_security_definer_function_executable`
 warning for each client write function in the SCHEMA function table (accepted
 by design, S14; user, 2026-10-24); such a warning for any other function, or

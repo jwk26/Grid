@@ -507,10 +507,14 @@ states the database rules. The exact SQL lives in `supabase/migrations/`.
   JWT claims as the `auth` functions do; a claim format they do not know gives
   null, so every policy is unmatched and the write is refused (user,
   2026-10-23).
-- `delete_my_account()` is owned by its own role, which holds only the right to
-  delete the caller's auth user. It is the only exception to S29 (1) and S14
-  (S42 (1)). If hosted Supabase refuses that role or grant, the fallback in
-  [Account deletion](#account-deletion) applies (user, 2026-10-22).
+- `delete_my_account()` was to be owned by its own role, holding only the
+  right to delete the caller's auth user, as the only exception to S29 (1) and
+  S14 (S42 (1)). Hosted Supabase refuses that grant (Task 218, 2026-10-24:
+  `postgres` has no grant option on `auth.users`), so the fallback in
+  [Account deletion](#account-deletion) applies: `delete_my_account()` is an
+  ordinary write function owned by `griddo_writer`, and the auth user is
+  deleted by `internal.cleanup_guests()`, owned by `postgres` and run by
+  `pg_cron` ([Guest cleanup](#guest-cleanup)).
 - Read functions (`get_snapshot()` and the reconcile functions) are
   `security invoker`: they run as the caller, under RLS.
 - Every function sets `search_path` to an empty value and schema-qualifies
@@ -1303,7 +1307,9 @@ reject a caller that has no `accounts` row with `account_missing` (user,
 of an empty Grid.
 
 Fallback, if hosted Supabase refuses the dedicated role or its grant (user,
-2026-10-22): `delete_my_account()` runs as a write function, records
+2026-10-22). Task 218 recorded the refusal on hosted Supabase (2026-10-24), so
+this fallback is the implemented branch (Task 235), and the paragraphs above
+describe the outcome once the cleanup has run: `delete_my_account()` runs as a write function, records
 `accounts.deletion_requested_at` for the caller only, and the client signs out
 at once. The daily cleanup job ([Guest cleanup](#guest-cleanup)) deletes the
 auth user, and the cascade every row, within 24 hours. A deletion request is
@@ -1320,8 +1326,11 @@ to a new guest only from there.
 auth users whose `last_visit_at` is more than 7 days old; the cascade removes
 their rows (S10, S22, S42 (5)). A guest with an open tab stays: the hourly
 `cleanup_expired_trash()` call records its visit. Under the account-deletion
-fallback the same job also deletes every account with a deletion request. If `pg_cron` is unavailable on the free plan,
-the recorded fallback is a scheduled GitHub Actions call (S22). Real accounts
+fallback the same job also deletes every account with a deletion request. The
+job is owned by `postgres`, the one role that can delete from `auth.users`.
+Task 218 proved `pg_cron` on the free plan (off by default; the Task 238
+migration enables it), so the S22 fallback, a scheduled GitHub Actions call,
+is not used. Real accounts
 are never deleted automatically (S23).
 
 ### Database tests
