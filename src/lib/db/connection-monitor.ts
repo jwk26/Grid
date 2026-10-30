@@ -169,8 +169,23 @@ export class ConnectionMonitor {
       answered = false;
     }
     clearTimeout(timer);
-    this.probing = false;
-    this.report(answered ? "reachable" : "unreachable");
+    if (!answered) {
+      this.probing = false;
+      this.report("unreachable");
+    } else if (this.options.isReady()) {
+      // The server answered, but only a snapshot read that succeeds counts as recovery: a probe
+      // alone would flip the state every interval while reads keep failing. The refetch reports
+      // its own result; a failed one changes nothing and the loop goes on.
+      try {
+        await this.options.refetch();
+      } catch {
+        // The read reports its own failure.
+      }
+      this.probing = false;
+    } else {
+      this.probing = false;
+      this.report("reachable");
+    }
     this.syncTimer();
   }
 }

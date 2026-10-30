@@ -4,9 +4,12 @@ import { ConnectionMonitor, type ConnectionState } from "@/lib/db/connection-mon
 
 function make(overrides: Partial<ConstructorParameters<typeof ConnectionMonitor>[0]> = {}) {
   const probe = vi.fn(async () => false);
-  const refetch = vi.fn(async () => {});
+  // A good snapshot read reports itself, as session.ts does.
+  const refetch = vi.fn(async () => {
+    monitor.report("reachable", { snapshotRead: true });
+  });
   let ready = true;
-  const monitor = new ConnectionMonitor({
+  const monitor: ConnectionMonitor = new ConnectionMonitor({
     probe,
     refetch,
     isReady: () => ready,
@@ -173,6 +176,37 @@ describe("probe", () => {
     monitor.stop();
   });
 
+  it("a good probe followed by a failed refetch changes no state and notifies nobody, and the loop goes on", async () => {
+    const { monitor, probe, refetch } = make();
+    refetch.mockImplementation(async () => {
+      monitor.report("degraded");
+    });
+    monitor.start();
+    monitor.report("unreachable");
+    const seen = states(monitor);
+    probe.mockResolvedValue(true);
+    await vi.advanceTimersByTimeAsync(CONNECTION_PROBE_INTERVAL_MS);
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(monitor.getState()).toBe("unstable");
+    expect(seen).toEqual([]);
+    await vi.advanceTimersByTimeAsync(CONNECTION_PROBE_INTERVAL_MS);
+    expect(probe).toHaveBeenCalledTimes(2);
+    expect(monitor.getState()).toBe("unstable");
+    monitor.stop();
+  });
+
+  it("while the entry is not ready a good probe alone sets normal", async () => {
+    const { monitor, probe, refetch, setReady } = make();
+    setReady(false);
+    monitor.start();
+    monitor.report("unreachable");
+    probe.mockResolvedValue(true);
+    await vi.advanceTimersByTimeAsync(CONNECTION_PROBE_INTERVAL_MS);
+    expect(monitor.getState()).toBe("normal");
+    expect(refetch).not.toHaveBeenCalled();
+    monitor.stop();
+  });
+
   it("a failed probe counts as an unanswered request", async () => {
     const { monitor, probe } = make();
     monitor.start();
@@ -276,6 +310,7 @@ describe("browser events", () => {
 
   it("focus and visibility refetch while unstable but not while offline", () => {
     const { monitor, refetch } = make();
+    refetch.mockImplementation(async () => {});
     monitor.start();
     monitor.report("unreachable");
     window.dispatchEvent(new Event("focus"));
