@@ -1525,6 +1525,7 @@ writes shows one counted toast (S28).
 | Create dialog, no empty cell (Node or Bit, every level; inline error, typed title kept) | `“{target}” has no empty cell. Move or delete an item to make room.` (`{target}` is the Node whose Grid receives the item: the current Node, the chosen parent for a Bit created from L0, or `Home` for a Node at L0) |
 | Create refused by the server inside a dialog, account limit (Node or Bit create dialog, Scratch capture modal; inline error, typed title kept, no toast; user, 2026-10-30) | `This account has reached its limit of {limit} {items}.` |
 | Create refused by the server inside a dialog, any other reason (same dialogs and rules) | `Couldn't create “{title}”. Try again.` |
+| Node edit dialog, save refused by the server (inline error, typed values kept, no toast; an unknown outcome whose change is kept closes the dialog; user, 2026-10-30) | `Couldn't save the changes to “{title}”. Try again.` (`{title}` is the saved title) |
 | Home button (label and tooltip) | `Home` |
 | Tab title | A Node's Grid: `{title} – {app name}`. Inbox, Archive, Calendar (weekly and monthly) and Trash: `Inbox – {app name}`, `Archive – {app name}`, `Calendar – {app name}`, `Trash – {app name}`. L0: `{app name}` alone. `{app name}` is `APP_NAME`: `GridDO` until Task 239 names the product `grid`. Each page sets its title, so client navigation never leaves a stale one (user, 2026-10-22) |
 
