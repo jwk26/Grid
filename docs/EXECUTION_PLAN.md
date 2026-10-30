@@ -758,7 +758,7 @@ checkpoint.
 
 **Commit message:** `feat(sync): add the connection states and the offline gate`.
 
-### Task 234: [ ] Add the account icon, the connection badge, the loading screen and the session-expired screen
+### Task 234: [x] Add the account icon, the connection badge, the loading screen and the session-expired screen
 
 **Files and actions:** `src/components/layout/account-button.tsx` and test:
 below the Home button if Task 248 has landed, otherwise at the very top
