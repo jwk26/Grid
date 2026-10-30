@@ -10,8 +10,8 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 ## Task 247 — Carry the Undo status in the Undo slot
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 247 acceptance (Please check window below)
+- Status: Accepted
+- Next: Task 248 (run-task 248)
 - Open: none (mi-6, mi-7 Deferred)
 
 ### Log

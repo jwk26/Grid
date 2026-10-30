@@ -1100,7 +1100,7 @@ browser checkpoint with the state switch.
 
 **Commit message:** `feat(inbox): show Staging statuses on the item and widen the Nodes zone`.
 
-### Task 247: [ ] Carry the Undo status in the Undo slot
+### Task 247: [x] Carry the Undo status in the Undo slot
 
 **Files and actions:** `src/components/triage/hierarchy-explorer.tsx`,
 `src/components/grid/node-card.tsx`, `src/components/grid/bit-card.tsx`,
