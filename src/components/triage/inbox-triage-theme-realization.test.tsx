@@ -462,6 +462,12 @@ describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__remove \{[^}]*block-size: 40px;[^}]*border-radius: 18px;[^}]*bottom: 16px;[^}]*inline-size: auto;[^}]*inset-inline: 16px;/);
   });
 
+  it("keeps the staged Bit row's start padding at the base 12px and trims only the end for the status slot", () => {
+    expect(css).toMatch(
+      /color-theme="neumorphism"\] \.staging-bit-status-row \{ padding-block: 9px; padding-inline: 12px 6px; \}/,
+    );
+  });
+
   it("realizes DP-VQ06-STAGING as an inset alert well, raised count and alert action", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging \.staging-local-alert \{[^}]*border: 0;[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging :is\(\.staging-alert-action, \.staging-arrival-count\) \{[^}]*box-shadow: var\(--theme-shadow-card-xs\);/);

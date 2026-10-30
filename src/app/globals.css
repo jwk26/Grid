@@ -6513,7 +6513,7 @@
 }
 :root[data-color-theme="neumorphism"] .triage-staging__node { overflow: visible; }
 :root[data-color-theme="neumorphism"] .triage-staging__bit,
-:root[data-color-theme="neumorphism"] .staging-bit-status-row { padding-block: 9px; padding-inline: 6px; }
+:root[data-color-theme="neumorphism"] .staging-bit-status-row { padding-block: 9px; padding-inline: 12px 6px; }
 :root[data-color-theme="neumorphism"] .triage-staging__well > :is(.staging-node-grid, .flex-col) { gap: 12px; }
 :root[data-color-theme="neumorphism"] .triage-shell__staging { --triage-staging-node-gap: 12px; }
 /* The dimmed card fades its surface by alpha, never by ancestor opacity, so an attached status line stays at full ink. */
