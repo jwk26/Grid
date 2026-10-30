@@ -47,3 +47,18 @@ Plan fixes at start: Task 231 names the state switch's injectable list for ordin
 - Verified: gates above; browser checks above; expert review above.
 - Please check: the window is at Home (`http://localhost:3047/`, 1440x900, seeded as fixture-browser, state-switch panel closed, nothing queued); the dev server runs on port 3047. Please do not resize it. Only your feel of two things: (a) open `State switch`, pick `Edit or move Node — write`, outcome `Real result (delay only)`, delay `1500 ms`, Queue, close the panel and drag `Docu…` to an empty cell: it moves at once, nothing jumps when the answer comes; (b) the same with outcome `Rejected`: it moves at once and snaps back after about 1.5 s.
 - Unresolved: no failure toast and no message on a refusal (Task 232); rolled-back write throws to callers that do not catch.
+
+## Task 232 — Add the toast rules, server-confirmed pending and the request timeout
+
+### Current state
+- Status: Awaiting User Decision
+- Next: go-ahead on the work plan
+- Open: none
+
+### Log
+- Work plan: Files: `src/lib/feedback/toast.ts` (new, + test), `src/lib/copy/feedback.ts` (+ test), `app-toaster.tsx` only for pause rules if sonner needs it, the 17 kept call sites (`bit-detail-popup.tsx` 2, `sidebar.tsx` 1, `trash-group.tsx` 10, `trash-list.tsx` 2, `use-dnd.ts` 2; the 18th, `Cell reserved by breadcrumb`, stays for Task 249), `supabase-store.ts` + `datastore.ts` (rollback reporting), group 3 controls (permanent delete, Empty Trash, restore, promotion, `deleteChunk`).
+  Stage 1, helper and copy: failing tests first; kinds (success, failure, warning; one shared `rolled-back` kind), counted bursts (same kind while visible updates text to the counted form, restarts time; at most three kinds), 4s success / 6s failure and warning, pause on hover, focus and hidden tab, close button on failure and warning, polite. Copy functions for every SPEC §Feedback copy toast row, single and counted. Checkpoint: tests + `typecheck`.
+  Stage 2, call sites and rollback: the 17 kept calls move to the helper with their new copy. Where rollback is raised (the Task 231 note): once in the store. `createSupabaseStore` takes an optional `reportRollback({ kind, title, … })`; `send()` calls it when a write that had `effects` ends rejected, errored, or unknown-and-rolled-back, so callers that do not catch (`handleDragEnd`, popup trash) show it too; `datastore.ts` wires it to the helper. Account-limit rejections use their kind; the popup's refused title edit says the change was not saved. The swallowing catches (`handleConflictUpdateParent`, `chunk-pool.tsx`) get the extension and reorder failure toasts. Unknown outcome: after the refetch, a rollback shows the toast, a kept change shows none. Checkpoint: tests + browser with the state switch forcing rejections.
+  Stage 3, group 3 loader: the control or row that starts a permanent delete, Empty Trash, restore, promotion or Chunk delete shows `StatusIcon`'s loader after `DISPLAY_DELAY_MS` and a busy state (`aria-busy`, disabled), through `useDisplayDelay`; the result toast appears when the function answers. Checkpoint: browser with a 1500 ms delay shows no loader at 200 ms and the loader after 300 ms.
+  Verification: full gate, `expert` review (store and burst logic), agent-run browser checks in the three themes (griddo, retro-mac, neumorphism, claymorphism → the three the plan means is for the user to confirm; I check all four), then Please check in the prepared window.
+  Question for the go-ahead: SPEC says "three themes" but CLAUDE.md lists four live themes; I will check all four unless you say otherwise.
