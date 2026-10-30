@@ -520,6 +520,80 @@ describe("SnapshotStore: the pending-write layer", () => {
   });
 });
 
+describe("SnapshotStore: one write with several pending effects (Task 231)", () => {
+  const moves = [move(NODE_ID, 4), move(OTHER_ID, 7)];
+
+  it("shows every effect at once and removes them together at the answer", async () => {
+    const { store } = await loaded();
+    const d = deferred<Envelope>();
+    const write = store.write({ key: "bits:b1", effects: moves, send: () => d.promise });
+    expect(nodeX(store)).toBe(4);
+    expect(nodeX(store, OTHER_ID)).toBe(7);
+    expect(store.getState().pending).toEqual([
+      expect.objectContaining({ table: "nodes", recordId: NODE_ID, state: "sent" }),
+    ]);
+    d.resolve(applied([nodeRow(NODE_ID, { x: 4, version: 2 }), nodeRow(OTHER_ID, { x: 7, version: 2 })]));
+    expect((await write).outcome).toBe("applied");
+    expect(store.getState().pending).toEqual([]);
+    expect(nodeX(store)).toBe(4);
+    expect(nodeX(store, OTHER_ID)).toBe(7);
+  });
+
+  it("a rejection rolls every effect back to the envelope's rows", async () => {
+    const { store } = await loaded();
+    const write = store.write({
+      key: "bits:b1",
+      effects: moves,
+      send: async () => ({
+        status: "rejected",
+        result: null,
+        changes: { nodes: { upserted: [nodeRow(NODE_ID, { x: 0 }), nodeRow(OTHER_ID, { x: 5 })], deleted: [] } },
+        rejection: { code: "invalid_input" },
+      }),
+    });
+    expect((await write).outcome).toBe("rejected");
+    expect(nodeX(store)).toBe(0);
+    expect(nodeX(store, OTHER_ID)).toBe(5);
+  });
+
+  it("writes on one key go out in order; different keys do not wait", async () => {
+    const { store } = await loaded();
+    const first = deferred<Envelope>();
+    const second = vi.fn(async () => applied([]));
+    const other = vi.fn(async () => applied([]));
+    void store.write({ key: "bits:b1", effects: moves, send: () => first.promise });
+    void store.write({ key: "bits:b1", effects: [move(NODE_ID, 9)], send: second });
+    void store.write({ key: "bits:b2", effects: [move(OTHER_ID, 8)], send: other });
+    await flush();
+    expect(second).not.toHaveBeenCalled();
+    expect(other).toHaveBeenCalledTimes(1);
+    first.resolve(applied([]));
+    await flush();
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it("an unknown outcome drops every effect, shows the base until the refetch answers, and never resends", async () => {
+    const answer = deferred<unknown>();
+    const fetchSnapshot = vi
+      .fn<() => Promise<unknown>>()
+      .mockResolvedValueOnce(snapshotOf([nodeRow(NODE_ID, { x: 0 }), nodeRow(OTHER_ID, { x: 5 })]))
+      .mockReturnValueOnce(answer.promise);
+    const store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+    await store.load();
+    const send = vi.fn(async (): Promise<Envelope> => {
+      throw new UnknownOutcomeError("no response");
+    });
+    const outcome = await store.write({ key: "bits:b1", effects: moves, send });
+    expect(outcome.outcome).toBe("unknown");
+    expect(nodeX(store)).toBe(0);
+    expect(nodeX(store, OTHER_ID)).toBe(5);
+    answer.resolve(snapshotOf([nodeRow(NODE_ID, { x: 4 }), nodeRow(OTHER_ID, { x: 7 })]));
+    await flush();
+    expect(nodeX(store)).toBe(4);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("SnapshotStore: commands without a pending effect (Task 227)", () => {
   it("applies the envelope's changes to the base and never shows a pending write", async () => {
     const { store } = await loaded();
