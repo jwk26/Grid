@@ -640,6 +640,7 @@ describe("Task 247 Undo slot status (BitCard)", () => {
     expect(button.querySelector("svg.lucide-undo-2")).toBeNull();
     expect(container.querySelector('[data-triage-role="explorer-card-bit"]')?.hasAttribute("data-status-emphasis")).toBe(emphasis);
     expect(container.querySelector('[data-newly-action-kind]')).toBeNull();
+    expect(button.hasAttribute("data-feedback-role")).toBe(emphasis);
   });
 
   it("describes the slot with the tooltip sentence once and keeps aria-disabled, never disabled", () => {

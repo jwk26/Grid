@@ -60,7 +60,12 @@ export function NewlyUndoSlot({
         aria-disabled={model.disabled ? "true" : undefined}
         aria-label={model.label}
         className={className}
-        data-feedback-role="status-slot-button"
+        data-feedback-role={
+          presentation.glyph === "question" ||
+          presentation.glyph === "exclamation"
+            ? "status-slot-button"
+            : undefined
+        }
         data-triage-role={role}
         data-undo-reason={model.reason}
         onKeyDown={onKeyDown}

@@ -564,6 +564,8 @@ describe("Task 247 Undo slot status (NodeCard)", () => {
     expect(button.querySelector("svg.lucide-undo-2")).toBeNull();
     expect(container.querySelector('[data-triage-role="explorer-card-node"]')?.hasAttribute("data-status-emphasis")).toBe(emphasis);
     expect(container.querySelector('[data-newly-action-kind]')).toBeNull();
+    // The status-slot-button role marks only a slot that shows ? or !.
+    expect(button.hasAttribute("data-feedback-role")).toBe(emphasis);
   });
 
   it("describes the slot with the tooltip sentence once and keeps aria-disabled, never disabled", () => {
