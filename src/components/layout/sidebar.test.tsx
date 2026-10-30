@@ -1,3 +1,4 @@
+import { toastCopy } from "@/lib/copy/feedback";
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
@@ -13,7 +14,7 @@ const useInboxMock = vi.hoisted(() => vi.fn());
 const updateNodeMock = vi.hoisted(() => vi.fn());
 const getGridOccupancyMock = vi.hoisted(() => vi.fn());
 const findNearestEmptyCellMock = vi.hoisted(() => vi.fn());
-const toastErrorMock = vi.hoisted(() => vi.fn());
+const showToastMock = vi.hoisted(() => vi.fn());
 const departureState = vi.hoisted(() => ({
   focus: vi.fn(),
   destination: null as null | {
@@ -274,11 +275,7 @@ vi.mock("@/lib/utils/bfs", () => ({
   findNearestEmptyCell: findNearestEmptyCellMock,
 }));
 
-vi.mock("sonner", () => ({
-  toast: {
-    error: toastErrorMock,
-  },
-}));
+vi.mock("@/lib/feedback/toast", () => ({ showToast: showToastMock }));
 
 vi.mock("@/stores/edit-mode-store", () => ({
   useEditModeStore: (
@@ -365,6 +362,17 @@ describe("Sidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Node" }));
 
     expect(screen.queryByRole("button", { name: "Node" })).not.toBeInTheDocument();
+  });
+
+  it("puts the account icon above Add item, named Account", () => {
+    usePathnameMock.mockReturnValue("/");
+
+    render(<Sidebar />);
+
+    const account = screen.getByLabelText("Account");
+    const add = screen.getByRole("button", { name: "Add item" });
+    expect(account.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(account).toHaveAttribute("data-app-role", "account-button");
   });
 
   it("shows Home button on system node routes and navigates to root on click", () => {
@@ -628,9 +636,7 @@ describe("Sidebar", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Show on L0 Grid" }));
 
     await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledWith(
-        "Grid is full. Reorganize or move items to make space.",
-      );
+      expect(showToastMock).toHaveBeenCalledWith(toastCopy.homeFull, "Inbox");
     });
     expect(updateNodeMock).not.toHaveBeenCalled();
   });

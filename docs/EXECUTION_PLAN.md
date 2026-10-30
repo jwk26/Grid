@@ -24,6 +24,7 @@ Execution plan mode: scaled
 > (2026-10-25); Tasks 221–224 are accepted `[x]` and Phase 44 is closed
 > (2026-10-26); Tasks 225–229 are accepted `[x]` and Phase 45 is closed
 > (2026-10-29); Task 230 is accepted `[x]` and Phase 46 is closed
+> (2026-10-30); Tasks 231–234 are accepted `[x]` and Phase 47 is closed
 > (2026-10-30); Tasks 180–208 and Phases 36–40 are retired as
 > superseded (feedback F28, promotion ②), their text in
 > [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
@@ -146,8 +147,8 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 46 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30). The SaaS lane continues with Phase 47; the feedback lane continues with Phase 50. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 closed in Task 229 and MI-23 keeps its loading screen for Task 234; Phase 45 MI-24 goes to the theme stage, mi-1 to Task 245, mi-2 to Task 246 and mi-3 to Task 249. |
-| SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26, Phase 45 (Tasks 225–229) on 2026-10-29, Phase 46 (Task 230) on 2026-10-30; the migrations of Phases 42–44 are on production, and Phases 45–46 changed none. The app runs on local Supabase; Dexie is removed. MI-8 is bound to Task 240. Phase 47 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
+| Execution lifecycle | Phase 47 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30); Phase 47 (SaaS lane, part 6) closed through `/end-phase 47` (2026-10-30). The SaaS lane continues with Phase 48; the feedback lane continues with Phase 50. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 closed in Task 229 and MI-23 in Task 234; Phase 45 MI-24 goes to the theme stage, mi-1 to Task 245, mi-2 to Task 246 and mi-3 to Task 249. |
+| SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26, Phase 45 (Tasks 225–229) on 2026-10-29, Phase 46 (Task 230) and Phase 47 (Tasks 231–234) on 2026-10-30; the migrations of Phases 42–44 are on production, and Phases 45–47 changed none. The app runs on local Supabase; Dexie is removed. MI-8 is bound to Task 240. Phase 48 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
 | Feedback lane | `IN PROGRESS` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); its mi-1, mi-2 and mi-3 are bound to Task 248. Phase 50 waits for nothing more since the Phase 45 close (2026-10-29); it carries Phase 45 mi-1 (Task 245), mi-2 (Task 246) and mi-3 (Task 249) ([the phase waits](#lanes-and-phase-waits)). |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
@@ -250,7 +251,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 44 | Completed | [Inbox/Triage command functions](execution-plan/archive/phase-44.md) | 221–224 | Accepted and archived (2026-10-26); migrations on production; MI-1 closed (no recurrence). Phase 45 may start. |
 | Phase 45 | Completed | [Client switch](execution-plan/archive/phase-45.md) | 225–229 | Accepted and archived (2026-10-29); no migration; MI-19 closed; MI-24, mi-1, mi-2, mi-3 and Phase 35 MI-23 carried in `Issues_Deferred.md`. Phases 46 and 50 may start. |
 | Phase 46 | Completed | [Dexie removal](execution-plan/archive/phase-46.md) | 230 | Accepted and archived (2026-10-30); no migration; nothing carried over. Phase 47 may start. |
-| Phase 47 | Planned / unstarted | [Feel and resilience](#phase-47--feel-and-resilience) | 231–234 | Phase 46 and Phase 49 close/main sync. |
+| Phase 47 | Completed | [Feel and resilience](execution-plan/archive/phase-47.md) | 231–234 | Accepted and archived (2026-10-30); no migration; Phase 35 MI-23 closed; nothing carried over. Phase 48 may start. |
 | Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 | Phase 47 close/main sync. |
 | Phase 49 | Completed | [Feedback lane, part 1: theme set, status primitives, toasts](execution-plan/archive/phase-49.md) | 241–244 | Accepted and archived (2026-10-24); ISSUE-20-01 and MI-13 resolved in Task 241; mi-1, mi-2 and mi-3 bound to Task 248 in `Issues_Deferred.md`. Phases 45 and 47 no longer wait for it. |
 | Phase 50 | Planned / unstarted | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](#phase-50--inbox-status-breadcrumb-reveal-and-last-scratch) | 245–250 + 245A | Phase 49 and Phase 45 close/main sync; runs beside Phases 46–48; does not block Phase 48; closes before the theme stage. |
@@ -664,124 +665,16 @@ are in [the Phase 46 archive](execution-plan/archive/phase-46.md). Dexie,
 gone; the Supabase store is the only `DataStore`. No migration changed, so
 nothing went to production. Nothing is carried over.
 
-## Phase 47 — Feel And Resilience
+## Phase 47 — Completed / Archived
 
-### Task 231: [ ] Make ordinary writes immediate with rollback
-
-**Files and actions:** `src/lib/db/supabase-store.ts` and
-`snapshot-store.ts`: groups 1 and 2 of SPEC §Write feel through the pending
-layer; rollback on `rejected` or error; the unknown-outcome rule (refetch,
-keep or roll back, never resend); parent-change moves pick the nearest empty
-cell from the snapshot (S43 (3)); tests for each group and for the S32 cases
-across real calls.
-
-**Dependencies:** Phase 46 and Phase 49 Final Close and `main` sync; this
-phase's lifecycle gate.
-
-**Authority:** S09, S15, S16, S32, S43 (3); SPEC §Write feel.
-
-**Observable acceptance:** drag moves, edits, completion toggles and creates
-show at once; Trash and Archive hide at once; a refused write rolls back.
-
-**Verification:** full gate; `expert` review; browser checkpoint with the
-development state switch (feedback F30), extended here to force a write
-rejection.
-
-**Commit message:** `feat(sync): make ordinary writes immediate with rollback`.
-
-### Task 232: [ ] Add the toast rules, server-confirmed pending and the request timeout
-
-**Files and actions:**
-- `src/lib/feedback/toast.ts` and test: kinds, counted bursts, at most three
-  kinds, 4s success and 6s failure or warning, pause on hover, focus and a
-  hidden tab, close button on failures and warnings (F13, F14).
-- `src/lib/copy/feedback.ts`: the SPEC §Feedback copy toast rows.
-- The 17 kept `toast(` calls move to the helper with their aligned copy (F16);
-  rolled-back writes and account limits use their kinds.
-- Group 3 controls show the feedback F03 loader (Task 243's `status-icon`)
-  after `DISPLAY_DELAY_MS` and a busy state (the request timeout itself is Task
-  227's).
-- The Toaster's position, colour and stack limit stay as Task 244 set them.
-  If Task 245 has landed, its inline-editor offline toast moves to the helper
-  too; otherwise Task 245 uses the helper.
-
-**Dependencies:** Task 231.
-
-**Authority:** S28; F02, F11, F13, F14, F16; SPEC §Toasts, §Feedback copy, §Write feel (group 3).
-
-**Observable acceptance:** three quick failures show one counted toast;
-different kinds stack to three; durations and pausing as specified; every
-kept call shows its new copy; a slow permanent delete shows its loader only
-after 300ms.
-
-**Verification:** full gate; browser checkpoint in the three themes.
-
-**Commit message:** `feat(feedback): add the toast rules and server-confirmed pending`.
-
-### Task 233: [ ] Add the connection states and the offline write gate
-
-**Files and actions:** `src/lib/db/connection-monitor.ts` and test (normal,
-unstable, offline from request results; 30-second probe while unstable or
-offline; recovery refetch); refetch on visibility, focus and reconnect (S17);
-a failed background refetch only sets unstable; every write path, the Inbox
-commands included, checks the state first and, while offline, changes nothing,
-keeps typed input and shows the offline toast (F18); the Inbox editor's offline
-source moves from `navigator.onLine` (`use-scratch-breakdowns.ts`) to the
-monitor. If Task 245 has not landed, the editor keeps its own offline line
-until then, and Task 245 wires its offline toast to the monitor and the helper
-(whichever lands second does the wiring and also removes the separate
-`navigator.onLine` subscription in `breakdown-panel.tsx`, so one offline source
-remains). The development state switch (Task 243) gains the network states.
-
-**Dependencies:** Task 232.
-
-**Authority:** S16, S17, S26, S27; F18; SPEC §Connection states.
-
-**Observable acceptance:** Wi-Fi off makes the state offline and every write
-attempt shows only the toast; a server that stops answering makes it unstable
-and then offline after three failures; recovery refetches with no visible
-notice; a write in flight when the server stops ends in the server's state
-after recovery (unknown-outcome rule).
-
-**Verification:** full gate; `expert` review (state machine); browser
-checkpoint. Whichever of this task and the Phase 50 close lands on `main`
-second also checks Task 245A mi-3 in the browser: an editor save left unknown,
-the row deleted in another tab, the refetch invalidates the editor, one
-read-only reconcile is sent, and other Inbox writes work again without reload.
-
-**Commit message:** `feat(sync): add the connection states and the offline gate`.
-
-### Task 234: [ ] Add the account icon, the connection badge, the loading screen and the session-expired screen
-
-**Files and actions:** `src/components/layout/account-button.tsx` and test:
-below the Home button if Task 248 has landed, otherwise at the very top
-(Task 248 then puts Home above it; feedback F33), guest and account icons,
-a focusable status element with the connection tooltip and no action until
-Task 235, the badge, and the polite announcements including the screen-reader
-`Back online.` (F17); `app-frame.tsx`: the delayed loading screen (busy) and
-the session-expired screen with `Continue as guest` only (S43 (2), F20),
-shown again after a reload while the session-expired marker is present; all in
-the `DP-SAAS-01` look. Check the Inbox status presentation that is on `main` under real
-server latency: network throttling in the browser, or production after
-launch (SPEC §Write feel).
-
-**Dependencies:** Task 233.
-
-**Authority:** S23, S26, S27, S43 (1)(2); F02, F17, F19, F20; DESIGN_TOKENS
-§SaaS App-State Surfaces.
-
-**Observable acceptance:** each connection state shows its badge and tooltip;
-the loading screen never appears for a load under 300ms; an expired session
-whose refresh the auth server rejects shows the screen with focus on its
-first action and creates no guest before the choice, even after a reload; a
-refresh that fails only because the network is down shows the offline state
-instead; the Inbox status shows no flicker the user
-objects to.
-
-**Verification:** full gate; browser checkpoint in the three themes, with the
-state switch.
-
-**Commit message:** `feat(account): add the account icon, badge and app screens`.
+SaaS-lane Tasks 231–234 are accepted. Their task contracts and
+completion-time scope are in
+[the Phase 47 archive](execution-plan/archive/phase-47.md). Ordinary writes
+show at once and roll back on a refusal, toasts go through one helper, group 3
+controls show the delayed loader, the connection monitor gates writes while
+offline, and the sidebar account icon carries the connection badge. No
+migration changed, so nothing went to production. Phase 35 MI-23 closed in
+Task 234. Nothing is carried over.
 
 ## Phase 48 — Accounts And Launch
 
@@ -1468,15 +1361,15 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** the SaaS lane continues with Phase 43 / Task 219; the feedback lane continues with Phase 50 / Task 245 after the Phase 45 close. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** the SaaS lane continues with Phase 48 / Task 235; the feedback lane continues with Phase 50 / Task 245. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers:** Phase 51 / Task 251. Planned Phases 42–50 and
   Tasks 213–250 are allocated; retired Phases 36–40 and Tasks 180–208 keep
   their numbers; none may be reused for another meaning.
-- Graph reconciliation: 95 accepted tasks (101–163 plus 105A, 166–172, 171A,
-  173–179 plus 176A and 179A, 209–212, 213–218, and 241–244), fourteen
-  completed archives (Phases 23–31, 34, 35, 41, 42 and 49), two historical
+- Graph reconciliation: 111 accepted tasks (101–163 plus 105A, 166–172, 171A,
+  173–179 plus 176A and 179A, 209–212, 213–234, and 241–244), nineteen
+  completed archives (Phases 23–31, 34, 35, 41–47 and 49), two historical
   unaccepted transfer records (164/165), 29 retired tasks (180–208) in retired
-  Phases 36–40, 22 unaccepted tasks (219–240) in Phases 43–48, 7 unaccepted tasks
+  Phases 36–40, 6 unaccepted tasks (235–240) in Phase 48, 7 unaccepted tasks
   (245–250 and 245A) in Phase 50, and two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

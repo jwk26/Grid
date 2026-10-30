@@ -15,6 +15,9 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { toast } from "sonner";
+import { toastCopy } from "@/lib/copy/feedback";
+import { dropReportedFailure } from "@/lib/db/write-failure";
+import { showToast } from "@/lib/feedback/toast";
 import { isCalendarDropData } from "@/lib/calendar-dnd";
 import {
   getDataStore,
@@ -963,7 +966,8 @@ export function useDnd(getBlockedCells: () => Set<string>): {
     );
 
     if (!position) {
-      toast.error("Target grid is full.");
+      const target = parentId === null ? undefined : await dataStore.getNode(parentId);
+      showToast(toastCopy.targetGridFull, item.title, target?.title ?? "Home");
       return;
     }
 
@@ -1003,7 +1007,10 @@ export function useDnd(getBlockedCells: () => Set<string>): {
     return false;
   }
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  // A refused write was reported by the store; this handler has nothing more to show.
+  const handleDragEnd = (event: DragEndEvent) => endDrag(event).catch(dropReportedFailure);
+
+  const endDrag = async (event: DragEndEvent) => {
     const dragItem = (event.active.data.current as DragActiveItem) ?? activeItem;
     const dropData = event.over?.data.current;
 
@@ -1056,7 +1063,7 @@ export function useDnd(getBlockedCells: () => Set<string>): {
           );
 
           if (createsCycle) {
-            toast.error("Cannot move a node into its own descendant.");
+            showToast(toastCopy.moveIntoDescendant, dragItem.title);
             return;
           }
         }
@@ -1188,9 +1195,9 @@ export function useDnd(getBlockedCells: () => Set<string>): {
         { time: conflictState.pendingTimestamp },
         { extendParent: true },
       );
-    } catch {
-      // The Bit's extension did not fit its Node (deadline_exceeds_parent): nothing was written.
-      // The dialog closes; the visible failure waits for Task 232.
+    } catch (error) {
+      // The store reported a refused or rolled-back extension. The dialog closes either way.
+      dropReportedFailure(error);
     } finally {
       setConflictState(CLOSED_CONFLICT_STATE);
     }
@@ -1213,6 +1220,8 @@ export function useDnd(getBlockedCells: () => Set<string>): {
 
     try {
       await moveGridItemToParent(item, pendingNodeMove.targetNodeId, 0, 0);
+    } catch (error) {
+      dropReportedFailure(error);
     } finally {
       setPendingNodeMove(null);
     }
@@ -1231,6 +1240,8 @@ export function useDnd(getBlockedCells: () => Set<string>): {
     };
     try {
       await moveGridItemToParent(item, pendingAncestorMove.targetNodeId, 0, 0);
+    } catch (error) {
+      dropReportedFailure(error);
     } finally {
       setPendingAncestorMove(null);
     }

@@ -1,3 +1,4 @@
+import { getConnectionMonitor } from "@/lib/db/connection";
 import "@testing-library/jest-dom/vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -454,6 +455,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  getConnectionMonitor().setForced(null);
   document.head.querySelectorAll("[data-task167-sort-labels]").forEach(style => style.remove());
   document.documentElement.removeAttribute("data-color-theme");
   vi.useRealTimers();

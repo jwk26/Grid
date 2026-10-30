@@ -90,6 +90,15 @@ describe("session controller entry", () => {
     expect(t.controller.getState()).toEqual({ phase: "ready" });
   });
 
+  it("reports the kind of the signed-in user for the account icon", async () => {
+    const guest = setup();
+    await guest.controller.start();
+    expect(guest.controller.getVariant()).toBe("guest");
+    const account = setup({ session: { id: "oauth-a", anon: false } });
+    await account.controller.start();
+    expect(account.controller.getVariant()).toBe("account");
+  });
+
   it("returns to the same guest on a later visit without signing in again", async () => {
     const t = setup({ session: { id: "guest-a" } });
     await t.controller.start();
@@ -362,5 +371,98 @@ describe("session controller auth events", () => {
     await t.controller.retry();
     expect(t.controller.getState()).toEqual({ phase: "ready" });
     expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+  });
+});
+
+describe("snapshot reads report to the connection monitor (Task 233)", () => {
+  function withConnection(snapshotAnswer: { data: unknown; error: { message: string } | null; status: number }) {
+    const report = vi.fn();
+    const rpc = vi.fn(async (name: string) =>
+      name === "ensure_account"
+        ? { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 }
+        : snapshotAnswer,
+    );
+    const auth = {
+      getSession: vi.fn(async () => ({ data: { session: { user: { id: "u", is_anonymous: true } } }, error: null })),
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+    };
+    const controller = createSessionController({
+      getClient: () => ({ auth, rpc }) as never,
+      storage: memoryStorage(),
+      runExclusive: (_name, task) => task(),
+      defer: (task) => task(),
+      connection: { report },
+    });
+    return { controller, report };
+  }
+
+  it("a session restore that fails on the network reports unreachable (Task 234)", async () => {
+    const report = vi.fn();
+    const auth = {
+      getSession: vi.fn(async () => ({ data: { session: null }, error: new AuthRetryableFetchError("fetch failed", 0) })),
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+    };
+    const controller = createSessionController({
+      getClient: () => ({ auth, rpc: vi.fn() }) as never,
+      storage: memoryStorage(),
+      runExclusive: (_name, task) => task(),
+      defer: (task) => task(),
+      connection: { report },
+    });
+    await controller.start();
+    expect(report).toHaveBeenCalledWith("unreachable");
+    expect(controller.getState()).toEqual({ phase: "load-failure", reason: "unreachable" });
+  });
+
+  it("a good read is reachable and is itself a snapshot read", async () => {
+    const { controller, report } = withConnection({ data: emptySnapshot, error: null, status: 200 });
+    await controller.start();
+    expect(report).toHaveBeenCalledWith("reachable", { snapshotRead: true });
+  });
+
+  it("a read with no answer is unreachable", async () => {
+    const { controller, report } = withConnection({ data: null, error: { message: "network" }, status: 0 });
+    await controller.start();
+    expect(report).toHaveBeenCalledWith("unreachable");
+  });
+
+  it("an answered failure only degrades", async () => {
+    const { controller, report } = withConnection({ data: null, error: { message: "boom" }, status: 500 });
+    await controller.start();
+    expect(report).toHaveBeenCalledWith("degraded");
+    expect(report).not.toHaveBeenCalledWith("unreachable");
+  });
+});
+
+describe("a snapshot read that never answers (Task 233)", () => {
+  it("counts as no answer after the request timeout and frees the next refetch", async () => {
+    vi.useFakeTimers();
+    try {
+      const report = vi.fn();
+      let calls = 0;
+      const rpc = vi.fn(async (name: string) => {
+        if (name === "ensure_account") return { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 };
+        calls += 1;
+        return calls === 1 ? new Promise<never>(() => {}) : { data: emptySnapshot, error: null, status: 200 };
+      });
+      const auth = {
+        getSession: vi.fn(async () => ({ data: { session: { user: { id: "u", is_anonymous: true } } }, error: null })),
+        onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      };
+      const controller = createSessionController({
+        getClient: () => ({ auth, rpc }) as never,
+        storage: memoryStorage(),
+        runExclusive: (_name, task) => task(),
+        defer: (task) => task(),
+        connection: { report },
+      });
+      const started = controller.start();
+      await vi.advanceTimersByTimeAsync(15_000);
+      await started;
+      expect(report).toHaveBeenCalledWith("unreachable");
+      await expect(controller.store.refetch()).resolves.toBe("applied");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

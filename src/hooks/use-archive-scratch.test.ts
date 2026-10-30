@@ -430,6 +430,7 @@ describe("useArchiveScratch — Task 161 guarded current-tab owner", () => {
     expect(lock.acquire).toHaveBeenCalledWith(
       "archive",
       "00000000-0000-4000-8000-000000000002",
+      { reconcile: true },
     );
     expect(reconcileArchive).toHaveBeenCalledWith(recovery);
     expect(dispatchArchive).not.toHaveBeenCalled();

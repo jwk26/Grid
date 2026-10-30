@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { getDataStore } from "@/lib/db/datastore";
+import { getDataStore, type ReportOption } from "@/lib/db/datastore";
 import type { CreateBit, CreateNode } from "@/lib/db/schema";
 import type { Bit, Node } from "@/types";
 
@@ -11,14 +11,14 @@ export function useGridActions() {
     return dataStore.getGridOccupancy(parentId);
   }, []);
 
-  const createNode = useCallback(async (data: CreateNode): Promise<Node> => {
+  const createNode = useCallback(async (data: CreateNode, options?: ReportOption): Promise<Node> => {
     const dataStore = await getDataStore();
-    return dataStore.createNode(data);
+    return dataStore.createNode(data, options);
   }, []);
 
-  const createBit = useCallback(async (data: CreateBit): Promise<Bit> => {
+  const createBit = useCallback(async (data: CreateBit, options?: ReportOption): Promise<Bit> => {
     const dataStore = await getDataStore();
-    return dataStore.createBit(data);
+    return dataStore.createBit(data, options);
   }, []);
 
   const softDeleteNode = useCallback(async (id: string): Promise<void> => {

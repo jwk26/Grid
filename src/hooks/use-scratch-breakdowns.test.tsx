@@ -959,11 +959,17 @@ describe("useScratchBreakdowns", () => {
     });
     expect(dataStore.saveScratchTitle).not.toHaveBeenCalled();
     expect(acquire).not.toHaveBeenCalled();
-    // One fixed id: a repeat updates the one visible toast.
+    // One shared toast: a repeat updates the one visible toast and counts the attempts.
     expect(toastWarning).toHaveBeenCalledTimes(2);
-    expect(toastWarning).toHaveBeenCalledWith(
+    expect(toastWarning).toHaveBeenNthCalledWith(
+      1,
       "You're offline. Changes can't be saved right now.",
-      expect.objectContaining({ id: "offline-write-attempt", icon: expect.anything() }),
+      expect.objectContaining({ icon: expect.anything() }),
+    );
+    expect(toastWarning).toHaveBeenNthCalledWith(
+      2,
+      "You're offline. 2 changes weren't saved.",
+      expect.objectContaining({ id: toastWarning.mock.calls[0][1]?.id, icon: expect.anything() }),
     );
 
     const nowOnline = vi.fn(() => true);

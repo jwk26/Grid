@@ -2,18 +2,23 @@ import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { toastCopy } from "@/lib/copy/feedback";
 import type { Chunk } from "@/types";
 import { ChunkPool, type ChunkPoolHandle } from "./chunk-pool";
 
 const createChunkMock = vi.hoisted(() => vi.fn(async () => undefined));
+const deleteChunkMock = vi.hoisted(() => vi.fn(async () => undefined));
+const showToastMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/hooks/use-chunk-actions", () => ({
   useChunkActions: () => ({
     createChunk: createChunkMock,
     updateChunk: vi.fn(),
-    deleteChunk: vi.fn(),
+    deleteChunk: deleteChunkMock,
   }),
 }));
+
+vi.mock("@/lib/feedback/toast", () => ({ showToast: showToastMock }));
 
 afterEach(() => {
   cleanup();
@@ -83,6 +88,18 @@ describe("ChunkPool", () => {
       order: 0,
       parentId: "bit-1",
     });
+  });
+
+  it("says the step is still there when its delete is refused (Task 232)", async () => {
+    deleteChunkMock.mockRejectedValueOnce(new Error("refused"));
+    render(<ChunkPool chunks={[createChunk({ id: "c1", title: "Write tests" })]} bitId="bit-1" />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Delete "Write tests"/ }));
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith(toastCopy.stepDeleteFailed, "Write tests");
+    expect(screen.getByRole("button", { name: /Delete "Write tests"/ })).not.toBeDisabled();
   });
 
   it("renders timed and untimed chunks together in order", () => {

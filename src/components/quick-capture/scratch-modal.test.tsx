@@ -1,3 +1,4 @@
+import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps, ReactNode } from "react";
@@ -301,5 +302,38 @@ describe("ScratchModal", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onCaptured).not.toHaveBeenCalled();
+  });
+
+  describe("a capture the server refuses", () => {
+    async function submitRefused(error: unknown) {
+      const onSubmit = vi.fn().mockRejectedValue(error);
+      render(<ScratchModal inboxNodeId="inbox-1" onClose={vi.fn()} onSubmit={onSubmit} open={true} />);
+      fireEvent.change(screen.getByRole("textbox", { name: "Scratch title" }), { target: { value: "Idea" } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Capture scratch" }));
+      });
+    }
+
+    it("shows the account-limit line inline and keeps the typed title", async () => {
+      await submitRefused(
+        new WriteRejectedError("account_limit", { code: "account_limit", table: "bits", limit: 500 }),
+      );
+      expect(screen.getByRole("alert")).toHaveTextContent("This account has reached its limit of 500 Bits.");
+      expect(screen.getByRole("textbox", { name: "Scratch title" })).toHaveValue("Idea");
+    });
+
+    it("shows the try-again line for any other refusal and clears it when the title changes", async () => {
+      await submitRefused(new WriteRejectedError("rejected", { code: "rejected" }));
+      expect(screen.getByRole("alert")).toHaveTextContent("Couldn't create “Idea”. Try again.");
+
+      fireEvent.change(screen.getByRole("textbox", { name: "Scratch title" }), { target: { value: "Idea 2" } });
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("confirms the capture when an unknown outcome was kept", async () => {
+      await submitRefused(new WriteOutcomeUnknownError(true));
+      expect(screen.getByText("Idea captured!")).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
   });
 });

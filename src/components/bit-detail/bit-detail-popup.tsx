@@ -1,5 +1,7 @@
 "use client";
 
+import { getConnectionMonitor } from "@/lib/db/connection";
+import { WriteOfflineError } from "@/lib/db/write-errors";
 import {
   useEffect,
   useRef,
@@ -43,7 +45,11 @@ import { NODE_TITLE_MAX_LENGTH } from "@/lib/constants";
 import { NODE_ICON_MAP, NODE_ICON_NAMES } from "@/lib/constants/node-icons";
 import { cn } from "@/lib/utils";
 import type { Bit } from "@/types";
-import { toast } from "sonner";
+import { PendingLoader } from "@/components/feedback/pending-loader";
+import { usePendingAction } from "@/hooks/use-pending-action";
+import { PENDING_SENTENCE, toastCopy } from "@/lib/copy/feedback";
+import { showToast } from "@/lib/feedback/toast";
+import { dropReportedFailure } from "@/lib/db/write-failure";
 
 type Priority = Bit["priority"];
 const PRIORITY_CYCLE: Priority[] = ["high", "mid", "low", null];
@@ -108,6 +114,7 @@ function ParentDeadlineRow({
 
 export function BitDetailPopup() {
   const { updateBit, softDeleteBit, promoteBitToNode } = useBitDetailActions();
+  const promoteAction = usePendingAction();
   const { bit, chunks, parentNode, isOpen, close } = useBitDetail();
   const [localTitle, setLocalTitle] = useState("");
   const [localDescription, setLocalDescription] = useState("");
@@ -148,14 +155,15 @@ export function BitDetailPopup() {
     if (!bit) return;
 
     try {
-      await updateBit(bit.id, { deadline, deadlineAllDay });
+      await updateBit(bit.id, { deadline, deadlineAllDay }, { conflictDialog: true });
     } catch (error) {
       if (deadline !== null && parentNode && isDeadlineConflictError(error)) {
         setPendingDeadlineConflict({ deadline, deadlineAllDay });
         return;
       }
 
-      toast.error("Unable to update deadline.");
+      // Anything else was reported by the store (the previous deadline is back).
+      dropReportedFailure(error);
     }
   }
 
@@ -167,14 +175,14 @@ export function BitDetailPopup() {
       return;
     }
     if (trimmed !== bit.title) {
-      await updateBit(bit.id, { title: trimmed });
+      await updateBit(bit.id, { title: trimmed }).catch(dropReportedFailure);
     }
   }
 
   async function handleDescriptionBlur() {
     if (!bit) return;
     if (localDescription !== bit.description) {
-      await updateBit(bit.id, { description: localDescription });
+      await updateBit(bit.id, { description: localDescription }).catch(dropReportedFailure);
     }
     if (!localDescription.trim()) {
       setIsDescriptionOpen(false);
@@ -183,14 +191,14 @@ export function BitDetailPopup() {
 
   async function handlePriorityToggle() {
     if (!bit) return;
-    await updateBit(bit.id, { priority: nextPriority(bit.priority) });
+    await updateBit(bit.id, { priority: nextPriority(bit.priority) }).catch(dropReportedFailure);
   }
 
   async function handleIconSelect(iconName: string) {
     if (!bit) return;
     setIconPickerOpen(false);
     if (iconName !== bit.icon) {
-      await updateBit(bit.id, { icon: iconName });
+      await updateBit(bit.id, { icon: iconName }).catch(dropReportedFailure);
     }
   }
 
@@ -207,28 +215,43 @@ export function BitDetailPopup() {
         { extendParent: true },
       );
       setPendingDeadlineConflict(null);
-    } catch {
-      toast.error("Unable to update deadlines.");
+    } catch (error) {
+      // The store reported the refused extension; the conflict dialog stays open.
+      dropReportedFailure(error);
     }
   }
 
   async function handleMoveToTrash() {
     if (!bit) return;
-    await softDeleteBit(bit.id);
-    close();
+    // The Bit hides at once (SPEC Write feel, group 2), so the popup closes before the answer
+    // instead of showing "Loading…" for the round trip.
+    // Offline, the gate stops the write and shows its toast: nothing changes, so the popup stays.
+    const offline = getConnectionMonitor().isOffline();
+    const trashed = softDeleteBit(bit.id).catch(dropReportedFailure);
+    if (!offline) close();
+    await trashed;
   }
 
   async function handleStatusToggle() {
     if (!bit) return;
     await updateBit(bit.id, {
       status: bit.status === "complete" ? "active" : "complete",
-    });
+    }).catch(dropReportedFailure);
   }
 
   async function handlePromoteToNode() {
     if (!bit) return;
-    await promoteBitToNode(bit.id);
-    close();
+    let promoted = false;
+    await promoteAction.run(async () => {
+      try {
+        await promoteBitToNode(bit.id);
+        promoted = true;
+      } catch (error) {
+        if (error instanceof WriteOfflineError) return;
+        showToast(toastCopy.promoteFailed, bit.title);
+      }
+    });
+    if (promoted) close();
   }
 
   const Icon = bit ? (NODE_ICON_MAP[bit.icon] ?? NODE_ICON_MAP.Box) : null;
@@ -359,9 +382,12 @@ export function BitDetailPopup() {
                         <button
                           type="button"
                           aria-label="More options"
+                          aria-busy={promoteAction.busy}
+                          disabled={promoteAction.busy}
                           className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                         >
                           <MoreHorizontal className="h-4 w-4" />
+                          <PendingLoader busy={promoteAction.busy} sentence={PENDING_SENTENCE.promote} />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">

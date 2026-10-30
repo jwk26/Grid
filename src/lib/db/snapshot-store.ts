@@ -1,4 +1,5 @@
 import { REQUEST_TIMEOUT_MS } from "@/lib/constants";
+import type { RequestResult } from "@/lib/db/connection-monitor";
 import {
   bitFromRow,
   chunkFromRow,
@@ -68,6 +69,12 @@ export type WriteOutcome = {
   outcome: "applied" | "rejected" | "error" | "unknown";
   envelope?: Envelope;
   error?: unknown;
+  /**
+   * Unknown outcome only: the refetch that settles what the server has. `unsettled` means the
+   * timed-out request was still open when the refetch answered, so that read may have come before
+   * the write committed and says nothing either way.
+   */
+  refetched?: Promise<RefetchResult | "unsettled">;
 };
 
 export type StoreStatus =
@@ -191,15 +198,21 @@ function applyEffects(base: AccountView, effects: readonly PendingEffect[]): Acc
 
 // A command (Task 227) has no effect: it never shows in the view and never in `pending`; it only
 // takes part in the send chain, the timeout and the reset rule.
+// A write with several effects (a Chunk reorder) is one entry: its effects show and leave together,
+// and `PendingInfo` holds the first effect's table and record.
 type PendingEntry = Omit<PendingInfo, "table" | "recordId"> & {
   table: TableKey | null;
   recordId: string | null;
-  effect: PendingEffect | null;
+  effects: readonly PendingEffect[];
 };
+
+const effectRecordId = (effect: PendingEffect) => (effect.kind === "create" ? effect.record.id : effect.id);
 
 export type SnapshotStoreOptions = {
   fetchSnapshot: () => Promise<unknown>;
   requestTimeoutMs?: number;
+  /** Told how each write request ended, once per request (SPEC §Connection states). */
+  onRequestResult?: (result: RequestResult) => void;
 };
 
 // Thrown by a send function when the request ended without an answer (the connection failed
@@ -228,6 +241,7 @@ const TIMED_OUT = Symbol("timed out");
 export class SnapshotStore {
   private readonly fetchSnapshot: () => Promise<unknown>;
   private readonly requestTimeoutMs: number;
+  private readonly onRequestResult: ((result: RequestResult) => void) | undefined;
   private base: AccountView = emptyView();
   private status: StoreStatus = { phase: "empty" };
   private pending: PendingEntry[] = [];
@@ -243,11 +257,15 @@ export class SnapshotStore {
   constructor(options: SnapshotStoreOptions) {
     this.fetchSnapshot = options.fetchSnapshot;
     this.requestTimeoutMs = options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS;
+    this.onRequestResult = options.onRequestResult;
     this.state = this.computeState();
   }
 
   // Stable between changes, so it works as a useSyncExternalStore snapshot.
   getState = (): StoreState => this.state;
+
+  /** The rows the server last answered with, without any pending write shown on top. */
+  getBase = (): AccountView => this.base;
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
@@ -302,10 +320,19 @@ export class SnapshotStore {
 
   // Shows `effect` at once and sends the write after the earlier writes to the same record have
   // settled, whatever their outcome. Never resent.
-  write(args: { effect: PendingEffect; send: () => Promise<Envelope> }): Promise<WriteOutcome> {
+  // `key` names the send chain when one write shows several effects; a single effect chains on its
+  // own record.
+  write(
+    args:
+      | { effect: PendingEffect; send: () => Promise<Envelope> }
+      | { key: string; effects: readonly PendingEffect[]; send: () => Promise<Envelope> },
+  ): Promise<WriteOutcome> {
+    if ("effects" in args) {
+      if (args.effects.length === 0) throw new Error("A write with effects needs at least one");
+      return this.enqueue(args.key, args.effects, args.send);
+    }
     const { effect } = args;
-    const recordId = effect.kind === "create" ? effect.record.id : effect.id;
-    return this.enqueue(`${effect.table}:${recordId}`, effect, recordId, args.send);
+    return this.enqueue(`${effect.table}:${effectRecordId(effect)}`, [effect], args.send);
   }
 
   // A write with no pending effect: the view stays at the base until the answer's `changes` reach
@@ -313,25 +340,26 @@ export class SnapshotStore {
   // as `write`. `key` names the chain: the target record, the Scratch of an Inbox command, or one
   // account key.
   command(args: { key: string; send: () => Promise<Envelope> }): Promise<WriteOutcome> {
-    return this.enqueue(args.key, null, null, args.send);
+    return this.enqueue(args.key, [], args.send);
   }
 
   private enqueue(
     key: string,
-    effect: PendingEffect | null,
-    recordId: string | null,
+    effects: readonly PendingEffect[],
     sendRequest: () => Promise<Envelope>,
   ): Promise<WriteOutcome> {
     const previous = this.chains.get(key);
+    const first = effects[0];
     const entry: PendingEntry = {
       id: this.nextId++,
-      table: effect ? effect.table : null,
-      recordId,
+      table: first ? first.table : null,
+      recordId: first ? effectRecordId(first) : null,
       state: previous ? "queued" : "sent",
-      effect,
+      effects,
     };
+    const shows = effects.length > 0;
     this.pending = [...this.pending, entry];
-    if (effect) this.publish();
+    if (shows) this.publish();
 
     // A write that waits behind an earlier one has its own deadline from the moment it queued: the
     // earlier request gets its full timeout and then as long again to end. If it still has not
@@ -343,7 +371,7 @@ export class SnapshotStore {
           queueTimer = setTimeout(() => {
             if (entry.state !== "queued") return;
             this.pending = this.pending.filter((item) => item.id !== entry.id);
-            if (effect) this.publish();
+            if (shows) this.publish();
             resolve({ outcome: "error", error: new Error("The write timed out before it was sent") });
           }, 2 * this.requestTimeoutMs);
         })
@@ -379,7 +407,7 @@ export class SnapshotStore {
     }
     if (entry.state === "queued") {
       entry.state = "sent";
-      if (entry.effect) this.publish();
+      if (entry.effects.length > 0) this.publish();
     }
     let request: Promise<Envelope>;
     try {
@@ -392,14 +420,21 @@ export class SnapshotStore {
     // After an unknown outcome the request's own end (a late answer or a failure) discards any
     // fetch that started before it and sends one more, since that fetch may have read before the
     // write committed.
+    const afterEnd: { refetch: Promise<RefetchResult> | null } = { refetch: null };
     const refetchAfterUnknown = () => {
       if (epoch !== this.epoch) return;
       this.settledCount += 1;
-      void this.refetch();
+      afterEnd.refetch = this.refetch();
     };
+    // A request that ends after the timeout was counted unreachable already: an answer, even an
+    // API error, shows the server is up; a second "no answer" is not counted again.
     const done = request.then(
-      () => undefined,
-      () => undefined,
+      () => {
+        if (timedOut) this.onRequestResult?.("reachable");
+      },
+      (error: unknown) => {
+        if (timedOut && !(error instanceof UnknownOutcomeError)) this.onRequestResult?.("reachable");
+      },
     ).then(() => {
       if (timedOut) refetchAfterUnknown();
     });
@@ -412,10 +447,18 @@ export class SnapshotStore {
         const result = await Promise.race([request, timeout]);
         if (result === TIMED_OUT) {
           timedOut = true;
+          this.onRequestResult?.("unreachable");
           this.settle(entry, null);
-          if (epoch === this.epoch) void this.refetch();
-          return { outcome: "unknown" };
+          if (epoch !== this.epoch) return { outcome: "unknown" };
+          // The request is still open. Only a read that ran after it ended says what the server
+          // has, so a refetch that answers before the request ended settles nothing.
+          const first = this.refetch();
+          const refetched = first.then(
+            (): Promise<RefetchResult | "unsettled"> => afterEnd.refetch ?? Promise.resolve("unsettled" as const),
+          );
+          return { outcome: "unknown", refetched };
         }
+        this.onRequestResult?.("reachable");
         this.settle(entry, result.changes);
         const outcome = result.status === "applied" || result.status === "already_applied" ? "applied" : "rejected";
         if (
@@ -429,9 +472,9 @@ export class SnapshotStore {
         return { outcome, envelope: result };
       } catch (error) {
         this.settle(entry, null);
+        this.onRequestResult?.(error instanceof UnknownOutcomeError ? "unreachable" : "reachable");
         if (error instanceof UnknownOutcomeError) {
-          if (epoch === this.epoch) void this.refetch();
-          return { outcome: "unknown", error };
+          return { outcome: "unknown", error, refetched: epoch === this.epoch ? this.refetch() : undefined };
         }
         return { outcome: "error", error };
       } finally {
@@ -469,14 +512,13 @@ export class SnapshotStore {
 
   private computeState(): StoreState {
     const shown = this.pending.filter(
-      (entry): entry is PendingEntry & { effect: PendingEffect; table: TableKey; recordId: string } =>
-        entry.effect !== null,
+      (entry): entry is PendingEntry & { table: TableKey; recordId: string } => entry.effects.length > 0,
     );
     return {
       status: this.status,
       view: applyEffects(
         this.base,
-        shown.map((entry) => entry.effect),
+        shown.flatMap((entry) => entry.effects),
       ),
       pending: shown.map(({ id, table, recordId, state }) => ({ id, table, recordId, state })),
     };

@@ -1,5 +1,6 @@
 "use client";
 
+import { getConnectionMonitor } from "@/lib/db/connection";
 import {
   createContext,
   useCallback,
@@ -9,9 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { toast } from "sonner";
-import { offlineToastIcon } from "@/components/feedback/toast-icons";
-import { OFFLINE_WRITE_ATTEMPT } from "@/lib/copy/feedback";
+import { reportOfflineWrite } from "@/lib/feedback/offline-write";
 import {
   getDataStore,
   type AddBreakdownCommand,
@@ -42,8 +41,9 @@ type BreakdownSnapshot = Readonly<{
 
 const EMPTY_BREAKDOWNS: ScratchBreakdown[] = [];
 
+// The editor's offline source is the connection monitor, not `navigator.onLine` (SPEC §Connection states).
 function isBrowserOnline(): boolean {
-  return typeof navigator === "undefined" || navigator.onLine;
+  return !getConnectionMonitor().isOffline();
 }
 
 export type BreakdownOperationProjection = Readonly<{
@@ -630,13 +630,8 @@ export function useScratchBreakdowns(
       }
       if ((editorOptions.isOnline ?? isBrowserOnline)() === false) {
         // Offline write attempt (F05, F18): nothing changes on screen and the
-        // draft stays; only the warning toast appears, under one fixed id so a
-        // repeat updates it. Task 233 replaces this check with the connection
-        // monitor and Task 232 this call with the shared toast helper.
-        toast.warning(OFFLINE_WRITE_ATTEMPT.single, {
-          id: OFFLINE_WRITE_ATTEMPT.id,
-          icon: offlineToastIcon,
-        });
+        // draft stays; only the shared offline toast appears.
+        reportOfflineWrite();
         return false;
       }
 

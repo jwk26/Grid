@@ -2143,7 +2143,7 @@ export function BreakdownPanel({
     }
     const activeOperation = operationLock.activeOperation;
     if (activeOperation === null) {
-      if (!operationLock.acquire("add", command.operationId)) return;
+      if (!operationLock.acquire("add", command.operationId, { reconcile: true })) return;
     } else if (activeOperation.operationId !== command.operationId) return;
 
     addReliabilityActionRef.current?.focus();
@@ -2270,7 +2270,7 @@ export function BreakdownPanel({
     }
     const activeOperation = operationLock.activeOperation;
     if (activeOperation === null) {
-      if (!operationLock.acquire("delete", command.operationId)) return;
+      if (!operationLock.acquire("delete", command.operationId, { reconcile: true })) return;
     } else if (activeOperation.operationId !== command.operationId) return;
 
     deleteReliabilityActionRefs.current

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
+import { StatusIcon } from "@/components/feedback/status-icon";
 import { Button } from "@/components/ui/button";
+import { useDisplayDelay } from "@/hooks/use-display-delay";
 import {
   getSessionController,
   type EntryState,
@@ -11,14 +13,15 @@ import {
 import {
   GUEST_CREATION_FAILURE,
   LOAD_FAILURE,
+  LOADING,
   SESSION_EXPIRED,
 } from "@/lib/copy/feedback";
 
 // The app-level frame (SPEC §App-level screens; DESIGN_TOKENS SA-4, option C): one text block on
 // the shell background that replaces the whole app, sidebar included, until the account is
 // loaded. Children mount only while the account is `ready`, so data hooks never run against an
-// empty or reset snapshot. The Loading screen comes with Task 234; until then nothing shows
-// while entering.
+// empty or reset snapshot. While entering nothing shows for the first `DISPLAY_DELAY_MS`, then the
+// Loading screen (SA-3), so a fast load never flashes it.
 
 const ENTERING: EntryState = { phase: "entering" };
 
@@ -53,6 +56,35 @@ function Screen({ title, reason, actions }: ScreenProps) {
         <div ref={actionsRef} className="flex flex-wrap justify-center gap-2 pt-1">
           {actions}
         </div>
+      </div>
+    </main>
+  );
+}
+
+function LoadingScreen() {
+  // Mounted only while entering, so every entry (a user change in another tab included) restarts
+  // the delay. It postpones presentation only; it never decides that the load succeeded.
+  const due = useDisplayDelay("loading");
+  const titleId = useId();
+  if (!due) return null;
+  return (
+    <main
+      aria-busy="true"
+      className="triage-shell triage-shell--frame h-dvh w-full bg-background"
+      data-app-role="app-frame-loading"
+      data-testid="app-frame-screen"
+      data-triage-role="shell-background"
+    >
+      <div className="grid max-w-[440px] place-self-center justify-items-center gap-3 text-center">
+        <h1 id={titleId} className="text-xl font-semibold">
+          {LOADING.title}
+        </h1>
+        <StatusIcon
+          aria-labelledby={titleId}
+          presentation={{ status: "pending", glyph: "loader", emphasis: false }}
+          sentence={LOADING.title}
+          style={{ "--status-icon-size": "28px" } as React.CSSProperties}
+        />
       </div>
     </main>
   );
@@ -111,6 +143,6 @@ export function AppFrame({
         />
       );
     case "entering":
-      return null;
+      return <LoadingScreen />;
   }
 }

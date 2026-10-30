@@ -8,6 +8,7 @@ import { DeadlineConflictModal } from "@/components/shared/deadline-conflict-mod
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNode } from "@/hooks/use-node";
 import { useNodeActions } from "@/hooks/use-node-actions";
+import { dropReportedFailure } from "@/lib/db/write-failure";
 
 type PendingDeadlineValue = {
   deadline: number;
@@ -51,17 +52,17 @@ export function BreadcrumbDeadline({ nodeId }: { nodeId: string }) {
     await updateNode(nodeId, {
       deadline: value.deadline,
       deadlineAllDay: value.deadlineAllDay,
-    });
+    }).catch(dropReportedFailure);
   }
 
   async function handleClear() {
     setIsOpen(false);
-    await updateNode(nodeId, { deadline: null, deadlineAllDay: false });
+    await updateNode(nodeId, { deadline: null, deadlineAllDay: false }).catch(dropReportedFailure);
   }
 
   async function handleUpdateParent() {
     if (pendingValue) {
-      await updateNode(nodeId, pendingValue);
+      await updateNode(nodeId, pendingValue).catch(dropReportedFailure);
     }
 
     setPendingValue(null);

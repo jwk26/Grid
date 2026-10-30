@@ -1,7 +1,11 @@
 "use client";
 
+import { WriteOfflineError } from "@/lib/db/write-errors";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getDataStore } from "@/lib/db/datastore";
+import { toastCopy } from "@/lib/copy/feedback";
+import { dropReportedFailure } from "@/lib/db/write-failure";
+import { showToast } from "@/lib/feedback/toast";
 import type { Bit, Node } from "@/types";
 
 export type ArchiveItem = {
@@ -134,10 +138,11 @@ export function useArchiveActions(): {
 } {
   async function archive(type: "node" | "bit", id: string): Promise<void> {
     const dataStore = await getDataStore();
+    // The Archive control has no message of its own: the store reports a refused archive.
     if (type === "node") {
-      await dataStore.archiveNode(id);
+      await dataStore.archiveNode(id).catch(dropReportedFailure);
     } else {
-      await dataStore.archiveBit(id);
+      await dataStore.archiveBit(id).catch(dropReportedFailure);
     }
   }
   return { archive };
@@ -195,6 +200,10 @@ export function useArchive(): {
         await dataStore.unarchiveBit(id);
       }
       setRefreshVersion((v) => v + 1);
+    } catch (error) {
+      if (error instanceof WriteOfflineError) return;
+      const item = [...snapshot.nodes, ...snapshot.bits].find((candidate) => candidate.id === id);
+      showToast(toastCopy.archiveRestoreFailed, item?.title ?? "");
     } finally {
       restoringIdsRef.current.delete(id);
       setRestoringIds(new Set(restoringIdsRef.current));

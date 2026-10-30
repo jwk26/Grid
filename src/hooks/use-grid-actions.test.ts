@@ -71,7 +71,11 @@ describe("useGridActions", () => {
       await result.current.createBit(validBitInput);
     });
 
-    expect(dataStore.createNode).toHaveBeenCalledWith(validNodeInput);
-    expect(dataStore.createBit).toHaveBeenCalledWith(validBitInput);
+    expect(dataStore.createNode).toHaveBeenCalledWith(validNodeInput, undefined);
+    await act(async () => {
+      await result.current.createNode(validNodeInput, { report: false });
+    });
+    expect(dataStore.createNode).toHaveBeenLastCalledWith(validNodeInput, { report: false });
+    expect(dataStore.createBit).toHaveBeenCalledWith(validBitInput, undefined);
   });
 });

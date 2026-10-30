@@ -6,6 +6,7 @@ import { Calendar, Home, Inbox, Layers, Pencil, Plus, Search, Trash2, X, Zap } f
 import { motion, type HTMLMotionProps, type MotionProps, useReducedMotion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { forwardRef, Suspense, useState } from "react";
+import { AccountButton } from "@/components/layout/account-button";
 import { ColorThemeToggle } from "@/components/layout/color-theme-toggle";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
@@ -42,11 +43,14 @@ import {
 } from "@/lib/constants";
 import { getGridDeleteDropId } from "@/lib/grid-dnd";
 import { cn } from "@/lib/utils";
+import { useSessionVariant } from "@/lib/auth/use-session-variant";
 import { findNearestEmptyCell } from "@/lib/utils/bfs";
 import { useEditModeStore } from "@/stores/edit-mode-store";
 import { useSearchStore } from "@/stores/search-store";
 import type { Node } from "@/types";
-import { toast } from "sonner";
+import { toastCopy } from "@/lib/copy/feedback";
+import { dropReportedFailure } from "@/lib/db/write-failure";
+import { showToast } from "@/lib/feedback/toast";
 
 type SidebarIconButtonProps = {
   className?: string;
@@ -216,7 +220,7 @@ function SystemNodeItem({
 
   async function handleGridVisibilityToggle() {
     if (!node.hiddenFromGrid) {
-      await updateNode(node.id, { hiddenFromGrid: true });
+      await updateNode(node.id, { hiddenFromGrid: true }).catch(dropReportedFailure);
       return;
     }
 
@@ -224,7 +228,7 @@ function SystemNodeItem({
     const cell = findNearestEmptyCell(occupied, 0, 0, new Set());
 
     if (cell === null) {
-      toast.error("Grid is full. Reorganize or move items to make space.");
+      showToast(toastCopy.homeFull, label);
       return;
     }
 
@@ -232,7 +236,7 @@ function SystemNodeItem({
       hiddenFromGrid: false,
       x: cell.x,
       y: cell.y,
-    });
+    }).catch(dropReportedFailure);
   }
 
   return (
@@ -316,6 +320,7 @@ export function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const [isChooserOpen, setIsChooserOpen] = useState(false);
+  const sessionVariant = useSessionVariant();
   const globalUrgency = useGlobalUrgency();
   const { systemNodes, scratchCount } = useInbox();
   const isEditMode = useEditModeStore((state) => state.isEditMode);
@@ -352,6 +357,7 @@ export function Sidebar({
           onClick={() => navigate("/")}
         />
       ) : null}
+      <AccountButton variant={sessionVariant} />
       {isCalendarRoute ? (
         <Popover open={isChooserOpen} onOpenChange={setIsChooserOpen}>
           <PopoverTrigger asChild>

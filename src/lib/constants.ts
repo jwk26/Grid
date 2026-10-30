@@ -25,6 +25,8 @@ export const DISPLAY_DELAY_MS = 300;
 // Account snapshot writes (SPEC Write feel, Architecture Decision 19)
 export const REQUEST_TIMEOUT_MS = 15000;
 export const CONNECTION_PROBE_INTERVAL_MS = 30000;
+// Requests in a row that got no answer before the connection counts as offline (SPEC Connection states)
+export const OFFLINE_AFTER_FAILURES = 3;
 
 // The Node title limit (the column check and `nodeSchema`); a Bit with a longer title cannot be promoted.
 export const NODE_TITLE_MAX_LENGTH = 100;

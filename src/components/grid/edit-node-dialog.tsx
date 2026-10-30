@@ -19,6 +19,9 @@ import {
   NODE_ICON_NAMES,
 } from "@/lib/constants/node-icons";
 import { useNodeActions } from "@/hooks/use-node-actions";
+import { editDialogFailed } from "@/lib/copy/feedback";
+import { ZodError } from "zod";
+import { WriteOfflineError, WriteOutcomeUnknownError } from "@/lib/db/write-errors";
 import { cn } from "@/lib/utils";
 import type { Node } from "@/types";
 
@@ -122,10 +125,19 @@ export function EditNodeDialog({ level, node, open, onOpenChange }: EditNodeDial
         color: hexToHsl(colorHex),
         deadline,
         deadlineAllDay,
-      });
+      }, { report: false });
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save changes.");
+      // The dialog shows a refusal itself and keeps the typed values; a kept unknown outcome closes it.
+      if (err instanceof WriteOutcomeUnknownError && err.kept === true) {
+        onOpenChange(false);
+      } else if (err instanceof WriteOfflineError) {
+        // Offline: the toast was shown; the dialog stays open with the typed values.
+      } else if (err instanceof ZodError) {
+        setError(err.message);
+      } else {
+        setError(editDialogFailed(node.title));
+      }
     } finally {
       setIsSubmitting(false);
     }
