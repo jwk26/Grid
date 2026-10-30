@@ -178,6 +178,16 @@ describe("useBreadcrumbReveal", () => {
     expect(result.current.instant).toBe(false);
   });
 
+  it("a drag that starts on a reveal already shown keeps it from replaying the unfold", () => {
+    const { result, rerender } = setup();
+    expect(result.current.instant).toBe(false);
+    rerender({ enabled: true, nodeId: "n1", dragging: true });
+    expect(result.current.phase).toBe("shown");
+    expect(result.current.instant).toBe(true);
+    rerender({ enabled: true, nodeId: "n1", dragging: false });
+    expect(result.current.instant).toBe(true);
+  });
+
   it("a drag that starts while it is folding shows it without the slide too", () => {
     const { result, rerender } = setup();
     advance(3000);
@@ -382,5 +392,111 @@ describe("useBreadcrumbReveal focus", () => {
       vi.useRealTimers();
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe("useBreadcrumbReveal hover read from the DOM", () => {
+  function mountElements(hovered: { home: boolean; bar: boolean }) {
+    const home = document.createElement("button");
+    home.dataset.appRole = "home-button";
+    const bar = document.createElement("div");
+    bar.dataset.appRole = "breadcrumb-reveal";
+    for (const [element, key] of [[home, "home"], [bar, "bar"]] as const) {
+      const matches = element.matches.bind(element);
+      element.matches = ((selector: string) =>
+        selector === ":hover" ? hovered[key] : matches(selector)) as typeof element.matches;
+      document.body.appendChild(element);
+    }
+    return () => {
+      home.remove();
+      bar.remove();
+    };
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("a pointer move set after the Node-change reset does not outlive the unmounted element", () => {
+    // The clicked segment unmounts only after the new Node's chain loads: a move in between sets
+    // the hover again, and the unmount sends no pointerleave. The DOM says nothing is hovered.
+    const hovered = { home: false, bar: false };
+    const cleanup = mountElements(hovered);
+    const { result } = renderHook((props: Props) => useBreadcrumbReveal(props), {
+      initialProps: { enabled: true, nodeId: "n1", dragging: false },
+    });
+    act(() => result.current.barHandlers.onPointerMove());
+    hovered.bar = false;
+    act(() => void vi.advanceTimersByTime(3400));
+    expect(result.current.phase).toBe("hidden");
+    cleanup();
+  });
+
+  it("a hover that reached the bar through a portaled picker is ignored and does not outlive the picker", () => {
+    const hovered = { home: false, bar: false };
+    const cleanup = mountElements(hovered);
+    const portaled = document.createElement("div");
+    document.body.appendChild(portaled);
+    const bar = document.querySelector('[data-app-role="breadcrumb-reveal"]') as HTMLElement;
+    const { result } = renderHook((props: Props) => useBreadcrumbReveal(props), {
+      initialProps: { enabled: true, nodeId: "n1", dragging: false },
+    });
+    act(() => void vi.advanceTimersByTime(3400));
+    act(() => result.current.setHeld(true));
+
+    // React delivers it to the bar's handler; the target is outside the bar's DOM.
+    act(() => result.current.barHandlers.onPointerEnter({ currentTarget: bar, target: portaled }));
+    act(() => result.current.barHandlers.onPointerMove({ currentTarget: bar, target: portaled }));
+    act(() => result.current.setHeld(false));
+    act(() => void vi.advanceTimersByTime(1000));
+    expect(result.current.phase).toBe("folding");
+
+    // Even when a hover did get in, the hold ending reads the DOM.
+    act(() => void vi.advanceTimersByTime(400));
+    act(() => result.current.homeHandlers.onPointerEnter());
+    act(() => result.current.setHeld(true));
+    act(() => result.current.barHandlers.onPointerEnter({ currentTarget: bar, target: bar }));
+    act(() => result.current.homeHandlers.onPointerLeave());
+    hovered.bar = false;
+    act(() => result.current.setHeld(false));
+    act(() => void vi.advanceTimersByTime(1000));
+    expect(result.current.phase).toBe("folding");
+
+    portaled.remove();
+    cleanup();
+  });
+
+  it("keeps it shown while the DOM says the pointer is still on the bar", () => {
+    const hovered = { home: false, bar: true };
+    const cleanup = mountElements(hovered);
+    const { result } = renderHook((props: Props) => useBreadcrumbReveal(props), {
+      initialProps: { enabled: true, nodeId: "n1", dragging: false },
+    });
+    act(() => result.current.barHandlers.onPointerEnter());
+    act(() => void vi.advanceTimersByTime(10000));
+    expect(result.current.phase).toBe("shown");
+    cleanup();
+  });
+
+  it("the hide timer also reads the DOM", () => {
+    const hovered = { home: true, bar: false };
+    const cleanup = mountElements(hovered);
+    const { result } = renderHook((props: Props) => useBreadcrumbReveal(props), {
+      initialProps: { enabled: true, nodeId: "n1", dragging: false },
+    });
+    act(() => void vi.advanceTimersByTime(3400));
+    act(() => result.current.homeHandlers.onPointerEnter());
+    expect(result.current.phase).toBe("shown");
+    act(() => result.current.homeHandlers.onPointerLeave());
+    hovered.home = false;
+    act(() => void vi.advanceTimersByTime(1000));
+    expect(result.current.phase).toBe("folding");
+    cleanup();
   });
 });

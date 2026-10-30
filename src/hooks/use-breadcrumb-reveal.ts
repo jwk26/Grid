@@ -12,11 +12,15 @@ export type RevealPhase = "hidden" | "shown" | "folding";
 const FOLD_MS = motionDuration.breadcrumbFold * 1000;
 const LANDING_MS = motionDuration.homeLanding * 1000;
 
+// React sends pointer events through the React tree, so a portaled child (the deadline picker,
+// its conflict dialog) reaches the bar's handlers; only a target inside the bar's own DOM counts.
+type PointerEventLike = { currentTarget: Element; target: EventTarget | null };
+
 export type RevealHandlers = {
-  onPointerEnter: () => void;
+  onPointerEnter: (event?: PointerEventLike) => void;
   onPointerLeave: () => void;
   // A pointer that is still over a re-rendered element sends no new `pointerenter`.
-  onPointerMove: () => void;
+  onPointerMove: (event?: PointerEventLike) => void;
   onFocus: () => void;
   onBlur: () => void;
 };
@@ -41,6 +45,10 @@ function isKeyboardFocus(element: Element | null): boolean {
   } catch {
     return true;
   }
+}
+
+function isInsideBar(event?: PointerEventLike): boolean {
+  return !event || event.currentTarget.contains(event.target as Node | null);
 }
 
 function prefersReducedMotion(): boolean {
@@ -112,8 +120,21 @@ export function useBreadcrumbReveal({
     if (bar) s.barFocus = bar.contains(active) && isKeyboardFocus(active);
   };
 
-  const engaged = () => {
+  // The same for hover: an element that unmounts under the pointer sends no pointerleave, and a
+  // move between the Node-change reset and the unmount sets it again. At the moments that end a
+  // reveal (its timers) the DOM decides, not the last event. Only the segments and the chip take
+  // the pointer, so a hovered `bar` or `home` means the pointer is on one of them.
+  const syncHover = () => {
+    const s = sources.current;
+    const home = document.querySelector('[data-app-role="home-button"]');
+    const bar = document.querySelector('[data-app-role="breadcrumb-reveal"]');
+    if (home) s.homeHover = home.matches(":hover");
+    if (bar) s.barHover = bar.matches(":hover");
+  };
+
+  const engaged = (verify = false) => {
     syncFocus();
+    if (verify) syncHover();
     const s = sources.current;
     // Keyboard focus on a segment always reveals: a focused element is never hidden.
     return (pointerOrFocusIn() && !s.suppressed) || s.barFocus || draggingRef.current || s.held;
@@ -163,13 +184,15 @@ export function useBreadcrumbReveal({
     if (engaged()) {
       clearTimer("hide");
       show(draggingRef.current && phaseRef.current !== "shown");
+      // A drag that starts on a reveal already shown keeps it from replaying its unfold when it ends.
+      if (draggingRef.current) setInstant(true);
       return;
     }
     if (phaseRef.current !== "shown" || timers.current.hide) return;
     timers.current.hide = setTimeout(() => {
       timers.current.hide = undefined;
       // The entry reveal ends on its own timer, never earlier.
-      if (sources.current.entry || engaged()) return;
+      if (sources.current.entry || engaged(true)) return;
       fold();
     }, BREADCRUMB_HIDE_DELAY_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -202,7 +225,7 @@ export function useBreadcrumbReveal({
     t.entry = setTimeout(() => {
       t.entry = undefined;
       s.entry = false;
-      if (!engaged() && !t.hide) fold();
+      if (!engaged(true) && !t.hide) fold();
     }, BREADCRUMB_ENTRY_REVEAL_MS);
     return () => {
       clearTimer("entry");
@@ -248,10 +271,12 @@ export function useBreadcrumbReveal({
 
   const barHandlers = useMemo<RevealHandlers>(
     () => ({
-      onPointerEnter: () => setSource("barHover", true),
+      onPointerEnter: (event) => {
+        if (isInsideBar(event)) setSource("barHover", true);
+      },
       onPointerLeave: () => setSource("barHover", false),
-      onPointerMove: () => {
-        if (!sources.current.barHover) setSource("barHover", true);
+      onPointerMove: (event) => {
+        if (isInsideBar(event) && !sources.current.barHover) setSource("barHover", true);
       },
       onFocus: () => setSource("barFocus", isKeyboardFocus(document.activeElement)),
       onBlur: () => setSource("barFocus", false),
@@ -263,6 +288,9 @@ export function useBreadcrumbReveal({
   const setHeld = useCallback(
     (held: boolean) => {
       sources.current.held = held;
+      // A picker closed with the pointer inside it unmounts under the pointer: no leave is
+      // sent, so the hover is read from the DOM as the hold ends.
+      if (!held) syncHover();
       evaluate();
     },
     [evaluate],

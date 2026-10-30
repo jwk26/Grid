@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DragActiveItem } from "@/hooks/use-dnd";
 import type { Node } from "@/types";
+import { getGridBreadcrumbDropId } from "@/lib/grid-dnd";
 import { Breadcrumbs } from "./breadcrumbs";
 
 const useBreadcrumbChainMock = vi.hoisted(() => vi.fn());
@@ -12,6 +13,7 @@ const breadcrumbDeadlineMock = vi.hoisted(() => vi.fn(({ nodeId }: { nodeId: str
 )));
 const push = vi.fn();
 const droppableMock = vi.hoisted(() => vi.fn());
+const overIds = vi.hoisted(() => new Set<string>());
 const handlers = {
   onPointerEnter: vi.fn(),
   onPointerLeave: vi.fn(),
@@ -23,7 +25,7 @@ const handlers = {
 vi.mock("@dnd-kit/core", () => ({
   useDroppable: (options: { id: string; disabled?: boolean }) => {
     droppableMock(options);
-    return { isOver: options.id.endsWith(":over"), setNodeRef: () => undefined };
+    return { isOver: overIds.has(options.id), setNodeRef: () => undefined };
   },
 }));
 
@@ -63,6 +65,7 @@ function createNode(overrides: Partial<Node>): Node {
 }
 
 afterEach(() => {
+  overIds.clear();
   cleanup();
   vi.clearAllMocks();
 });
@@ -163,23 +166,36 @@ describe("Breadcrumbs", () => {
     expect(handlers.onFocus).toHaveBeenCalled();
   });
 
-  it("marks every ancestor segment as a drop target during a drag, and Home is not one for a Bit", () => {
+  it("marks only the segment under the pointer with the drop signal during a drag", () => {
     useBreadcrumbChainMock.mockReturnValue([root, child, current]);
+    const nodeDrag = { id: "n1", title: "Plans", type: "node" } satisfies NonNullable<DragActiveItem>;
 
-    renderBreadcrumbs({
-      dragActiveItem: { id: "n1", title: "Plans", type: "node" } satisfies NonNullable<DragActiveItem>,
-    });
+    renderBreadcrumbs({ dragActiveItem: nodeDrag });
     for (const name of ["Home", "Projects", "Q2"]) {
-      expect(screen.getByRole("button", { name })).toHaveClass("breadcrumb-drop-target");
+      expect(screen.getByRole("button", { name })).not.toHaveClass("breadcrumb-drop-target");
     }
-    expect(screen.getByText("Roadmap")).not.toHaveClass("breadcrumb-drop-target");
     cleanup();
+
+    overIds.add(getGridBreadcrumbDropId("root-node"));
+    renderBreadcrumbs({ dragActiveItem: nodeDrag });
+    expect(screen.getByRole("button", { name: "Projects" })).toHaveClass("breadcrumb-drop-target");
+    expect(screen.getByRole("button", { name: "Q2" })).not.toHaveClass("breadcrumb-drop-target");
+    expect(screen.getByRole("button", { name: "Home" })).not.toHaveClass("breadcrumb-drop-target");
+    expect(screen.getByText("Roadmap")).not.toHaveClass("breadcrumb-drop-target");
+  });
+
+  it("gives Home no drop signal for a Bit, even under the pointer", () => {
+    useBreadcrumbChainMock.mockReturnValue([root, current]);
+    overIds.add(getGridBreadcrumbDropId(null));
 
     renderBreadcrumbs({
       dragActiveItem: { id: "b1", title: "Task", type: "bit" } satisfies NonNullable<DragActiveItem>,
     });
+
     expect(screen.getByRole("button", { name: "Home" })).not.toHaveClass("breadcrumb-drop-target");
-    expect(screen.getByRole("button", { name: "Projects" })).toHaveClass("breadcrumb-drop-target");
+    expect(droppableMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: getGridBreadcrumbDropId(null), disabled: true }),
+    );
   });
 
   it("shows no drop signal when nothing is dragged", () => {

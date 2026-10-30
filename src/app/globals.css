@@ -503,9 +503,10 @@
 
 /* A reveal that a drag starts fades in by opacity only, with no clip or slide, so the drop
    rects measured at drag start hold; a drag that starts mid-unfold stops the unfold for the
-   same reason. Both apply to the shown phase only: the fold that ends the reveal is the normal one. */
+   same reason (a drag that starts while it folds stops the fold, since it is about to be shown
+   again). `instant` applies to the shown phase only: the fold that ends the reveal is the normal one. */
 .breadcrumb-reveal[data-phase="shown"][data-instant="true"],
-.breadcrumb-reveal[data-phase="shown"][data-dragging="true"] {
+.breadcrumb-reveal[data-dragging="true"][data-phase] {
   animation: none;
 }
 
@@ -524,16 +525,11 @@
   visibility: hidden;
 }
 
+/* Only the ancestor segment under the pointer shows the drop signal: a light, hover-level
+   look (FB-13). The other ancestors are not marked. */
 .breadcrumb-drop-target {
-  box-shadow: 0 0 0 2px hsl(var(--primary));
-  background: hsl(var(--primary) / 0.14);
-  color: hsl(var(--foreground));
-}
-
-.breadcrumb-drop-target[data-drop-over="true"] {
-  box-shadow:
-    0 0 0 2px hsl(var(--primary)),
-    0 0 0 5px hsl(var(--primary) / 0.25);
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 
 @keyframes breadcrumb-unfold {

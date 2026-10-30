@@ -33,7 +33,7 @@ function BreadcrumbSegmentButton({
     },
     disabled,
   });
-  const isDropTarget = Boolean(dragActiveItem) && !disabled;
+  const isDropTarget = Boolean(dragActiveItem) && !disabled && isOver;
 
   return (
     <button
@@ -42,7 +42,6 @@ function BreadcrumbSegmentButton({
         "pointer-events-auto rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground shrink-0 whitespace-nowrap",
         isDropTarget && "breadcrumb-drop-target",
       )}
-      data-drop-over={isDropTarget && isOver ? "true" : undefined}
       data-drop-zone={nodeId ? "breadcrumb-node" : "breadcrumb-root"}
       data-node-id={nodeId ?? undefined}
       onClick={onClick}
