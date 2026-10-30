@@ -172,7 +172,7 @@ describe("probe", () => {
   it("never runs two probes at once", async () => {
     let release: (value: boolean) => void = () => {};
     const probe = vi.fn(() => new Promise<boolean>((resolve) => (release = resolve)));
-    const { monitor } = make({ probe });
+    const { monitor } = make({ probe, probeTimeoutMs: 10 * CONNECTION_PROBE_INTERVAL_MS });
     monitor.start();
     monitor.report("unreachable");
     await vi.advanceTimersByTimeAsync(CONNECTION_PROBE_INTERVAL_MS * 3);
