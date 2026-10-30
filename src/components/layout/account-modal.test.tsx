@@ -8,9 +8,10 @@ import { ACCOUNT_MODAL, toastCopy } from "@/lib/copy/feedback";
 const showToast = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/feedback/toast", () => ({ showToast }));
 
-function controller(overrides: Partial<{ result: AccountDeletionResult; name: string | null }> = {}) {
+function controller(overrides: Partial<{ result: AccountDeletionResult; name: string | null; start: "started" | "failed" }> = {}) {
   return {
     signOut: vi.fn(async () => undefined),
+    signInWithOAuth: vi.fn(async (): Promise<"started" | "failed"> => overrides.start ?? "started"),
     requestAccountDeletion: vi.fn(async (): Promise<AccountDeletionResult> => overrides.result ?? "requested"),
     getAccountName: () => (overrides.name === undefined ? "Ada Lovelace" : overrides.name),
   };
@@ -124,5 +125,25 @@ describe("AccountModal focus", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: ACCOUNT_MODAL.confirm.cancel })).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: ACCOUNT_MODAL.confirm.cancel }));
     await waitFor(() => expect(screen.getByRole("button", { name: ACCOUNT_MODAL.account.deleteAccount })).toHaveFocus());
+  });
+});
+
+describe("AccountModal sign-in buttons", () => {
+  it("starts GitHub and Google through the controller", () => {
+    const { c } = mount("guest");
+    fireEvent.click(screen.getByRole("button", { name: ACCOUNT_MODAL.guest.signInGithub }));
+    fireEvent.click(screen.getByRole("button", { name: ACCOUNT_MODAL.guest.signInGoogle }));
+    expect(c.signInWithOAuth.mock.calls).toEqual([["github"], ["google"]]);
+  });
+
+  it("shows the inline error when the provider flow could not start", async () => {
+    mount("guest", controller({ start: "failed" }));
+    fireEvent.click(screen.getByRole("button", { name: ACCOUNT_MODAL.guest.signInGithub }));
+    expect(await screen.findByText(ACCOUNT_MODAL.guest.signInError)).toBeInTheDocument();
+  });
+
+  it("has no sign-in buttons for an account", () => {
+    mount("account");
+    expect(screen.queryByRole("button", { name: ACCOUNT_MODAL.guest.signInGithub })).toBeNull();
   });
 });

@@ -18,10 +18,9 @@ import { showToast } from "@/lib/feedback/toast";
 
 // The guest and account modal (SPEC §Account icon and modal; DESIGN_TOKENS SA-6). It wears the
 // Scratch Trash dialog frame, so every theme restyles it through the shared dialog classes and no
-// theme id branches here. The sign-in buttons arrive with Task 236; `signInError` is the inline
-// line they will fill.
+// theme id branches here. `signInError` is the inline line of a sign-in that did not complete.
 
-type ModalController = Pick<SessionController, "signOut" | "requestAccountDeletion" | "getAccountName">;
+type ModalController = Pick<SessionController, "signOut" | "requestAccountDeletion" | "getAccountName" | "signInWithOAuth">;
 
 type AccountModalProps = {
   variant: "guest" | "account";
@@ -40,6 +39,7 @@ export function AccountModal({ variant, open, onOpenChange, signInError = null, 
   const [step, setStep] = useState<Step>("account");
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [startFailed, setStartFailed] = useState(false);
 
   const confirming = variant === "account" && step === "confirm";
 
@@ -65,8 +65,15 @@ export function AccountModal({ variant, open, onOpenChange, signInError = null, 
     if (!next) {
       setStep("account");
       setFailed(false);
+      setStartFailed(false);
     }
     onOpenChange(next);
+  }
+
+  // The page leaves for the provider; only a request that could not start comes back here.
+  async function signIn(provider: "github" | "google") {
+    setStartFailed(false);
+    if ((await controller.signInWithOAuth(provider)) === "failed") setStartFailed(true);
   }
 
   async function requestDeletion() {
@@ -141,12 +148,20 @@ export function AccountModal({ variant, open, onOpenChange, signInError = null, 
                 className="scratch-trash-dialog__state min-h-5 text-sm font-medium"
                 role="status"
               >
-                {signInError ?? ""}
+                {startFailed ? ACCOUNT_MODAL.guest.signInError : (signInError ?? "")}
               </p>
               <div className="border-t pt-4">
                 <p className="text-xs text-muted-foreground" style={{ lineHeight: 1.5 }}>
                   {ACCOUNT_MODAL.privacy}
                 </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="button" variant="outline" onClick={() => void signIn("github")}>
+                  {ACCOUNT_MODAL.guest.signInGithub}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => void signIn("google")}>
+                  {ACCOUNT_MODAL.guest.signInGoogle}
+                </Button>
               </div>
               <AlertDialogFooter>
                 <AlertDialogCancel>{ACCOUNT_MODAL.close}</AlertDialogCancel>

@@ -20,6 +20,7 @@ function fakeController(initial: EntryState) {
     start: vi.fn(async () => undefined),
     retry: vi.fn(async () => undefined),
     continueAsGuest: vi.fn(async () => undefined),
+    signInWithOAuth: vi.fn(async () => "started"),
   };
   return {
     controller: controller as unknown as SessionController,
@@ -196,7 +197,7 @@ describe("AppFrame", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toHaveFocus();
   });
 
-  it("shows the session-expired variants with Continue as guest only", () => {
+  it("shows the session-expired variants with both sign-in buttons and Continue as guest", () => {
     const fake = fakeController({ phase: "session-expired", variant: "account" });
     render(
       <AppFrame controller={fake.controller}>
@@ -205,7 +206,14 @@ describe("AppFrame", () => {
     );
     expect(screen.getByRole("heading", { name: "Your sign-in expired." })).toBeInTheDocument();
     expect(screen.getByText("Your saved data is safe. The last change may not have been saved.")).toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Sign in with GitHub",
+      "Sign in with Google",
+      "Continue as guest",
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "Sign in with GitHub" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign in with Google" }));
+    expect(fake.spies.signInWithOAuth.mock.calls).toEqual([["github"], ["google"]]);
     fake.set({ phase: "session-expired", variant: "guest" });
     expect(screen.getByRole("heading", { name: "Your guest session ended." })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Continue as guest" }));

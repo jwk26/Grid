@@ -17,6 +17,7 @@ import {
 import {
   ACCOUNT_BEING_DELETED,
   ACCOUNT_DELETED,
+  ACCOUNT_MODAL,
   GUEST_CREATION_FAILURE,
   LOAD_FAILURE,
   LOADING,
@@ -158,9 +159,15 @@ function FrameScreen({
           title={SESSION_EXPIRED[state.variant].title}
           reason={SESSION_EXPIRED[state.variant].reason}
           actions={
-            <Button onClick={() => void controller?.continueAsGuest()}>
-              {SESSION_EXPIRED.continueAsGuest}
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => void controller?.signInWithOAuth("github")}>
+                {ACCOUNT_MODAL.guest.signInGithub}
+              </Button>
+              <Button variant="outline" onClick={() => void controller?.signInWithOAuth("google")}>
+                {ACCOUNT_MODAL.guest.signInGoogle}
+              </Button>
+              <Button onClick={() => void controller?.continueAsGuest()}>{SESSION_EXPIRED.continueAsGuest}</Button>
+            </>
           }
         />
       );

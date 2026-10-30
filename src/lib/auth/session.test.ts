@@ -1,6 +1,6 @@
 import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createSessionController, SESSION_EXPIRED_KEY } from "@/lib/auth/session";
+import { createSessionController, SESSION_EXPIRED_KEY, SIGN_IN_STARTED_KEY } from "@/lib/auth/session";
 import { CaptchaError, type CaptchaProvider } from "@/lib/auth/turnstile";
 
 type AuthEvent = "SIGNED_IN" | "SIGNED_OUT" | "TOKEN_REFRESHED" | "INITIAL_SESSION";
@@ -817,5 +817,226 @@ describe("session controller Turnstile", () => {
     const t = setup();
     await t.controller.start();
     expect(t.auth.signInAnonymously).toHaveBeenCalledWith();
+  });
+});
+
+describe("session controller OAuth", () => {
+  function oauth(url: string, options: { session?: { id: string; anon?: boolean } | null } = {}) {
+    const t = setup(options);
+    const tab = memoryStorage();
+    let current = new URL(url, "http://localhost:3000");
+    const replaceUrl = vi.fn((next: string) => {
+      current = new URL(next, "http://localhost:3000");
+    });
+    const exchangeCodeForSession = vi.fn(async (...args: [string]) => {
+      void args;
+      t.setSession({ user: { id: "oauth-1", is_anonymous: false } });
+      return { data: { session: { user: { id: "oauth-1", is_anonymous: false } } }, error: null as unknown };
+    });
+    const signInWithOAuth = vi.fn(async (...args: [unknown]) => ({ data: { args }, error: null as unknown }));
+    const auth = { ...t.auth, exchangeCodeForSession, signInWithOAuth };
+    const controller = createSessionController({
+      getClient: () => ({ auth, rpc: t.rpc }) as never,
+      storage: t.storage,
+      runExclusive: (_name, task) => task(),
+      defer: (task) => task(),
+      location: { get: () => current, replace: replaceUrl },
+      tabStorage: tab,
+    });
+    return { ...t, tab, auth, controller, exchangeCodeForSession, signInWithOAuth, replaceUrl, url: () => current };
+  }
+
+  it("exchanges the returned code, cleans the URL and enters as the new account", async () => {
+    const t = oauth("/?code=abc&keep=1", { session: { id: "guest-a" } });
+    await t.controller.start();
+    expect(t.exchangeCodeForSession).toHaveBeenCalledWith("abc");
+    expect(t.url().search).toBe("?keep=1");
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+    expect(t.controller.getVariant()).toBe("account");
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.controller.takeSignInError()).toBe(false);
+  });
+
+  it("a finished sign-in clears the session-expired marker", async () => {
+    const t = oauth("/?code=abc");
+    t.storage.setItem(SESSION_EXPIRED_KEY, "guest");
+    await t.controller.start();
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("a provider error keeps the guest, cleans the URL and flags the inline error once", async () => {
+    const t = oauth("/?error=access_denied&error_code=access_denied&error_description=denied", {
+      session: { id: "guest-a" },
+    });
+    await t.controller.start();
+    expect(t.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(t.url().search).toBe("");
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.controller.getVariant()).toBe("guest");
+    expect(t.controller.takeSignInError()).toBe(true);
+    expect(t.controller.takeSignInError()).toBe(false);
+  });
+
+  it("reads a provider error from the hash too", async () => {
+    const t = oauth("/#error=access_denied&error_description=x", { session: { id: "guest-a" } });
+    await t.controller.start();
+    expect(t.url().hash).toBe("");
+    expect(t.controller.takeSignInError()).toBe(true);
+  });
+
+  it("a cancel from the session-expired screen returns to that screen", async () => {
+    const t = oauth("/?error=access_denied");
+    t.storage.setItem(SESSION_EXPIRED_KEY, "account");
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "session-expired", variant: "account" });
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBe("account");
+    expect(t.url().search).toBe("");
+    // The screen returned, so no modal is owed once the visitor continues as a guest.
+    expect(t.controller.takeSignInError()).toBe(false);
+  });
+
+  it("a failed exchange is a cancelled sign-in: guest kept, URL cleaned", async () => {
+    const t = oauth("/?code=bad", { session: { id: "guest-a" } });
+    t.exchangeCodeForSession.mockResolvedValueOnce({ data: { session: null }, error: new AuthApiError("bad", 400, "bad_code") } as never);
+    await t.controller.start();
+    expect(t.url().search).toBe("");
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.controller.takeSignInError()).toBe(true);
+  });
+
+  it("signInWithOAuth starts the provider flow back to the origin", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    await t.controller.start();
+    await expect(t.controller.signInWithOAuth("github")).resolves.toBe("started");
+    expect(t.signInWithOAuth).toHaveBeenCalledWith({
+      provider: "github",
+      options: { redirectTo: "http://localhost:3000/", queryParams: { prompt: "select_account" } },
+    });
+    t.signInWithOAuth.mockResolvedValueOnce({ data: {}, error: new Error("x") } as never);
+    await expect(t.controller.signInWithOAuth("google")).resolves.toBe("failed");
+    t.signInWithOAuth.mockRejectedValueOnce(new Error("verifier"));
+    await expect(t.controller.signInWithOAuth("github")).resolves.toBe("failed");
+  });
+
+  it("keeps the sign-in-started marker in this tab before leaving, and takes it back when the start fails", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    await t.controller.start();
+    let during: string | null = null;
+    t.signInWithOAuth.mockImplementationOnce(async () => {
+      during = t.tab.getItem(SIGN_IN_STARTED_KEY);
+      return { data: {}, error: null as unknown } as never;
+    });
+    await t.controller.signInWithOAuth("github");
+    expect(during).not.toBeNull();
+    expect(t.storage.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+    t.signInWithOAuth.mockRejectedValueOnce(new Error("verifier"));
+    await t.controller.signInWithOAuth("google");
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+
+  it.each([
+    ["a code", "/?code=abc"],
+    ["an error", "/?error=access_denied"],
+  ])("every return with %s clears the marker", async (_label, url) => {
+    const t = oauth(url, { session: { id: "guest-a" } });
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+    await t.controller.start();
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+
+  it("a return with neither code nor error while the marker is present is a cancelled sign-in", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+    await t.controller.start();
+    expect(t.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.controller.getVariant()).toBe("guest");
+    expect(t.controller.takeSignInError()).toBe(true);
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+
+  it("a plain visit without the marker raises no error", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    await t.controller.start();
+    expect(t.controller.takeSignInError()).toBe(false);
+  });
+
+  it("a bare return to the session-expired screen keeps the screen and owes no modal", async () => {
+    const t = oauth("/");
+    t.storage.setItem(SESSION_EXPIRED_KEY, "guest");
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "session-expired", variant: "guest" });
+    expect(t.controller.takeSignInError()).toBe(false);
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+
+  describe("back-forward-cache restore", () => {
+    const restore = (persisted: boolean) =>
+      window.dispatchEvent(Object.assign(new Event("pageshow"), { persisted }));
+
+    it("reopens over a ready app once, and tells the listener", async () => {
+      const t = oauth("/", { session: { id: "guest-a" } });
+      await t.controller.start();
+      const listener = vi.fn();
+      t.controller.subscribeSignInError(listener);
+      t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+      restore(true);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(t.controller.takeSignInError()).toBe(true);
+      expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+      restore(true);
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores a plain page show and a restore without the marker", async () => {
+      const t = oauth("/", { session: { id: "guest-a" } });
+      await t.controller.start();
+      const listener = vi.fn();
+      t.controller.subscribeSignInError(listener);
+      restore(false);
+      restore(true);
+      t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+      restore(false);
+      expect(listener).not.toHaveBeenCalled();
+      expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).not.toBeNull();
+    });
+
+    it("on the session-expired screen clears the marker and leaves the screen", async () => {
+      const t = oauth("/");
+      t.storage.setItem(SESSION_EXPIRED_KEY, "account");
+      await t.controller.start();
+      t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+      restore(true);
+      expect(t.controller.getState()).toEqual({ phase: "session-expired", variant: "account" });
+      expect(t.controller.takeSignInError()).toBe(false);
+      expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+    });
+  });
+
+  it("a marker older than the window is not a return", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now() - 16 * 60_000));
+    await t.controller.start();
+    expect(t.controller.takeSignInError()).toBe(false);
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+
+  it("a return that finds an account session owes no guest error", async () => {
+    const t = oauth("/", { session: { id: "oauth-a", anon: false } });
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+    await t.controller.start();
+    expect(t.controller.takeSignInError()).toBe(false);
+  });
+
+  it("a restore after another tab signed an account in raises no guest error", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    await t.controller.start();
+    t.storage.setItem("griddo.session-kind", "account");
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+    window.dispatchEvent(Object.assign(new Event("pageshow"), { persisted: true }));
+    expect(t.controller.takeSignInError()).toBe(false);
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
   });
 });

@@ -29,6 +29,8 @@ export type EntryState =
   | { phase: "account-deleting" }
   | { phase: "account-deleted" };
 
+export type OAuthProvider = "github" | "google";
+
 export type AccountDeletionResult = "requested" | "failed" | "unknown";
 
 // The session-expired marker (SPEC §Session expiry): whether the lost session was a guest or a
@@ -42,6 +44,12 @@ export const SESSION_KIND_KEY = "griddo.session-kind";
 // resulting SIGNED_OUT as an expiry.
 export const DELIBERATE_SIGN_OUT_KEY = "griddo.deliberate-sign-out";
 const DELIBERATE_SIGN_OUT_WINDOW_MS = 30_000;
+// Set in this tab (`sessionStorage`, so no other tab reacts) before leaving for an OAuth provider and
+// cleared by every return; a return with neither a code nor an error is a cancelled sign-in
+// (SPEC §Account icon and modal; user, 2026-10-31).
+export const SIGN_IN_STARTED_KEY = "griddo.sign-in-started";
+// A marker older than this is a sign-in that never left the page; it no longer reads as a return.
+const SIGN_IN_STARTED_WINDOW_MS = 15 * 60_000;
 const GUEST_ENTRY_LOCK = "griddo-guest-entry";
 
 type AuthUser = {
@@ -64,6 +72,8 @@ function accountNameOf(user: AuthUser): string | null {
 export type SessionControllerOptions = {
   getClient: () => GriddoSupabaseClient;
   storage: Storage;
+  /** This tab's own storage (`sessionStorage`); defaults to the window's. */
+  tabStorage?: Storage;
   /** Runs `task` while no other tab runs one with the same name. */
   runExclusive?: <T>(name: string, task: () => Promise<T>) => Promise<T>;
   /** Runs an auth event handler outside supabase-js's callback (it must not call back into auth). */
@@ -75,6 +85,8 @@ export type SessionControllerOptions = {
   onUserChange?: () => void;
   /** Turnstile for the anonymous sign-in; none means no check (tests, and a local app without a site key). */
   captcha?: CaptchaProvider | null;
+  /** The address bar, read and cleaned at entry; tests inject one. */
+  location?: { get: () => URL; replace: (relativeUrl: string) => void };
   /** Told how each request to the server ended (SPEC §Connection states). */
   connection?: { report: (result: RequestResult, detail?: { snapshotRead?: boolean }) => void };
 };
@@ -165,6 +177,13 @@ export function createSessionController(options: SessionControllerOptions) {
   // A guest started after an expiry keeps skipping the marker through Retry and reconnect, until
   // the entry ends with a session.
   let skippingMarker = false;
+  // An OAuth sign-in that did not complete: the account modal reopens once with its inline error.
+  let signInError = false;
+
+  const address = options.location ?? {
+    get: () => new URL(window.location.href),
+    replace: (relativeUrl: string) => window.history.replaceState(null, "", relativeUrl),
+  };
 
   const setState = (next: EntryState) => {
     state = next;
@@ -186,6 +205,35 @@ export function createSessionController(options: SessionControllerOptions) {
       // Storage can be blocked; the marker is then best-effort.
     }
   };
+  const tab = (): Storage | undefined => {
+    try {
+      return options.tabStorage ?? (typeof window === "undefined" ? undefined : window.sessionStorage);
+    } catch {
+      return undefined;
+    }
+  };
+  const readTab = (key: string): string | null => {
+    try {
+      return tab()?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
+  };
+  const writeTab = (key: string, value: string | null) => {
+    try {
+      if (value === null) tab()?.removeItem(key);
+      else tab()?.setItem(key, value);
+    } catch {
+      // Storage can be blocked; the marker is then best-effort.
+    }
+  };
+  // Takes the marker back and says whether it was recent enough to mean a return without finishing.
+  const takeSignInStarted = (): boolean => {
+    const started = Number(readTab(SIGN_IN_STARTED_KEY));
+    writeTab(SIGN_IN_STARTED_KEY, null);
+    return Number.isFinite(started) && started > 0 && Date.now() - started < SIGN_IN_STARTED_WINDOW_MS;
+  };
+  const signInErrorListeners = new Set<() => void>();
   const lastKind = (): SessionVariant => (read(SESSION_KIND_KEY) === "account" ? "account" : "guest");
 
   // A read or write was answered with an account rejection: the snapshot goes, and so does any
@@ -211,12 +259,38 @@ export function createSessionController(options: SessionControllerOptions) {
     write(SESSION_KIND_KEY, user.is_anonymous === false ? "account" : "guest");
   };
 
+  // The provider's return (SPEC §Account icon and modal): `?code=` to exchange, or an error. Both
+  // are removed from the address. A finished exchange is the chosen action completing, so it
+  // skips the session-expired marker; a cancel or error keeps whatever session there was.
+  async function takeOAuthReturn(): Promise<"signed-in" | "failed" | "none"> {
+    const url = address.get();
+    const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+    const code = url.searchParams.get("code");
+    const errored = ["error", "error_code", "error_description"].some(
+      (key) => url.searchParams.has(key) || hash.has(key),
+    );
+    // Every return clears the marker; a return with neither a code nor an error, with the marker
+    // present, is the visitor coming back without finishing (the Back button).
+    const startedHere = takeSignInStarted();
+    if (code === null && !errored) return startedHere ? "failed" : "none";
+    for (const key of ["code", "error", "error_code", "error_description"]) url.searchParams.delete(key);
+    for (const key of ["error", "error_code", "error_description"]) hash.delete(key);
+    const rest = hash.toString();
+    address.replace(`${url.pathname}${url.search}${rest ? `#${rest}` : ""}`);
+    if (errored || code === null) return "failed";
+    const exchanged = await getClient().auth.exchangeCodeForSession(code);
+    return exchanged.error ? "failed" : "signed-in";
+  }
+
   async function enter(skipMarker = false): Promise<void> {
     skipMarker ||= skippingMarker;
     skippingMarker = skipMarker;
     const mine = ++generation;
     const stale = () => mine !== generation;
     setState({ phase: "entering" });
+    const returned = await takeOAuthReturn();
+    if (stale()) return;
+    if (returned === "signed-in") skipMarker = skippingMarker = true;
     if (!skipMarker) {
       const marker = read(SESSION_EXPIRED_KEY);
       if (marker) {
@@ -224,6 +298,8 @@ export function createSessionController(options: SessionControllerOptions) {
         return;
       }
     }
+    // With a marker the expired screen returns instead; the modal only reopens over a session.
+    if (returned === "failed") signInError = true;
     const client = getClient();
 
     const restored = await client.auth.getSession();
@@ -267,6 +343,8 @@ export function createSessionController(options: SessionControllerOptions) {
       if (stale()) return;
     }
     remember(user);
+    // The modal's error line says the guest stays; over an account (another tab finished a sign-in) it would lie.
+    if (user.is_anonymous === false) signInError = false;
     // An entry that skipped the marker ended with a session: the chosen action completed.
     if (skipMarker) write(SESSION_EXPIRED_KEY, null);
     skippingMarker = false;
@@ -357,6 +435,38 @@ export function createSessionController(options: SessionControllerOptions) {
     getVariant: (): SessionVariant => lastKind(),
     /** The signed-in account's name for the modal title; null for a guest or a nameless account. */
     getAccountName: (): string | null => accountName,
+    /** Whether a sign-in did not complete, without consuming it (safe in a render). */
+    hasSignInError: (): boolean => signInError,
+    /** True once after a sign-in that did not complete; the account modal then reopens. */
+    takeSignInError(): boolean {
+      const flagged = signInError;
+      signInError = false;
+      return flagged;
+    },
+    /** Told when a sign-in did not complete while the app is already showing (a back-forward-cache restore). */
+    subscribeSignInError(listener: () => void): () => void {
+      signInErrorListeners.add(listener);
+      return () => signInErrorListeners.delete(listener);
+    },
+    /** Hands the visitor to the provider; the page leaves, and `/` receives the return. */
+    async signInWithOAuth(provider: OAuthProvider): Promise<"started" | "failed"> {
+      // The marker is written before leaving; a start that cannot happen takes it back.
+      writeTab(SIGN_IN_STARTED_KEY, String(Date.now()));
+      // auth-js reports a start that cannot happen by throwing, not by `error`.
+      try {
+        const { error } = await getClient().auth.signInWithOAuth({
+          provider,
+          // The provider's account chooser every time, so a visitor is not sent straight back as
+          // the account the browser is already signed in to (SPEC §Account icon and modal).
+          options: { redirectTo: `${address.get().origin}/`, queryParams: { prompt: "select_account" } },
+        });
+        if (!error) return "started";
+      } catch {
+        // falls through to the failure below
+      }
+      writeTab(SIGN_IN_STARTED_KEY, null);
+      return "failed";
+    },
     subscribe(listener: () => void): () => void {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -373,7 +483,19 @@ export function createSessionController(options: SessionControllerOptions) {
         if (event === "SIGNED_OUT" && !isDeliberateSignOut()) onAuthEvent(event, user);
         else defer(() => onAuthEvent(event, user));
       });
-      if (typeof window !== "undefined") window.addEventListener("online", retryIfFailed);
+      if (typeof window !== "undefined") {
+        window.addEventListener("online", retryIfFailed);
+        // The browser restored this page from its back-forward cache: no entry runs again, so a
+        // return without finishing is read here. Over a session the modal reopens; on the
+        // session-expired screen the screen simply stays.
+        window.addEventListener("pageshow", (event) => {
+          if (!(event as PageTransitionEvent).persisted || readTab(SIGN_IN_STARTED_KEY) === null) return;
+          // Only a guest has a session to keep: another tab may have signed an account in meanwhile.
+          if (!takeSignInStarted() || state.phase !== "ready" || lastKind() !== "guest") return;
+          signInError = true;
+          for (const listener of [...signInErrorListeners]) listener();
+        });
+      }
       return enter();
     },
     retry(): Promise<void> {

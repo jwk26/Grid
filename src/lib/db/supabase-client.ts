@@ -20,7 +20,9 @@ export function getSupabaseClient(): GriddoSupabaseClient {
     );
   }
   client = createClient<Database>(url, key, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+    // PKCE: the provider returns `?code=…` to `/`, which `session.ts` exchanges at entry (no auto
+    // detection, so the exchange runs once, in the order entry needs).
+    auth: { flowType: "pkce", persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
   });
   return client;
 }
