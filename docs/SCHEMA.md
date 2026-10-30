@@ -1316,7 +1316,11 @@ auth user, and the cascade every row, within 24 hours. A deletion request is
 final (user, 2026-10-22): until the cleanup runs, `ensure_account()`,
 `get_snapshot()`, the reconcile functions and every write function reject that
 account with `account_deleting`, so the data never reappears, not even in
-another tab that refetches. The client then shows the load-failure screen with
+another tab that refetches. A write that passed its account check just before
+the request committed can still commit after it, since the check is an
+unlocked read taken before the Grid locks; its rows are never read back,
+because every read and `ensure_account()` reject the account, and the cleanup
+deletes them with the rest (user, 2026-10-30). The client then shows the load-failure screen with
 the deletion-in-progress reason and `Continue as guest` (SPEC), and signs out
 to a new guest only from there.
 
