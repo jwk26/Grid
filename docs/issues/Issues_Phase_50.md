@@ -34,6 +34,7 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 - Please check: window is seeded (`neumorphism`, light), 1024×768, Pool open, at `http://localhost:3050/grid/ba218fc4-c3b0-425a-939a-6eaf0aa6ed41`, dev server on port 3050 left running; first state: the staged Node shows `!` (Conflict) and the staged Bit `?` (Unknown) from the state switch. Hover or focus the icons for the sentence; open the switch's `Stage — command` / `Stage — Check again` to see the `?` button path; in other themes use the theme button (do not resize or reload the window).
 - Unresolved: mi-2 (decision request in the Log); the Medium-Low accessibility point above; the `Confirm placement` fix is not browser-confirmed.
 - Review: see the Expert review line in the Log.
+- Post-checkpoint fix (user saw one column at 1920 in `neumorphism`): the theme's 6px well padding left 166px, 2px short of the two-column threshold (2 × 80 + 8), and the theme's `max-inline-size: none` let the single card stretch to 166px. Fix: card minimum 4.5rem, every card capped at 5rem in every theme, the track gap read from `--triage-staging-node-gap` (12px in `neumorphism`). Browser, `neumorphism`, local Supabase (re-seeded: the local database had been restarted by the SaaS lane): 1920 → two columns of 77px; 1536 → one column, card 80px; 1280 → one column, 77px; 1024 → one column, 74px. Full gate green again.
 
 ## Task 250 — Remember the last selected Scratch on this device
 

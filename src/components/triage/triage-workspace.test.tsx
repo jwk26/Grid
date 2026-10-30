@@ -1680,7 +1680,7 @@ describe("TriageWorkspace", () => {
 
   it("lays Node cards in an auto-fill grid of at least one card, at most two columns, in a column that never drops below one card", () => {
     expect(globalsCss).toMatch(
-      /\.staging-node-grid \{[^}]*grid-template-columns: repeat\(\s*auto-fill,\s*minmax\(max\(var\(--triage-staging-node-card-min\), calc\(\(100% - 0\.5rem\) \/ 2\)\), 1fr\)\s*\);/,
+      /\.staging-node-grid \{[^}]*grid-template-columns: repeat\(\s*auto-fill,\s*minmax\(max\(var\(--triage-staging-node-card-min\), calc\(\(100% - var\(--triage-staging-node-gap\)\) \/ 2\)\), 1fr\)\s*\);/,
     );
     expect(globalsCss).toMatch(
       /\.triage-shell__staging \{[^}]*grid-template-columns:\s*minmax\(calc\(var\(--triage-staging-node-card-min\) \+ 2rem\), 7fr\)/,

@@ -3333,7 +3333,8 @@
 
 /* The Nodes column is never narrower than one Node card plus the subsection's own padding (F10). */
 .triage-shell__staging {
-  --triage-staging-node-card-min: 5rem;
+  --triage-staging-node-card-min: 4.5rem;
+  --triage-staging-node-gap: 0.5rem;
   display: grid;
   grid-template-columns:
     minmax(calc(var(--triage-staging-node-card-min) + 2rem), 7fr)
@@ -3341,12 +3342,18 @@
 }
 
 /* Cards fill auto-fit tracks of at least one card; the half-width floor caps it at two columns. */
+/* A card never grows past its own size when its track is wider (every theme, F10). */
+:root .triage-staging__well > .staging-node-grid > [data-triage-role="staging-node-card"] {
+  justify-self: center;
+  max-inline-size: 5rem;
+}
+
 .staging-node-grid {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--triage-staging-node-gap);
   grid-template-columns: repeat(
     auto-fill,
-    minmax(max(var(--triage-staging-node-card-min), calc((100% - 0.5rem) / 2)), 1fr)
+    minmax(max(var(--triage-staging-node-card-min), calc((100% - var(--triage-staging-node-gap)) / 2)), 1fr)
   );
   inline-size: 100%;
   padding-block-end: 0.25rem;
@@ -6516,6 +6523,7 @@
 :root[data-color-theme="neumorphism"] .triage-staging__bit,
 :root[data-color-theme="neumorphism"] .staging-bit-status-row { padding-block: 9px; padding-inline: 6px; }
 :root[data-color-theme="neumorphism"] .triage-staging__well > :is(.staging-node-grid, .flex-col) { gap: 12px; }
+:root[data-color-theme="neumorphism"] .triage-shell__staging { --triage-staging-node-gap: 12px; }
 /* The dimmed card fades its surface by alpha, never by ancestor opacity, so an attached status line stays at full ink. */
 :root[data-color-theme="neumorphism"] .triage-staging :is(.triage-staging__node, .triage-staging__bit)[data-triage-dimmed] {
   box-shadow: none;
