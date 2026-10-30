@@ -1314,6 +1314,10 @@ is never shown again and is cleaned up 7 days later.
   (`prompt=select_account`), so the visitor can pick another account instead
   of being sent straight back as the account the browser is already signed in
   to, for example after deleting that account (user, 2026-10-31).
+- GitHub and Google sign-ins with the same verified email open the same
+  account, because Supabase links the two identities; a different email opens
+  a different account. Deleting that account removes it for both providers
+  (user, 2026-10-31).
 - If the visitor cancels at the provider or the provider returns an error, the
   current guest session stays, the error parameters are removed from the URL,
   and the account modal opens again with an inline error (a problem inside a
