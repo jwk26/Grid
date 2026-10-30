@@ -26,6 +26,7 @@ describe("HomeButton", () => {
     const handlers = {
       onPointerEnter: vi.fn(),
       onPointerLeave: vi.fn(),
+      onPointerMove: vi.fn(),
       onFocus: vi.fn(),
       onBlur: vi.fn(),
     };

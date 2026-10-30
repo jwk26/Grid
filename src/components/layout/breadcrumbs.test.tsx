@@ -15,6 +15,7 @@ const droppableMock = vi.hoisted(() => vi.fn());
 const handlers = {
   onPointerEnter: vi.fn(),
   onPointerLeave: vi.fn(),
+  onPointerMove: vi.fn(),
   onFocus: vi.fn(),
   onBlur: vi.fn(),
 };

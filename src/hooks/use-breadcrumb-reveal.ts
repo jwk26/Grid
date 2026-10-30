@@ -15,6 +15,8 @@ const LANDING_MS = motionDuration.homeLanding * 1000;
 export type RevealHandlers = {
   onPointerEnter: () => void;
   onPointerLeave: () => void;
+  // A pointer that is still over a re-rendered element sends no new `pointerenter`.
+  onPointerMove: () => void;
   onFocus: () => void;
   onBlur: () => void;
 };
@@ -28,6 +30,18 @@ type Sources = {
   entry: boolean;
   suppressed: boolean;
 };
+
+// Only keyboard focus reveals (SPEC: "hover or keyboard focus"): a button the mouse clicked keeps
+// focus, and the breadcrumb must still hide once the pointer has left.
+function isKeyboardFocus(element: Element | null): boolean {
+  // No focused element (a focus event without a target): treat it as keyboard focus.
+  if (!element || element === document.body) return true;
+  try {
+    return element.matches(":focus-visible");
+  } catch {
+    return true;
+  }
+}
 
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
@@ -87,7 +101,19 @@ export function useBreadcrumbReveal({
     return s.homeHover || s.barHover || s.homeFocus || s.barFocus;
   };
 
+  // A focused element that leaves the page sends no blur (a clicked segment navigates and
+  // unmounts, but only once the new Node's chain has loaded): read focus where it is now.
+  const syncFocus = () => {
+    const s = sources.current;
+    const active = document.activeElement;
+    const home = document.querySelector('[data-app-role="home-button"]');
+    const bar = document.querySelector('[data-app-role="breadcrumb-reveal"]');
+    if (home) s.homeFocus = home === active && isKeyboardFocus(active);
+    if (bar) s.barFocus = bar.contains(active) && isKeyboardFocus(active);
+  };
+
   const engaged = () => {
+    syncFocus();
     const s = sources.current;
     // Keyboard focus on a segment always reveals: a focused element is never hidden.
     return (pointerOrFocusIn() && !s.suppressed) || s.barFocus || draggingRef.current || s.held;
@@ -100,8 +126,9 @@ export function useBreadcrumbReveal({
       clearTimer("landingEnd");
       setLanding(false);
       if (phaseRef.current === "shown") return;
-      // A reveal started by a drag shows in place: no unfold, so the segments'
-      // drop rects, measured at drag start, are where they are drawn.
+      // A reveal started by a drag fades in without the clip or slide, so the
+      // segments' drop rects, measured at drag start, are where they are drawn. The
+      // mode lasts for this reveal, until its fold starts.
       setInstant(fromDrag);
       changePhase("shown");
     },
@@ -113,7 +140,6 @@ export function useBreadcrumbReveal({
     if (phaseRef.current !== "shown") return;
     const land = () => {
       timers.current.fold = undefined;
-      setInstant(false);
       changePhase("hidden");
       // Home is emphasized as the fold lands.
       setLanding(true);
@@ -121,6 +147,7 @@ export function useBreadcrumbReveal({
       timers.current.landingEnd = setTimeout(() => setLanding(false), LANDING_MS);
     };
     clearTimer("fold");
+    setInstant(false);
     // Reduced motion: it disappears in place, with no fold to wait for.
     if (prefersReducedMotion()) {
       land();
@@ -135,7 +162,7 @@ export function useBreadcrumbReveal({
     if (!pointerOrFocusIn()) sources.current.suppressed = false;
     if (engaged()) {
       clearTimer("hide");
-      show(draggingRef.current && phaseRef.current === "hidden");
+      show(draggingRef.current && phaseRef.current !== "shown");
       return;
     }
     if (phaseRef.current !== "shown" || timers.current.hide) return;
@@ -155,6 +182,13 @@ export function useBreadcrumbReveal({
     const t = timers.current;
     s.suppressed = false;
     s.entry = false;
+    // An element that leaves the page while hovered or focused sends no pointerleave
+    // or blur (a clicked segment navigates and unmounts): start from what is true now.
+    // Hover starts off and the next pointer move over Home or the bar sets it again.
+    s.homeHover = false;
+    s.barHover = false;
+    s.homeFocus = false;
+    s.barFocus = false;
     clearTimer("entry");
     if (!enabled) {
       clearTimer("hide");
@@ -203,7 +237,10 @@ export function useBreadcrumbReveal({
     () => ({
       onPointerEnter: () => setSource("homeHover", true),
       onPointerLeave: () => setSource("homeHover", false),
-      onFocus: () => setSource("homeFocus", true),
+      onPointerMove: () => {
+        if (!sources.current.homeHover) setSource("homeHover", true);
+      },
+      onFocus: () => setSource("homeFocus", isKeyboardFocus(document.activeElement)),
       onBlur: () => setSource("homeFocus", false),
     }),
     [setSource],
@@ -213,7 +250,10 @@ export function useBreadcrumbReveal({
     () => ({
       onPointerEnter: () => setSource("barHover", true),
       onPointerLeave: () => setSource("barHover", false),
-      onFocus: () => setSource("barFocus", true),
+      onPointerMove: () => {
+        if (!sources.current.barHover) setSource("barHover", true);
+      },
+      onFocus: () => setSource("barFocus", isKeyboardFocus(document.activeElement)),
       onBlur: () => setSource("barFocus", false),
     }),
     [setSource],

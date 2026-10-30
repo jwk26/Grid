@@ -178,6 +178,7 @@ vi.mock("@/components/layout/sidebar", () => ({
     homeRevealHandlers?: {
       onPointerEnter: () => void;
       onPointerLeave: () => void;
+      onPointerMove: () => void;
       onFocus: () => void;
       onBlur: () => void;
     };
@@ -260,7 +261,7 @@ vi.mock("@/components/layout/breadcrumbs", async () => {
         nodeId: string;
         phase: string;
         instant: boolean;
-        handlers: { onPointerEnter: () => void; onPointerLeave: () => void; onFocus: () => void; onBlur: () => void };
+        handlers: { onPointerEnter: () => void; onPointerLeave: () => void; onPointerMove: () => void; onFocus: () => void; onBlur: () => void };
         onHeldChange: (held: boolean) => void;
       }
     >(function BreadcrumbsMock({ nodeId, phase, instant, handlers, onHeldChange }, ref) {

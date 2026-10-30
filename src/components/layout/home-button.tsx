@@ -37,6 +37,7 @@ export function HomeButton({
       onFocus={revealHandlers?.onFocus}
       onPointerEnter={revealHandlers?.onPointerEnter}
       onPointerLeave={revealHandlers?.onPointerLeave}
+      onPointerMove={revealHandlers?.onPointerMove}
     />
   );
 }

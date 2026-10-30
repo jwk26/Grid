@@ -128,6 +128,65 @@ describe("useBreadcrumbReveal", () => {
     expect(result.current.instant).toBe(false);
   });
 
+  it("hover and focus left on a removed segment do not keep it shown after the Node changes", () => {
+    // Clicking a segment navigates and removes that button: no pointerleave or blur is sent.
+    const { result, rerender } = setup();
+    act(() => result.current.barHandlers.onFocus());
+    act(() => result.current.barHandlers.onPointerEnter());
+    rerender({ enabled: true, nodeId: "n2", dragging: false });
+    expect(result.current.phase).toBe("shown");
+
+    advance(3400);
+    expect(result.current.phase).toBe("hidden");
+
+    // A later hover still reveals and still hides.
+    act(() => result.current.homeHandlers.onPointerEnter());
+    act(() => result.current.homeHandlers.onPointerLeave());
+    advance(1000);
+    expect(result.current.phase).toBe("folding");
+  });
+
+  it("a pointer that stays over the bar after a re-render reveals again on its next move", () => {
+    const { result } = setup();
+    advance(3400);
+    act(() => result.current.barHandlers.onPointerMove());
+    expect(result.current.phase).toBe("shown");
+    act(() => result.current.barHandlers.onPointerLeave());
+    advance(1000);
+    expect(result.current.phase).toBe("folding");
+  });
+
+  it("clears hover and focus when the breadcrumb is disabled", () => {
+    const { result, rerender } = setup();
+    act(() => result.current.barHandlers.onFocus());
+    rerender({ enabled: false, nodeId: null, dragging: false });
+    rerender({ enabled: true, nodeId: "n3", dragging: false });
+    advance(3400);
+    expect(result.current.phase).toBe("hidden");
+  });
+
+  it("a reveal started by a drag fades in without moving and ends being one when it folds", () => {
+    const { result, rerender } = setup();
+    advance(3400);
+    rerender({ enabled: true, nodeId: "n1", dragging: true });
+    expect(result.current.instant).toBe(true);
+    rerender({ enabled: true, nodeId: "n1", dragging: false });
+    // The fade-in mode lasts for this reveal only: it clears as the fold starts.
+    expect(result.current.instant).toBe(true);
+    advance(1000);
+    expect(result.current.phase).toBe("folding");
+    expect(result.current.instant).toBe(false);
+  });
+
+  it("a drag that starts while it is folding shows it without the slide too", () => {
+    const { result, rerender } = setup();
+    advance(3000);
+    expect(result.current.phase).toBe("folding");
+    rerender({ enabled: true, nodeId: "n1", dragging: true });
+    expect(result.current.phase).toBe("shown");
+    expect(result.current.instant).toBe(true);
+  });
+
   it("holds while the deadline picker is open", () => {
     const { result } = setup();
     advance(3400);
@@ -299,5 +358,29 @@ describe("useEscapeOrder", () => {
     press();
     expect(calls.exit).toHaveBeenCalledOnce();
     expect(calls.hide).not.toHaveBeenCalled();
+  });
+});
+
+describe("useBreadcrumbReveal focus", () => {
+  it("a mouse-clicked button that keeps focus does not keep it shown", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("matchMedia", () => ({ matches: false }));
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    // The browser says this focus came from the pointer.
+    button.matches = ((selector: string) => selector !== ":focus-visible") as typeof button.matches;
+    button.focus();
+    try {
+      const { result } = renderHook((props: Props) => useBreadcrumbReveal(props), {
+        initialProps: { enabled: true, nodeId: "n1", dragging: false },
+      });
+      act(() => result.current.barHandlers.onFocus());
+      act(() => void vi.advanceTimersByTime(3400));
+      expect(result.current.phase).toBe("hidden");
+    } finally {
+      button.remove();
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
   });
 });

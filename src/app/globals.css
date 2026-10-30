@@ -501,13 +501,12 @@
   animation: breadcrumb-surface-in 0.26s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-/* A reveal that a drag starts shows in place, so the drop rects measured at drag start hold;
-   a drag that starts mid-animation stops it for the same reason. */
-.breadcrumb-reveal[data-instant="true"],
-.breadcrumb-reveal[data-instant="true"] .breadcrumb-reveal__surface,
-.breadcrumb-reveal[data-dragging="true"],
-.breadcrumb-reveal[data-dragging="true"] .breadcrumb-reveal__surface {
-  animation: none !important;
+/* A reveal that a drag starts fades in by opacity only, with no clip or slide, so the drop
+   rects measured at drag start hold; a drag that starts mid-unfold stops the unfold for the
+   same reason. Both apply to the shown phase only: the fold that ends the reveal is the normal one. */
+.breadcrumb-reveal[data-phase="shown"][data-instant="true"],
+.breadcrumb-reveal[data-phase="shown"][data-dragging="true"] {
+  animation: none;
 }
 
 .breadcrumb-reveal[data-phase="folding"] {
@@ -518,11 +517,8 @@
   animation: breadcrumb-surface-out 0.35s linear forwards;
 }
 
-/* During a drag: translucent, the chip hidden, only the segments take the pointer. */
-.breadcrumb-reveal[data-dragging="true"][data-phase="shown"] .breadcrumb-reveal__surface {
-  opacity: 0.5;
-}
-
+/* During a drag the surface keeps its resting look (the toast stack is the translucent one);
+   the chip is hidden and only the segments take the pointer. */
 /* `visibility`, not `display`: the row keeps its width, so the reserved zone does not shrink mid-drag. */
 .breadcrumb-reveal[data-dragging="true"] .breadcrumb-reveal__chip {
   visibility: hidden;
