@@ -51,3 +51,16 @@ into `DECISION.md` in a dedicated brainstorming session after Task 249.
   same phase as Item 1, since both share `use-dnd.ts`, `grid-dnd.ts`,
   `sidebar.tsx` and the `expert` review. This topic's Source Notes already list
   "Sidebar controls can become action targets during drag", so it belongs here.
+
+### Item 3 — Teaching the breadcrumb ancestor drop (future Grid tour)
+
+- User (2026-10-31, Task 248 check): the drag-time signal on every ancestor
+  breadcrumb segment (a ring and tint) reads as noise. Remove it, and teach
+  "drop on a breadcrumb segment to move an item to that ancestor" in a short
+  Grid tour modal shown on a user's first Grid visit — a future idea, not yet a
+  brainstorming topic of its own.
+- Decided in Task 248 (SPEC F24, DESIGN_TOKENS FB-13): only the segment under
+  the pointer keeps a light hover-level signal (`bg-accent`), so a drop on a
+  segment is still told apart from a drop on the cell beneath once Task 249
+  frees the top-left cells. The tour covers discoverability; it does not
+  replace that per-drop signal.
