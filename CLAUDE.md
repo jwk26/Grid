@@ -26,7 +26,7 @@
 
 ## Architecture Rules
 
-1. **Client-first:** Interactive/data components = Client Components. No Next.js server code. Supabase Postgres is the per-account source of truth. Browser storage holds only device preferences, the sign-in session, the session-expired marker and the Archive recovery identifier (`sessionStorage`), never domain data.
+1. **Client-first:** Interactive/data components = Client Components. No Next.js server code. Supabase Postgres is the per-account source of truth. Browser storage holds only device preferences, the sign-in session, the session-expired marker, the sign-in-started marker (`sessionStorage`) and the Archive recovery identifier (`sessionStorage`), never domain data.
 2. **Two-layer Data:** `DataStore` (every write is one database function call) → `Hooks` (reactive reads over the in-memory account snapshot, a disposable cache). UI only imports hooks. See `SPEC.md` Architecture Decisions 2 and 19.
 3. **URL-driven:** `/` (L0), `/grid/[id]` (Nodes), `?bit=[id]` (Popup).
 4. **Render-time Compute:** Aging/Urgency/Completion calculated on the fly.

@@ -1320,6 +1320,14 @@ is never shown again and is cleaned up 7 days later.
   dialog, F11) (user, 2026-10-22). If the sign-in started from the
   session-expired screen, there is no session to keep: the screen returns
   instead ([Session expiry](#session-expiry)).
+- The same holds when the visitor comes back without finishing, for example
+  with the browser's Back button, since Google's account chooser has no cancel
+  action. Before leaving for the provider the tab keeps a sign-in-started
+  marker in `sessionStorage` (this tab only, so another tab never reacts to
+  it). A return with neither a code nor an error while the marker is present,
+  whether the page reloads or the browser restores it from its back-forward
+  cache, reopens the modal with the same inline error; every return clears the
+  marker (user, 2026-10-31).
 
 ### App-level screens
 
@@ -1652,7 +1660,7 @@ is authoritative when a state might be mistaken for domain storage.
 | Lifetime | Owner and state | End/reset rule |
 |----------|-----------------|----------------|
 | Durable domain/integrity | Existing Node/Bit/Scratch Breakdown records and approved versions; `StagedCandidate`; archive/consumed lifecycle; the `accounts` row — in Postgres (SCHEMA §Postgres Target) | Repository lifecycle only. Candidate display joins its source; a snapshot miss is never orphan proof. No general operation log, journal, outbox, or offline queue |
-| App session (account) | `src/lib/db/snapshot-store.ts`: the account snapshot base and its in-memory pending writes (Decision 19); the Supabase session; `src/lib/db/connection-monitor.ts`: the connection state; the session-expired marker in `localStorage` ([Session expiry](#session-expiry)) | Snapshot and pending writes are dropped on reload and sign-out; the session persists in the browser through supabase-js; the marker lasts until the visitor chooses an action. Never persisted as domain data |
+| App session (account) | `src/lib/db/snapshot-store.ts`: the account snapshot base and its in-memory pending writes (Decision 19); the Supabase session; `src/lib/db/connection-monitor.ts`: the connection state; the session-expired marker in `localStorage` ([Session expiry](#session-expiry)); the sign-in-started marker in this tab's `sessionStorage` ([Account icon and modal](#account-icon-and-modal-sidebar-not-a-route)) | Snapshot and pending writes are dropped on reload and sign-out; the session persists in the browser through supabase-js; the session-expired marker lasts until the visitor chooses an action, the sign-in-started marker until the tab returns from the provider. Never persisted as domain data |
 | App session (survives same-session Inbox route leave/re-entry, not reload) | `src/stores/triage-store.ts`: last active selected Scratch, Pool expanded/collapsed and per-Scratch manual-reopen exception, Pool query/result/scroll context, Explorer hierarchy path/open columns and column scroll | Validate against current data on re-entry; full reload/new session applies the fallback below. A user change (sign-out, expiry, another account in this or another tab) resets all of it, so the new account enters through the saved-Scratch or first-Scratch fallback, not the external-removal hold (Phase 50 mi-1, Task 235) |
 | Mounted Inbox page session | Add/Edit base snapshots and drafts; one pending intent; deleting/pending/reconciling presentation and operation IDs; Explorer active/interrupted search, result scroll and reveal; placement/type/Result Title state; remote-arrival counts; external-removal transition; Scratch Trash dialog, pending/result state and this page's own-Trash marker; the new-capture selection request and its one-shot Pool reveal; completion overlay/Cancel/reopen presentation; proposed `use-triage-newly-placed.ts` markers/pinning/Undo/dependencies. The items shared across component trees or Inbox instances (Explorer remote presentation, the external-removal transition, own-Trash markers, the new-capture request and reveal, and the workspace-mounted flag) are held non-persisted in `src/stores/triage-store.ts` | Scratch changes preserve only the states explicitly named in the behavior sections. Inbox route exit clears Explorer search/reveal and Newly Placed/Undo; reload clears all except the Archive recovery identity below |
 | Forced-reload recovery identity | SCHEMA `PendingOperationRecovery` in current-tab `sessionStorage`, owned by the Archive operation coordinator | Archive only; written before dispatch, validated on read, cleared after terminal reconcile; no payload, draft, UI cache, mutation queue, or other workflow kind |
