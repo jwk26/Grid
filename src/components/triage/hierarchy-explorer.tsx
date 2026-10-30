@@ -162,7 +162,12 @@ function newlyUndoSlot(
         ? "unknown"
         : core.state === "reconciling"
           ? "reconciling"
-          : core.state === "not-applied" || core.state === "conflict"
+          : core.state === "not-applied" ||
+              core.state === "conflict" ||
+              core.action === "retry" ||
+              (state.phase === "terminal" &&
+                (state.terminalStatus === "conflict" ||
+                  state.terminalStatus === "rejected"))
             ? "problem"
             : null;
   const hint =

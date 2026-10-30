@@ -1484,7 +1484,8 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
     expect(document.getElementById(describedBy!)).toHaveTextContent(sentence);
     expect(screen.getAllByText(sentence).some(node=>node.parentElement?.classList.contains("sr-only"))).toBe(true);
     expect(document.querySelector(".newly-status-rail")).toBeNull();
-    expect(action.querySelector('[data-feedback-role="status-icon"]')).toBeNull();
+    // An answered conflict is a ! (unavailable); a mutated or available item keeps ↶.
+    expect(action.querySelector('[data-feedback-role="status-icon"]')?.getAttribute("data-glyph") ?? null).toBe(kind === "terminal-conflict" ? "exclamation" : null);
     expect(action).not.toBeDisabled();expect(screen.getByText("NEW")).toBeInTheDocument();
   });
 
