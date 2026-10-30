@@ -213,7 +213,19 @@ export type SnapshotStoreOptions = {
   requestTimeoutMs?: number;
   /** Told how each write request ended, once per request (SPEC §Connection states). */
   onRequestResult?: (result: RequestResult) => void;
+  /**
+   * Told when the server answers a read or a write with an account rejection (SCHEMA §Account
+   * deletion): the account was deleted (`account_missing`) or is being deleted
+   * (`account_deleting`). Not told for a store that was reset meanwhile.
+   */
+  onAccountRejection?: (code: AccountRejectionCode) => void;
 };
+
+export type AccountRejectionCode = "account_missing" | "account_deleting";
+
+export function isAccountRejectionCode(code: unknown): code is AccountRejectionCode {
+  return code === "account_missing" || code === "account_deleting";
+}
 
 // Thrown by a send function when the request ended without an answer (the connection failed
 // before a response). It is an unknown outcome like a timeout: the write may have committed.
@@ -242,6 +254,7 @@ export class SnapshotStore {
   private readonly fetchSnapshot: () => Promise<unknown>;
   private readonly requestTimeoutMs: number;
   private readonly onRequestResult: ((result: RequestResult) => void) | undefined;
+  private readonly onAccountRejection: ((code: AccountRejectionCode) => void) | undefined;
   private base: AccountView = emptyView();
   private status: StoreStatus = { phase: "empty" };
   private pending: PendingEntry[] = [];
@@ -258,6 +271,7 @@ export class SnapshotStore {
     this.fetchSnapshot = options.fetchSnapshot;
     this.requestTimeoutMs = options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS;
     this.onRequestResult = options.onRequestResult;
+    this.onAccountRejection = options.onAccountRejection;
     this.state = this.computeState();
   }
 
@@ -307,6 +321,7 @@ export class SnapshotStore {
         this.base = emptyView();
         this.status = { phase: "rejected", code: parsed.code };
         this.publish();
+        if (isAccountRejectionCode(parsed.code)) this.onAccountRejection?.(parsed.code);
         return "rejected";
       }
       this.base = parsed.data;
@@ -461,6 +476,9 @@ export class SnapshotStore {
         this.onRequestResult?.("reachable");
         this.settle(entry, result.changes);
         const outcome = result.status === "applied" || result.status === "already_applied" ? "applied" : "rejected";
+        if (outcome === "rejected" && isAccountRejectionCode(result.rejection?.code) && epoch === this.epoch) {
+          this.onAccountRejection?.(result.rejection.code);
+        }
         if (
           outcome === "rejected" &&
           result.rejection &&

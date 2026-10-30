@@ -130,6 +130,8 @@ interface TriageState {
   clearScratchReveal: () => void;
   selectScratch: (id: string) => void;
   clearSelection: () => void;
+  /** A user change (sign-out, another account): the app-session state starts over. */
+  resetAppSession: () => void;
   setScratchPoolExpanded: (expanded: boolean) => void;
   setScratchPoolManualExpandedForId: (id: string | null) => void;
   setScratchPoolQuery: (query: string) => void;
@@ -262,6 +264,26 @@ export const useTriageStore = create<TriageState>((set) => ({
     })),
   clearSelection: () =>
     set({ selectedScratchId: null, scratchPoolManualExpandedForId: null }),
+  resetAppSession: () =>
+    set({
+      selectedScratchId: null,
+      scratchPoolExpanded: true,
+      scratchPoolManualExpandedForId: null,
+      scratchPoolQuery: "",
+      scratchPoolActiveIds: [],
+      scratchPoolResultIds: [],
+      scratchPoolScroll: { anchorId: null, offset: 0 },
+      explorerPathIds: [],
+      explorerOpenColumnIds: [],
+      explorerColumnScroll: {},
+      explorerRemoteArrivalIds: {},
+      explorerLocalPlacementIdentities: [],
+      explorerPathStatus: null,
+      externalScratchRemoval: null,
+      ownTrashMarkers: {},
+      requestedScratchSelectionId: null,
+      scratchRevealId: null,
+    }),
   setScratchPoolExpanded: (expanded) =>
     set(
       expanded

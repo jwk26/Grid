@@ -81,6 +81,19 @@ export const SESSION_EXPIRED = {
   continueAsGuest: "Continue as guest",
 } as const;
 
+// Account-state screens (SPEC §App-level screens, §Feedback copy).
+export const ACCOUNT_BEING_DELETED = {
+  title: "This account is being deleted.",
+  reason: "Deletion finishes within 24 hours. After that you can sign up again with the same account.",
+  continueAsGuest: "Continue as guest",
+} as const;
+
+export const ACCOUNT_DELETED = {
+  title: "This account was deleted.",
+  reason: "Its data is gone. You can continue as a guest.",
+  continueAsGuest: "Continue as guest",
+} as const;
+
 // Toasts (SPEC §Feedback copy, Toasts). A row is one kind of toast: `key` is what the toast helper
 // groups by (a repeat of a key while it is visible updates the one toast), `tone` belongs to the
 // key. `counted` is the form for a count above one; a row without it shows the latest single text.

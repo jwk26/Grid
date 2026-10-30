@@ -10,8 +10,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 ## Task 235 — Add the account modal, sign-out and account deletion
 
 ### Current state
-- Status: Implemented, awaiting acceptance (Stage 1)
-- Next: Stage 1 (database) acceptance
+- Status: Implemented, awaiting acceptance (Stage 2)
+- Next: Stage 2 (client state) acceptance
 - Open: none (Phase 50 mi-1 is worked here)
 
 ### Log
@@ -29,6 +29,10 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Decision: accept the race of a write that passed its account check just before `delete_my_account()` committed; recorded in SCHEMA §Account deletion (ed91404); no lock reordering (user, 2026-10-30).
 - Review (advisory, 2026-10-30, Stage 1 checkpoint, round 2): approve; supersedes round 1. Full `pnpm test:db` rerun (955) and Status applied. Not applied: none.
 - Decision: Stage 1 (database) accepted (user, 2026-10-30).
+- Review (advisory, 2026-10-30, Stage 2 checkpoint): approve with changes. Apply: (1) `auth.signOut({ scope: "local" })` in the shared sign-out path, with a test of the scope and a code comment: the default `global` revokes every session of the account, so a second profile would show the session-expired screen after its access token expires instead of the account-being-deleted screen the acceptance asks for; (2) a `triage-store` test that every data field is back to its initial value after `resetAppSession()` or is on an explicit keep list (`triageWorkspaceMounted`), so a field added by Phase 50 (245A, 250) fails it until it is reset; (3) Stage 3 note: a write rejected with `account_deleting` or `account_missing` shows no failure toast over the account screen. Not applied: none.
+- Decision: sign-out (account modal, `Continue as guest`, after a deletion request) signs out this browser only (`scope: "local"`); other devices and profiles stay signed in until their next read or write (user, 2026-10-30).
+- Review (advisory, 2026-10-30, Stage 2 checkpoint, round 2): approve; supersedes round 1. Local sign-out scope and its test, the `resetAppSession()` field-coverage test and the Stage 3 toast note applied. Not applied: none.
+- Decision: Stage 2 (client state) accepted once the full `pnpm test` passes on the final files; then Stage 3 starts (user, 2026-10-30).
 
 ### Checkpoint
 - Stage 1 (database), uncommitted until accepted:
@@ -37,3 +41,10 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Review: `expert` found no blocker; every redefinition differs only in the account-check lines (checked against the earlier migrations; live `prosrc` equals the files). Seed lock order (Low) → fixed (L0 lock before the update); missing concurrency test (Low) → added (`ensure_account()` vs `delete_my_account()`, 5 rounds, no deadlock); advisory review item (5) was wrong: `cleanup_expired_trash` is client-callable and is covered.
 - Unresolved: a write that passed its account check just before `delete_my_account()` commits can still commit after it (checks are unlocked reads before the Grid locks). Data does not reappear (reads and `ensure_account()` reject) and the cleanup deletes the rows. Closing it means reordering locks in all 46 functions (account row first), which also reverses the lock order `ensure_account()` uses today. Recommendation: accept the race and write it into SCHEMA §Account deletion (Task 238 cleanup removes any such row). Needs your decision (with the advisory session).
 - Stage 1 re-verified after the advisory review (2026-10-30): full `pnpm test:db` 955 pass on the final files. Race decision recorded (ed91404); unresolved item closed.
+- Stage 1 accepted and committed (10f876c, user, 2026-10-30).
+- Stage 2 (client state), uncommitted until accepted:
+- Changed: `snapshot-store.ts` (`onAccountRejection`, fired from a snapshot read and from a write answer, never after a reset); `session.ts` (phases `account-deleting` / `account-deleted` from `ensure_account()`, snapshot and write rejections; `signOut()` and `continueAsGuest()` share one path; `requestAccountDeletion()` returns `requested | failed | unknown`, signs out only on a recorded request and never resends; `onUserChange` on sign-out, expiry and another tab's user change); `triage-store.ts` `resetAppSession()` wired through `getSessionController()` (Phase 50 mi-1); `supabase-calls.ts` `callDeleteMyAccount`; `feedback.ts` two screen copies (the fallback toast already existed); SPEC §Inbox/Triage State Ownership App session row; tests in the matching `*.test.ts`.
+- Verified: written test-first; full `pnpm test` 2255 pass, `typecheck` and `lint` (0 errors) clean, `git diff --check` clean. Not yet checked: the `getSessionController()` wiring of `onUserChange` has no unit test (it needs `window`); Stage 3 checks it in the browser (sign out, then the new guest's Inbox opens without the removal hold).
+- Please check: nothing visual yet. `AppFrame` still has no case for the two new phases; Stage 3 adds the screens.
+- Unresolved: none.
+- Stage 2 re-verified after the advisory review (2026-10-30): the shared sign-out path calls `auth.signOut({ scope: "local" })` (tested for sign-out and for the deletion request); a `triage-store` test sets every data field of a fresh store to a sentinel, resets, and expects the initial value for all but the keep list (`triageWorkspaceMounted`), so a later field fails until it is reset; focused suites (auth, stores) and `typecheck` pass. Stage 3 note taken: a write rejected with `account_deleting` / `account_missing` shows no failure toast over the account screen.

@@ -2,9 +2,10 @@ import { REQUEST_TIMEOUT_MS } from "@/lib/constants";
 import { AuthApiError, isAuthRetryableFetchError } from "@supabase/supabase-js";
 import type { RequestResult } from "@/lib/db/connection-monitor";
 import { bindConnectionEntry, getConnectionMonitor } from "@/lib/db/connection";
-import { callEnsureAccount } from "@/lib/db/supabase-calls";
+import { callDeleteMyAccount, callEnsureAccount } from "@/lib/db/supabase-calls";
 import { getSupabaseClient, type GriddoSupabaseClient } from "@/lib/db/supabase-client";
-import { SnapshotStore, UnknownOutcomeError } from "@/lib/db/snapshot-store";
+import { SnapshotStore, UnknownOutcomeError, type AccountRejectionCode } from "@/lib/db/snapshot-store";
+import { useTriageStore } from "@/stores/triage-store";
 
 // Account entry (SPEC §Account entry, §Session expiry): the session, `ensure_account()` and the
 // snapshot load, as one external store the app-level frame reads. Entry is one function that any
@@ -19,7 +20,13 @@ export type EntryState =
   | { phase: "ready" }
   | { phase: "load-failure"; reason: LoadFailureReason }
   | { phase: "guest-failure"; reason: GuestFailureReason }
-  | { phase: "session-expired"; variant: SessionVariant };
+  | { phase: "session-expired"; variant: SessionVariant }
+  // A function answered `account_deleting` (the deletion was requested, its rows go within 24
+  // hours) or `account_missing` (the account is gone). Both replace the app (SPEC §App-level screens).
+  | { phase: "account-deleting" }
+  | { phase: "account-deleted" };
+
+export type AccountDeletionResult = "requested" | "failed" | "unknown";
 
 // The session-expired marker (SPEC §Session expiry): whether the lost session was a guest or a
 // real account. No domain data. supabase-js clears its own session when a refresh is rejected,
@@ -43,6 +50,11 @@ export type SessionControllerOptions = {
   runExclusive?: <T>(name: string, task: () => Promise<T>) => Promise<T>;
   /** Runs an auth event handler outside supabase-js's callback (it must not call back into auth). */
   defer?: (task: () => void) => void;
+  /**
+   * Told when the user changed (sign-out, expiry, another account in another tab): whatever the
+   * app keeps for the old user's session starts over, e.g. the Inbox selection.
+   */
+  onUserChange?: () => void;
   /** Told how each request to the server ended (SPEC §Connection states). */
   connection?: { report: (result: RequestResult, detail?: { snapshotRead?: boolean }) => void };
 };
@@ -117,6 +129,7 @@ export function createSessionController(options: SessionControllerOptions) {
       return data;
     },
     onRequestResult: (result) => options.connection?.report(result),
+    onAccountRejection: (code) => showAccountState(code),
   });
 
   let state: EntryState = { phase: "entering" };
@@ -150,7 +163,17 @@ export function createSessionController(options: SessionControllerOptions) {
   };
   const lastKind = (): SessionVariant => (read(SESSION_KIND_KEY) === "account" ? "account" : "guest");
 
+  // A read or write was answered with an account rejection: the snapshot goes, and so does any
+  // entry in flight. The user stays known, so another account signing in from another tab still
+  // repeats entry.
+  function showAccountState(code: AccountRejectionCode) {
+    generation += 1;
+    store.reset();
+    setState({ phase: code === "account_deleting" ? "account-deleting" : "account-deleted" });
+  }
+
   const expire = (variant: SessionVariant) => {
+    options.onUserChange?.();
     skippingMarker = false;
     write(SESSION_EXPIRED_KEY, variant);
     currentUserId = null;
@@ -214,6 +237,8 @@ export function createSessionController(options: SessionControllerOptions) {
       const ensured = await callEnsureAccount(client);
       if (stale()) return;
       if (ensured.status !== "applied" && ensured.status !== "already_applied") {
+        const code = ensured.rejection?.code;
+        if (code === "account_missing" || code === "account_deleting") return showAccountState(code);
         return setState({ phase: "load-failure", reason: "other" });
       }
     } catch (error) {
@@ -236,6 +261,7 @@ export function createSessionController(options: SessionControllerOptions) {
     generation += 1;
     store.reset();
     currentUserId = null;
+    options.onUserChange?.();
     void enter(skipMarker);
   };
 
@@ -262,6 +288,21 @@ export function createSessionController(options: SessionControllerOptions) {
       else if (currentUserId !== null && session.user.id !== currentUserId) dropAndEnter();
     }
   };
+
+  async function signOutToGuest(): Promise<void> {
+    // The key lapses by its timestamp: other tabs read it when the event reaches them, which can
+    // be after this call has returned.
+    write(DELIBERATE_SIGN_OUT_KEY, String(Date.now()));
+    generation += 1;
+    store.reset();
+    currentUserId = null;
+    options.onUserChange?.();
+    // This browser only: the default `global` scope would revoke every session of the account, so a
+    // second profile still signed in would show the session-expired screen instead of the
+    // account-being-deleted screen (SPEC §Account icon and modal; user, 2026-10-30).
+    await getClient().auth.signOut({ scope: "local" });
+    await enter(true);
+  }
 
   const retryIfFailed = () => {
     if (state.phase === "load-failure" || state.phase === "guest-failure") void enter();
@@ -295,15 +336,30 @@ export function createSessionController(options: SessionControllerOptions) {
       return enter();
     },
     /** Session-expired and account-state screens: sign out, then start a new guest. */
-    async continueAsGuest(): Promise<void> {
-      // The key lapses by its timestamp: other tabs read it when the event reaches them, which can
-      // be after this call has returned.
-      write(DELIBERATE_SIGN_OUT_KEY, String(Date.now()));
-      generation += 1;
-      store.reset();
-      currentUserId = null;
-      await getClient().auth.signOut();
-      await enter(true);
+    continueAsGuest: signOutToGuest,
+    /** The account modal's Sign out: the same user change, chosen. */
+    signOut: signOutToGuest,
+    /**
+     * `delete_my_account()`, then, once the request is recorded, a sign-out to a new guest. A failure
+     * keeps the session; an unknown outcome is never sent again (the next read says what the server
+     * has).
+     */
+    async requestAccountDeletion(): Promise<AccountDeletionResult> {
+      let answer: Awaited<ReturnType<typeof callDeleteMyAccount>>;
+      try {
+        answer = await callDeleteMyAccount(getClient());
+      } catch (error) {
+        options.connection?.report(error instanceof UnknownOutcomeError ? "unreachable" : "reachable");
+        return error instanceof UnknownOutcomeError ? "unknown" : "failed";
+      }
+      options.connection?.report("reachable");
+      const code = answer.rejection?.code;
+      if (answer.status === "applied" || answer.status === "already_applied" || code === "account_deleting") {
+        await signOutToGuest();
+        return "requested";
+      }
+      if (code === "account_missing") showAccountState(code);
+      return "failed";
     },
     /** Resolves once the account is loaded; waits through a re-entry after a user change. */
     whenReady(): Promise<void> {
@@ -325,7 +381,12 @@ let controller: SessionController | null = null;
 export function getSessionController(): SessionController {
   if (!controller) {
     const connection = getConnectionMonitor();
-    controller = createSessionController({ getClient: getSupabaseClient, storage: window.localStorage, connection });
+    controller = createSessionController({
+      getClient: getSupabaseClient,
+      storage: window.localStorage,
+      connection,
+      onUserChange: () => useTriageStore.getState().resetAppSession(),
+    });
     const created = controller;
     bindConnectionEntry({ refetch: () => created.store.refetch(), isReady: () => created.getState().phase === "ready" });
   }

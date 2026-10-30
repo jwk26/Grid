@@ -47,16 +47,18 @@ function setup(options: { session?: { id: string; anon?: boolean } | null } = {}
   };
   type RpcAnswer = { data: unknown; error: { message: string } | null; status: number };
   const rpc = vi.fn(async (name: string): Promise<RpcAnswer> => {
-    if (name === "ensure_account") {
+    if (name === "ensure_account" || name === "delete_my_account") {
       return { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 };
     }
     return { data: emptySnapshot, error: null, status: 200 };
   });
   const client = { auth, rpc } as never;
   const storage = memoryStorage();
+  const onUserChange = vi.fn();
   const controller = createSessionController({
     getClient: () => client,
     storage,
+    onUserChange,
     runExclusive: (_name, task) => task(),
     // Tests drive auth events directly, so the handler runs in the same tick.
     defer: (task) => task(),
@@ -64,6 +66,7 @@ function setup(options: { session?: { id: string; anon?: boolean } | null } = {}
   return {
     auth,
     rpc,
+    onUserChange,
     storage,
     store: controller.store,
     controller,
@@ -171,17 +174,6 @@ describe("session controller failures", () => {
       name === "ensure_account"
         ? { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 }
         : { data: null, error: { message: "boom" }, status: 500 },
-    );
-    await t.controller.start();
-    expect(t.controller.getState()).toEqual({ phase: "load-failure", reason: "other" });
-  });
-
-  it("a rejected snapshot (account deleted) is a load failure with the other reason", async () => {
-    const t = setup({ session: { id: "g" } });
-    t.rpc.mockImplementation(async (name: string) =>
-      name === "ensure_account"
-        ? { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 }
-        : { data: { rejection: { code: "account_missing" } }, error: null, status: 200 },
     );
     await t.controller.start();
     expect(t.controller.getState()).toEqual({ phase: "load-failure", reason: "other" });
@@ -464,5 +456,185 @@ describe("a snapshot read that never answers (Task 233)", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+const OK = { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 };
+const rejection = (code: string) => ({ data: { rejection: { code } }, error: null, status: 200 });
+
+describe("account-state screens (Task 235)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("a snapshot rejected with account_missing is the account-deleted screen, with no data", async () => {
+    const t = setup({ session: { id: "g" } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_missing")));
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+  });
+
+  it("a snapshot rejected with account_deleting is the account-being-deleted screen", async () => {
+    const t = setup({ session: { id: "g" } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_deleting")));
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleting" });
+  });
+
+  it("ensure_account rejected with either code shows the matching screen and reads no snapshot", async () => {
+    for (const [code, phase] of [
+      ["account_missing", "account-deleted"],
+      ["account_deleting", "account-deleting"],
+    ] as const) {
+      const t = setup({ session: { id: "oauth", anon: false } });
+      t.rpc.mockImplementation(async (name: string) => ({
+        data: name === "ensure_account" ? { status: "rejected", result: null, changes: {}, rejection: { code } } : emptySnapshot,
+        error: null,
+        status: 200,
+      }));
+      await t.controller.start();
+      expect(t.controller.getState(), code).toEqual({ phase });
+      expect(t.rpc.mock.calls.map(([name]) => name), code).toEqual(["ensure_account"]);
+    }
+  });
+
+  it("a write answered with account_deleting moves a ready tab to the screen and drops the snapshot", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    await t.controller.store.command({
+      key: "k",
+      send: async () => ({ status: "rejected", result: null, changes: {}, rejection: { code: "account_deleting" } }),
+    });
+    expect(t.controller.getState()).toEqual({ phase: "account-deleting" });
+    expect(t.controller.store.getState().status.phase).toBe("empty");
+  });
+
+  it("Continue as guest on the screen signs out and starts a new guest", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_deleting")));
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : { data: emptySnapshot, error: null, status: 200 }));
+    await t.controller.continueAsGuest();
+    expect(t.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.controller.getVariant()).toBe("guest");
+    expect(t.onUserChange).toHaveBeenCalled();
+  });
+
+  it("a tab on the screen follows the new guest another tab started by signing out", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_deleting")));
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : { data: emptySnapshot, error: null, status: 200 }));
+    // The other tab's deliberate sign-out, then the guest it created.
+    t.storage.setItem("griddo.deliberate-sign-out", String(Date.now()));
+    t.setSession(null);
+    t.emit("SIGNED_OUT", null);
+    await settle();
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+  });
+});
+
+describe("sign-out and account deletion (Task 235)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("signOut drops the snapshot, starts a new guest and resets the app-session state", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    await t.controller.signOut();
+    expect(t.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(t.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+    expect(t.controller.getVariant()).toBe("guest");
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.onUserChange).toHaveBeenCalled();
+  });
+
+  it("an app-session reset happens on every user change: expiry, another tab's other user, another tab's sign-out", async () => {
+    const expiry = setup({ session: { id: "g" } });
+    await expiry.controller.start();
+    expiry.onUserChange.mockClear();
+    expiry.emit("SIGNED_OUT", null);
+    expect(expiry.onUserChange).toHaveBeenCalledTimes(1);
+
+    const other = setup({ session: { id: "g1" } });
+    await other.controller.start();
+    other.onUserChange.mockClear();
+    other.emit("SIGNED_IN", { id: "g2", is_anonymous: false });
+    await settle();
+    expect(other.onUserChange).toHaveBeenCalled();
+
+    const same = setup({ session: { id: "g1" } });
+    await same.controller.start();
+    same.onUserChange.mockClear();
+    same.emit("SIGNED_IN", { id: "g1", is_anonymous: true });
+    await settle();
+    expect(same.onUserChange).not.toHaveBeenCalled();
+  });
+
+  it("requestAccountDeletion calls delete_my_account, then signs out to a new guest", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    const result = await t.controller.requestAccountDeletion();
+    expect(result).toBe("requested");
+    expect(t.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+    const names = t.rpc.mock.calls.map(([name]) => name);
+    expect(names).toContain("delete_my_account");
+    expect(names.indexOf("delete_my_account")).toBeLessThan(names.lastIndexOf("ensure_account"));
+    expect(t.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(t.controller.getVariant()).toBe("guest");
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("a deletion that already was requested counts as requested", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "delete_my_account"
+        ? { data: { status: "already_applied", result: null, changes: {} }, error: null, status: 200 }
+        : name === "ensure_account"
+          ? OK
+          : { data: emptySnapshot, error: null, status: 200 },
+    );
+    expect(await t.controller.requestAccountDeletion()).toBe("requested");
+  });
+
+  it("a failed request keeps the session: nothing is signed out and the result is failed", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "delete_my_account"
+        ? { data: null, error: { message: "boom" }, status: 500 }
+        : { data: emptySnapshot, error: null, status: 200 },
+    );
+    expect(await t.controller.requestAccountDeletion()).toBe("failed");
+    expect(t.auth.signOut).not.toHaveBeenCalled();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("a request with no answer is unknown: nothing is signed out and the request is not sent again", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "delete_my_account"
+        ? { data: null, error: { message: "network" }, status: 0 }
+        : { data: emptySnapshot, error: null, status: 200 },
+    );
+    expect(await t.controller.requestAccountDeletion()).toBe("unknown");
+    expect(t.auth.signOut).not.toHaveBeenCalled();
+    expect(t.rpc.mock.calls.filter(([name]) => name === "delete_my_account")).toHaveLength(1);
+  });
+
+  it("an account deleted in the meantime shows the account-deleted screen", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "delete_my_account"
+        ? { data: { status: "rejected", result: null, changes: {}, rejection: { code: "account_missing" } }, error: null, status: 200 }
+        : { data: emptySnapshot, error: null, status: 200 },
+    );
+    expect(await t.controller.requestAccountDeletion()).toBe("failed");
+    expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
   });
 });

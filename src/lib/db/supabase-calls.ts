@@ -66,6 +66,8 @@ export const callEnsureAccount = (client: GriddoSupabaseClient) =>
     p_reserved_cells: BREADCRUMB_RESERVED_CELLS,
   } satisfies Args<"ensure_account">);
 
+export const callDeleteMyAccount = (client: GriddoSupabaseClient) => callWrite(client, "delete_my_account", {});
+
 export const callUpdateNode = (client: GriddoSupabaseClient, id: string, patch: NodePatch) =>
   callWrite(client, "update_node", {
     p_id: id,
