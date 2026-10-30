@@ -1,5 +1,6 @@
 "use client";
 
+import { useConnectionState } from "@/lib/db/connection";
 import {
   useCallback,
   useContext,
@@ -8,7 +9,6 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  useSyncExternalStore,
   type ChangeEvent,
   type FocusEvent,
   type KeyboardEvent,
@@ -308,19 +308,6 @@ export function ArchiveOperationCard({
   );
 }
 
-function subscribeToBrowserConnectivity(onStoreChange: () => void) {
-  window.addEventListener("online", onStoreChange);
-  window.addEventListener("offline", onStoreChange);
-  return () => {
-    window.removeEventListener("online", onStoreChange);
-    window.removeEventListener("offline", onStoreChange);
-  };
-}
-
-function getBrowserOnlineSnapshot() {
-  return navigator.onLine;
-}
-
 function InlineEditor({
   contentAfter,
   contentBefore,
@@ -365,11 +352,8 @@ function InlineEditor({
   const latestVersionRef = useRef(snapshot.latest?.version ?? null);
   const [copyStatus, setCopyStatus] = useState("");
   const [latestStatus, setLatestStatus] = useState("");
-  const isBrowserOnline = useSyncExternalStore(
-    subscribeToBrowserConnectivity,
-    getBrowserOnlineSnapshot,
-    () => true,
-  );
+  // One offline source for the app: the connection monitor (SPEC §Connection states).
+  const isBrowserOnline = useConnectionState() !== "offline";
 
   useEffect(() => {
     const field = fieldRef.current;
@@ -1988,7 +1972,7 @@ export function BreakdownPanel({
     }
     const activeOperation = operationLock.activeOperation;
     if (activeOperation === null) {
-      if (!operationLock.acquire("add", command.operationId)) return;
+      if (!operationLock.acquire("add", command.operationId, { reconcile: true })) return;
     } else if (activeOperation.operationId !== command.operationId) return;
 
     addReliabilityActionRef.current?.focus();
@@ -2115,7 +2099,7 @@ export function BreakdownPanel({
     }
     const activeOperation = operationLock.activeOperation;
     if (activeOperation === null) {
-      if (!operationLock.acquire("delete", command.operationId)) return;
+      if (!operationLock.acquire("delete", command.operationId, { reconcile: true })) return;
     } else if (activeOperation.operationId !== command.operationId) return;
 
     deleteReliabilityActionRefs.current

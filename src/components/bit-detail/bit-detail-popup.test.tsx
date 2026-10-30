@@ -1,3 +1,7 @@
+import { toastCopy } from "@/lib/copy/feedback";
+import { WriteOfflineError, WriteRejectedError } from "@/lib/db/write-errors";
+import { getConnectionMonitor } from "@/lib/db/connection";
+import { markReported } from "@/lib/db/write-failure";
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { startOfDay, startOfToday } from "date-fns";
@@ -6,6 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bit, Chunk, Node } from "@/types";
 
 const closeMock = vi.hoisted(() => vi.fn());
+const showToastMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/feedback/toast", () => ({ showToast: showToastMock }));
 const useBitDetailMock = vi.hoisted(() => vi.fn());
 const updateBitMock = vi.hoisted(() => vi.fn(async () => undefined));
 const updateNodeMock = vi.hoisted(() => vi.fn(async () => undefined));
@@ -220,6 +226,33 @@ describe("BitDetailPopup", () => {
     expect(screen.getByText("Move to trash")).toBeInTheDocument();
   });
 
+  it("closes at once on Move to trash, before the server answers (Task 231)", async () => {
+    mockBitDetail(createBit(), [], createNode({ level: 1 }));
+    softDeleteBitMock.mockImplementationOnce(() => new Promise<undefined>(() => undefined));
+    closeMock.mockClear();
+
+    render(<BitDetailPopup />);
+    fireEvent.click(screen.getByText("Move to trash"));
+
+    expect(closeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays open on Move to trash while offline: the gate stops the write, nothing changes", async () => {
+    mockBitDetail(createBit(), [], createNode({ level: 1 }));
+    softDeleteBitMock.mockRejectedValueOnce(markReported(new WriteOfflineError()));
+    closeMock.mockClear();
+    getConnectionMonitor().setForced("offline");
+    try {
+      render(<BitDetailPopup />);
+      fireEvent.click(screen.getByText("Move to trash"));
+      await act(async () => {});
+      expect(softDeleteBitMock).toHaveBeenCalled();
+      expect(closeMock).not.toHaveBeenCalled();
+    } finally {
+      getConnectionMonitor().setForced(null);
+    }
+  });
+
   it("continues to offer Promote to Node for an ordinary eligible Bit with Chunks", () => {
     mockBitDetail(createBit(), [createChunk()], createNode({ level: 1 }));
 
@@ -228,6 +261,57 @@ describe("BitDetailPopup", () => {
     expect(
       screen.getByRole("button", { name: "Promote to Node" }),
     ).toBeInTheDocument();
+  });
+
+  it("Promote to Node waits for the answer: busy at once, the loader after 300 ms, the popup closes at the answer (group 3)", async () => {
+    vi.useFakeTimers();
+    try {
+      mockBitDetail(createBit(), [createChunk()], createNode({ level: 1 }));
+      let release!: () => void;
+      promoteBitToNodeMock.mockImplementationOnce(
+        () => new Promise<undefined>((resolve) => {
+          release = () => resolve(undefined);
+        }),
+      );
+      closeMock.mockClear();
+
+      render(<BitDetailPopup />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Promote to Node" }));
+      });
+
+      const trigger = screen.getByRole("button", { name: "More options" });
+      expect(trigger).toHaveAttribute("aria-busy", "true");
+      expect(closeMock).not.toHaveBeenCalled();
+      expect(within(trigger).queryByRole("img")).not.toBeInTheDocument();
+
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(within(trigger).getByRole("img", { name: "Promoting…" })).toBeInTheDocument();
+
+      await act(async () => {
+        release();
+      });
+      expect(closeMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("says the Bit is still a Bit when its promotion is refused, and stays open (Task 232)", async () => {
+    mockBitDetail(createBit({ title: "Plan" }), [createChunk()], createNode({ level: 1 }));
+    promoteBitToNodeMock.mockRejectedValueOnce(new Error("refused"));
+    closeMock.mockClear();
+    showToastMock.mockClear();
+
+    render(<BitDetailPopup />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Promote to Node" }));
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith(toastCopy.promoteFailed, "Plan");
+    expect(closeMock).not.toHaveBeenCalled();
   });
 
   it("does not offer Promote to Node for a Bit whose title is over the Node limit", () => {
@@ -330,10 +414,11 @@ describe("BitDetailPopup", () => {
     fireEvent.click(screen.getByRole("button", { name: "Today" }));
     await Promise.resolve();
 
-    expect(updateBitMock).toHaveBeenCalledWith("bit-1", {
-      deadline: startOfToday().getTime(),
-      deadlineAllDay: true,
-    });
+    expect(updateBitMock).toHaveBeenCalledWith(
+      "bit-1",
+      { deadline: startOfToday().getTime(), deadlineAllDay: true },
+      { conflictDialog: true },
+    );
   });
 
   it("keeps the bit deadline urgency styling while omitting the year for current-year dates", () => {
@@ -418,5 +503,42 @@ describe("BitDetailPopup", () => {
       { deadline: nextDeadline, deadlineAllDay: true },
       { extendParent: true },
     );
+  });
+
+  it("leaves a refused deadline change to the store's toast: no conflict modal, no unhandled rejection", async () => {
+    updateBitMock.mockRejectedValueOnce(
+      markReported(new WriteRejectedError("rejected", { code: "rejected" })),
+    );
+    mockBitDetail(
+      createBit({ deadline: new Date(2026, 3, 10, 9, 30).getTime() }),
+      [],
+      createNode({ deadline: new Date(2026, 3, 12, 9, 30).getTime() }),
+    );
+
+    render(<BitDetailPopup />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Choose April 13" }));
+    });
+
+    expect(screen.queryByTestId("deadline-conflict-modal")).not.toBeInTheDocument();
+  });
+
+  it("drops a refused title edit the store reported and keeps the typed draft", async () => {
+    updateBitMock.mockRejectedValueOnce(
+      markReported(new WriteRejectedError("rejected", { code: "rejected" })),
+    );
+    mockBitDetail(createBit({ title: "Saved title" }), [], createNode());
+
+    render(<BitDetailPopup />);
+
+    const field = screen.getByDisplayValue("Saved title");
+    fireEvent.change(field, { target: { value: "Typed draft" } });
+    await act(async () => {
+      fireEvent.blur(field);
+    });
+
+    expect(updateBitMock).toHaveBeenCalledWith("bit-1", { title: "Typed draft" });
+    expect(screen.getByDisplayValue("Typed draft")).toBeInTheDocument();
   });
 });

@@ -1,3 +1,4 @@
+import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -38,8 +39,8 @@ const runBreadcrumbZoneMigrationMock = vi.hoisted(() => vi.fn());
 const getGridOccupancyMock = vi.hoisted(() => vi.fn());
 const createNodeMock = vi.hoisted(() => vi.fn());
 const createBitMock = vi.hoisted(() => vi.fn());
-const softDeleteNodeMock = vi.hoisted(() => vi.fn());
-const softDeleteBitMock = vi.hoisted(() => vi.fn());
+const softDeleteNodeMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const softDeleteBitMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const toastErrorMock = vi.hoisted(() => vi.fn());
 const toastMock = vi.hoisted(() => Object.assign(vi.fn(), { error: toastErrorMock }));
 const createNodeDialogSubmission = vi.hoisted(() => ({
@@ -604,7 +605,7 @@ describe("GridRuntime", () => {
         level: 0,
         x: 1,
         y: 1,
-      });
+      }, { report: false });
     });
     expect(getGridOccupancyMock).toHaveBeenCalledWith(null);
     expect(vi.mocked(findNearestEmptyCell)).toHaveBeenCalledWith(
@@ -623,6 +624,25 @@ describe("GridRuntime", () => {
     await waitFor(() => {
       expect(softDeleteBitMock).toHaveBeenCalledWith("bit-1");
     });
+  });
+
+  it("closes the delete confirmation at once, before the server answers (Task 231)", async () => {
+    softDeleteBitMock.mockImplementationOnce(() => new Promise<void>(() => undefined));
+    useParamsMock.mockReturnValue({});
+    useNodeMock.mockReturnValue(null);
+    render(
+      <GridRuntime>
+        <RuntimeProbe />
+      </GridRuntime>,
+    );
+
+    fireEvent.click(screen.getByLabelText("request-bit-delete"));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("This action cannot be undone.")).not.toBeInTheDocument();
+    });
+    expect(softDeleteBitMock).toHaveBeenCalledWith("bit-1");
   });
 
   it("renders TriageWorkspace for Inbox system nodes without escaping the shell", () => {
@@ -763,6 +783,51 @@ describe("GridRuntime", () => {
     );
   });
 
+  describe("a create the server refuses inside the Node dialog", () => {
+    async function openNodeDialogAndSubmit() {
+      const { findNearestEmptyCell } = await import("@/lib/utils/bfs");
+      useParamsMock.mockReturnValue({});
+      useNodeMock.mockReturnValue(null);
+      getGridOccupancyMock.mockResolvedValue(new Set(["0,0"]));
+      vi.mocked(findNearestEmptyCell).mockReturnValue({ x: 1, y: 1 });
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      fireEvent.click(screen.getByLabelText("sidebar-add"));
+      fireEvent.click(screen.getByLabelText("entry-create-node"));
+      fireEvent.click(screen.getByLabelText("submit-node"));
+    }
+
+    it("names the account limit inline", async () => {
+      createNodeMock.mockRejectedValue(
+        new WriteRejectedError("account_limit", { code: "account_limit", table: "nodes", limit: 100 }),
+      );
+      await openNodeDialogAndSubmit();
+      expect(await screen.findByRole("alert")).toHaveTextContent("This account has reached its limit of 100 Nodes.");
+    });
+
+    it("gives any other refusal the try-again line with the typed title", async () => {
+      createNodeMock.mockRejectedValue(new WriteRejectedError("cell_taken", { code: "cell_taken" }));
+      await openNodeDialogAndSubmit();
+      expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't create “New node”. Try again.");
+    });
+
+    it("closes the dialog when an unknown outcome turns out to have been kept", async () => {
+      createNodeMock.mockRejectedValue(new WriteOutcomeUnknownError(true));
+      await openNodeDialogAndSubmit();
+      await waitFor(() => expect(screen.queryByLabelText("submit-node")).not.toBeInTheDocument());
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("shows the line when the unknown outcome was rolled back", async () => {
+      createNodeMock.mockRejectedValue(new WriteOutcomeUnknownError(false));
+      await openNodeDialogAndSubmit();
+      expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't create “New node”. Try again.");
+    });
+  });
+
   it("uses chooser and cell placement when creating a child node inside a non-leaf grid", async () => {
     const { findNearestEmptyCell } = await import("@/lib/utils/bfs");
     const parentNode = createNode({
@@ -808,7 +873,7 @@ describe("GridRuntime", () => {
         level: 1,
         x: 5,
         y: 6,
-      });
+      }, { report: false });
     });
     expect(vi.mocked(findNearestEmptyCell)).toHaveBeenCalledWith(
       new Set(["1,1"]),
@@ -862,7 +927,7 @@ describe("GridRuntime", () => {
         level: 1,
         x: 6,
         y: 4,
-      });
+      }, { report: false });
     });
   });
 
@@ -954,7 +1019,7 @@ describe("GridRuntime", () => {
         parentId: leafNode.id,
         x: 9,
         y: 1,
-      });
+      }, { report: false });
     });
     expect(vi.mocked(findNearestEmptyCell)).toHaveBeenCalledWith(
       new Set(["10,1"]),
@@ -1029,7 +1094,7 @@ describe("GridRuntime", () => {
         parentId: "selected-parent",
         x: 8,
         y: 2,
-      });
+      }, { report: false });
     });
     expect(getGridOccupancyMock).toHaveBeenCalledWith("selected-parent");
     expect(vi.mocked(findNearestEmptyCell)).toHaveBeenCalledWith(

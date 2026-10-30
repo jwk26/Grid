@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { ThemeProvider } from "next-themes";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import type { ReactNode } from "react";
 import { BitDetailPopup } from "@/components/bit-detail/bit-detail-popup";
 import { AppToaster } from "@/components/feedback/app-toaster";
@@ -10,6 +10,7 @@ import { AppFrame } from "@/components/layout/app-frame";
 import { ColorThemeProvider } from "@/components/layout/color-theme-provider";
 import { SearchOverlay } from "@/components/layout/search-overlay";
 import { QuickCaptureOverlays } from "@/components/quick-capture/quick-capture-overlays";
+import { getConnectionMonitor } from "@/lib/db/connection";
 import { useTrashAutoCleanup } from "@/hooks/use-trash-auto-cleanup";
 
 // Development state switch (feedback F30): never part of a production bundle.
@@ -29,6 +30,15 @@ function TrashAutoCleanup() {
   return null;
 }
 
+function ConnectionMonitorRunner() {
+  useEffect(() => {
+    const monitor = getConnectionMonitor();
+    monitor.start();
+    return () => monitor.stop();
+  }, []);
+  return null;
+}
+
 export default function Providers({
   children,
 }: {
@@ -43,6 +53,7 @@ export default function Providers({
       <ColorThemeProvider>
         <AppFrame>
           <TrashAutoCleanup />
+          <ConnectionMonitorRunner />
           {children}
           <Suspense>
             <QuickCaptureOverlays />

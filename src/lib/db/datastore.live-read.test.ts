@@ -7,6 +7,9 @@ const storeLiveRead = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/auth/session", () => ({
   getSessionController: () => ({ whenReady: async () => undefined, store: {} }),
 }));
+vi.mock("@/lib/db/connection", () => ({ getConnectionMonitor: () => ({ isOffline: () => false }) }));
+vi.mock("@/lib/feedback/offline-write", () => ({ reportOfflineWrite: () => undefined }));
+vi.mock("@/lib/feedback/write-failure-toast", () => ({ reportWriteFailure: () => undefined }));
 vi.mock("@/lib/db/supabase-store", () => ({
   createSupabaseStore: () => ({ liveRead: storeLiveRead }),
 }));

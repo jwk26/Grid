@@ -15,6 +15,7 @@ import { useDnd } from "@/hooks/use-dnd";
 import { useGridActions } from "@/hooks/use-grid-actions";
 import { GRID_COLS } from "@/lib/constants";
 import { findNearestEmptyCell } from "@/lib/utils/bfs";
+import { classifyCreateRefusal } from "@/lib/feedback/create-refusal";
 import { hexToHsl } from "@/lib/utils/color";
 import { cn } from "@/lib/utils";
 import { useCalendarStore } from "@/stores/calendar-store";
@@ -79,10 +80,19 @@ export default function CalendarLayout({
         level: 0,
         x: cell.x,
         y: cell.y,
-      });
+      }, { report: false });
       setIsNodeDialogOpen(false);
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Unable to create node.");
+      const refusal = classifyCreateRefusal(err, title.trim());
+      if (refusal.outcome === "kept") {
+        setIsNodeDialogOpen(false);
+      } else if (refusal.outcome === "line") {
+        setCreateError(refusal.text);
+      } else if (refusal.outcome === "stay") {
+        // Offline: the toast was shown; the dialog keeps its input.
+      } else {
+        setCreateError(err instanceof Error ? err.message : "Unable to create node.");
+      }
     }
   }
 
@@ -121,10 +131,19 @@ export default function CalendarLayout({
         deadlineAllDay: false,
         x: cell.x,
         y: cell.y,
-      });
+      }, { report: false });
       setIsBitDialogOpen(false);
     } catch (err) {
-      setBitCreateError(err instanceof Error ? err.message : "Unable to create bit.");
+      const refusal = classifyCreateRefusal(err, title.trim());
+      if (refusal.outcome === "kept") {
+        setIsBitDialogOpen(false);
+      } else if (refusal.outcome === "line") {
+        setBitCreateError(refusal.text);
+      } else if (refusal.outcome === "stay") {
+        // Offline: the toast was shown; the dialog keeps its input.
+      } else {
+        setBitCreateError(err instanceof Error ? err.message : "Unable to create bit.");
+      }
     }
   }
 

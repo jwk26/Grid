@@ -25,12 +25,14 @@ export function StatusTooltip({
   open,
   onOpenChange,
   side = "top",
+  sideOffset = 4,
 }: {
   sentence: string;
   children: ReactElement;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   side?: "top" | "right" | "bottom" | "left";
+  sideOffset?: number;
 }) {
   const descriptionId = useId();
 
@@ -42,7 +44,7 @@ export function StatusTooltip({
         </TooltipTrigger>
         <TooltipContent
           side={side}
-          sideOffset={4}
+          sideOffset={sideOffset}
           data-feedback-role="status-tooltip"
           className="explorer-title-tooltip"
         >

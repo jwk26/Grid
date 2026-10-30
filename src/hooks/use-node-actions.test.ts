@@ -41,6 +41,6 @@ describe("useNodeActions", () => {
       await result.current.updateNode("node-1", patch);
     });
 
-    expect(dataStore.updateNode).toHaveBeenCalledWith("node-1", patch);
+    expect(dataStore.updateNode).toHaveBeenCalledWith("node-1", patch, undefined);
   });
 });

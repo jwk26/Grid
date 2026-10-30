@@ -1512,6 +1512,9 @@ title; `{target}` the target Node's title; `{count}` the counted number;
 | Permanent delete failed (kept, Node and Bit) | `Couldn't delete “{title}”. It's still in Trash.` | — |
 | Empty Trash succeeded (kept, `trash-list.tsx`) | `Trash emptied.` | — |
 | Empty Trash failed (kept) | `Couldn't empty Trash. Nothing was deleted.` | — |
+| Promotion failed (Bit to Node; user, 2026-10-30) | `Couldn't promote “{title}”. It's still a Bit.` | — |
+| Step delete failed (user, 2026-10-30) | `Couldn't delete “{title}”. It's still there.` | — |
+| Archive restore failed (Node and Bit; user, 2026-10-30) | `Couldn't restore “{title}”. It's still in Archive.` | — |
 | Account deleted | `Your account and its data were deleted.` (fallback: `Your account will be deleted within 24 hours.`) | — |
 
 A counted form reuses the kind's single form when the count is one. The
@@ -1523,7 +1526,11 @@ writes shows one counted toast (S28).
 | Element | Copy |
 |---|---|
 | Create dialog, no empty cell (Node or Bit, every level; inline error, typed title kept) | `“{target}” has no empty cell. Move or delete an item to make room.` (`{target}` is the Node whose Grid receives the item: the current Node, the chosen parent for a Bit created from L0, or `Home` for a Node at L0) |
+| Create refused by the server inside a dialog, account limit (Node or Bit create dialog, Scratch capture modal; inline error, typed title kept, no toast; user, 2026-10-30) | `This account has reached its limit of {limit} {items}.` |
+| Create refused by the server inside a dialog, any other reason (same dialogs and rules) | `Couldn't create “{title}”. Try again.` |
+| Node edit dialog, save refused by the server (inline error, typed values kept, no toast; an unknown outcome whose change is kept closes the dialog; user, 2026-10-30) | `Couldn't save the changes to “{title}”. Try again.` (`{title}` is the saved title) |
 | Home button (label and tooltip) | `Home` |
+| Account icon (accessible name, guest and account alike; no tooltip in the normal state, the connection sentence as tooltip and description while unstable or offline; user, 2026-10-30) | `Account` |
 | Tab title | A Node's Grid: `{title} – {app name}`. Inbox, Archive, Calendar (weekly and monthly) and Trash: `Inbox – {app name}`, `Archive – {app name}`, `Calendar – {app name}`, `Trash – {app name}`. L0: `{app name}` alone. `{app name}` is `APP_NAME`: `GridDO` until Task 239 names the product `grid`. Each page sets its title, so client navigation never leaves a stale one (user, 2026-10-22) |
 
 **Connection** (tooltip, and the polite announcement on entering the state)
@@ -1800,10 +1807,15 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/db/read-helpers.ts` *(Phase 45)* | Read ordering shared by both stores (Grid position, Chunk order, Node title path) |
 | `src/lib/db/placement-undo-verdict.ts` *(Phase 45)* | Pure Undo verdict of a placement from account rows; `DataStore.getPlacementUndoTruth()` uses it over the snapshot with no request, so Undo availability never calls a reconcile function, which runs only after an unknown outcome |
 | `src/lib/db/connection-monitor.ts` *(Phase 47)* | Connection state from request results: normal, unstable, offline; recovery probe |
+| `src/lib/db/connection.ts` *(Phase 47)* | The app's one connection monitor, the `/auth/v1/health` probe, the session controller's refetch binding and `useConnectionState()` for components |
+| `src/lib/db/write-failure.ts` *(Phase 47)* | What the store reports once about a rolled-back ordinary write, and `dropReportedFailure` for callers that have nothing to add |
 | `src/lib/auth/session.ts` *(Phase 45)* | Guest entry (anonymous sign-in, later Turnstile), OAuth, sign-out, refresh-failure detection, `ensure_account()` call |
 | `src/components/layout/app-frame.tsx` *(Phase 45)* | The app-level frame: loading, failure, session-expired, account-being-deleted, security-check and narrow-window screens |
 | `src/components/layout/account-button.tsx` *(Phase 47)*, `account-modal.tsx` *(Phase 48)* | Sidebar account icon with the connection badge; the guest and account modal |
 | `src/lib/feedback/toast.ts` *(Phase 47)* | Shared toast helper: kinds, counted bursts, timing (F13, F14) |
+| `src/lib/feedback/write-failure-toast.ts`, `create-refusal.ts`, `offline-write.ts` *(Phase 47)* | The rolled-back write toast; a create or edit dialog's inline refusal line; the offline write-attempt toast and `blockedWhileOffline()` for write entries outside `send()` (F18) |
+| `src/hooks/use-pending-action.ts`, `src/components/feedback/pending-loader.tsx` *(Phase 47)* | Group 3 controls: busy at once, a second press ignored, the F03 loader after `DISPLAY_DELAY_MS` |
+| `src/lib/auth/use-session-variant.ts` *(Phase 47)* | `guest` or `account` for the account icon, from the session |
 | `src/components/feedback/status-icon.tsx` *(Phase 49)* | Status icons and item emphasis: the delayed loader, `?`, `!` (F02, F03) |
 | `src/components/feedback/status-tooltip.tsx` *(Phase 49)* | Hover/focus status tooltip, one at a time, described-by wiring (F09) |
 | `src/components/feedback/status-announcement.tsx` *(Phase 49)* | Visually hidden polite status region and its hook for the success announcements: `Added.`, `Returned to Breakdown.`, `Saved.` (F04) |

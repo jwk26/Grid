@@ -181,8 +181,7 @@ describe("CalendarLayout bit creation", () => {
 
     await waitFor(() => {
       expect(createBitMock).toHaveBeenCalledWith(
-        expect.objectContaining({ parentId: "parent-123", deadline: null }),
-      );
+        expect.objectContaining({ parentId: "parent-123", deadline: null }), { report: false });
     });
   });
 

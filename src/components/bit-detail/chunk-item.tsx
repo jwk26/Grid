@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { format } from "date-fns";
 import { ArrowUpDown, Trash2 } from "lucide-react";
+import { PendingLoader } from "@/components/feedback/pending-loader";
+import { usePendingAction } from "@/hooks/use-pending-action";
+import { PENDING_SENTENCE } from "@/lib/copy/feedback";
 import { cn } from "@/lib/utils";
 import type { Chunk } from "@/types";
 
@@ -13,11 +16,12 @@ type ChunkItemProps = {
   showConnector: boolean;
   onToggle: (chunk: Chunk) => void;
   onEdit: (chunkId: string, title: string) => Promise<void>;
-  onDelete: (chunkId: string) => void;
+  onDelete: (chunkId: string) => Promise<void>;
 };
 
 export function ChunkItem({ chunk, isDraggable, showConnector, onToggle, onEdit, onDelete }: ChunkItemProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const deleteAction = usePendingAction();
   const [editValue, setEditValue] = useState(chunk.title);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -125,10 +129,13 @@ export function ChunkItem({ chunk, isDraggable, showConnector, onToggle, onEdit,
         <button
           type="button"
           aria-label={`Delete "${chunk.title}"`}
-          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:text-destructive"
-          onClick={() => onDelete(chunk.id)}
+          aria-busy={deleteAction.busy}
+          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:text-destructive disabled:cursor-not-allowed"
+          disabled={deleteAction.busy}
+          onClick={() => void deleteAction.run(() => onDelete(chunk.id))}
         >
           <Trash2 className="h-3.5 w-3.5" />
+          <PendingLoader busy={deleteAction.busy} sentence={PENDING_SENTENCE.deleteStep} />
         </button>
       </div>
     </div>

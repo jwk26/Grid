@@ -1,6 +1,10 @@
 "use client";
 
-import { toast } from "sonner";
+import { WriteOfflineError } from "@/lib/db/write-errors";
+import { PendingLoader } from "@/components/feedback/pending-loader";
+import { usePendingAction } from "@/hooks/use-pending-action";
+import { PENDING_SENTENCE, toastCopy } from "@/lib/copy/feedback";
+import { showToast } from "@/lib/feedback/toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +25,7 @@ type TrashItems = { nodes: Node[]; bits: Bit[] };
 
 export function TrashList({ items }: { items: TrashItems }) {
   const { emptyTrash } = useTrashActions();
+  const emptyAction = usePendingAction();
   const deletedNodeIds = new Set(items.nodes.map((node) => node.id));
 
   const groupedChildNodes = new Map<string, Node[]>();
@@ -56,11 +61,16 @@ export function TrashList({ items }: { items: TrashItems }) {
   );
 
   async function handleEmptyTrash() {
+    await emptyAction.run(emptySteps);
+  }
+
+  async function emptySteps() {
     try {
       await emptyTrash();
-      toast.success("Trash emptied.");
-    } catch {
-      toast.error("Unable to empty trash.");
+      showToast(toastCopy.emptyTrashSucceeded);
+    } catch (error) {
+      if (error instanceof WriteOfflineError) return;
+      showToast(toastCopy.emptyTrashFailed);
     }
   }
 
@@ -77,7 +87,10 @@ export function TrashList({ items }: { items: TrashItems }) {
       <div className="flex items-center justify-end">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive">Empty trash</Button>
+            <Button aria-busy={emptyAction.busy} disabled={emptyAction.busy} variant="destructive">
+              Empty trash
+              <PendingLoader busy={emptyAction.busy} sentence={PENDING_SENTENCE.emptyTrash} />
+            </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>

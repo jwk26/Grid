@@ -30,10 +30,28 @@ export class WriteRejectedError extends Error {
 /**
  * The call got no answer within the request timeout (or the connection failed before a
  * response), so the write may have committed. It is never resent; the snapshot is refetched.
+ * `kept` says what that refetch showed for a write that was shown at once: `true` the change is
+ * on the server, `false` it is not (the view is rolled back), `null` not known (the refetch
+ * failed, or the write had nothing shown).
  */
 export class WriteOutcomeUnknownError extends Error {
-  constructor(message = "The outcome of the write is unknown") {
+  constructor(
+    public readonly kept: boolean | null = null,
+    message = "The outcome of the write is unknown",
+  ) {
     super(message);
     this.name = "WriteOutcomeUnknownError";
+  }
+}
+
+/**
+ * A write attempted while the connection state is offline (SPEC §Connection states, F18). Nothing
+ * was shown, sent or changed; the store has already told the feedback layer, so the error is marked
+ * reported. A dialog keeps its input and stays open.
+ */
+export class WriteOfflineError extends Error {
+  constructor() {
+    super("Offline: the write was not sent");
+    this.name = "WriteOfflineError";
   }
 }

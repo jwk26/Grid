@@ -223,7 +223,13 @@ export type LiveObservable<T> = {
  * The answer to a deadline conflict (SCHEMA Hook 2): the call also extends the parent record's
  * deadline (a Bit's Node, a Chunk's Bit) in the same write, instead of failing.
  */
-export type ExtendParentOption = Readonly<{ extendParent?: boolean }>;
+export type ExtendParentOption = Readonly<{
+  extendParent?: boolean;
+  /** The caller shows a deadline conflict in its own dialog, so the store does not report it. */
+  conflictDialog?: boolean;
+}>;
+
+export type ReportOption = Readonly<{ report?: boolean }>;
 
 export interface DataStore {
   /**
@@ -235,8 +241,9 @@ export interface DataStore {
   // --- Nodes ---
   getNode(id: string): Promise<Node | undefined>;
   getNodes(parentId: string | null): Promise<Node[]>;
-  createNode(data: CreateNode): Promise<Node>;
-  updateNode(id: string, data: UpdateNode): Promise<void>;
+  /** `options.report: false`: the caller shows a refusal itself (a create dialog), so the store reports none. */
+  createNode(data: CreateNode, options?: ReportOption): Promise<Node>;
+  updateNode(id: string, data: UpdateNode, options?: ReportOption): Promise<void>;
   softDeleteNode(id: string): Promise<void>;
   restoreNode(id: string): Promise<void>;
   hardDeleteNode(id: string): Promise<AggregateHardDeleteResult>;
@@ -251,7 +258,8 @@ export interface DataStore {
   getBits(parentId: string): Promise<Bit[]>;
   getBitsForNode(nodeId: string): Promise<Bit[]>;
   getAllActiveBits(): Promise<Bit[]>;
-  createBit(data: CreateBit): Promise<Bit>;
+  /** `options.id`: the caller picks the id, so it can register it before the new Bit shows (Inbox capture). */
+  createBit(data: CreateBit, options?: ReportOption & { id?: string }): Promise<Bit>;
   updateBit(id: string, data: UpdateBit, options?: ExtendParentOption): Promise<void>;
   softDeleteBit(id: string): Promise<void>;
   restoreBit(id: string): Promise<void>;
@@ -347,7 +355,7 @@ export interface DataStore {
 
   // --- Chunks ---
   getChunks(bitId: string): Promise<Chunk[]>;
-  createChunk(data: CreateChunk): Promise<Chunk>;
+  createChunk(data: CreateChunk, options?: ReportOption): Promise<Chunk>;
   updateChunk(id: string, data: Partial<Chunk>, options?: ExtendParentOption): Promise<void>;
   /** Writes `order` 0..n-1 in the given sequence; the list must be exactly the Bit's Chunks. */
   reorderChunks(bitId: string, chunkIds: readonly string[]): Promise<void>;
@@ -420,19 +428,34 @@ let dataStorePromise: Promise<DataStore> | null = null;
 async function createDataStore(): Promise<DataStore> {
   // Production store (Phase 45): the Supabase store over the account snapshot. It exists once
   // entry has made a session, prepared the account and loaded the snapshot.
-  const [{ getSessionController }, { createSupabaseStore }] = await Promise.all([
-    import("@/lib/auth/session"),
-    import("@/lib/db/supabase-store"),
-  ]);
+  const [{ getSessionController }, { createSupabaseStore }, { reportWriteFailure }, { getConnectionMonitor }, { reportOfflineWrite }] =
+    await Promise.all([
+      import("@/lib/auth/session"),
+      import("@/lib/db/supabase-store"),
+      import("@/lib/feedback/write-failure-toast"),
+      import("@/lib/db/connection"),
+      import("@/lib/feedback/offline-write"),
+    ]);
+  // A rolled-back ordinary write is reported here, once, as a toast (SPEC §Toasts). While offline
+  // an ordinary write is stopped before it shows or sends anything (SPEC §Connection states).
+  const monitor = getConnectionMonitor();
+  const storeOptions = {
+    reportFailure: reportWriteFailure,
+    isOffline: monitor.isOffline,
+    reportOffline: reportOfflineWrite,
+  };
   const controller = getSessionController();
   await controller.whenReady();
-  let dataStore: DataStore = createSupabaseStore(controller.store);
   if (process.env.NODE_ENV === "development") {
-    // Development state switch (feedback F30): wrap whichever store is returned.
-    const { withDevInjection } = await import("@/lib/dev/state-switch");
-    dataStore = withDevInjection(dataStore);
+    // Development state switch (feedback F30): the ordinary writes are injected at the Supabase
+    // client, below the pending layer; the Inbox commands at the DataStore.
+    const [{ withDevInjection, withDevClient }, { getSupabaseClient }] = await Promise.all([
+      import("@/lib/dev/state-switch"),
+      import("@/lib/db/supabase-client"),
+    ]);
+    return withDevInjection(createSupabaseStore(controller.store, withDevClient(getSupabaseClient), storeOptions));
   }
-  return dataStore;
+  return createSupabaseStore(controller.store, undefined, storeOptions);
 }
 
 export function getDataStore(): Promise<DataStore> {

@@ -103,8 +103,7 @@ describe("CalendarLayout node creation", () => {
 
     await waitFor(() => {
       expect(createNodeMock).toHaveBeenCalledWith(
-        expect.objectContaining({ parentId: null, level: 0, deadline: null }),
-      );
+        expect.objectContaining({ parentId: null, level: 0, deadline: null }), { report: false });
     });
   });
 

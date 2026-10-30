@@ -1,11 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { baseEntities } from "@/lib/db/boundary-cases";
 import type { DataStore } from "@/lib/db/datastore";
+import { bitToRow, nodeToRow } from "@/lib/db/row-mapping";
+import { SnapshotStore } from "@/lib/db/snapshot-store";
+import type { GriddoSupabaseClient } from "@/lib/db/supabase-client";
+import { createSupabaseStore } from "@/lib/db/supabase-store";
+import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
 import {
   INJECTABLE_METHODS,
   INJECTION_OUTCOME_LABELS,
   STATE_SWITCH_MARKER,
   injectableMethodSpec,
   useStateSwitchStore,
+  withDevClient,
   withDevInjection,
   type InjectableMethod,
   type InjectionOutcome,
@@ -15,6 +22,10 @@ const uuid = (n: number) => `00000000-0000-4000-8000-${n.toString(16).padStart(1
 const SCRATCH_BIT = uuid(2);
 const OPERATION_ID = uuid(4001);
 
+
+// The methods injected at the DataStore; the ordinary writes are injected at the client.
+const STORE_METHODS = INJECTABLE_METHODS.filter((method) => injectableMethodSpec(method).kind !== "write");
+const WRITE_METHODS = INJECTABLE_METHODS.filter((method) => injectableMethodSpec(method).kind === "write");
 
 /** A fake whose every injectable method answers with that method's own marker. */
 function makeFakeStore() {
@@ -32,7 +43,7 @@ function makeFakeStore() {
       stagedCandidateCount: 0,
     })),
   };
-  for (const method of INJECTABLE_METHODS) {
+  for (const method of STORE_METHODS) {
     fake[method] = vi.fn(function (this: unknown, command: { operationId: string }) {
       calls.push({ method, thisArg: this });
       return Promise.resolve({
@@ -57,7 +68,7 @@ afterEach(() => {
 
 describe("injectable method table", () => {
   it("covers the Inbox commands and their reconcile twins", () => {
-    const names = new Set<string>(INJECTABLE_METHODS);
+    const names = new Set<string>(STORE_METHODS);
     for (const name of [
       "addBreakdown", "reconcileAddBreakdown",
       "saveScratchTitle", "reconcileSaveScratchTitle",
@@ -75,10 +86,11 @@ describe("injectable method table", () => {
       expect(names.has(name), name).toBe(true);
     }
     expect(names.size).toBe(23);
+    expect(WRITE_METHODS).toHaveLength(20);
   });
 
   it("offers each method only the outcomes its real path can return", () => {
-    for (const method of INJECTABLE_METHODS) {
+    for (const method of STORE_METHODS) {
       const spec = injectableMethodSpec(method);
       if (spec.kind === "command") {
         // A command answers applied, already_applied, rejected or conflict.
@@ -96,7 +108,7 @@ describe("injectable method table", () => {
   });
 
   it("offers rejected on reconcile only where the real reconcile can reject", () => {
-    const rejecting = INJECTABLE_METHODS.filter(
+    const rejecting = STORE_METHODS.filter(
       (method) =>
         injectableMethodSpec(method).kind === "reconcile" &&
         injectableMethodSpec(method).outcomes.includes("rejected"),
@@ -110,7 +122,7 @@ describe("injectable method table", () => {
   });
 
   it("builds every injected result from a read-only records source in the table", () => {
-    for (const method of INJECTABLE_METHODS) {
+    for (const method of STORE_METHODS) {
       const spec = injectableMethodSpec(method);
       if (spec.recordsFrom === null) {
         expect(method).toBe("archiveScratch");
@@ -153,7 +165,7 @@ describe("withDevInjection", () => {
     for (const call of calls) expect(call.thisArg).toBe(raw);
   });
 
-  describe.each(INJECTABLE_METHODS.map((method) => [method] as const))("%s", (method) => {
+  describe.each(STORE_METHODS.map((method) => [method] as const))("%s", (method) => {
     const spec = injectableMethodSpec(method as InjectableMethod);
     const command = { operationId: OPERATION_ID, scratchBitId: "scratch-1" };
 
@@ -488,6 +500,136 @@ describe("withDevInjection over a stateful store", () => {
       });
       await store.addBreakdown(addCommand());
       expect({ scratch: state.scratch, rows: [...state.rows] }).toEqual(before);
+    });
+  });
+});
+
+describe("ordinary writes (Task 231)", () => {
+  it("offers every ordinary write real, rejected and both unknown outcomes, and nothing else", () => {
+    for (const method of WRITE_METHODS) {
+      expect(injectableMethodSpec(method).outcomes, method).toEqual([
+        "real",
+        "unknown-before-send",
+        "unknown-after-commit",
+        "rejected",
+      ]);
+    }
+  });
+
+  it("withDevInjection leaves the ordinary writes alone", async () => {
+    const { fake, raw } = makeFakeStore();
+    raw.updateBit = vi.fn(async () => "real");
+    useStateSwitchStore.getState().queueInjection({ method: "updateBit", outcome: "rejected", delayMs: 0, count: 1 });
+    await expect(withDevInjection(fake).updateBit("b", {})).resolves.toBe("real");
+    expect(useStateSwitchStore.getState().injections).toHaveLength(1);
+  });
+
+  describe("withDevClient", () => {
+    const answer = { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 };
+    const setup = () => {
+      const rpc = vi.fn(async () => answer);
+      const getClient = withDevClient(() => ({ rpc, auth: { id: "auth" } }) as unknown as GriddoSupabaseClient);
+      return { rpc, client: getClient() };
+    };
+    const queue = (method: InjectableMethod, outcome: InjectionOutcome, delayMs = 0, count = 1) =>
+      useStateSwitchStore.getState().queueInjection({ method, outcome, delayMs, count });
+
+    it("passes a call through when nothing is queued, and other members of the client", async () => {
+      const { rpc, client } = setup();
+      await expect(client.rpc("update_bit" as never, { p_id: "b" } as never)).resolves.toBe(answer);
+      expect(rpc).toHaveBeenCalledWith("update_bit", { p_id: "b" });
+      expect((client as unknown as { auth: unknown }).auth).toEqual({ id: "auth" });
+    });
+
+    it("answers rejected without sending, with a state-dependent code", async () => {
+      const { rpc, client } = setup();
+      queue("updateBit", "rejected");
+      queue("softDeleteBit", "rejected");
+      const moved = (await client.rpc("update_bit" as never, {} as never)) as unknown as { data: unknown };
+      const trashed = (await client.rpc("soft_delete_bit" as never, {} as never)) as unknown as { data: unknown };
+      expect(moved.data).toMatchObject({ status: "rejected", changes: {}, rejection: { code: "cell_taken" } });
+      expect(trashed.data).toMatchObject({ rejection: { code: "not_found" } });
+      expect(rpc).not.toHaveBeenCalled();
+    });
+
+    it("unknown-before-send answers status 0 without sending; unknown-after-commit sends first", async () => {
+      const { rpc, client } = setup();
+      queue("createNode", "unknown-before-send");
+      queue("createBit", "unknown-after-commit");
+      const before = (await client.rpc("create_node" as never, {} as never)) as unknown as { status: number };
+      expect(before.status).toBe(0);
+      expect(rpc).not.toHaveBeenCalled();
+      const after = (await client.rpc("create_bit" as never, {} as never)) as unknown as { status: number };
+      expect(after.status).toBe(0);
+      expect(rpc).toHaveBeenCalledTimes(1);
+    });
+
+    it("delays, affects only its method, and is used up after its count", async () => {
+      vi.useFakeTimers();
+      const { rpc, client } = setup();
+      queue("updateBit", "real", 2_000, 1);
+      const delayed = client.rpc("update_bit" as never, {} as never);
+      await client.rpc("update_node" as never, {} as never);
+      expect(rpc).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(2_000);
+      await delayed;
+      expect(rpc).toHaveBeenCalledTimes(2);
+      await client.rpc("update_bit" as never, {} as never);
+      expect(rpc).toHaveBeenCalledTimes(3);
+    });
+
+    it("never touches an Inbox command function or get_snapshot", async () => {
+      const { rpc, client } = setup();
+      queue("updateBit", "rejected");
+      await client.rpc("get_snapshot" as never);
+      await client.rpc("add_breakdown" as never, {} as never);
+      expect(rpc).toHaveBeenCalledTimes(2);
+      expect(useStateSwitchStore.getState().injections).toHaveLength(1);
+    });
+  });
+
+  describe("through the store", () => {
+    const USER = "00000000-0000-4000-8000-0000000000aa";
+    const BIT = "00000000-0000-4000-8000-000000000002";
+    const NODE = "00000000-0000-4000-8000-000000000001";
+
+    async function wired() {
+      const rpc = vi.fn(async () => ({ data: { status: "applied", result: null, changes: {} }, error: null, status: 200 }));
+      const fetchSnapshot = vi.fn(async () => ({
+        nodes: [nodeToRow({ ...baseEntities.node, id: NODE } as never, USER)],
+        bits: [bitToRow({ ...baseEntities.bit, id: BIT, parentId: NODE, x: 1, y: 1 } as never, USER)],
+        chunks: [],
+        scratch_breakdowns: [],
+        staged_candidates: [],
+      }));
+      const snapshot = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 1_000 });
+      await snapshot.load();
+      const store = createSupabaseStore(
+        snapshot,
+        withDevClient(() => ({ rpc }) as unknown as GriddoSupabaseClient),
+      );
+      return { store, snapshot, rpc, fetchSnapshot };
+    }
+
+    it("a forced rejection shows the move, then rolls it back and the method throws", async () => {
+      const { store, snapshot, rpc } = await wired();
+      useStateSwitchStore.getState().queueInjection({ method: "updateBit", outcome: "rejected", delayMs: 50, count: 1 });
+      const moved = store.updateBit(BIT, { x: 7 }).catch((e: unknown) => e);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(snapshot.getState().view.bits.get(BIT)?.x).toBe(7);
+      expect(await moved).toBeInstanceOf(WriteRejectedError);
+      expect(snapshot.getState().view.bits.get(BIT)?.x).toBe(1);
+      expect(rpc).not.toHaveBeenCalled();
+    });
+
+    it("a forced lost answer is an unknown outcome: refetched, not resent", async () => {
+      const { store, snapshot, rpc, fetchSnapshot } = await wired();
+      useStateSwitchStore.getState().queueInjection({ method: "updateBit", outcome: "unknown-after-commit", delayMs: 0, count: 1 });
+      await expect(store.updateBit(BIT, { x: 7 })).rejects.toBeInstanceOf(WriteOutcomeUnknownError);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(rpc).toHaveBeenCalledTimes(1);
+      expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+      expect(snapshot.getState().pending).toEqual([]);
     });
   });
 });

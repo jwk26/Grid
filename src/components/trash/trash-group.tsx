@@ -1,9 +1,13 @@
 "use client";
 
+import { WriteOfflineError } from "@/lib/db/write-errors";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ChevronDown, ChevronRight, RotateCcw, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { PendingLoader } from "@/components/feedback/pending-loader";
+import { usePendingAction } from "@/hooks/use-pending-action";
+import { PENDING_SENTENCE, toastCopy } from "@/lib/copy/feedback";
+import { showToast } from "@/lib/feedback/toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,6 +114,9 @@ function NodeTrashGroup({
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { restoreNode, hardDeleteNode } = useTrashActions();
+  const restoreAction = usePendingAction();
+  const deleteAction = usePendingAction();
+  const anyBusy = restoreAction.busy || deleteAction.busy;
   const hasChildren = childNodes.length > 0 || childBits.length > 0;
 
   const childCountLabel = [
@@ -120,25 +127,35 @@ function NodeTrashGroup({
     .join(", ");
 
   async function handleRestore() {
+    await restoreAction.run(restoreSteps);
+  }
+
+  async function restoreSteps() {
     try {
       await restoreNode(node.id);
-      toast.success("Node restored.");
+      showToast(toastCopy.restoreSucceeded, node.title);
     } catch (error) {
+      if (error instanceof WriteOfflineError) return;
       if (error instanceof Error && error.message === "GRID_FULL") {
-        toast.error("Parent grid is full. Free up space first.");
+        showToast(toastCopy.restoreBlocked, node.title);
         return;
       }
 
-      toast.error("Unable to restore node.");
+      showToast(toastCopy.restoreFailed, node.title);
     }
   }
 
   async function handlePermanentDelete() {
+    await deleteAction.run(deleteSteps);
+  }
+
+  async function deleteSteps() {
     try {
       await hardDeleteNode(node.id);
-      toast.success("Node permanently deleted.");
-    } catch {
-      toast.error("Unable to permanently delete node.");
+      showToast(toastCopy.permanentDeleteSucceeded, node.title);
+    } catch (error) {
+      if (error instanceof WriteOfflineError) return;
+      showToast(toastCopy.permanentDeleteFailed, node.title);
     }
   }
 
@@ -146,15 +163,30 @@ function NodeTrashGroup({
     <TrashGroupFrame
       actions={(
         <>
-          <Button size="sm" variant="outline" onClick={() => void handleRestore()} type="button">
+          <Button
+            aria-busy={restoreAction.busy}
+            disabled={anyBusy}
+            size="sm"
+            variant="outline"
+            onClick={() => void handleRestore()}
+            type="button"
+          >
             <RotateCcw className="h-3.5 w-3.5" />
             Restore
+            <PendingLoader busy={restoreAction.busy} sentence={PENDING_SENTENCE.restore} />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size="sm" variant="destructive" type="button">
+              <Button
+                aria-busy={deleteAction.busy}
+                disabled={anyBusy}
+                size="sm"
+                variant="destructive"
+                type="button"
+              >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete
+                <PendingLoader busy={deleteAction.busy} sentence={PENDING_SENTENCE.permanentDelete} />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -237,27 +269,40 @@ function NodeTrashGroup({
 
 function StandaloneBitTrashGroup({ bit }: { bit: Bit }) {
   const { restoreBit, hardDeleteBit } = useTrashActions();
+  const restoreAction = usePendingAction();
+  const deleteAction = usePendingAction();
+  const anyBusy = restoreAction.busy || deleteAction.busy;
 
   async function handleRestore() {
+    await restoreAction.run(restoreSteps);
+  }
+
+  async function restoreSteps() {
     try {
       await restoreBit(bit.id);
-      toast.success("Bit restored.");
+      showToast(toastCopy.restoreSucceeded, bit.title);
     } catch (error) {
+      if (error instanceof WriteOfflineError) return;
       if (error instanceof Error && error.message === "GRID_FULL") {
-        toast.error("Parent grid is full. Free up space first.");
+        showToast(toastCopy.restoreBlocked, bit.title);
         return;
       }
 
-      toast.error("Unable to restore bit.");
+      showToast(toastCopy.restoreFailed, bit.title);
     }
   }
 
   async function handlePermanentDelete() {
+    await deleteAction.run(deleteSteps);
+  }
+
+  async function deleteSteps() {
     try {
       await hardDeleteBit(bit.id);
-      toast.success("Bit permanently deleted.");
-    } catch {
-      toast.error("Unable to permanently delete bit.");
+      showToast(toastCopy.permanentDeleteSucceeded, bit.title);
+    } catch (error) {
+      if (error instanceof WriteOfflineError) return;
+      showToast(toastCopy.permanentDeleteFailed, bit.title);
     }
   }
 
@@ -265,15 +310,30 @@ function StandaloneBitTrashGroup({ bit }: { bit: Bit }) {
     <TrashGroupFrame
       actions={(
         <>
-          <Button size="sm" variant="outline" onClick={() => void handleRestore()} type="button">
+          <Button
+            aria-busy={restoreAction.busy}
+            disabled={anyBusy}
+            size="sm"
+            variant="outline"
+            onClick={() => void handleRestore()}
+            type="button"
+          >
             <RotateCcw className="h-3.5 w-3.5" />
             Restore
+            <PendingLoader busy={restoreAction.busy} sentence={PENDING_SENTENCE.restore} />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size="sm" variant="destructive" type="button">
+              <Button
+                aria-busy={deleteAction.busy}
+                disabled={anyBusy}
+                size="sm"
+                variant="destructive"
+                type="button"
+              >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete
+                <PendingLoader busy={deleteAction.busy} sentence={PENDING_SENTENCE.permanentDelete} />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
