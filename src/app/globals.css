@@ -402,6 +402,23 @@
   }
 }
 
+/* The card being dragged is the drag layer: it shows above the revealed breadcrumb (which sits in
+   the sidebar's stacking context, z-45) and above the other cards (SPEC §Breadcrumb reveal and
+   Home button, Layering). While it is over a breadcrumb segment it turns translucent, so the
+   segment's drop signal shows through it. */
+[data-drag-active="true"] {
+  position: relative;
+  z-index: 50;
+  transition: opacity 0.15s;
+}
+
+/* `animation: none`: an urgent Bit's blink animates `opacity` and would override the 0.5.
+   The translucency stays on the card itself: opacity on an ancestor would trap its z-index. */
+[data-over-breadcrumb="true"] [data-drag-active="true"] {
+  opacity: 0.5;
+  animation: none;
+}
+
 /* ── Drag focus hierarchy ── */
 [data-dragging="true"] [data-grid-item]:not([data-drag-active="true"]) {
   opacity: 0.4;

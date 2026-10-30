@@ -9,7 +9,7 @@ import { GridCell } from "@/components/grid/grid-cell";
 import { NodeCard } from "@/components/grid/node-card";
 import { creationVariants } from "@/lib/animations/grid";
 import { GRID_COLS, GRID_ROWS } from "@/lib/constants";
-import { getGridCellDropId, getGridNodeDropId } from "@/lib/grid-dnd";
+import { getGridCellDropId, getGridNodeDropId, isGridBreadcrumbDropId } from "@/lib/grid-dnd";
 import { cn } from "@/lib/utils";
 import { isCellBlocked } from "@/lib/utils/breadcrumb-zone";
 import { useGridData } from "@/hooks/use-grid-data";
@@ -203,7 +203,8 @@ export function GridView({
   const { nodes, bits } = useGridData(parentId);
   const blockedCells = useBreadcrumbZoneStore((state) => state.blockedCells);
   const isEditMode = useEditModeStore((state) => state.isEditMode);
-  const { active } = useDndContext();
+  const { active, over } = useDndContext();
+  const isOverBreadcrumb = isGridBreadcrumbDropId(over?.id);
   const itemsByPosition = new Map<string, GridItem>();
   const borderOpacity = levelOpacityMap[level] ?? levelOpacityMap[3];
 
@@ -219,6 +220,7 @@ export function GridView({
     <div
       className="relative h-full w-full"
       data-dragging={active ? "true" : undefined}
+      data-over-breadcrumb={active && isOverBreadcrumb ? "true" : undefined}
       style={{ backgroundColor: `hsl(var(--grid-bg-l${Math.min(level, 3)}))` }}
     >
       <div

@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
 import {
+  getGridBreadcrumbDropId,
+  getGridCellDropId,
+  getGridNodeDropId,
   getTriageRemoveDropId,
   gridCollisionDetection,
+  isGridBreadcrumbDropId,
   isTriageDropData,
   triageCollisionDetection,
 } from "./grid-dnd";
@@ -109,5 +113,16 @@ describe("triage dnd helpers", () => {
     pointerWithinMock.mockReturnValue([unrelatedTarget, removeTarget]);
 
     expect(triageCollisionDetection(args)).toEqual([removeTarget]);
+  });
+});
+
+describe("breadcrumb drop ids", () => {
+  it("tells a breadcrumb drop id from the other drop ids", () => {
+    expect(isGridBreadcrumbDropId(getGridBreadcrumbDropId(null))).toBe(true);
+    expect(isGridBreadcrumbDropId(getGridBreadcrumbDropId("n1"))).toBe(true);
+    expect(isGridBreadcrumbDropId(getGridNodeDropId("n1"))).toBe(false);
+    expect(isGridBreadcrumbDropId(getGridCellDropId(null, 0, 0))).toBe(false);
+    expect(isGridBreadcrumbDropId(undefined)).toBe(false);
+    expect(isGridBreadcrumbDropId(42)).toBe(false);
   });
 });

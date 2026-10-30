@@ -95,8 +95,14 @@ export function getGridNodeDropId(nodeId: string): string {
   return `grid-node-drop:${nodeId}`;
 }
 
+export const GRID_BREADCRUMB_DROP_PREFIX = "grid-breadcrumb:";
+
+export function isGridBreadcrumbDropId(id: unknown): boolean {
+  return typeof id === "string" && id.startsWith(GRID_BREADCRUMB_DROP_PREFIX);
+}
+
 export function getGridBreadcrumbDropId(nodeId: string | null): string {
-  return `grid-breadcrumb:${nodeId ?? "root"}`;
+  return `${GRID_BREADCRUMB_DROP_PREFIX}${nodeId ?? "root"}`;
 }
 
 export function getGridDeleteDropId(): string {
