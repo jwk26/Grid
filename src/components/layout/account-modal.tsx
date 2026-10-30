@@ -160,13 +160,19 @@ export function AccountModal({ variant, open, onOpenChange, signInError = null, 
               <div className="flex items-center justify-between gap-2 border-t pt-4">
                 <Button
                   className="border-destructive/50 text-destructive"
+                  data-account-action="delete"
                   type="button"
                   variant="outline"
                   onClick={() => setStep("confirm")}
                 >
                   {ACCOUNT_MODAL.account.deleteAccount}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => void controller.signOut()}>
+                <Button
+                  data-account-action="sign-out"
+                  type="button"
+                  variant="outline"
+                  onClick={() => void controller.signOut()}
+                >
                   {ACCOUNT_MODAL.account.signOut}
                 </Button>
               </div>

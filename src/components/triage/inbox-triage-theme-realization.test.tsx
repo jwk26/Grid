@@ -1266,6 +1266,14 @@ describe("Neumorphism account modal buttons (Task 235)", () => {
     );
   });
 
+  it("turns Sign out and Delete account to the destructive ink on hover, like the Pool row Trash control", () => {
+    expect(css.match(rule('button\\[data-account-action\\]:not\\(:disabled\\):hover'))?.[1]).toContain(
+      "color: var(--triage-pool-destructive-ink);",
+    );
+    const poolTrash = css.match(/\.scratch-pool \[data-triage-role="pool-row-trash-action"\]:not\(:disabled\):hover \{([^}]*)\}/);
+    expect(poolTrash?.[1]).toContain("color: var(--triage-pool-destructive-ink);");
+  });
+
   it("is scoped to the account modal, so the other dialogs of the frame keep their accepted look", () => {
     const block = css.slice(css.indexOf('neumorphism"] [data-app-role="account-modal"]'));
     expect(block).not.toMatch(/\.scratch-trash-dialog[^{]*:hover/);

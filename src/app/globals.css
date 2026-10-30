@@ -6064,6 +6064,9 @@
 :root[data-color-theme="neumorphism"] [data-app-role="account-modal"] button:not(:disabled):not([data-variant="destructive"]):hover {
   color: hsl(var(--foreground) / 0.9);
 }
+:root[data-color-theme="neumorphism"] [data-app-role="account-modal"] button[data-account-action]:not(:disabled):hover {
+  color: var(--triage-pool-destructive-ink);
+}
 :root[data-color-theme="neumorphism"] [data-app-role="account-modal"] button:not(:disabled):not(.transition-none) {
   transition-duration: var(--triage-pool-motion-duration);
   transition-property: box-shadow, transform, color;

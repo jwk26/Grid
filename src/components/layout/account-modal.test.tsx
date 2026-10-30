@@ -65,6 +65,15 @@ describe("AccountModal, account", () => {
     expect(screen.getByRole("alertdialog")).toHaveAccessibleName("Account");
   });
 
+  it("marks Sign out and Delete account for the themes' destructive hover ink, and no other button", () => {
+    mount("account");
+    const marked = screen.getAllByRole("button").filter((button) => button.hasAttribute("data-account-action"));
+    expect(marked.map((button) => [button.textContent, button.getAttribute("data-account-action")])).toEqual([
+      [ACCOUNT_MODAL.account.deleteAccount, "delete"],
+      [ACCOUNT_MODAL.account.signOut, "sign-out"],
+    ]);
+  });
+
   it("signs out through the controller", () => {
     const { c } = mount("account");
     fireEvent.click(screen.getByRole("button", { name: ACCOUNT_MODAL.account.signOut }));
