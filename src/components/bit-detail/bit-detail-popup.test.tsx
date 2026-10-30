@@ -1,3 +1,4 @@
+import { toastCopy } from "@/lib/copy/feedback";
 import { WriteRejectedError } from "@/lib/db/write-errors";
 import { markReported } from "@/lib/db/write-failure";
 import "@testing-library/jest-dom/vitest";
@@ -8,6 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bit, Chunk, Node } from "@/types";
 
 const closeMock = vi.hoisted(() => vi.fn());
+const showToastMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/feedback/toast", () => ({ showToast: showToastMock }));
 const useBitDetailMock = vi.hoisted(() => vi.fn());
 const updateBitMock = vi.hoisted(() => vi.fn(async () => undefined));
 const updateNodeMock = vi.hoisted(() => vi.fn(async () => undefined));
@@ -277,6 +280,21 @@ describe("BitDetailPopup", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("says the Bit is still a Bit when its promotion is refused, and stays open (Task 232)", async () => {
+    mockBitDetail(createBit({ title: "Plan" }), [createChunk()], createNode({ level: 1 }));
+    promoteBitToNodeMock.mockRejectedValueOnce(new Error("refused"));
+    closeMock.mockClear();
+    showToastMock.mockClear();
+
+    render(<BitDetailPopup />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Promote to Node" }));
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith(toastCopy.promoteFailed, "Plan");
+    expect(closeMock).not.toHaveBeenCalled();
   });
 
   it("does not offer Promote to Node for a Bit whose title is over the Node limit", () => {

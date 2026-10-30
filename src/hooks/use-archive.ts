@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getDataStore } from "@/lib/db/datastore";
+import { toastCopy } from "@/lib/copy/feedback";
 import { dropReportedFailure } from "@/lib/db/write-failure";
+import { showToast } from "@/lib/feedback/toast";
 import type { Bit, Node } from "@/types";
 
 export type ArchiveItem = {
@@ -197,6 +199,9 @@ export function useArchive(): {
         await dataStore.unarchiveBit(id);
       }
       setRefreshVersion((v) => v + 1);
+    } catch {
+      const item = [...snapshot.nodes, ...snapshot.bits].find((candidate) => candidate.id === id);
+      showToast(toastCopy.archiveRestoreFailed, item?.title ?? "");
     } finally {
       restoringIdsRef.current.delete(id);
       setRestoringIds(new Set(restoringIdsRef.current));

@@ -520,7 +520,7 @@ export function createSupabaseStore(
   // when the refetch failed (nothing is known).
   const keptAfterRefetch = async (
     effects: readonly PendingEffect[],
-    refetched: Promise<RefetchResult> | undefined,
+    refetched: Promise<RefetchResult | "unsettled"> | undefined,
   ): Promise<boolean | null> => {
     if ((await refetched) !== "applied") return null;
     // The base, not the view: the view also carries later writes that are still pending.

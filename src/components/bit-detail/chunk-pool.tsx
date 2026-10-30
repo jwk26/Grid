@@ -26,7 +26,9 @@ import {
 import { ArrowUpDown, Trash2 } from "lucide-react";
 import { ChunkItem } from "@/components/bit-detail/chunk-item";
 import { useChunkActions } from "@/hooks/use-chunk-actions";
+import { toastCopy } from "@/lib/copy/feedback";
 import { dropReportedFailure } from "@/lib/db/write-failure";
+import { showToast } from "@/lib/feedback/toast";
 import type { Chunk } from "@/types";
 
 type ChunkPoolProps = {
@@ -144,7 +146,11 @@ export const ChunkPool = forwardRef<ChunkPoolHandle, ChunkPoolProps>(
     }
 
     async function handleDelete(chunkId: string) {
-      await deleteChunk(chunkId);
+      try {
+        await deleteChunk(chunkId);
+      } catch {
+        showToast(toastCopy.stepDeleteFailed, allChunks.find((chunk) => chunk.id === chunkId)?.title ?? "");
+      }
     }
 
     async function handleDragEnd(event: DragEndEvent) {

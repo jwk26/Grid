@@ -45,6 +45,9 @@ describe("toastCopy", () => {
     expect(toastCopy.permanentDeleteFailed.single("A")).toBe("Couldn't delete “A”. It's still in Trash.");
     expect(toastCopy.emptyTrashSucceeded.single()).toBe("Trash emptied.");
     expect(toastCopy.emptyTrashFailed.single()).toBe("Couldn't empty Trash. Nothing was deleted.");
+    expect(toastCopy.promoteFailed.single("A")).toBe("Couldn't promote “A”. It's still a Bit.");
+    expect(toastCopy.stepDeleteFailed.single("A")).toBe("Couldn't delete “A”. It's still there.");
+    expect(toastCopy.archiveRestoreFailed.single("A")).toBe("Couldn't restore “A”. It's still in Archive.");
     expect(toastCopy.accountDeleted.single()).toBe("Your account and its data were deleted.");
     expect(toastCopy.accountDeletionScheduled.single()).toBe(
       "Your account will be deleted within 24 hours.",

@@ -29,6 +29,10 @@ const rejected = (code: string, extra: { table?: string; limit?: number } = {}):
   rejection: { code, ...extra },
 });
 
+// The request ends without an answer (status 0) before the refetch starts, so the refetch's read
+// says what the server has.
+const NO_ANSWER: RpcResult = { data: null, error: { message: "network" }, status: 0 };
+
 const newNode = {
   title: "New node",
   color: "hsl(210, 80%, 55%)",
@@ -191,7 +195,7 @@ describe("an unknown outcome reports only when the refetch rolled the change bac
   afterEach(() => vi.useRealTimers());
 
   async function unknown(answerRows: (s: ReturnType<typeof setup>) => void, run: (s: ReturnType<typeof setup>) => Promise<unknown>) {
-    const s = setup(() => new Promise<RpcResult>(() => undefined));
+    const s = setup(() => NO_ANSWER);
     await s.snapshot.load();
     answerRows(s);
     const settled = run(s).then(
@@ -256,6 +260,56 @@ describe("an unknown outcome reports only when the refetch rolled the change bac
   });
 });
 
+describe("a timeout whose request is still open settles nothing (MI-1)", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("says nothing when the refetch answers before the request ended", async () => {
+    const s = setup(() => new Promise<RpcResult>(() => undefined));
+    await s.snapshot.load();
+    const settled = s.store.updateBit(BIT, { x: 6 }).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    await vi.advanceTimersByTimeAsync(1_000);
+    const error = (await settled) as WriteOutcomeUnknownError;
+    expect(error).toBeInstanceOf(WriteOutcomeUnknownError);
+    expect(error.kept).toBeNull();
+    expect(s.reportFailure).not.toHaveBeenCalled();
+  });
+
+  it("decides from the read that ran after the request ended", async () => {
+    let endRequest!: (result: RpcResult) => void;
+    const s = setup(() => new Promise<RpcResult>((resolve) => {
+      endRequest = resolve;
+    }));
+    await s.snapshot.load();
+    // The first refetch (started at the timeout) is slow; the request ends while it is in flight.
+    let releaseFirst!: () => void;
+    s.fetchSnapshot.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        releaseFirst = () => resolve(s.rows(1));
+      }),
+    );
+    s.fetchSnapshot.mockImplementation(async () => s.rows(6));
+
+    const settled = s.store.updateBit(BIT, { x: 6 }).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    await vi.advanceTimersByTimeAsync(1_000);
+    endRequest({ data: null, error: { message: "late" }, status: 0 });
+    await vi.advanceTimersByTimeAsync(0);
+    releaseFirst();
+    await vi.advanceTimersByTimeAsync(0);
+
+    const error = (await settled) as WriteOutcomeUnknownError;
+    // The stale first read said x 1 (rolled back); the read after the end says x 6 (kept).
+    expect(error.kept).toBe(true);
+    expect(s.reportFailure).not.toHaveBeenCalled();
+  });
+});
+
 describe("kept or rolled back is read from the server base, not the view", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
@@ -263,13 +317,14 @@ describe("kept or rolled back is read from the server base, not the view", () =>
   it("a later pending write that shows the same value does not make a rolled-back change look kept", async () => {
     // The first move (x 6) times out and the server did not keep it; a second move to x 6 is still
     // pending when the refetch answers, so the view shows x 6 but the base still has the old x.
-    const s = setup(() => new Promise<RpcResult>(() => undefined));
+    let calls = 0;
+    const s = setup(() => (calls++ === 0 ? NO_ANSWER : new Promise<RpcResult>(() => undefined)));
     await s.snapshot.load();
     const first = s.store.updateBit(BIT, { x: 6 }).then(
       () => null,
       (error: unknown) => error,
     );
-    await vi.advanceTimersByTimeAsync(0);
+    // Issued at once, so its effect is shown (queued behind the first) when the refetch answers.
     void s.store.updateBit(BIT, { x: 6 }).catch(() => undefined);
     await vi.advanceTimersByTimeAsync(1_000);
 

@@ -45,7 +45,8 @@ import { cn } from "@/lib/utils";
 import type { Bit } from "@/types";
 import { PendingLoader } from "@/components/feedback/pending-loader";
 import { usePendingAction } from "@/hooks/use-pending-action";
-import { PENDING_SENTENCE } from "@/lib/copy/feedback";
+import { PENDING_SENTENCE, toastCopy } from "@/lib/copy/feedback";
+import { showToast } from "@/lib/feedback/toast";
 import { dropReportedFailure } from "@/lib/db/write-failure";
 
 type Priority = Bit["priority"];
@@ -238,8 +239,12 @@ export function BitDetailPopup() {
     if (!bit) return;
     let promoted = false;
     await promoteAction.run(async () => {
-      await promoteBitToNode(bit.id);
-      promoted = true;
+      try {
+        await promoteBitToNode(bit.id);
+        promoted = true;
+      } catch {
+        showToast(toastCopy.promoteFailed, bit.title);
+      }
     });
     if (promoted) close();
   }

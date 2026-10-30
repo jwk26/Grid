@@ -68,8 +68,12 @@ export type WriteOutcome = {
   outcome: "applied" | "rejected" | "error" | "unknown";
   envelope?: Envelope;
   error?: unknown;
-  /** Unknown outcome only: the refetch that was started, so the caller can see what the server has. */
-  refetched?: Promise<RefetchResult>;
+  /**
+   * Unknown outcome only: the refetch that settles what the server has. `unsettled` means the
+   * timed-out request was still open when the refetch answered, so that read may have come before
+   * the write committed and says nothing either way.
+   */
+  refetched?: Promise<RefetchResult | "unsettled">;
 };
 
 export type StoreStatus =
@@ -411,10 +415,11 @@ export class SnapshotStore {
     // After an unknown outcome the request's own end (a late answer or a failure) discards any
     // fetch that started before it and sends one more, since that fetch may have read before the
     // write committed.
+    const afterEnd: { refetch: Promise<RefetchResult> | null } = { refetch: null };
     const refetchAfterUnknown = () => {
       if (epoch !== this.epoch) return;
       this.settledCount += 1;
-      void this.refetch();
+      afterEnd.refetch = this.refetch();
     };
     const done = request.then(
       () => undefined,
@@ -432,7 +437,14 @@ export class SnapshotStore {
         if (result === TIMED_OUT) {
           timedOut = true;
           this.settle(entry, null);
-          return { outcome: "unknown", refetched: epoch === this.epoch ? this.refetch() : undefined };
+          if (epoch !== this.epoch) return { outcome: "unknown" };
+          // The request is still open. Only a read that ran after it ended says what the server
+          // has, so a refetch that answers before the request ended settles nothing.
+          const first = this.refetch();
+          const refetched = first.then(
+            (): Promise<RefetchResult | "unsettled"> => afterEnd.refetch ?? Promise.resolve("unsettled" as const),
+          );
+          return { outcome: "unknown", refetched };
         }
         this.settle(entry, result.changes);
         const outcome = result.status === "applied" || result.status === "already_applied" ? "applied" : "rejected";

@@ -204,6 +204,21 @@ export const toastCopy = {
     tone: "failure",
     single: () => "Couldn't empty Trash. Nothing was deleted.",
   },
+  promoteFailed: {
+    key: "promote-failed",
+    tone: "failure",
+    single: (title: string) => `Couldn't promote “${title}”. It's still a Bit.`,
+  },
+  stepDeleteFailed: {
+    key: "step-delete-failed",
+    tone: "failure",
+    single: (title: string) => `Couldn't delete “${title}”. It's still there.`,
+  },
+  archiveRestoreFailed: {
+    key: "archive-restore-failed",
+    tone: "failure",
+    single: (title: string) => `Couldn't restore “${title}”. It's still in Archive.`,
+  },
   accountDeleted: {
     key: "account-deleted",
     tone: "success",

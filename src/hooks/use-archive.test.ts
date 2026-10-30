@@ -1,12 +1,15 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { toastCopy } from "@/lib/copy/feedback";
 import { useArchive } from "./use-archive";
 
 const getDataStoreMock = vi.hoisted(() => vi.fn());
+const showToastMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/datastore", () => ({
   getDataStore: getDataStoreMock,
 }));
+vi.mock("@/lib/feedback/toast", () => ({ showToast: showToastMock }));
 
 function makeDataStore(overrides: Record<string, unknown> = {}) {
   return {
@@ -78,5 +81,28 @@ describe("useArchive — unarchive", () => {
 
     expect(unarchiveNode).toHaveBeenCalledOnce();
     expect(unarchiveNode).toHaveBeenCalledWith("node-1");
+  });
+});
+
+describe("useArchive — a refused restore (Task 232)", () => {
+  it("shows the archive-restore failure row with the item's title and frees the control", async () => {
+    const dataStore = makeDataStore({
+      getArchivedItems: vi.fn().mockResolvedValue({
+        nodes: [],
+        bits: [{ id: "bit-1", title: "Old bit", parentId: "p", archivedAt: 1, deletedAt: null }],
+      }),
+      unarchiveBit: vi.fn().mockRejectedValue(new Error("refused")),
+    });
+    getDataStoreMock.mockResolvedValue(dataStore);
+    showToastMock.mockClear();
+
+    const { result } = renderHook(() => useArchive());
+    await waitFor(() => expect(dataStore.getArchivedItems).toHaveBeenCalled());
+    await act(async () => {
+      await result.current.unarchive("bit", "bit-1");
+    });
+
+    expect(showToastMock).toHaveBeenCalledWith(toastCopy.archiveRestoreFailed, "Old bit");
+    expect(result.current.restoringIds.has("bit-1")).toBe(false);
   });
 });
