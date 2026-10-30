@@ -309,9 +309,10 @@ Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
   clickable, and "hovered" above means a segment or the chip. During a drag
   each ancestor segment is a drop target with a visible "drop here" signal
   (the ancestor-move confirmation and the no-Bit-on-Home rule stay); the rest
-  of the bar lets the pointer through to the cells beneath, its surface turns
-  translucent and the deadline chip hides, so the top-left cells stay
-  droppable.
+  of the bar lets the pointer through to the cells beneath and the deadline
+  chip hides, so the top-left cells stay droppable. The surface keeps its
+  resting look (no added transparency), so the segments' drop signal keeps its
+  full strength (user, 2026-10-31, Task 248).
 - **Layering.** The breadcrumb sits above grid cells and cards and below the
   drag overlay, popovers, dialogs, the Bit popup and the palette. The toast
   stack sits below it while it is shown ([Toasts](#toasts)).
