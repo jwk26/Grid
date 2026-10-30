@@ -27,8 +27,21 @@ function memoryStorage(): Storage {
   };
 }
 
-function setup(options: { session?: { id: string; anon?: boolean } | null } = {}) {
-  let session = options.session ? { user: { id: options.session.id, is_anonymous: options.session.anon ?? true } } : null;
+type TestUser = { id: string; is_anonymous?: boolean; email?: string; user_metadata?: Record<string, unknown> };
+
+function setup(
+  options: { session?: { id: string; anon?: boolean; email?: string; meta?: Record<string, unknown> } | null } = {},
+) {
+  let session: { user: TestUser } | null = options.session
+    ? {
+        user: {
+          id: options.session.id,
+          is_anonymous: options.session.anon ?? true,
+          email: options.session.email,
+          user_metadata: options.session.meta,
+        },
+      }
+    : null;
   let listener: Listener | null = null;
   const auth = {
     getSession: vi.fn(async () => ({ data: { session }, error: null as unknown })),
@@ -636,5 +649,87 @@ describe("sign-out and account deletion (Task 235)", () => {
     );
     expect(await t.controller.requestAccountDeletion()).toBe("failed");
     expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+  });
+});
+
+describe("the account name (Task 235)", () => {
+  it("is the provider's full name, then name, user name, email; null for a guest", async () => {
+    const cases: Array<[Parameters<typeof setup>[0], string | null]> = [
+      [{ session: { id: "a", anon: false, email: "e@x.test", meta: { full_name: "Ada L", name: "n", user_name: "u" } } }, "Ada L"],
+      [{ session: { id: "a", anon: false, email: "e@x.test", meta: { name: "n", user_name: "u" } } }, "n"],
+      [{ session: { id: "a", anon: false, email: "e@x.test", meta: { user_name: "u" } } }, "u"],
+      [{ session: { id: "a", anon: false, email: "e@x.test" } }, "e@x.test"],
+      [{ session: { id: "a", anon: false } }, null],
+      [{ session: { id: "g", email: "ignored@x.test", meta: { full_name: "Ignored" } } }, null],
+    ];
+    for (const [options, expected] of cases) {
+      const t = setup(options);
+      await t.controller.start();
+      expect(t.controller.getAccountName(), JSON.stringify(options)).toBe(expected);
+    }
+  });
+});
+
+describe("expert review of Task 235", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("shows the Loading state at once on a sign-out, so no empty snapshot is rendered while signOut() runs", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    let release: () => void = () => undefined;
+    t.auth.signOut.mockImplementation(
+      () => new Promise((resolve) => { release = () => { t.setSession(null); resolve({ error: null }); }; }),
+    );
+    const pending = t.controller.signOut();
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "entering" });
+    release();
+    await pending;
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("a deletion request that gets no answer ends as unknown after the request timeout, and reads again", async () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup({ session: { id: "oauth", anon: false } });
+      await t.controller.start();
+      t.rpc.mockImplementation((name: string) =>
+        name === "delete_my_account"
+          ? new Promise(() => undefined)
+          : Promise.resolve({ data: emptySnapshot, error: null, status: 200 }),
+      );
+      const result = t.controller.requestAccountDeletion();
+      await vi.advanceTimersByTimeAsync(15_001);
+      expect(await result).toBe("unknown");
+      expect(t.auth.signOut).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("an unknown outcome reads the snapshot again, so a recorded request shows the account screen", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "delete_my_account"
+        ? { data: null, error: { message: "network" }, status: 0 }
+        : name === "get_snapshot"
+          ? rejection("account_deleting")
+          : OK,
+    );
+    expect(await t.controller.requestAccountDeletion()).toBe("unknown");
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleting" });
+  });
+
+  it("an expiry event keeps an account-state screen instead of replacing it with the session-expired one", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_missing")));
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+    t.emit("SIGNED_OUT", null);
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
   });
 });

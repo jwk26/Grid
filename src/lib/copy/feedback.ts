@@ -94,6 +94,30 @@ export const ACCOUNT_DELETED = {
   continueAsGuest: "Continue as guest",
 } as const;
 
+// The account modal (SPEC §Feedback copy, Account modal). `deleteFailed` is not in the SPEC table:
+// the confirmation's inline line when the request failed or its outcome is not known (Task 235).
+export const ACCOUNT_MODAL = {
+  guest: {
+    heading: "You're browsing as a guest",
+    retention: "Guest data is deleted 7 days after your last visit.",
+    signInNote: "Signing in opens a new, empty account. Guest data isn't moved to it.",
+    signInError: "Sign-in didn't complete. You're still browsing as a guest.",
+    signInGithub: "Sign in with GitHub",
+    signInGoogle: "Sign in with Google",
+  },
+  privacy:
+    "grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.",
+  account: { signOut: "Sign out", deleteAccount: "Delete account" },
+  confirm: {
+    title: "Delete your account?",
+    body: "Your tasks and all other data are deleted permanently. This can't be undone.",
+    delete: "Delete account",
+    cancel: "Cancel",
+    deleteFailed: "Couldn't delete your account. Try again.",
+  },
+  close: "Close",
+} as const;
+
 // Toasts (SPEC §Feedback copy, Toasts). A row is one kind of toast: `key` is what the toast helper
 // groups by (a repeat of a key while it is visible updates the one toast), `tone` belongs to the
 // key. `counted` is the form for a count above one; a row without it shows the latest single text.

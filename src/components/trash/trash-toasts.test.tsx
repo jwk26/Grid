@@ -5,6 +5,7 @@ import { TrashList } from "@/components/trash/trash-list";
 import { baseEntities } from "@/lib/db/boundary-cases";
 import { toastCopy } from "@/lib/copy/feedback";
 import { WriteOfflineError } from "@/lib/db/write-errors";
+import { markReported } from "@/lib/db/write-failure";
 
 // The kept Trash toasts move to the helper with their SPEC copy (Task 232).
 
@@ -106,6 +107,25 @@ describe("Trash toasts", () => {
     actions.emptyTrash.mockRejectedValue(new Error("boom"));
     await empty();
     await waitFor(() => expect(showToast).toHaveBeenCalledWith(toastCopy.emptyTrashFailed));
+  });
+});
+
+describe("Trash toasts stay silent over the account screen (Task 235)", () => {
+  it("shows no failure toast for an error the store already reported, as an account rejection is", async () => {
+    const reported = () => markReported(new Error("account_deleting"));
+    actions.restoreNode.mockRejectedValue(reported());
+    actions.restoreBit.mockRejectedValue(reported());
+    actions.emptyTrash.mockRejectedValue(reported());
+    renderList();
+    fireEvent.click(screen.getAllByRole("button", { name: "Restore" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Restore" })[1]);
+    await waitFor(() => expect(actions.restoreBit).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "Empty trash" }));
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete all" }));
+    await waitFor(() => expect(actions.emptyTrash).toHaveBeenCalled());
+    await act(async () => undefined);
+    expect(showToast).not.toHaveBeenCalled();
   });
 });
 

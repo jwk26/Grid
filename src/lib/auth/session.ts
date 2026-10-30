@@ -5,7 +5,7 @@ import { bindConnectionEntry, getConnectionMonitor } from "@/lib/db/connection";
 import { callDeleteMyAccount, callEnsureAccount } from "@/lib/db/supabase-calls";
 import { getSupabaseClient, type GriddoSupabaseClient } from "@/lib/db/supabase-client";
 import { SnapshotStore, UnknownOutcomeError, type AccountRejectionCode } from "@/lib/db/snapshot-store";
-import { useTriageStore } from "@/stores/triage-store";
+import { resetAppForUserChange } from "@/lib/auth/user-change";
 
 // Account entry (SPEC §Account entry, §Session expiry): the session, `ensure_account()` and the
 // snapshot load, as one external store the app-level frame reads. Entry is one function that any
@@ -41,7 +41,22 @@ export const DELIBERATE_SIGN_OUT_KEY = "griddo.deliberate-sign-out";
 const DELIBERATE_SIGN_OUT_WINDOW_MS = 30_000;
 const GUEST_ENTRY_LOCK = "griddo-guest-entry";
 
-type AuthUser = { id: string; is_anonymous?: boolean };
+type AuthUser = {
+  id: string;
+  is_anonymous?: boolean;
+  email?: string;
+  user_metadata?: Record<string, unknown>;
+};
+
+// The account modal's title: the name the provider gave, else the email. A guest has none.
+function accountNameOf(user: AuthUser): string | null {
+  if (user.is_anonymous !== false) return null;
+  for (const key of ["full_name", "name", "user_name"]) {
+    const value = user.user_metadata?.[key];
+    if (typeof value === "string" && value.trim() !== "") return value.trim();
+  }
+  return user.email?.trim() || null;
+}
 
 export type SessionControllerOptions = {
   getClient: () => GriddoSupabaseClient;
@@ -136,6 +151,7 @@ export function createSessionController(options: SessionControllerOptions) {
   const listeners = new Set<() => void>();
   let generation = 0;
   let currentUserId: string | null = null;
+  let accountName: string | null = null;
   let started = false;
   // A guest started after an expiry keeps skipping the marker through Retry and reconnect, until
   // the entry ends with a session.
@@ -182,6 +198,7 @@ export function createSessionController(options: SessionControllerOptions) {
 
   const remember = (user: AuthUser) => {
     currentUserId = user.id;
+    accountName = accountNameOf(user);
     write(SESSION_KIND_KEY, user.is_anonymous === false ? "account" : "guest");
   };
 
@@ -276,6 +293,8 @@ export function createSessionController(options: SessionControllerOptions) {
         dropAndEnter(true);
         return;
       }
+      // An account screen stays: the account is gone, which is why the refresh was refused.
+      if (state.phase === "account-deleting" || state.phase === "account-deleted") return;
       generation += 1;
       store.reset();
       expire(lastKind());
@@ -297,6 +316,8 @@ export function createSessionController(options: SessionControllerOptions) {
     store.reset();
     currentUserId = null;
     options.onUserChange?.();
+    // Nothing of the old user may render while the sign-out request is open.
+    setState({ phase: "entering" });
     // This browser only: the default `global` scope would revoke every session of the account, so a
     // second profile still signed in would show the session-expired screen instead of the
     // account-being-deleted screen (SPEC §Account icon and modal; user, 2026-10-30).
@@ -313,6 +334,8 @@ export function createSessionController(options: SessionControllerOptions) {
     getState: (): EntryState => state,
     /** The kind of the last signed-in user (the account icon's glyph). */
     getVariant: (): SessionVariant => lastKind(),
+    /** The signed-in account's name for the modal title; null for a guest or a nameless account. */
+    getAccountName: (): string | null => accountName,
     subscribe(listener: () => void): () => void {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -345,12 +368,27 @@ export function createSessionController(options: SessionControllerOptions) {
      * has).
      */
     async requestAccountDeletion(): Promise<AccountDeletionResult> {
-      let answer: Awaited<ReturnType<typeof callDeleteMyAccount>>;
+      let answer: Awaited<ReturnType<typeof callDeleteMyAccount>> | "timeout";
+      let timer: ReturnType<typeof setTimeout> | undefined;
       try {
-        answer = await callDeleteMyAccount(getClient());
+        // A request that never answers must not hold the confirmation open: after the request
+        // timeout the outcome is unknown, and the snapshot read below says what the server has.
+        const timedOut = new Promise<"timeout">((resolve) => {
+          timer = setTimeout(() => resolve("timeout"), REQUEST_TIMEOUT_MS);
+        });
+        answer = await Promise.race([callDeleteMyAccount(getClient()), timedOut]);
       } catch (error) {
-        options.connection?.report(error instanceof UnknownOutcomeError ? "unreachable" : "reachable");
-        return error instanceof UnknownOutcomeError ? "unknown" : "failed";
+        const unknown = error instanceof UnknownOutcomeError;
+        options.connection?.report(unknown ? "unreachable" : "reachable");
+        if (unknown) void store.refetch();
+        return unknown ? "unknown" : "failed";
+      } finally {
+        clearTimeout(timer);
+      }
+      if (answer === "timeout") {
+        options.connection?.report("unreachable");
+        void store.refetch();
+        return "unknown";
       }
       options.connection?.report("reachable");
       const code = answer.rejection?.code;
@@ -385,7 +423,7 @@ export function getSessionController(): SessionController {
       getClient: getSupabaseClient,
       storage: window.localStorage,
       connection,
-      onUserChange: () => useTriageStore.getState().resetAppSession(),
+      onUserChange: resetAppForUserChange,
     });
     const created = controller;
     bindConnectionEntry({ refetch: () => created.store.refetch(), isReady: () => created.getState().phase === "ready" });

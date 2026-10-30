@@ -41,6 +41,11 @@ export function markReported<E extends Error>(error: E): E {
   return error;
 }
 
+/** True for an error the store already reported (or deliberately kept quiet, as for an account rejection). */
+export function isReportedFailure(error: unknown): boolean {
+  return typeof error === "object" && error !== null && reported.has(error);
+}
+
 /**
  * For a caller with no message of its own: `write().catch(dropReportedFailure)`. Drops what the
  * store reported, and an unknown outcome whose change is kept (or not known), which has nothing

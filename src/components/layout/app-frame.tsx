@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { StatusIcon } from "@/components/feedback/status-icon";
 import { Button } from "@/components/ui/button";
+import { takeHomeReturn } from "@/lib/auth/user-change";
 import { useDisplayDelay } from "@/hooks/use-display-delay";
 import {
   getSessionController,
@@ -11,6 +13,8 @@ import {
   type SessionController,
 } from "@/lib/auth/session";
 import {
+  ACCOUNT_BEING_DELETED,
+  ACCOUNT_DELETED,
   GUEST_CREATION_FAILURE,
   LOAD_FAILURE,
   LOADING,
@@ -101,6 +105,14 @@ export function AppFrame({
   // The shared controller reads `localStorage`, so it exists only in the browser.
   const controller = injected ?? (typeof window === "undefined" ? null : getSessionController());
   const state = useEntryState(controller);
+  const router = useRouter();
+
+  // A user change leaves the address naming the old user's ids. It goes back to Home through the
+  // router while a screen replaces the app, so nothing of the new user mounts on the old route.
+  useEffect(() => {
+    if (state.phase === "ready" || !takeHomeReturn()) return;
+    if (window.location.pathname !== "/" || window.location.search !== "") router.replace("/");
+  }, [state.phase, router]);
 
   useEffect(() => {
     void controller?.start();
@@ -139,6 +151,30 @@ export function AppFrame({
             <Button onClick={() => void controller?.continueAsGuest()}>
               {SESSION_EXPIRED.continueAsGuest}
             </Button>
+          }
+        />
+      );
+    case "account-deleting":
+      return (
+        <Screen
+          key={state.phase}
+          title={ACCOUNT_BEING_DELETED.title}
+          reason={ACCOUNT_BEING_DELETED.reason}
+          actions={
+            <Button onClick={() => void controller?.continueAsGuest()}>
+              {ACCOUNT_BEING_DELETED.continueAsGuest}
+            </Button>
+          }
+        />
+      );
+    case "account-deleted":
+      return (
+        <Screen
+          key={state.phase}
+          title={ACCOUNT_DELETED.title}
+          reason={ACCOUNT_DELETED.reason}
+          actions={
+            <Button onClick={() => void controller?.continueAsGuest()}>{ACCOUNT_DELETED.continueAsGuest}</Button>
           }
         />
       );

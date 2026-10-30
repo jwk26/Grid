@@ -7,11 +7,12 @@ import { StatusTooltip } from "@/components/feedback/status-tooltip";
 import { ACCOUNT_BUTTON_LABEL, CONNECTION_SENTENCE } from "@/lib/copy/feedback";
 import { useConnectionState } from "@/lib/db/connection";
 import type { ConnectionState } from "@/lib/db/connection-monitor";
+import { AccountModal } from "@/components/layout/account-modal";
 import { cn } from "@/lib/utils";
 
-// The sidebar account icon (SPEC §Account icon and modal; DESIGN_TOKENS SA-1, SA-2). Until
-// Phase 48 it is a focusable status element with no action: its tooltip is the connection
-// sentence while the connection is unstable or offline, and the badge carries the state.
+// The sidebar account icon (SPEC §Account icon and modal; DESIGN_TOKENS SA-1, SA-2): the button
+// that opens the account modal. Its tooltip is the connection sentence while the connection is
+// unstable or offline, and the badge carries the state.
 
 const BADGE_TONE: Record<Exclude<ConnectionState, "normal">, string> = {
   unstable:
@@ -55,6 +56,7 @@ export function AccountButton({ variant }: { variant: "guest" | "account" }) {
   const state = useConnectionState();
   const announcement = useConnectionAnnouncement(state);
   const [open, setOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const Icon = variant === "account" ? UserRoundCheck : UserRound;
   const sentence = state === "normal" ? "" : CONNECTION_SENTENCE[state];
 
@@ -69,20 +71,25 @@ export function AccountButton({ variant }: { variant: "guest" | "account" }) {
         open={sentence !== "" && open}
         onOpenChange={setOpen}
       >
-        <span
+        <button
+          aria-haspopup="dialog"
           aria-label={ACCOUNT_BUTTON_LABEL}
           className="flex h-10 w-10 items-center justify-center rounded-lg border border-transparent p-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 text-muted-foreground hover:bg-accent hover:text-foreground"
           data-app-role="account-button"
-          role="group"
-          tabIndex={0}
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            setModalOpen(true);
+          }}
         >
           <span className="relative flex h-5 w-5 items-center justify-center">
             <Icon className="h-5 w-5" />
             {state === "normal" ? null : <ConnectionBadge state={state} />}
           </span>
-        </span>
+        </button>
       </StatusTooltip>
       <StatusAnnouncement announcement={announcement} />
+      <AccountModal variant={variant} open={modalOpen} onOpenChange={setModalOpen} />
     </>
   );
 }

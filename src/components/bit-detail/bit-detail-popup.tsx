@@ -49,7 +49,7 @@ import { PendingLoader } from "@/components/feedback/pending-loader";
 import { usePendingAction } from "@/hooks/use-pending-action";
 import { PENDING_SENTENCE, toastCopy } from "@/lib/copy/feedback";
 import { showToast } from "@/lib/feedback/toast";
-import { dropReportedFailure } from "@/lib/db/write-failure";
+import { dropReportedFailure, isReportedFailure } from "@/lib/db/write-failure";
 
 type Priority = Bit["priority"];
 const PRIORITY_CYCLE: Priority[] = ["high", "mid", "low", null];
@@ -247,7 +247,7 @@ export function BitDetailPopup() {
         await promoteBitToNode(bit.id);
         promoted = true;
       } catch (error) {
-        if (error instanceof WriteOfflineError) return;
+        if (error instanceof WriteOfflineError || isReportedFailure(error)) return;
         showToast(toastCopy.promoteFailed, bit.title);
       }
     });

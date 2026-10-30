@@ -28,12 +28,15 @@ function force(state: "normal" | "unstable" | "offline" | null) {
 const live = () => document.querySelector('[data-feedback-role="status-announcement"]');
 
 describe("AccountButton", () => {
-  it("is a focusable status element named Account, with no action and no tooltip when normal", () => {
+  it("is a button named Account that opens the account modal, with no tooltip when normal", () => {
     render(<AccountButton variant="guest" />);
     const icon = screen.getByLabelText("Account");
     expect(icon).toHaveAttribute("data-app-role", "account-button");
-    expect(icon).toHaveAttribute("tabindex", "0");
-    expect(icon.tagName).not.toBe("BUTTON");
+    expect(icon.tagName).toBe("BUTTON");
+    expect(icon).toHaveAttribute("type", "button");
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    fireEvent.click(icon);
+    expect(screen.getByRole("alertdialog")).toHaveAccessibleName("You're browsing as a guest");
     expect(icon).not.toHaveAccessibleDescription(expect.stringMatching(/./));
     expect(document.querySelector('[data-app-role="account-badge"]')).toBeNull();
     fireEvent.focus(icon);
