@@ -280,6 +280,8 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
         setOpenDialogType(null);
       } else if (refusal.outcome === "line") {
         setError(refusal.text);
+      } else if (refusal.outcome === "stay") {
+        // Offline: the toast was shown; the dialog keeps its input.
       } else {
         setError(
           submissionError instanceof Error
@@ -368,6 +370,8 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
         setOpenDialogType(null);
       } else if (refusal.outcome === "line") {
         setError(refusal.text);
+      } else if (refusal.outcome === "stay") {
+        // Offline: the toast was shown; the dialog keeps its input.
       } else {
         setError(
           submissionError instanceof Error

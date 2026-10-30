@@ -1,5 +1,6 @@
 "use client";
 
+import { getConnectionMonitor } from "@/lib/db/connection";
 import {
   createContext,
   useCallback,
@@ -39,8 +40,9 @@ type BreakdownSnapshot = Readonly<{
 
 const EMPTY_BREAKDOWNS: ScratchBreakdown[] = [];
 
+// The editor's offline source is the connection monitor, not `navigator.onLine` (SPEC §Connection states).
 function isBrowserOnline(): boolean {
-  return typeof navigator === "undefined" || navigator.onLine;
+  return !getConnectionMonitor().isOffline();
 }
 
 export type BreakdownOperationProjection = Readonly<{

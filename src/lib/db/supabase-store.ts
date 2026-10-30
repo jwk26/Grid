@@ -92,6 +92,7 @@ import {
 import { getSupabaseClient, type GriddoSupabaseClient } from "@/lib/db/supabase-client";
 import {
   DeadlineConflictError,
+  WriteOfflineError,
   WriteOutcomeUnknownError,
   WriteRejectedError,
 } from "@/lib/db/write-errors";
@@ -257,6 +258,10 @@ const chunkUpdateSchema = chunkSchema.omit({ id: true, parentId: true }).partial
 export type SupabaseStoreOptions = Readonly<{
   /** Told once about each ordinary write that was shown at once and then rolled back. */
   reportFailure?: ReportWriteFailure;
+  /** True while the connection state is offline: ordinary writes are then not sent (F18). */
+  isOffline?: () => boolean;
+  /** Told once for each write attempt that the offline gate stopped. */
+  reportOffline?: () => void;
 }>;
 
 export function createSupabaseStore(
@@ -557,6 +562,10 @@ export function createSupabaseStore(
     effects: readonly PendingEffect[] = [],
     failure: WriteFailure | null = null,
   ): Promise<Envelope> => {
+    if (storeOptions.isOffline?.()) {
+      storeOptions.reportOffline?.();
+      throw markReported(new WriteOfflineError());
+    }
     const sendRequest = () => call(client());
     // Tells the feedback layer once and marks the error, so a caller can drop it.
     const report = <E extends Error>(error: E, extra?: Partial<WriteFailure>): E => {
@@ -708,6 +717,8 @@ export function createSupabaseStore(
       await send(`nodes:${id}`, (c) => callWithReserved(c, "unarchive_node", id), nodeAbout(id));
     },
     cleanupExpiredTrash: async () => {
+      // An automatic call: while offline it waits for the next hour, with no toast.
+      if (storeOptions.isOffline?.()) return { status: "deleted" };
       await send("account", callCleanupExpiredTrash, { label: "Account" });
       return { status: "deleted" };
     },

@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import type { RepositoryOperationStatus } from "@/lib/db/schema";
+import { blockedWhileOffline } from "@/lib/feedback/offline-write";
 
 export const TRIAGE_OPERATION_KINDS = [
   "add",
@@ -32,7 +33,17 @@ export type ActiveTriageOperation = Readonly<{
 export type TriageOperationLock = Readonly<{
   activeOperation: ActiveTriageOperation | null;
   isLocked: () => boolean;
-  acquire: (kind: TriageOperationKind, operationId: string) => boolean;
+  /**
+   * Takes the lock for one operation. Every user write of the Inbox takes it first, so this is the
+   * one offline gate for them (SPEC §Connection states, F18): while offline it shows the offline
+   * toast and returns false with nothing changed. A reconcile only reads, so it passes
+   * `{ reconcile: true }` and is not gated.
+   */
+  acquire: (
+    kind: TriageOperationKind,
+    operationId: string,
+    options?: { reconcile?: boolean },
+  ) => boolean;
   release: (
     operationId: string,
     terminalStatus: RepositoryOperationStatus,
@@ -57,8 +68,13 @@ export function useTriageOperationLock(): TriageOperationLock {
     useState<ActiveTriageOperation | null>(null);
 
   const acquire = useCallback(
-    (kind: TriageOperationKind, operationId: string): boolean => {
+    (
+      kind: TriageOperationKind,
+      operationId: string,
+      options?: { reconcile?: boolean },
+    ): boolean => {
       if (activeOperationRef.current !== null) return false;
+      if (options?.reconcile !== true && blockedWhileOffline()) return false;
 
       const operation = { kind, operationId };
       activeOperationRef.current = operation;

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { ConnectionState } from "@/lib/db/connection-monitor";
 import type { DataStore } from "@/lib/db/datastore";
 import type { GriddoSupabaseClient } from "@/lib/db/supabase-client";
 import { WRITE_FUNCTION } from "@/lib/db/supabase-store";
@@ -279,6 +280,9 @@ type StateSwitchState = {
   forced: Record<string, ForcedState>;
   /** Queued boundary injections, in the order they were queued. */
   injections: readonly Injection[];
+  /** A forced connection state (Task 233), or null for the real one. */
+  network: ConnectionState | null;
+  setNetwork: (state: ConnectionState | null) => void;
   setForced: (itemKey: string, state: ForcedState | null) => void;
   clearForced: () => void;
   queueInjection: (input: QueueInjectionInput) => Injection;
@@ -294,6 +298,8 @@ let nextInjectionId = 1;
 export const useStateSwitchStore = create<StateSwitchState>()((set, get) => ({
   forced: {},
   injections: [],
+  network: null,
+  setNetwork: (network) => set({ network }),
   setForced: (itemKey, state) =>
     set((current) => {
       const next = { ...current.forced };
@@ -337,7 +343,7 @@ export const useStateSwitchStore = create<StateSwitchState>()((set, get) => ({
     }));
     return found;
   },
-  reset: () => set({ forced: {}, injections: [] }),
+  reset: () => set({ forced: {}, injections: [], network: null }),
 }));
 
 // --- The DataStore wrapper --------------------------------------------------

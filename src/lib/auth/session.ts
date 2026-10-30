@@ -1,4 +1,7 @@
+import { REQUEST_TIMEOUT_MS } from "@/lib/constants";
 import { AuthApiError, isAuthRetryableFetchError } from "@supabase/supabase-js";
+import type { RequestResult } from "@/lib/db/connection-monitor";
+import { bindConnectionEntry, getConnectionMonitor } from "@/lib/db/connection";
 import { callEnsureAccount } from "@/lib/db/supabase-calls";
 import { getSupabaseClient, type GriddoSupabaseClient } from "@/lib/db/supabase-client";
 import { SnapshotStore, UnknownOutcomeError } from "@/lib/db/snapshot-store";
@@ -40,6 +43,8 @@ export type SessionControllerOptions = {
   runExclusive?: <T>(name: string, task: () => Promise<T>) => Promise<T>;
   /** Runs an auth event handler outside supabase-js's callback (it must not call back into auth). */
   defer?: (task: () => void) => void;
+  /** Told how each request to the server ended (SPEC §Connection states). */
+  connection?: { report: (result: RequestResult, detail?: { snapshotRead?: boolean }) => void };
 };
 
 export type SessionController = ReturnType<typeof createSessionController>;
@@ -87,13 +92,31 @@ export function createSessionController(options: SessionControllerOptions) {
   let lastFetchUnreachable = false;
   const store = new SnapshotStore({
     fetchSnapshot: async () => {
-      const { data, error, status } = await getClient().rpc("get_snapshot");
+      // A read that never answers must not hold the one shared in-flight refetch for ever: after
+      // the request timeout it counts as no answer and the next refetch starts a new read.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timedOut = new Promise<"timeout">((resolve) => {
+        timer = setTimeout(() => resolve("timeout"), REQUEST_TIMEOUT_MS);
+      });
+      const answered = await Promise.race([getClient().rpc("get_snapshot"), timedOut]).finally(() =>
+        clearTimeout(timer),
+      );
+      if (answered === "timeout") {
+        lastFetchUnreachable = true;
+        options.connection?.report("unreachable");
+        throw new Error("get_snapshot failed: no answer");
+      }
+      const { data, error, status } = answered;
       if (error) {
         lastFetchUnreachable = isUnreachable({ status });
+        // Only a missing answer counts toward offline; an answered failure only makes it unstable.
+        options.connection?.report(lastFetchUnreachable ? "unreachable" : "degraded");
         throw new Error(`get_snapshot failed: ${error.message}`);
       }
+      options.connection?.report("reachable", { snapshotRead: true });
       return data;
     },
+    onRequestResult: (result) => options.connection?.report(result),
   });
 
   let state: EntryState = { phase: "entering" };
@@ -296,7 +319,12 @@ export function createSessionController(options: SessionControllerOptions) {
 let controller: SessionController | null = null;
 
 export function getSessionController(): SessionController {
-  controller ??= createSessionController({ getClient: getSupabaseClient, storage: window.localStorage });
+  if (!controller) {
+    const connection = getConnectionMonitor();
+    controller = createSessionController({ getClient: getSupabaseClient, storage: window.localStorage, connection });
+    const created = controller;
+    bindConnectionEntry({ refetch: () => created.store.refetch(), isReady: () => created.getState().phase === "ready" });
+  }
   return controller;
 }
 

@@ -1,3 +1,4 @@
+import { getConnectionMonitor } from "@/lib/db/connection";
 import "@testing-library/jest-dom/vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -434,6 +435,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  getConnectionMonitor().setForced(null);
   document.head.querySelectorAll("[data-task167-sort-labels]").forEach(style => style.remove());
   document.documentElement.removeAttribute("data-color-theme");
   vi.useRealTimers();
@@ -1679,7 +1681,7 @@ describe("BreakdownPanel", () => {
         createScratchBreakdown({ id: "row-1", content: "Authority" }),
       ];
       if (phase === "offline") {
-        vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+        getConnectionMonitor().setForced("offline");
       }
       editorState.snapshot = {
         target: { kind: "breakdown", id: "row-1" },
@@ -2052,10 +2054,9 @@ describe("BreakdownPanel", () => {
     expect(screen.queryByRole("button", { name: "Check again" })).not.toBeInTheDocument();
   });
 
-  it("enables Retry save only after the browser reconnects", () => {
+  it("enables Retry save only after the connection comes back", () => {
     triageStoreState.selectedScratchId = "scratch-1";
-    let online = false;
-    vi.spyOn(navigator, "onLine", "get").mockImplementation(() => online);
+    getConnectionMonitor().setForced("offline");
     editorState.snapshot = {
       target: { kind: "scratch-title", id: "scratch-1" },
       phase: "offline",
@@ -2071,8 +2072,7 @@ describe("BreakdownPanel", () => {
     const retry = screen.getByRole("button", { name: "Retry save" });
     expect(retry).toBeDisabled();
 
-    online = true;
-    fireEvent(window, new Event("online"));
+    act(() => getConnectionMonitor().setForced(null));
 
     expect(retry).toBeEnabled();
     fireEvent.click(retry);

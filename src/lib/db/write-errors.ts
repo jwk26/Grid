@@ -43,3 +43,15 @@ export class WriteOutcomeUnknownError extends Error {
     this.name = "WriteOutcomeUnknownError";
   }
 }
+
+/**
+ * A write attempted while the connection state is offline (SPEC §Connection states, F18). Nothing
+ * was shown, sent or changed; the store has already told the feedback layer, so the error is marked
+ * reported. A dialog keeps its input and stays open.
+ */
+export class WriteOfflineError extends Error {
+  constructor() {
+    super("Offline: the write was not sent");
+    this.name = "WriteOfflineError";
+  }
+}

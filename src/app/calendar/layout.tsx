@@ -88,6 +88,8 @@ export default function CalendarLayout({
         setIsNodeDialogOpen(false);
       } else if (refusal.outcome === "line") {
         setCreateError(refusal.text);
+      } else if (refusal.outcome === "stay") {
+        // Offline: the toast was shown; the dialog keeps its input.
       } else {
         setCreateError(err instanceof Error ? err.message : "Unable to create node.");
       }
@@ -137,6 +139,8 @@ export default function CalendarLayout({
         setIsBitDialogOpen(false);
       } else if (refusal.outcome === "line") {
         setBitCreateError(refusal.text);
+      } else if (refusal.outcome === "stay") {
+        // Offline: the toast was shown; the dialog keeps its input.
       } else {
         setBitCreateError(err instanceof Error ? err.message : "Unable to create bit.");
       }

@@ -21,7 +21,7 @@ import {
 import { useNodeActions } from "@/hooks/use-node-actions";
 import { editDialogFailed } from "@/lib/copy/feedback";
 import { ZodError } from "zod";
-import { WriteOutcomeUnknownError } from "@/lib/db/write-errors";
+import { WriteOfflineError, WriteOutcomeUnknownError } from "@/lib/db/write-errors";
 import { cn } from "@/lib/utils";
 import type { Node } from "@/types";
 
@@ -131,6 +131,8 @@ export function EditNodeDialog({ level, node, open, onOpenChange }: EditNodeDial
       // The dialog shows a refusal itself and keeps the typed values; a kept unknown outcome closes it.
       if (err instanceof WriteOutcomeUnknownError && err.kept === true) {
         onOpenChange(false);
+      } else if (err instanceof WriteOfflineError) {
+        // Offline: the toast was shown; the dialog stays open with the typed values.
       } else if (err instanceof ZodError) {
         setError(err.message);
       } else {

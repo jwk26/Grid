@@ -98,6 +98,20 @@ describe("states from request results", () => {
   });
 });
 
+describe("forced state (development)", () => {
+  it("shows and gates as the forced state, then returns to the real one", () => {
+    const { monitor } = make();
+    const seen = states(monitor);
+    monitor.setForced("offline");
+    expect(monitor.getState()).toBe("offline");
+    expect(monitor.isOffline()).toBe(true);
+    monitor.setForced(null);
+    expect(monitor.getState()).toBe("normal");
+    expect(monitor.isOffline()).toBe(false);
+    expect(seen).toEqual(["offline", "normal"]);
+  });
+});
+
 describe("recovery", () => {
   it("refetches once on the return to normal and clears the state", () => {
     const { monitor, refetch } = make();

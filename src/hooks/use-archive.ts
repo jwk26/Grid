@@ -1,5 +1,6 @@
 "use client";
 
+import { WriteOfflineError } from "@/lib/db/write-errors";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getDataStore } from "@/lib/db/datastore";
 import { toastCopy } from "@/lib/copy/feedback";
@@ -199,7 +200,8 @@ export function useArchive(): {
         await dataStore.unarchiveBit(id);
       }
       setRefreshVersion((v) => v + 1);
-    } catch {
+    } catch (error) {
+      if (error instanceof WriteOfflineError) return;
       const item = [...snapshot.nodes, ...snapshot.bits].find((candidate) => candidate.id === id);
       showToast(toastCopy.archiveRestoreFailed, item?.title ?? "");
     } finally {

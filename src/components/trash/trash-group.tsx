@@ -1,5 +1,6 @@
 "use client";
 
+import { WriteOfflineError } from "@/lib/db/write-errors";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ChevronDown, ChevronRight, RotateCcw, Trash2 } from "lucide-react";
@@ -134,6 +135,7 @@ function NodeTrashGroup({
       await restoreNode(node.id);
       showToast(toastCopy.restoreSucceeded, node.title);
     } catch (error) {
+      if (error instanceof WriteOfflineError) return;
       if (error instanceof Error && error.message === "GRID_FULL") {
         showToast(toastCopy.restoreBlocked, node.title);
         return;
@@ -151,7 +153,8 @@ function NodeTrashGroup({
     try {
       await hardDeleteNode(node.id);
       showToast(toastCopy.permanentDeleteSucceeded, node.title);
-    } catch {
+    } catch (error) {
+      if (error instanceof WriteOfflineError) return;
       showToast(toastCopy.permanentDeleteFailed, node.title);
     }
   }
@@ -279,6 +282,7 @@ function StandaloneBitTrashGroup({ bit }: { bit: Bit }) {
       await restoreBit(bit.id);
       showToast(toastCopy.restoreSucceeded, bit.title);
     } catch (error) {
+      if (error instanceof WriteOfflineError) return;
       if (error instanceof Error && error.message === "GRID_FULL") {
         showToast(toastCopy.restoreBlocked, bit.title);
         return;
@@ -296,7 +300,8 @@ function StandaloneBitTrashGroup({ bit }: { bit: Bit }) {
     try {
       await hardDeleteBit(bit.id);
       showToast(toastCopy.permanentDeleteSucceeded, bit.title);
-    } catch {
+    } catch (error) {
+      if (error instanceof WriteOfflineError) return;
       showToast(toastCopy.permanentDeleteFailed, bit.title);
     }
   }

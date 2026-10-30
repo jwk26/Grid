@@ -1,5 +1,6 @@
 import { toastCopy } from "@/lib/copy/feedback";
-import { WriteRejectedError } from "@/lib/db/write-errors";
+import { WriteOfflineError, WriteRejectedError } from "@/lib/db/write-errors";
+import { getConnectionMonitor } from "@/lib/db/connection";
 import { markReported } from "@/lib/db/write-failure";
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -234,6 +235,22 @@ describe("BitDetailPopup", () => {
     fireEvent.click(screen.getByText("Move to trash"));
 
     expect(closeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays open on Move to trash while offline: the gate stops the write, nothing changes", async () => {
+    mockBitDetail(createBit(), [], createNode({ level: 1 }));
+    softDeleteBitMock.mockRejectedValueOnce(markReported(new WriteOfflineError()));
+    closeMock.mockClear();
+    getConnectionMonitor().setForced("offline");
+    try {
+      render(<BitDetailPopup />);
+      fireEvent.click(screen.getByText("Move to trash"));
+      await act(async () => {});
+      expect(softDeleteBitMock).toHaveBeenCalled();
+      expect(closeMock).not.toHaveBeenCalled();
+    } finally {
+      getConnectionMonitor().setForced(null);
+    }
   });
 
   it("continues to offer Promote to Node for an ordinary eligible Bit with Chunks", () => {

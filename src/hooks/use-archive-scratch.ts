@@ -304,7 +304,7 @@ export function useArchiveScratch({
     const recovery = current.recovery;
     if (
       current.phase === "recovering" &&
-      !operationLock.acquire("archive", recovery.operationId)
+      !operationLock.acquire("archive", recovery.operationId, { reconcile: true })
     ) {
       return false;
     }

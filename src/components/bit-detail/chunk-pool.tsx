@@ -1,5 +1,6 @@
 "use client";
 
+import { WriteOfflineError } from "@/lib/db/write-errors";
 import {
   forwardRef,
   useEffect,
@@ -148,7 +149,8 @@ export const ChunkPool = forwardRef<ChunkPoolHandle, ChunkPoolProps>(
     async function handleDelete(chunkId: string) {
       try {
         await deleteChunk(chunkId);
-      } catch {
+      } catch (error) {
+        if (error instanceof WriteOfflineError) return;
         showToast(toastCopy.stepDeleteFailed, allChunks.find((chunk) => chunk.id === chunkId)?.title ?? "");
       }
     }

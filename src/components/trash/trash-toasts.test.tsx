@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TrashList } from "@/components/trash/trash-list";
 import { baseEntities } from "@/lib/db/boundary-cases";
 import { toastCopy } from "@/lib/copy/feedback";
+import { WriteOfflineError } from "@/lib/db/write-errors";
 
 // The kept Trash toasts move to the helper with their SPEC copy (Task 232).
 
@@ -73,6 +74,22 @@ describe("Trash toasts", () => {
     hardDelete.mockRejectedValue(new Error("boom"));
     await confirm();
     await waitFor(() => expect(showToast).toHaveBeenCalledWith(toastCopy.permanentDeleteFailed, title));
+  });
+
+  it("shows no row of its own for a write the offline gate stopped (its toast was already shown)", async () => {
+    actions.restoreNode.mockRejectedValue(new WriteOfflineError());
+    actions.restoreBit.mockRejectedValue(new WriteOfflineError());
+    actions.hardDeleteNode.mockRejectedValue(new WriteOfflineError());
+    actions.emptyTrash.mockRejectedValue(new WriteOfflineError());
+    renderList();
+    fireEvent.click(screen.getAllByRole("button", { name: "Restore" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Restore" })[1]);
+    await waitFor(() => expect(actions.restoreBit).toHaveBeenCalled());
+    fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[0]);
+    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Delete permanently" }));
+    await waitFor(() => expect(actions.hardDeleteNode).toHaveBeenCalled());
+    await act(async () => {});
+    expect(showToast).not.toHaveBeenCalled();
   });
 
   it("empties Trash with its sentences", async () => {

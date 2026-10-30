@@ -1,5 +1,7 @@
 "use client";
 
+import { getConnectionMonitor } from "@/lib/db/connection";
+import { WriteOfflineError } from "@/lib/db/write-errors";
 import {
   useEffect,
   useRef,
@@ -223,8 +225,10 @@ export function BitDetailPopup() {
     if (!bit) return;
     // The Bit hides at once (SPEC Write feel, group 2), so the popup closes before the answer
     // instead of showing "Loading…" for the round trip.
+    // Offline, the gate stops the write and shows its toast: nothing changes, so the popup stays.
+    const offline = getConnectionMonitor().isOffline();
     const trashed = softDeleteBit(bit.id).catch(dropReportedFailure);
-    close();
+    if (!offline) close();
     await trashed;
   }
 
@@ -242,7 +246,8 @@ export function BitDetailPopup() {
       try {
         await promoteBitToNode(bit.id);
         promoted = true;
-      } catch {
+      } catch (error) {
+        if (error instanceof WriteOfflineError) return;
         showToast(toastCopy.promoteFailed, bit.title);
       }
     });

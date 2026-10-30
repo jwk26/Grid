@@ -1,5 +1,9 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { toastCopy } from "@/lib/copy/feedback";
+import { getConnectionMonitor } from "@/lib/db/connection";
+import { resetToasts } from "@/lib/feedback/toast";
+import * as toastModule from "@/lib/feedback/toast";
 import {
   TRIAGE_OPERATION_KINDS,
   useTriageOperationLock,
@@ -221,4 +225,54 @@ describe("useTriageOperationLock", () => {
       expect(result.current.isLocked()).toBe(false);
     },
   );
+});
+
+describe("the offline gate (Task 233)", () => {
+  let showToastSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    showToastSpy = vi.spyOn(toastModule, "showToast").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    getConnectionMonitor().setForced(null);
+    showToastSpy.mockRestore();
+    resetToasts();
+  });
+
+  it("stops a write while offline, takes no lock and shows the offline toast", () => {
+    getConnectionMonitor().setForced("offline");
+    const { result } = renderHook(() => useTriageOperationLock());
+
+    let acquired = true;
+    act(() => {
+      acquired = result.current.acquire("add", "op-1");
+    });
+
+    expect(acquired).toBe(false);
+    expect(result.current.isLocked()).toBe(false);
+    expect(result.current.activeOperation).toBeNull();
+    expect(showToastSpy).toHaveBeenCalledWith(toastCopy.offlineWrite);
+  });
+
+  it("lets a reconcile through, with no toast", () => {
+    getConnectionMonitor().setForced("offline");
+    const { result } = renderHook(() => useTriageOperationLock());
+
+    let acquired = false;
+    act(() => {
+      acquired = result.current.acquire("add", "op-1", { reconcile: true });
+    });
+
+    expect(acquired).toBe(true);
+    expect(showToastSpy).not.toHaveBeenCalled();
+  });
+
+  it("acquires normally when unstable", () => {
+    getConnectionMonitor().setForced("unstable");
+    const { result } = renderHook(() => useTriageOperationLock());
+    let acquired = false;
+    act(() => {
+      acquired = result.current.acquire("add", "op-1");
+    });
+    expect(acquired).toBe(true);
+  });
 });

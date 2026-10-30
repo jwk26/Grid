@@ -428,13 +428,22 @@ let dataStorePromise: Promise<DataStore> | null = null;
 async function createDataStore(): Promise<DataStore> {
   // Production store (Phase 45): the Supabase store over the account snapshot. It exists once
   // entry has made a session, prepared the account and loaded the snapshot.
-  const [{ getSessionController }, { createSupabaseStore }, { reportWriteFailure }] = await Promise.all([
-    import("@/lib/auth/session"),
-    import("@/lib/db/supabase-store"),
-    import("@/lib/feedback/write-failure-toast"),
-  ]);
-  // A rolled-back ordinary write is reported here, once, as a toast (SPEC §Toasts).
-  const storeOptions = { reportFailure: reportWriteFailure };
+  const [{ getSessionController }, { createSupabaseStore }, { reportWriteFailure }, { getConnectionMonitor }, { reportOfflineWrite }] =
+    await Promise.all([
+      import("@/lib/auth/session"),
+      import("@/lib/db/supabase-store"),
+      import("@/lib/feedback/write-failure-toast"),
+      import("@/lib/db/connection"),
+      import("@/lib/feedback/offline-write"),
+    ]);
+  // A rolled-back ordinary write is reported here, once, as a toast (SPEC §Toasts). While offline
+  // an ordinary write is stopped before it shows or sends anything (SPEC §Connection states).
+  const monitor = getConnectionMonitor();
+  const storeOptions = {
+    reportFailure: reportWriteFailure,
+    isOffline: monitor.isOffline,
+    reportOffline: reportOfflineWrite,
+  };
   const controller = getSessionController();
   await controller.whenReady();
   if (process.env.NODE_ENV === "development") {

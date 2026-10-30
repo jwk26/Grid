@@ -10,6 +10,8 @@ import { StatusTooltip } from "@/components/feedback/status-tooltip";
 import { useScratchBreakdowns } from "@/hooks/use-scratch-breakdowns";
 import { useStagedCandidates } from "@/hooks/use-staged-candidates";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
+import { getConnectionMonitor, useConnectionState } from "@/lib/db/connection";
+import type { ConnectionState } from "@/lib/db/connection-monitor";
 import {
   INJECTABLE_METHODS,
   INJECTION_OUTCOME_LABELS,
@@ -397,12 +399,55 @@ function ScratchItems({ scratchBitId }: { scratchBitId: string }) {
   );
 }
 
+const NETWORK_CHOICES: readonly { value: ConnectionState | null; label: string }[] = [
+  { value: null, label: "Real" },
+  { value: "normal", label: "Normal" },
+  { value: "unstable", label: "Unstable" },
+  { value: "offline", label: "Offline" },
+];
+
+// Forces the connection state the app shows and gates writes by (Task 233). The real transitions
+// are checked with real request failures; this serves the badges of Task 234.
+function NetworkSection() {
+  const network = useStateSwitchStore((state) => state.network);
+  const setNetwork = useStateSwitchStore((state) => state.setNetwork);
+  const shown = useConnectionState();
+
+  return (
+    <section aria-labelledby="state-switch-network-heading" className="space-y-1.5">
+      <h3 id="state-switch-network-heading" className="font-semibold">
+        Network (now: {shown})
+      </h3>
+      <div className="flex gap-1">
+        {NETWORK_CHOICES.map((choice) => (
+          <button
+            key={choice.label}
+            type="button"
+            aria-pressed={network === choice.value}
+            className="rounded border border-border px-2 py-0.5 aria-pressed:bg-accent"
+            onClick={() => setNetwork(choice.value)}
+          >
+            {choice.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function StateSwitchPanel() {
   const [open, setOpen] = useState(false);
   const [replay, setReplay] = useState(0);
   const selectedScratchId = useTriageStore((state) => state.selectedScratchId);
   const forced = useStateSwitchStore((state) => state.forced);
+  const network = useStateSwitchStore((state) => state.network);
   const reset = useStateSwitchStore((state) => state.reset);
+
+  // The forced connection state holds while the panel is closed too (Task 233).
+  useEffect(() => {
+    getConnectionMonitor().setForced(network);
+  }, [network]);
+  useEffect(() => () => getConnectionMonitor().setForced(null), []);
 
   // Publish the forced states to the surfaces that read the seam.
   useEffect(() => {
@@ -440,6 +485,8 @@ export function StateSwitchPanel() {
               </button>
             </div>
           </div>
+
+          <NetworkSection />
 
           <section aria-labelledby="state-switch-primitives-heading" className="space-y-1.5">
             <div className="flex items-center justify-between">

@@ -32,6 +32,8 @@ export class ConnectionMonitor {
   private readonly offlineAfter: number;
   private readonly probeTimeoutMs: number;
   private state: ConnectionState;
+  // Development state switch only (feedback F30): shows and gates as this state without touching the real one.
+  private forced: ConnectionState | null = null;
   private failures = 0;
   private started = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -47,7 +49,7 @@ export class ConnectionMonitor {
     if (this.state === "offline") this.failures = this.offlineAfter;
   }
 
-  getState = (): ConnectionState => this.state;
+  getState = (): ConnectionState => this.forced ?? this.state;
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
@@ -57,7 +59,13 @@ export class ConnectionMonitor {
   };
 
   /** True while writes are blocked. */
-  isOffline = (): boolean => this.state === "offline";
+  isOffline = (): boolean => this.getState() === "offline";
+
+  setForced(state: ConnectionState | null): void {
+    if (this.forced === state) return;
+    this.forced = state;
+    for (const listener of [...this.listeners]) listener();
+  }
 
   report(result: RequestResult, detail: { snapshotRead?: boolean } = {}): void {
     if (result === "reachable") {

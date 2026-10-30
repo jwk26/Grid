@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
-import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
+import { WriteOfflineError, WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
 import { classifyCreateRefusal } from "./create-refusal";
 
 describe("classifyCreateRefusal", () => {
+  it("stays on the dialog, with no line, for an offline attempt", () => {
+    expect(classifyCreateRefusal(new WriteOfflineError(), "A")).toEqual({ outcome: "stay" });
+  });
+
   it("names the limit for an account-limit refusal", () => {
     const error = new WriteRejectedError("account_limit", { code: "account_limit", table: "bits", limit: 500 });
     expect(classifyCreateRefusal(error, "A")).toEqual({

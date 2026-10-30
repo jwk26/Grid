@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentPropsWithoutRef, PropsWithChildren } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
+import { WriteOfflineError, WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
 import type { Node } from "@/types";
 
 type DivProps = PropsWithChildren<ComponentPropsWithoutRef<"div">>;
@@ -134,6 +134,16 @@ describe("EditNodeDialog", () => {
       updateNodeMock.mockRejectedValue(new WriteOutcomeUnknownError(false));
       save();
       expect(await screen.findByRole("alert")).toHaveTextContent("Try again.");
+    });
+
+    it("stays open with the typed values and no line when the write was stopped offline", async () => {
+      updateNodeMock.mockRejectedValue(new WriteOfflineError());
+      const onOpenChange = save();
+      await waitFor(() => expect(updateNodeMock).toHaveBeenCalled());
+      await waitFor(() => expect(screen.getByRole("button", { name: "Save" })).toBeEnabled());
+      expect(screen.getByRole("alert")).toHaveTextContent("");
+      expect(screen.getByLabelText("Title")).toHaveValue("Typed title");
+      expect(onOpenChange).not.toHaveBeenCalled();
     });
 
     it("closes when the unknown outcome was kept", async () => {

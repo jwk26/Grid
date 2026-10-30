@@ -1,10 +1,11 @@
 import { ZodError } from "zod";
 import { createDialogAccountLimit, createDialogFailed } from "@/lib/copy/feedback";
-import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
+import { WriteOfflineError, WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
 import { limitItemsOf } from "@/lib/db/write-failure";
 
 export type CreateRefusal =
   | { outcome: "kept" }
+  | { outcome: "stay" }
   | { outcome: "line"; text: string }
   | { outcome: "other"; error: unknown };
 
@@ -15,6 +16,8 @@ export type CreateRefusal =
  * a kept create closes the dialog like a success.
  */
 export function classifyCreateRefusal(error: unknown, title: string): CreateRefusal {
+  // Offline: the toast was shown by the store; the dialog stays open with its input and no line.
+  if (error instanceof WriteOfflineError) return { outcome: "stay" };
   if (error instanceof WriteOutcomeUnknownError) {
     return error.kept === true ? { outcome: "kept" } : { outcome: "line", text: createDialogFailed(title) };
   }

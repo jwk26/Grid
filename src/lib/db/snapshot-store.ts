@@ -1,4 +1,5 @@
 import { REQUEST_TIMEOUT_MS } from "@/lib/constants";
+import type { RequestResult } from "@/lib/db/connection-monitor";
 import {
   bitFromRow,
   chunkFromRow,
@@ -210,6 +211,8 @@ const effectRecordId = (effect: PendingEffect) => (effect.kind === "create" ? ef
 export type SnapshotStoreOptions = {
   fetchSnapshot: () => Promise<unknown>;
   requestTimeoutMs?: number;
+  /** Told how each write request ended, once per request (SPEC §Connection states). */
+  onRequestResult?: (result: RequestResult) => void;
 };
 
 // Thrown by a send function when the request ended without an answer (the connection failed
@@ -238,6 +241,7 @@ const TIMED_OUT = Symbol("timed out");
 export class SnapshotStore {
   private readonly fetchSnapshot: () => Promise<unknown>;
   private readonly requestTimeoutMs: number;
+  private readonly onRequestResult: ((result: RequestResult) => void) | undefined;
   private base: AccountView = emptyView();
   private status: StoreStatus = { phase: "empty" };
   private pending: PendingEntry[] = [];
@@ -253,6 +257,7 @@ export class SnapshotStore {
   constructor(options: SnapshotStoreOptions) {
     this.fetchSnapshot = options.fetchSnapshot;
     this.requestTimeoutMs = options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS;
+    this.onRequestResult = options.onRequestResult;
     this.state = this.computeState();
   }
 
@@ -421,9 +426,15 @@ export class SnapshotStore {
       this.settledCount += 1;
       afterEnd.refetch = this.refetch();
     };
+    // A request that ends after the timeout was counted unreachable already: an answer, even an
+    // API error, shows the server is up; a second "no answer" is not counted again.
     const done = request.then(
-      () => undefined,
-      () => undefined,
+      () => {
+        if (timedOut) this.onRequestResult?.("reachable");
+      },
+      (error: unknown) => {
+        if (timedOut && !(error instanceof UnknownOutcomeError)) this.onRequestResult?.("reachable");
+      },
     ).then(() => {
       if (timedOut) refetchAfterUnknown();
     });
@@ -436,6 +447,7 @@ export class SnapshotStore {
         const result = await Promise.race([request, timeout]);
         if (result === TIMED_OUT) {
           timedOut = true;
+          this.onRequestResult?.("unreachable");
           this.settle(entry, null);
           if (epoch !== this.epoch) return { outcome: "unknown" };
           // The request is still open. Only a read that ran after it ended says what the server
@@ -446,6 +458,7 @@ export class SnapshotStore {
           );
           return { outcome: "unknown", refetched };
         }
+        this.onRequestResult?.("reachable");
         this.settle(entry, result.changes);
         const outcome = result.status === "applied" || result.status === "already_applied" ? "applied" : "rejected";
         if (
@@ -459,6 +472,7 @@ export class SnapshotStore {
         return { outcome, envelope: result };
       } catch (error) {
         this.settle(entry, null);
+        this.onRequestResult?.(error instanceof UnknownOutcomeError ? "unreachable" : "reachable");
         if (error instanceof UnknownOutcomeError) {
           return { outcome: "unknown", error, refetched: epoch === this.epoch ? this.refetch() : undefined };
         }
