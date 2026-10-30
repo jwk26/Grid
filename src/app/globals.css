@@ -459,6 +459,168 @@
   }
 }
 
+/* Breadcrumb reveal (feedback F22-F25; DESIGN_TOKENS FB-10 to FB-13). The row stays
+   mounted; `data-phase` hides it by clip and opacity only, so it stays in the
+   accessibility tree and in Tab order. Clip and slide run on `.breadcrumb-reveal`,
+   opacity on each `.breadcrumb-reveal__surface`: never on one element that has
+   `backdrop-filter`. Durations are the `motionDuration.breadcrumb*` tokens. */
+.breadcrumb-reveal {
+  pointer-events: none;
+}
+
+.breadcrumb-reveal[data-phase="hidden"] {
+  clip-path: inset(0 100% 0 0);
+}
+
+.breadcrumb-reveal[data-phase="hidden"] .breadcrumb-reveal__surface {
+  opacity: 0;
+}
+
+/* Hidden or folding, nothing takes the pointer; focus still reaches the segments. */
+.breadcrumb-reveal:not([data-phase="shown"]) * {
+  pointer-events: none !important;
+}
+
+/* Shown: only the segments and the deadline chip take the pointer. */
+/* The nav lets the pointer through between its segments; the chip keeps `pointer-events-auto`. */
+.breadcrumb-reveal nav.breadcrumb-reveal__surface {
+  pointer-events: none;
+}
+
+.breadcrumb-reveal__surface {
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease;
+}
+
+.breadcrumb-reveal[data-phase="shown"] {
+  animation: breadcrumb-unfold 0.26s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.breadcrumb-reveal[data-phase="shown"] .breadcrumb-reveal__surface {
+  animation: breadcrumb-surface-in 0.26s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* A reveal that a drag starts shows in place, so the drop rects measured at drag start hold;
+   a drag that starts mid-animation stops it for the same reason. */
+.breadcrumb-reveal[data-instant="true"],
+.breadcrumb-reveal[data-instant="true"] .breadcrumb-reveal__surface,
+.breadcrumb-reveal[data-dragging="true"],
+.breadcrumb-reveal[data-dragging="true"] .breadcrumb-reveal__surface {
+  animation: none !important;
+}
+
+.breadcrumb-reveal[data-phase="folding"] {
+  animation: breadcrumb-fold 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+.breadcrumb-reveal[data-phase="folding"] .breadcrumb-reveal__surface {
+  animation: breadcrumb-surface-out 0.35s linear forwards;
+}
+
+/* During a drag: translucent, the chip hidden, only the segments take the pointer. */
+.breadcrumb-reveal[data-dragging="true"][data-phase="shown"] .breadcrumb-reveal__surface {
+  opacity: 0.5;
+}
+
+/* `visibility`, not `display`: the row keeps its width, so the reserved zone does not shrink mid-drag. */
+.breadcrumb-reveal[data-dragging="true"] .breadcrumb-reveal__chip {
+  visibility: hidden;
+}
+
+.breadcrumb-drop-target {
+  box-shadow: 0 0 0 2px hsl(var(--primary));
+  background: hsl(var(--primary) / 0.14);
+  color: hsl(var(--foreground));
+}
+
+.breadcrumb-drop-target[data-drop-over="true"] {
+  box-shadow:
+    0 0 0 2px hsl(var(--primary)),
+    0 0 0 5px hsl(var(--primary) / 0.25);
+}
+
+@keyframes breadcrumb-unfold {
+  from {
+    clip-path: inset(0 100% 0 0);
+    transform: translateX(-8px);
+  }
+  to {
+    clip-path: inset(0);
+    transform: translateX(0);
+  }
+}
+
+@keyframes breadcrumb-fold {
+  from {
+    clip-path: inset(0);
+    transform: translateX(0);
+  }
+  to {
+    clip-path: inset(0 100% 0 0);
+    transform: translateX(-8px);
+  }
+}
+
+@keyframes breadcrumb-surface-in {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Opacity reaches 0 at 0.3s of the 0.35s fold. */
+@keyframes breadcrumb-surface-out {
+  from {
+    opacity: 1;
+  }
+  85.7%,
+  to {
+    opacity: 0;
+  }
+}
+
+/* Home lands the folded breadcrumb: starts when the fold ends. */
+.home-button[data-landing="true"] {
+  animation: home-landing 0.6s ease-out;
+}
+
+@keyframes home-landing {
+  from {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7);
+    background-color: hsl(var(--primary) / 0.14);
+  }
+  to {
+    box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breadcrumb-reveal,
+  .breadcrumb-reveal .breadcrumb-reveal__surface {
+    animation: none !important;
+  }
+
+  .breadcrumb-reveal[data-phase="folding"] {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  .breadcrumb-reveal__surface {
+    transition: none;
+  }
+
+  /* A static ring for the 0.6s the hook keeps `data-landing` set (the base layer
+     forces animation durations to 0.01ms here). */
+  .home-button[data-landing="true"] {
+    animation: none;
+    box-shadow: 0 0 0 2px hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.12);
+  }
+}
+
 /* Item emphasis, only with ? and !: outline plus a background layer, so each
    theme's own box-shadow stays (retro-mac Staging card and Bit row set theirs). */
 [data-status-emphasis] {

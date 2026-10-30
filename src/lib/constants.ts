@@ -25,6 +25,10 @@ export const INBOX_BADGE_HIGH_THRESHOLD = 15;
 // after this long. It postpones presentation and never decides success.
 export const DISPLAY_DELAY_MS = 300;
 
+// Breadcrumb reveal (feedback F22, F23; SPEC §Breadcrumb reveal and Home button)
+export const BREADCRUMB_HIDE_DELAY_MS = 1000;
+export const BREADCRUMB_ENTRY_REVEAL_MS = 3000;
+
 // Account snapshot writes (SPEC Write feel, Architecture Decision 19)
 export const REQUEST_TIMEOUT_MS = 15000;
 export const CONNECTION_PROBE_INTERVAL_MS = 30000;

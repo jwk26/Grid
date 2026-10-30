@@ -11,6 +11,10 @@ export const motionDuration = {
   itemExit: 0.2,
   completionExit: 0.3,
   theme: 0.3,
+  breadcrumbUnfold: 0.26,
+  breadcrumbFold: 0.35,
+  breadcrumbFade: 0.3,
+  homeLanding: 0.6,
 } as const;
 
 export const motionScale = {

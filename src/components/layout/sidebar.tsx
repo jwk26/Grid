@@ -5,8 +5,9 @@ import type { LucideIcon } from "lucide-react";
 import { Calendar, Inbox, Layers, Pencil, Plus, Search, Trash2, X, Zap } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useState, type ReactNode } from "react";
 import { AccountButton } from "@/components/layout/account-button";
+import type { RevealHandlers } from "@/hooks/use-breadcrumb-reveal";
 import { HomeButton } from "@/components/layout/home-button";
 import { SidebarIconButton } from "@/components/layout/sidebar-icon-button";
 import { ColorThemeToggle } from "@/components/layout/color-theme-toggle";
@@ -252,12 +253,20 @@ export function Sidebar({
   isAddActive,
   onNodeCreate,
   onBitCreate,
+  homeRevealHandlers,
+  homeLanding,
+  breadcrumbSlot,
 }: {
   onAddClick?: () => void;
   dragActiveItem?: DragActiveItem;
   isAddActive?: boolean;
   onNodeCreate?: () => void;
   onBitCreate?: () => void;
+  // Hover and focus on Home reveal the breadcrumb (Grid pages only).
+  homeRevealHandlers?: RevealHandlers;
+  homeLanding?: boolean;
+  // The revealed breadcrumb, rendered right after Home so its segments follow it in Tab order.
+  breadcrumbSlot?: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -289,8 +298,21 @@ export function Sidebar({
       <Suspense fallback={null}>
         <TriageRouteFocusOwner />
       </Suspense>
-      <aside className="fixed left-0 top-0 z-40 flex h-full w-12 flex-col items-center gap-1 border-r border-border bg-background py-3">
-      <HomeButton isCurrent={pathname === "/"} onNavigate={navigate} />
+      <aside className="fixed left-0 top-0 z-[45] flex h-full w-12 flex-col items-center gap-1 border-r border-border bg-background py-3">
+      <HomeButton
+        isCurrent={pathname === "/"}
+        landing={homeLanding}
+        onNavigate={navigate}
+        revealHandlers={homeRevealHandlers}
+      />
+      {breadcrumbSlot ? (
+        <div
+          className="pointer-events-none absolute left-[3.75rem] top-3 w-max max-w-[calc(100vw-4.5rem)]"
+          data-app-role="breadcrumb-slot"
+        >
+          {breadcrumbSlot}
+        </div>
+      ) : null}
       <AccountButton variant={sessionVariant} />
       {isCalendarRoute ? (
         <Popover open={isChooserOpen} onOpenChange={setIsChooserOpen}>

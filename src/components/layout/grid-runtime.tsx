@@ -2,7 +2,7 @@
 
 import { DndContext } from "@dnd-kit/core";
 import { useParams } from "next/navigation";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { CreateBitDialog } from "@/components/grid/create-bit-dialog";
 import { CreateItemChooser } from "@/components/grid/create-item-chooser";
 import { CreateNodeDialog } from "@/components/grid/create-node-dialog";
@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useBreadcrumbReveal, useEscapeOrder } from "@/hooks/use-breadcrumb-reveal";
 import { useDnd } from "@/hooks/use-dnd";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useGridActions } from "@/hooks/use-grid-actions";
@@ -42,6 +43,8 @@ import { isDeadlineAfter } from "@/lib/utils/deadline";
 import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
 import { classifyCreateRefusal } from "@/lib/feedback/create-refusal";
 import { dropReportedFailure } from "@/lib/db/write-failure";
+import { useEditModeStore } from "@/stores/edit-mode-store";
+import { useSearchStore } from "@/stores/search-store";
 import { useQuickCaptureStore } from "@/stores/quick-capture-store";
 import { useToastAnchorStore } from "@/stores/toast-anchor-store";
 import type { Node } from "@/types";
@@ -54,6 +57,21 @@ type OpenDialogType = "node" | "bit" | null;
 // The create-dialog target for a Node created at L0 (SPEC §Feedback copy).
 const HOME_TARGET = "Home";
 type DeleteRequest = NonNullable<PendingDelete>;
+
+// A layer above the breadcrumb in the Escape order (SPEC §Breadcrumb reveal and Home
+// button): the dialog layer (a dialog, the Bit popup, the palette, the Search overlay, the
+// `+` entry surface, the Scratch modal) or an open menu. Radix layers are in the DOM
+// while open; the others are read from their stores and the URL.
+function isDialogLayerOpen(): boolean {
+  if (useQuickCaptureStore.getState().activeOverlay !== null) return true;
+  if (useSearchStore.getState().isOpen) return true;
+  if (new URLSearchParams(window.location.search).has("bit")) return true;
+  return (
+    document.querySelector(
+      '[role="dialog"]:not([data-state="closed"]), [role="alertdialog"]:not([data-state="closed"]), [role="menu"]:not([data-state="closed"])',
+    ) !== null
+  );
+}
 
 type DeleteFlowContextValue = {
   requestDelete: (item: DeleteRequest) => void;
@@ -93,7 +111,8 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
   const node = useNode(nodeId ?? "");
   const isInboxRoute = node?.systemRole === "inbox";
   const isArchiveRoute = node?.systemRole === "archive_view";
-  const showsBreadcrumb = !isInboxRoute && !isArchiveRoute;
+  // Only a Node's Grid has a breadcrumb: L0, the Inbox and the Archive have none.
+  const showsBreadcrumb = nodeId !== null && !isInboxRoute && !isArchiveRoute;
   // `useNode` keeps the previous node until the new one arrives: its name and
   // role count only once it is the routed Node.
   const routedNode = node?.id === nodeId ? node : null;
@@ -137,6 +156,7 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
   const [chooserOpen, setChooserOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
   const [error, setError] = useState<string | undefined>(undefined);
+  const [breadcrumbHeld, setBreadcrumbHeld] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const migrationSessionRef = useRef<Set<string>>(new Set());
@@ -151,9 +171,73 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
   const setToastDragActive = useToastAnchorStore((state) => state.setDragActive);
   const resetToastAnchor = useToastAnchorStore((state) => state.reset);
 
+  const isEditMode = useEditModeStore((state) => state.isEditMode);
+  const disableEditMode = useEditModeStore((state) => state.disable);
+  const reveal = useBreadcrumbReveal({
+    enabled: showsBreadcrumb,
+    nodeId,
+    dragging: activeItem !== null,
+  });
+  const { dismiss: dismissBreadcrumb, setHeld } = reveal;
+  const handleHeldChange = useCallback(
+    (held: boolean) => {
+      setBreadcrumbHeld(held);
+      setHeld(held);
+    },
+    [setHeld],
+  );
+
+  useEscapeOrder({
+    dragging: activeItem !== null,
+    isLayerOpen: isDialogLayerOpen,
+    held: breadcrumbHeld,
+    breadcrumbShown: reveal.phase === "shown",
+    editMode: isEditMode,
+    hideBreadcrumb: dismissBreadcrumb,
+    exitEditMode: disableEditMode,
+    focusHome: () => {
+      const focused = document.activeElement;
+      if (focused && clusterRef.current?.contains(focused)) {
+        document.querySelector<HTMLElement>('[data-app-role="home-button"]')?.focus();
+      }
+    },
+  });
+
   // Leaving the Grid layout (Trash, Calendar) must not keep a Grid page's offset.
   useEffect(() => resetToastAnchor, [resetToastAnchor]);
 
+  // The toast stack sits below the breadcrumb only while it is shown; hidden, it
+  // sits at the breadcrumb row.
+  useEffect(() => {
+    const cluster = clusterRef.current;
+
+    // The stack stays below the bar until it has folded away.
+    if (!cluster || reveal.phase === "hidden") {
+      setToastBreadcrumbBottom(null);
+      return;
+    }
+
+    const clusterElement = cluster;
+
+    function updateAnchor() {
+      const rect = clusterElement.getBoundingClientRect();
+      setToastBreadcrumbBottom(
+        clusterElement.isConnected && rect.height > 0 ? rect.bottom : null,
+      );
+    }
+
+    const ro = new ResizeObserver(updateAnchor);
+    ro.observe(clusterElement);
+    updateAnchor();
+
+    return () => {
+      ro.disconnect();
+      setToastBreadcrumbBottom(null);
+    };
+  }, [reveal.phase, setToastBreadcrumbBottom, nodeId, showsBreadcrumb]);
+
+  // Until Task 249 the cells under the bar's shown position stay reserved, hidden or
+  // not: the measured box is the row itself, which no reveal transform moves.
   // `showsBreadcrumb` is a dependency: `useNode` keeps the previous node until
   // the new one arrives, so on client navigation from the Inbox the cluster
   // mounts after `nodeId` has already changed and has to be measured then.
@@ -180,12 +264,6 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
       });
 
       setBlockedCells(cells);
-      // The toast stack sits below the breadcrumb while one is shown.
-      setToastBreadcrumbBottom(
-        clusterElement.isConnected && clusterRect.height > 0
-          ? clusterRect.bottom
-          : null,
-      );
 
       const sessionKey = nodeId ?? "__root__";
       if (cells.size > 0 && !migrationSessionRef.current.has(sessionKey)) {
@@ -202,11 +280,10 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
     return () => {
       ro.disconnect();
       setBlockedCells(new Set());
-      setToastBreadcrumbBottom(null);
       // clear on unmount — prevents stale state when leaving the grid layout entirely
       // (intra-grid navigations re-trigger ResizeObserver; cleanup only fires on full layout exit)
     };
-  }, [setBlockedCells, setToastBreadcrumbBottom, nodeId, showsBreadcrumb]);
+  }, [setBlockedCells, nodeId, showsBreadcrumb]);
 
   function openAdd(context: PlacementContext) {
     setPlacementContext(context);
@@ -450,6 +527,21 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
             }
             isAddActive={activeOverlay === "entry"}
             dragActiveItem={activeItem}
+            homeLanding={reveal.landing}
+            homeRevealHandlers={showsBreadcrumb ? reveal.homeHandlers : undefined}
+            breadcrumbSlot={
+              showsBreadcrumb && nodeId !== null ? (
+                <Breadcrumbs
+                  ref={clusterRef}
+                  dragActiveItem={activeItem}
+                  handlers={reveal.barHandlers}
+                  instant={reveal.instant}
+                  nodeId={nodeId}
+                  onHeldChange={handleHeldChange}
+                  phase={reveal.phase}
+                />
+              ) : undefined
+            }
           />
           <EntrySurface
             open={activeOverlay === "entry"}
@@ -474,13 +566,6 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
             data-level={displayLevel}
             data-testid="display-level"
           >
-            {showsBreadcrumb && (
-              <div className="pointer-events-none absolute top-3 left-3 right-3 z-30 flex flex-col items-start gap-1.5">
-                <div className="pointer-events-none w-full">
-                  <Breadcrumbs ref={clusterRef} nodeId={nodeId} dragActiveItem={activeItem} />
-                </div>
-              </div>
-            )}
             <AddFlowProvider
               openAddAtCell={(x, y) => {
                 if (!isCellBlocked(x, y, blockedCells)) {
