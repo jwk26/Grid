@@ -1807,10 +1807,15 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/db/read-helpers.ts` *(Phase 45)* | Read ordering shared by both stores (Grid position, Chunk order, Node title path) |
 | `src/lib/db/placement-undo-verdict.ts` *(Phase 45)* | Pure Undo verdict of a placement from account rows; `DataStore.getPlacementUndoTruth()` uses it over the snapshot with no request, so Undo availability never calls a reconcile function, which runs only after an unknown outcome |
 | `src/lib/db/connection-monitor.ts` *(Phase 47)* | Connection state from request results: normal, unstable, offline; recovery probe |
+| `src/lib/db/connection.ts` *(Phase 47)* | The app's one connection monitor, the `/auth/v1/health` probe, the session controller's refetch binding and `useConnectionState()` for components |
+| `src/lib/db/write-failure.ts` *(Phase 47)* | What the store reports once about a rolled-back ordinary write, and `dropReportedFailure` for callers that have nothing to add |
 | `src/lib/auth/session.ts` *(Phase 45)* | Guest entry (anonymous sign-in, later Turnstile), OAuth, sign-out, refresh-failure detection, `ensure_account()` call |
 | `src/components/layout/app-frame.tsx` *(Phase 45)* | The app-level frame: loading, failure, session-expired, account-being-deleted, security-check and narrow-window screens |
 | `src/components/layout/account-button.tsx` *(Phase 47)*, `account-modal.tsx` *(Phase 48)* | Sidebar account icon with the connection badge; the guest and account modal |
 | `src/lib/feedback/toast.ts` *(Phase 47)* | Shared toast helper: kinds, counted bursts, timing (F13, F14) |
+| `src/lib/feedback/write-failure-toast.ts`, `create-refusal.ts`, `offline-write.ts` *(Phase 47)* | The rolled-back write toast; a create or edit dialog's inline refusal line; the offline write-attempt toast and `blockedWhileOffline()` for write entries outside `send()` (F18) |
+| `src/hooks/use-pending-action.ts`, `src/components/feedback/pending-loader.tsx` *(Phase 47)* | Group 3 controls: busy at once, a second press ignored, the F03 loader after `DISPLAY_DELAY_MS` |
+| `src/lib/auth/use-session-variant.ts` *(Phase 47)* | `guest` or `account` for the account icon, from the session |
 | `src/components/feedback/status-icon.tsx` *(Phase 49)* | Status icons and item emphasis: the delayed loader, `?`, `!` (F02, F03) |
 | `src/components/feedback/status-tooltip.tsx` *(Phase 49)* | Hover/focus status tooltip, one at a time, described-by wiring (F09) |
 | `src/components/feedback/status-announcement.tsx` *(Phase 49)* | Visually hidden polite status region and its hook for the success announcements: `Added.`, `Returned to Breakdown.`, `Saved.` (F04) |
