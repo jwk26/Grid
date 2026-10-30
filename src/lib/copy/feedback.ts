@@ -94,8 +94,8 @@ export const ACCOUNT_DELETED = {
   continueAsGuest: "Continue as guest",
 } as const;
 
-// The account modal (SPEC §Feedback copy, Account modal). `deleteFailed` is not in the SPEC table:
-// the confirmation's inline line when the request failed or its outcome is not known (Task 235).
+// The account modal (SPEC §Feedback copy, Account modal). `deleteFailed` is the confirmation's inline
+// line when the request failed or its outcome is not known; `close` is the modal's Close button.
 export const ACCOUNT_MODAL = {
   guest: {
     heading: "You're browsing as a guest",
