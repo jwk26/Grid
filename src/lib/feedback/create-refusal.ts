@@ -1,3 +1,4 @@
+import { ZodError } from "zod";
 import { createDialogAccountLimit, createDialogFailed } from "@/lib/copy/feedback";
 import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
 import { limitItemsOf } from "@/lib/db/write-failure";
@@ -25,5 +26,8 @@ export function classifyCreateRefusal(error: unknown, title: string): CreateRefu
     }
     return { outcome: "line", text: createDialogFailed(title) };
   }
-  return { outcome: "other", error };
+  // A validation error is the caller's to word; anything else the store or the API refused is
+  // the retry line (never the raw API message).
+  if (error instanceof ZodError) return { outcome: "other", error };
+  return { outcome: "line", text: createDialogFailed(title) };
 }

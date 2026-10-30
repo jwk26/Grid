@@ -20,7 +20,8 @@ import {
 } from "@/lib/constants/node-icons";
 import { useNodeActions } from "@/hooks/use-node-actions";
 import { editDialogFailed } from "@/lib/copy/feedback";
-import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
+import { ZodError } from "zod";
+import { WriteOutcomeUnknownError } from "@/lib/db/write-errors";
 import { cn } from "@/lib/utils";
 import type { Node } from "@/types";
 
@@ -130,10 +131,10 @@ export function EditNodeDialog({ level, node, open, onOpenChange }: EditNodeDial
       // The dialog shows a refusal itself and keeps the typed values; a kept unknown outcome closes it.
       if (err instanceof WriteOutcomeUnknownError && err.kept === true) {
         onOpenChange(false);
-      } else if (err instanceof WriteOutcomeUnknownError || err instanceof WriteRejectedError) {
-        setError(editDialogFailed(node.title));
+      } else if (err instanceof ZodError) {
+        setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : "Unable to save changes.");
+        setError(editDialogFailed(node.title));
       }
     } finally {
       setIsSubmitting(false);

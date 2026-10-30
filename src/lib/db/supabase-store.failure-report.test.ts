@@ -120,19 +120,25 @@ describe("a rolled-back write is reported once, with its kind and title", () => 
     await expect(s.store.updateBit(BIT, { title: "Other" }).catch(dropReportedFailure)).resolves.toBeUndefined();
   });
 
-  it("does not mark a deadline conflict, so it still reaches the dialog", async () => {
+  it("does not mark a deadline conflict the caller shows in its dialog, so it still reaches the dialog", async () => {
     const s = setup(refuse("deadline_exceeds_parent", { table: "nodes" }));
     await s.snapshot.load();
-    await expect(s.store.updateBit(BIT, { deadline: 5 }).catch(dropReportedFailure)).rejects.toBeInstanceOf(
-      DeadlineConflictError,
-    );
+    await expect(
+      s.store.updateBit(BIT, { deadline: 5 }, { conflictDialog: true }).catch(dropReportedFailure),
+    ).rejects.toBeInstanceOf(DeadlineConflictError);
+    expect(s.reportFailure).not.toHaveBeenCalled();
   });
 
-  it("a deadline conflict is left to the conflict dialog", async () => {
+  it("reports a deadline conflict no dialog shows (a Calendar drop, a move onto an earlier Node)", async () => {
     const s = setup(refuse("deadline_exceeds_parent", { table: "nodes" }));
     await s.snapshot.load();
-    await expect(s.store.updateBit(BIT, { deadline: 5 })).rejects.toBeInstanceOf(DeadlineConflictError);
-    expect(s.reportFailure).not.toHaveBeenCalled();
+    await expect(s.store.updateBit(BIT, { deadline: 5 }).catch(dropReportedFailure)).resolves.toBeUndefined();
+    expect(s.reportFailure).toHaveBeenCalledWith({ kind: "deadline", title: "Bit B" });
+
+    await expect(
+      s.store.updateBit(BIT, { parentId: NODE, x: 2, y: 2 }).catch(dropReportedFailure),
+    ).resolves.toBeUndefined();
+    expect(s.reportFailure).toHaveBeenLastCalledWith({ kind: "move", title: "Bit B" });
   });
 
   it("a Chunk deadline refusal is reported", async () => {

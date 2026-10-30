@@ -561,7 +561,9 @@ export function createSupabaseStore(
     // Tells the feedback layer once and marks the error, so a caller can drop it.
     const report = <E extends Error>(error: E, extra?: Partial<WriteFailure>): E => {
       if (!failure) return error;
-      storeOptions.reportFailure?.({ ...failure, ...extra });
+      const { conflictDialog: _own, ...told } = failure;
+      void _own;
+      storeOptions.reportFailure?.({ ...told, ...extra });
       return markReported(error);
     };
     const outcome =
@@ -574,7 +576,8 @@ export function createSupabaseStore(
       case "rejected": {
         const envelope = outcome.envelope as Envelope;
         const error = rejectionError(envelope, about);
-        if (error instanceof DeadlineConflictError) throw error;
+        // A deadline conflict is reported like any refused write unless the caller shows its own dialog.
+        if (error instanceof DeadlineConflictError && failure?.conflictDialog) throw error;
         const rejection = envelope.rejection;
         const items = limitItemsOf(rejection?.table);
         throw report(
@@ -751,7 +754,10 @@ export function createSupabaseStore(
         (c) => callUpdateBit(c, id, bitPatchToRow(parsed), options?.extendParent === true),
         bitAbout(id),
         patchEffect("bits", id, parsed),
-        failureOf(editKind(parsed, options?.extendParent === true), "bits", id),
+        {
+          ...failureOf(editKind(parsed, options?.extendParent === true), "bits", id),
+          ...(options?.conflictDialog ? { conflictDialog: true } : {}),
+        },
       );
     },
     softDeleteBit: async (id) => {

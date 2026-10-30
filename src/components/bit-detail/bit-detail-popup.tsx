@@ -43,6 +43,9 @@ import { NODE_TITLE_MAX_LENGTH } from "@/lib/constants";
 import { NODE_ICON_MAP, NODE_ICON_NAMES } from "@/lib/constants/node-icons";
 import { cn } from "@/lib/utils";
 import type { Bit } from "@/types";
+import { PendingLoader } from "@/components/feedback/pending-loader";
+import { usePendingAction } from "@/hooks/use-pending-action";
+import { PENDING_SENTENCE } from "@/lib/copy/feedback";
 import { dropReportedFailure } from "@/lib/db/write-failure";
 
 type Priority = Bit["priority"];
@@ -108,6 +111,7 @@ function ParentDeadlineRow({
 
 export function BitDetailPopup() {
   const { updateBit, softDeleteBit, promoteBitToNode } = useBitDetailActions();
+  const promoteAction = usePendingAction();
   const { bit, chunks, parentNode, isOpen, close } = useBitDetail();
   const [localTitle, setLocalTitle] = useState("");
   const [localDescription, setLocalDescription] = useState("");
@@ -148,7 +152,7 @@ export function BitDetailPopup() {
     if (!bit) return;
 
     try {
-      await updateBit(bit.id, { deadline, deadlineAllDay });
+      await updateBit(bit.id, { deadline, deadlineAllDay }, { conflictDialog: true });
     } catch (error) {
       if (deadline !== null && parentNode && isDeadlineConflictError(error)) {
         setPendingDeadlineConflict({ deadline, deadlineAllDay });
@@ -232,8 +236,12 @@ export function BitDetailPopup() {
 
   async function handlePromoteToNode() {
     if (!bit) return;
-    await promoteBitToNode(bit.id);
-    close();
+    let promoted = false;
+    await promoteAction.run(async () => {
+      await promoteBitToNode(bit.id);
+      promoted = true;
+    });
+    if (promoted) close();
   }
 
   const Icon = bit ? (NODE_ICON_MAP[bit.icon] ?? NODE_ICON_MAP.Box) : null;
@@ -364,9 +372,12 @@ export function BitDetailPopup() {
                         <button
                           type="button"
                           aria-label="More options"
+                          aria-busy={promoteAction.busy}
+                          disabled={promoteAction.busy}
                           className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                         >
                           <MoreHorizontal className="h-4 w-4" />
+                          <PendingLoader busy={promoteAction.busy} sentence={PENDING_SENTENCE.promote} />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">

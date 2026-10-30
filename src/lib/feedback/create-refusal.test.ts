@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ZodError } from "zod";
 import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
 import { classifyCreateRefusal } from "./create-refusal";
 
@@ -32,8 +33,15 @@ describe("classifyCreateRefusal", () => {
     expect(classifyCreateRefusal(new WriteOutcomeUnknownError(true), "A")).toEqual({ outcome: "kept" });
   });
 
-  it("leaves any other error to the caller", () => {
-    const error = new Error("zod");
+  it("gives an API error the try-again line, never its raw message", () => {
+    expect(classifyCreateRefusal(new Error("create_bit failed: JWT expired"), "A")).toEqual({
+      outcome: "line",
+      text: "Couldn't create “A”. Try again.",
+    });
+  });
+
+  it("leaves a validation error to the caller", () => {
+    const error = new ZodError([]);
     expect(classifyCreateRefusal(error, "A")).toEqual({ outcome: "other", error });
   });
 });

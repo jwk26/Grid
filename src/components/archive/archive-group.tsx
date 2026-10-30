@@ -8,6 +8,8 @@ import {
   type ArchiveGroup as ArchiveGroupData,
   type ArchiveItem,
 } from "@/hooks/use-archive";
+import { PendingLoader } from "@/components/feedback/pending-loader";
+import { PENDING_SENTENCE } from "@/lib/copy/feedback";
 import { motionDuration, motionSpring } from "@/lib/animations/motion-language";
 import { NODE_ICON_MAP } from "@/lib/constants/node-icons";
 import { cn } from "@/lib/utils";
@@ -57,12 +59,14 @@ function RestoreButton({
   return (
     <button
       aria-label="Restore"
-      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed motion-reduce:transition-none"
+      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 focus-visible:opacity-100 aria-busy:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed motion-reduce:transition-none"
+      aria-busy={isRestoring}
       disabled={isRestoring}
       onClick={onRestore}
       type="button"
     >
       <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
+      <PendingLoader busy={isRestoring} sentence={PENDING_SENTENCE.restore} />
     </button>
   );
 }

@@ -17,6 +17,8 @@ export type WriteFailure = {
   kind: WriteFailureKind;
   /** The title of the item as it was before the write. */
   title: string;
+  /** The caller shows a deadline conflict itself: the store leaves that refusal unreported. */
+  conflictDialog?: boolean;
   /** Set when the server refused a create for the account limit. */
   accountLimit?: { limit: number; items: string };
 };

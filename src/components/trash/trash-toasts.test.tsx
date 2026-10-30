@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TrashList } from "@/components/trash/trash-list";
 import { baseEntities } from "@/lib/db/boundary-cases";
@@ -89,5 +89,100 @@ describe("Trash toasts", () => {
     actions.emptyTrash.mockRejectedValue(new Error("boom"));
     await empty();
     await waitFor(() => expect(showToast).toHaveBeenCalledWith(toastCopy.emptyTrashFailed));
+  });
+});
+
+describe("Trash controls wait for the answer (group 3)", () => {
+  function hold<T>(action: { mockImplementation: (fn: () => Promise<T>) => unknown }) {
+    let release!: () => void;
+    action.mockImplementation(() => new Promise<T>((resolve) => {
+      release = () => resolve(undefined as T);
+    }));
+    return () => release();
+  }
+
+  it("Restore is busy at once, shows the loader only after 300 ms and frees at the answer", async () => {
+    vi.useFakeTimers();
+    try {
+      const release = hold(actions.restoreNode);
+      renderList();
+      const restore = screen.getAllByRole("button", { name: /Restore/ })[0];
+      await act(async () => {
+        fireEvent.click(restore);
+      });
+
+      expect(restore).toHaveAttribute("aria-busy", "true");
+      expect(restore).toBeDisabled();
+      // The Delete control of the same row waits too.
+      expect(screen.getAllByRole("button", { name: /Delete/ })[0]).toBeDisabled();
+      expect(within(restore).queryByRole("img")).not.toBeInTheDocument();
+
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(within(restore).getByRole("img", { name: "Restoring…" })).toHaveAttribute("data-glyph", "loader");
+
+      await act(async () => {
+        release();
+      });
+      expect(restore).not.toBeDisabled();
+      expect(within(restore).queryByRole("img")).not.toBeInTheDocument();
+      expect(showToast).toHaveBeenCalledWith(toastCopy.restoreSucceeded, "Old node");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Empty trash is busy with its loader after 300 ms", async () => {
+    vi.useFakeTimers();
+    try {
+      const release = hold(actions.emptyTrash);
+      renderList();
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Empty trash" }));
+      });
+      await act(async () => {
+        fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete all" }));
+      });
+
+      const empty = screen.getByRole("button", { name: /Empty trash/ });
+      expect(empty).toHaveAttribute("aria-busy", "true");
+      expect(within(empty).queryByRole("img")).not.toBeInTheDocument();
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(within(empty).getByRole("img", { name: "Emptying Trash…" })).toBeInTheDocument();
+      await act(async () => {
+        release();
+      });
+      expect(empty).not.toBeDisabled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a permanent delete busies its own control", async () => {
+    vi.useFakeTimers();
+    try {
+      const release = hold(actions.hardDeleteBit);
+      renderList();
+      await act(async () => {
+        fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[1]);
+      });
+      await act(async () => {
+        fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete permanently" }));
+      });
+      const del = screen.getAllByRole("button", { name: /Delete/ })[1];
+      expect(del).toHaveAttribute("aria-busy", "true");
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(within(del).getByRole("img", { name: "Deleting…" })).toBeInTheDocument();
+      await act(async () => {
+        release();
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

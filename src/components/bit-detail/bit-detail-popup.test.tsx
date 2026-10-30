@@ -243,6 +243,42 @@ describe("BitDetailPopup", () => {
     ).toBeInTheDocument();
   });
 
+  it("Promote to Node waits for the answer: busy at once, the loader after 300 ms, the popup closes at the answer (group 3)", async () => {
+    vi.useFakeTimers();
+    try {
+      mockBitDetail(createBit(), [createChunk()], createNode({ level: 1 }));
+      let release!: () => void;
+      promoteBitToNodeMock.mockImplementationOnce(
+        () => new Promise<undefined>((resolve) => {
+          release = () => resolve(undefined);
+        }),
+      );
+      closeMock.mockClear();
+
+      render(<BitDetailPopup />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Promote to Node" }));
+      });
+
+      const trigger = screen.getByRole("button", { name: "More options" });
+      expect(trigger).toHaveAttribute("aria-busy", "true");
+      expect(closeMock).not.toHaveBeenCalled();
+      expect(within(trigger).queryByRole("img")).not.toBeInTheDocument();
+
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(within(trigger).getByRole("img", { name: "Promoting…" })).toBeInTheDocument();
+
+      await act(async () => {
+        release();
+      });
+      expect(closeMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not offer Promote to Node for a Bit whose title is over the Node limit", () => {
     mockBitDetail(
       createBit({ title: "x".repeat(101) }),
@@ -343,10 +379,11 @@ describe("BitDetailPopup", () => {
     fireEvent.click(screen.getByRole("button", { name: "Today" }));
     await Promise.resolve();
 
-    expect(updateBitMock).toHaveBeenCalledWith("bit-1", {
-      deadline: startOfToday().getTime(),
-      deadlineAllDay: true,
-    });
+    expect(updateBitMock).toHaveBeenCalledWith(
+      "bit-1",
+      { deadline: startOfToday().getTime(), deadlineAllDay: true },
+      { conflictDialog: true },
+    );
   });
 
   it("keeps the bit deadline urgency styling while omitting the year for current-year dates", () => {

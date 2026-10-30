@@ -223,7 +223,11 @@ export type LiveObservable<T> = {
  * The answer to a deadline conflict (SCHEMA Hook 2): the call also extends the parent record's
  * deadline (a Bit's Node, a Chunk's Bit) in the same write, instead of failing.
  */
-export type ExtendParentOption = Readonly<{ extendParent?: boolean }>;
+export type ExtendParentOption = Readonly<{
+  extendParent?: boolean;
+  /** The caller shows a deadline conflict in its own dialog, so the store does not report it. */
+  conflictDialog?: boolean;
+}>;
 
 export type ReportOption = Readonly<{ report?: boolean }>;
 

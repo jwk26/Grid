@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ChevronDown, ChevronRight, RotateCcw, Trash2 } from "lucide-react";
-import { toastCopy } from "@/lib/copy/feedback";
+import { PendingLoader } from "@/components/feedback/pending-loader";
+import { usePendingAction } from "@/hooks/use-pending-action";
+import { PENDING_SENTENCE, toastCopy } from "@/lib/copy/feedback";
 import { showToast } from "@/lib/feedback/toast";
 import {
   AlertDialog,
@@ -111,6 +113,9 @@ function NodeTrashGroup({
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { restoreNode, hardDeleteNode } = useTrashActions();
+  const restoreAction = usePendingAction();
+  const deleteAction = usePendingAction();
+  const anyBusy = restoreAction.busy || deleteAction.busy;
   const hasChildren = childNodes.length > 0 || childBits.length > 0;
 
   const childCountLabel = [
@@ -121,6 +126,10 @@ function NodeTrashGroup({
     .join(", ");
 
   async function handleRestore() {
+    await restoreAction.run(restoreSteps);
+  }
+
+  async function restoreSteps() {
     try {
       await restoreNode(node.id);
       showToast(toastCopy.restoreSucceeded, node.title);
@@ -135,6 +144,10 @@ function NodeTrashGroup({
   }
 
   async function handlePermanentDelete() {
+    await deleteAction.run(deleteSteps);
+  }
+
+  async function deleteSteps() {
     try {
       await hardDeleteNode(node.id);
       showToast(toastCopy.permanentDeleteSucceeded, node.title);
@@ -147,15 +160,30 @@ function NodeTrashGroup({
     <TrashGroupFrame
       actions={(
         <>
-          <Button size="sm" variant="outline" onClick={() => void handleRestore()} type="button">
+          <Button
+            aria-busy={restoreAction.busy}
+            disabled={anyBusy}
+            size="sm"
+            variant="outline"
+            onClick={() => void handleRestore()}
+            type="button"
+          >
             <RotateCcw className="h-3.5 w-3.5" />
             Restore
+            <PendingLoader busy={restoreAction.busy} sentence={PENDING_SENTENCE.restore} />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size="sm" variant="destructive" type="button">
+              <Button
+                aria-busy={deleteAction.busy}
+                disabled={anyBusy}
+                size="sm"
+                variant="destructive"
+                type="button"
+              >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete
+                <PendingLoader busy={deleteAction.busy} sentence={PENDING_SENTENCE.permanentDelete} />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -238,8 +266,15 @@ function NodeTrashGroup({
 
 function StandaloneBitTrashGroup({ bit }: { bit: Bit }) {
   const { restoreBit, hardDeleteBit } = useTrashActions();
+  const restoreAction = usePendingAction();
+  const deleteAction = usePendingAction();
+  const anyBusy = restoreAction.busy || deleteAction.busy;
 
   async function handleRestore() {
+    await restoreAction.run(restoreSteps);
+  }
+
+  async function restoreSteps() {
     try {
       await restoreBit(bit.id);
       showToast(toastCopy.restoreSucceeded, bit.title);
@@ -254,6 +289,10 @@ function StandaloneBitTrashGroup({ bit }: { bit: Bit }) {
   }
 
   async function handlePermanentDelete() {
+    await deleteAction.run(deleteSteps);
+  }
+
+  async function deleteSteps() {
     try {
       await hardDeleteBit(bit.id);
       showToast(toastCopy.permanentDeleteSucceeded, bit.title);
@@ -266,15 +305,30 @@ function StandaloneBitTrashGroup({ bit }: { bit: Bit }) {
     <TrashGroupFrame
       actions={(
         <>
-          <Button size="sm" variant="outline" onClick={() => void handleRestore()} type="button">
+          <Button
+            aria-busy={restoreAction.busy}
+            disabled={anyBusy}
+            size="sm"
+            variant="outline"
+            onClick={() => void handleRestore()}
+            type="button"
+          >
             <RotateCcw className="h-3.5 w-3.5" />
             Restore
+            <PendingLoader busy={restoreAction.busy} sentence={PENDING_SENTENCE.restore} />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size="sm" variant="destructive" type="button">
+              <Button
+                aria-busy={deleteAction.busy}
+                disabled={anyBusy}
+                size="sm"
+                variant="destructive"
+                type="button"
+              >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete
+                <PendingLoader busy={deleteAction.busy} sentence={PENDING_SENTENCE.permanentDelete} />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

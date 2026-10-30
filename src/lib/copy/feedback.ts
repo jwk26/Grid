@@ -24,6 +24,15 @@ export function editDialogFailed(title: string): string {
   return `Couldn't save the changes to “${title}”. Try again.`;
 }
 
+// What a server-confirmed control's loader says while it waits (SPEC §Write feel, group 3).
+export const PENDING_SENTENCE = {
+  restore: "Restoring…",
+  permanentDelete: "Deleting…",
+  emptyTrash: "Emptying Trash…",
+  promote: "Promoting…",
+  deleteStep: "Deleting…",
+} as const;
+
 // App-level screens (SPEC §Feedback copy, App-level screens). The Loading screen's copy comes
 // with Task 234.
 const UNREACHABLE_REASON = "The server can't be reached. Check your connection and try again.";
