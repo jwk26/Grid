@@ -214,8 +214,11 @@ export function BitDetailPopup() {
 
   async function handleMoveToTrash() {
     if (!bit) return;
-    await softDeleteBit(bit.id);
+    // The Bit hides at once (SPEC Write feel, group 2), so the popup closes before the answer
+    // instead of showing "Loading…" for the round trip.
+    const trashed = softDeleteBit(bit.id);
     close();
+    await trashed;
   }
 
   async function handleStatusToggle() {

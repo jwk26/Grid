@@ -625,6 +625,25 @@ describe("GridRuntime", () => {
     });
   });
 
+  it("closes the delete confirmation at once, before the server answers (Task 231)", async () => {
+    softDeleteBitMock.mockImplementationOnce(() => new Promise<void>(() => undefined));
+    useParamsMock.mockReturnValue({});
+    useNodeMock.mockReturnValue(null);
+    render(
+      <GridRuntime>
+        <RuntimeProbe />
+      </GridRuntime>,
+    );
+
+    fireEvent.click(screen.getByLabelText("request-bit-delete"));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("This action cannot be undone.")).not.toBeInTheDocument();
+    });
+    expect(softDeleteBitMock).toHaveBeenCalledWith("bit-1");
+  });
+
   it("renders TriageWorkspace for Inbox system nodes without escaping the shell", () => {
     const inboxNode = createNode({ id: "inbox-node", systemRole: "inbox" });
 

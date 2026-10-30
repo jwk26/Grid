@@ -427,13 +427,16 @@ async function createDataStore(): Promise<DataStore> {
   ]);
   const controller = getSessionController();
   await controller.whenReady();
-  let dataStore: DataStore = createSupabaseStore(controller.store);
   if (process.env.NODE_ENV === "development") {
-    // Development state switch (feedback F30): wrap whichever store is returned.
-    const { withDevInjection } = await import("@/lib/dev/state-switch");
-    dataStore = withDevInjection(dataStore);
+    // Development state switch (feedback F30): the ordinary writes are injected at the Supabase
+    // client, below the pending layer; the Inbox commands at the DataStore.
+    const [{ withDevInjection, withDevClient }, { getSupabaseClient }] = await Promise.all([
+      import("@/lib/dev/state-switch"),
+      import("@/lib/db/supabase-client"),
+    ]);
+    return withDevInjection(createSupabaseStore(controller.store, withDevClient(getSupabaseClient)));
   }
-  return dataStore;
+  return createSupabaseStore(controller.store);
 }
 
 export function getDataStore(): Promise<DataStore> {

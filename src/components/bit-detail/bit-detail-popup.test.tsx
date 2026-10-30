@@ -220,6 +220,17 @@ describe("BitDetailPopup", () => {
     expect(screen.getByText("Move to trash")).toBeInTheDocument();
   });
 
+  it("closes at once on Move to trash, before the server answers (Task 231)", async () => {
+    mockBitDetail(createBit(), [], createNode({ level: 1 }));
+    softDeleteBitMock.mockImplementationOnce(() => new Promise<undefined>(() => undefined));
+    closeMock.mockClear();
+
+    render(<BitDetailPopup />);
+    fireEvent.click(screen.getByText("Move to trash"));
+
+    expect(closeMock).toHaveBeenCalledTimes(1);
+  });
+
   it("continues to offer Promote to Node for an ordinary eligible Bit with Chunks", () => {
     mockBitDetail(createBit(), [createChunk()], createNode({ level: 1 }));
 

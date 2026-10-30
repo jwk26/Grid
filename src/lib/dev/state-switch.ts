@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import type { DataStore } from "@/lib/db/datastore";
+import type { GriddoSupabaseClient } from "@/lib/db/supabase-client";
+import { WRITE_FUNCTION } from "@/lib/db/supabase-store";
 import type { ForcedState } from "@/lib/feedback/forced-item-status";
 
 /**
@@ -16,6 +18,10 @@ import type { ForcedState } from "@/lib/feedback/forced-item-status";
  * - boundary: `withDevInjection` wraps the DataStore and delays, or answers
  *   with an outcome, the next calls of one Inbox command method, so the real
  *   recovery paths (`Check again`, `Retry`, `Retry Add`) run end to end.
+ *   The ordinary write methods (Task 231) are injected lower, at the Supabase
+ *   client (`withDevClient`): the pending layer has already shown the change
+ *   when the request is answered, so a forced `rejected` runs the real
+ *   rollback and a forced unknown outcome runs the real refetch.
  */
 export const STATE_SWITCH_MARKER = "GRIDDO_STATE_SWITCH_DEV_ONLY";
 
@@ -45,6 +51,27 @@ const INJECTABLE_NAMES = [
   "archiveScratch",
   "trashScratch",
   "reconcileTrashScratch",
+  // Ordinary writes (Task 231): injected at the Supabase client, not at the DataStore.
+  "createNode",
+  "updateNode",
+  "softDeleteNode",
+  "archiveNode",
+  "restoreNode",
+  "unarchiveNode",
+  "hardDeleteNode",
+  "createBit",
+  "updateBit",
+  "softDeleteBit",
+  "archiveBit",
+  "restoreBit",
+  "unarchiveBit",
+  "hardDeleteBit",
+  "promoteBitToNode",
+  "emptyTrash",
+  "createChunk",
+  "updateChunk",
+  "reorderChunks",
+  "deleteChunk",
 ] as const satisfies readonly (keyof DataStore)[];
 
 export type InjectableMethod = (typeof INJECTABLE_NAMES)[number];
@@ -71,7 +98,7 @@ export const INJECTION_OUTCOME_LABELS: Record<InjectionOutcome, string> = {
 export type InjectableMethodSpec = Readonly<{
   /** The family name shown in the panel, shared by a command and its twin. */
   label: string;
-  kind: "command" | "reconcile";
+  kind: "command" | "reconcile" | "write";
   /**
    * The read-only reconcile method whose result carries the records the real
    * store would return now; an injected answer is that result with its status
@@ -105,6 +132,38 @@ const RECONCILE_REJECTING_OUTCOMES = [
   "rejected",
   "conflict",
 ] as const;
+
+// An ordinary write answers applied or rejected; it never answers conflict or not_applied.
+const WRITE_OUTCOMES = [
+  "real",
+  "unknown-before-send",
+  "unknown-after-commit",
+  "rejected",
+] as const;
+
+// The rule code a forced `rejected` carries: a cell rule for the writes that take a cell, the full
+// Grid for the restores, `not_found` for the rest. `cell_taken`, `grid_full` and `not_found` are
+// state-dependent, so the store refetches once after them, as it does after a real refusal.
+type WriteRejectionCode = "cell_taken" | "grid_full" | "not_found";
+
+const writeSpec = (label: string): InjectableMethodSpec => ({
+  label,
+  kind: "write",
+  recordsFrom: null,
+  outcomes: WRITE_OUTCOMES,
+});
+
+const WRITE_REJECTION: Partial<Record<InjectableMethod, WriteRejectionCode>> = {
+  createNode: "cell_taken",
+  updateNode: "cell_taken",
+  createBit: "cell_taken",
+  updateBit: "cell_taken",
+  restoreNode: "grid_full",
+  unarchiveNode: "grid_full",
+  restoreBit: "grid_full",
+  unarchiveBit: "grid_full",
+  promoteBitToNode: "grid_full",
+};
 
 const command = (
   label: string,
@@ -159,6 +218,26 @@ const SPECS: Record<InjectableMethod, InjectableMethodSpec> = {
   archiveScratch: command("Archive Scratch", null),
   trashScratch: command("Trash Scratch", "reconcileTrashScratch"),
   reconcileTrashScratch: reconcile("Trash Scratch", "reconcileTrashScratch"),
+  createNode: writeSpec("Create Node"),
+  updateNode: writeSpec("Edit or move Node"),
+  softDeleteNode: writeSpec("Trash Node"),
+  archiveNode: writeSpec("Archive Node"),
+  restoreNode: writeSpec("Restore Node"),
+  unarchiveNode: writeSpec("Unarchive Node"),
+  hardDeleteNode: writeSpec("Delete Node for good"),
+  createBit: writeSpec("Create Bit"),
+  updateBit: writeSpec("Edit or move Bit"),
+  softDeleteBit: writeSpec("Trash Bit"),
+  archiveBit: writeSpec("Archive Bit"),
+  restoreBit: writeSpec("Restore Bit"),
+  unarchiveBit: writeSpec("Unarchive Bit"),
+  hardDeleteBit: writeSpec("Delete Bit for good"),
+  promoteBitToNode: writeSpec("Promote Bit to Node"),
+  emptyTrash: writeSpec("Empty Trash"),
+  createChunk: writeSpec("Create Chunk"),
+  updateChunk: writeSpec("Edit Chunk"),
+  reorderChunks: writeSpec("Reorder Chunks"),
+  deleteChunk: writeSpec("Delete Chunk"),
 };
 
 export function injectableMethodSpec(method: InjectableMethod): InjectableMethodSpec {
@@ -167,6 +246,11 @@ export function injectableMethodSpec(method: InjectableMethod): InjectableMethod
 
 function isInjectableMethod(name: string): name is InjectableMethod {
   return Object.prototype.hasOwnProperty.call(SPECS, name);
+}
+
+// The methods injected at the DataStore: the Inbox commands and their reconcile twins.
+function isStoreInjectable(name: string): name is InjectableMethod {
+  return isInjectableMethod(name) && SPECS[name].kind !== "write";
 }
 
 // --- The switch store -------------------------------------------------------
@@ -322,11 +406,76 @@ export function withDevInjection(store: DataStore): DataStore {
     get(_target, property) {
       const value: unknown = Reflect.get(store, property, store);
       if (typeof value !== "function") return value;
-      if (typeof property === "string" && isInjectableMethod(property)) {
+      if (typeof property === "string" && isStoreInjectable(property)) {
         return (command: { operationId: string; scratchBitId?: string }) =>
           runWithInjection(store, property, value as StoreMethod, command);
       }
       return value.bind(store);
     },
   });
+}
+
+// --- The Supabase client wrapper (ordinary writes) --------------------------
+
+type RpcResult = { data: unknown; error: { message: string } | null; status: number };
+type RpcCall = (name: string, args: Record<string, unknown>) => Promise<RpcResult>;
+
+const WRITE_METHOD_BY_FUNCTION = new Map<string, InjectableMethod>(
+  INJECTABLE_NAMES.filter((name) => SPECS[name].kind === "write").map((name) => [
+    WRITE_FUNCTION[name as keyof typeof WRITE_FUNCTION],
+    name,
+  ]),
+);
+
+// No response at all, which `callWrite` classifies as an unknown outcome.
+const LOST: RpcResult = { data: null, error: { message: `${STATE_SWITCH_MARKER}: injected lost response` }, status: 0 };
+
+async function injectedRpc(real: RpcCall, name: string, args: Record<string, unknown>): Promise<RpcResult> {
+  const method = WRITE_METHOD_BY_FUNCTION.get(name);
+  const injection = method === undefined ? null : useStateSwitchStore.getState().takeInjection(method);
+  if (method === undefined || injection === null) return real(name, args);
+
+  if (injection.delayMs > 0) await sleep(injection.delayMs);
+
+  switch (injection.outcome) {
+    case "unknown-before-send":
+      return LOST;
+    case "unknown-after-commit":
+      await real(name, args);
+      return LOST;
+    case "rejected":
+      return {
+        data: {
+          status: "rejected",
+          result: null,
+          changes: {},
+          rejection: { code: WRITE_REJECTION[method] ?? "not_found" },
+        },
+        error: null,
+        status: 200,
+      };
+    default:
+      return real(name, args);
+  }
+}
+
+/**
+ * Wraps the function that gives the store its Supabase client, so the ordinary
+ * writes honour the queued injections below the pending layer. Every other
+ * call passes through. `getDataStore()` applies it, in development only.
+ */
+export function withDevClient(getClient: () => GriddoSupabaseClient): () => GriddoSupabaseClient {
+  return () => {
+    const client = getClient();
+    return new Proxy(client, {
+      get(_target, property) {
+        const value: unknown = Reflect.get(client, property, client);
+        if (property === "rpc") {
+          const real = (value as (...args: unknown[]) => unknown).bind(client) as RpcCall;
+          return (name: string, args: Record<string, unknown>) => injectedRpc(real, name, args ?? {});
+        }
+        return typeof value === "function" ? value.bind(client) : value;
+      },
+    });
+  };
 }

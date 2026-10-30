@@ -72,6 +72,8 @@ const APPLICABLE_STATES: Record<ItemKind, readonly ForcedState[]> = {
   ],
 };
 
+const KIND_LABEL = { command: "command", reconcile: "Check again", write: "write" } as const;
+
 /** The existing SPEC/copy sentence of a state for an item kind. */
 function sentenceFor(
   kind: ItemKind,
@@ -262,7 +264,7 @@ function InjectionForm() {
             const spec = injectableMethodSpec(name);
             return (
               <option key={name} value={name}>
-                {spec.label} — {spec.kind === "command" ? "command" : "Check again"}
+                {spec.label} — {KIND_LABEL[spec.kind]}
               </option>
             );
           })}
@@ -332,9 +334,7 @@ function InjectionForm() {
             >
               <span>
                 {injectableMethodSpec(injection.method).label} ·{" "}
-                {injectableMethodSpec(injection.method).kind === "command"
-                  ? "command"
-                  : "Check again"}{" "}
+                {KIND_LABEL[injectableMethodSpec(injection.method).kind]}{" "}
                 · {INJECTION_OUTCOME_LABELS[injection.outcome]}
                 {injection.delayMs > 0 ? ` · ${injection.delayMs} ms` : ""} ·{" "}
                 {injection.remaining}×
