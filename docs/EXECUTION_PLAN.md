@@ -728,7 +728,7 @@ after 300ms.
 
 **Commit message:** `feat(feedback): add the toast rules and server-confirmed pending`.
 
-### Task 233: [ ] Add the connection states and the offline write gate
+### Task 233: [x] Add the connection states and the offline write gate
 
 **Files and actions:** `src/lib/db/connection-monitor.ts` and test (normal,
 unstable, offline from request results; 30-second probe while unstable or
