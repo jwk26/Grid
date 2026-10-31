@@ -772,7 +772,7 @@ Supabase.
 
 **Commit message:** `feat(auth): add OAuth and Turnstile`.
 
-### Task 237: [ ] Record the demo seed `DP-SAAS-02` and copy it into new guests
+### Task 237: [x] Record the demo seed `DP-SAAS-02` and copy it into new guests
 
 **Decision prerequisite `DP-SAAS-02`:** owner the user; missing decision the
 demo seed content (S10); the task drafts it from the
