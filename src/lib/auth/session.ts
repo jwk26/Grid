@@ -7,6 +7,7 @@ import { getSupabaseClient, type GriddoSupabaseClient } from "@/lib/db/supabase-
 import { SnapshotStore, UnknownOutcomeError, type AccountRejectionCode } from "@/lib/db/snapshot-store";
 import { resetAppForUserChange } from "@/lib/auth/user-change";
 import { CaptchaError, getAppTurnstile, type CaptchaProvider } from "@/lib/auth/turnstile";
+import { browserViewport } from "@/lib/viewport";
 
 // Account entry (SPEC §Account entry, §Session expiry): the session, `ensure_account()` and the
 // snapshot load, as one external store the app-level frame reads. Entry is one function that any
@@ -87,11 +88,27 @@ export type SessionControllerOptions = {
   captcha?: CaptchaProvider | null;
   /** The address bar, read and cleaned at entry; tests inject one. */
   location?: { get: () => URL; replace: (relativeUrl: string) => void };
+  /**
+   * The window's width rule (SPEC §Account entry step 1): while it is narrow no guest is created.
+   * Read when a guest is about to be created, never earlier; none means always wide.
+   */
+  viewport?: { isNarrow: () => boolean; subscribe: (listener: () => void) => () => void };
   /** Told how each request to the server ended (SPEC §Connection states). */
   connection?: { report: (result: RequestResult, detail?: { snapshotRead?: boolean }) => void };
 };
 
 export type SessionController = ReturnType<typeof createSessionController>;
+
+// Resolves when the window is wide or the entry is superseded, checked at each width change.
+function waitUntilWide(viewport: NonNullable<SessionControllerOptions["viewport"]>, stale: () => boolean): Promise<void> {
+  return new Promise((resolve) => {
+    const stop = viewport.subscribe(() => {
+      if (!stale() && viewport.isNarrow()) return;
+      stop();
+      resolve();
+    });
+  });
+}
 
 // Thrown inside the guest-entry lock when the entry was overtaken before it signed in.
 class SupersededError extends Error {}
@@ -313,6 +330,12 @@ export function createSessionController(options: SessionControllerOptions) {
     }
 
     if (!user) {
+      // A visit without a session creates no guest while the window is narrow. The wait comes
+      // before the lock, so no lock is held; a superseded entry stops when the width next changes.
+      if (options.viewport?.isNarrow()) {
+        await waitUntilWide(options.viewport, stale);
+        if (stale()) return;
+      }
       try {
         user = await runExclusive(GUEST_ENTRY_LOCK, async () => {
           // Another tab may have signed in while this one waited for the lock, or the session
@@ -566,6 +589,7 @@ export function getSessionController(): SessionController {
       getClient: getSupabaseClient,
       storage: window.localStorage,
       connection,
+      viewport: browserViewport,
       captcha: getAppTurnstile(),
       onUserChange: resetAppForUserChange,
     });

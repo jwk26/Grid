@@ -101,6 +101,12 @@ export const ACCOUNT_BEING_DELETED = {
   continueAsGuest: "Continue as guest",
 } as const;
 
+// The narrow-window notice (SPEC §Account entry step 1, §Feedback copy; S42 (4)).
+export const NARROW_WINDOW = {
+  title: "Please use a larger window.",
+  reason: "grid needs a window at least 1024 pixels wide, such as a desktop browser.",
+} as const;
+
 export const ACCOUNT_DELETED = {
   title: "This account was deleted.",
   reason: "Its data is gone. You can continue as a guest.",

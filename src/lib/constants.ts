@@ -5,6 +5,9 @@ export const APP_NAME = "GridDO";
 export const GRID_COLS = 18;
 export const GRID_ROWS = 9;
 
+// Narrowest supported window, in CSS pixels (SPEC §Responsive; below it the narrow-window notice covers the app)
+export const MIN_WINDOW_WIDTH = 1024;
+
 // Aging thresholds (days since mtime)
 export const AGING_FRESH_DAYS = 5;
 export const AGING_STAGNANT_DAYS = 11;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useSyncExternalStore } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import { StatusIcon } from "@/components/feedback/status-icon";
@@ -10,6 +10,7 @@ import { setTurnstileHost } from "@/lib/auth/turnstile";
 import { takeHomeReturn } from "@/lib/auth/user-change";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useDisplayDelay } from "@/hooks/use-display-delay";
+import { isNarrowWindow, subscribeNarrowWindow } from "@/lib/viewport";
 import {
   getSessionController,
   type EntryState,
@@ -22,6 +23,7 @@ import {
   GUEST_CREATION_FAILURE,
   LOAD_FAILURE,
   LOADING,
+  NARROW_WINDOW,
   SECURITY_CHECK,
   SESSION_EXPIRED,
 } from "@/lib/copy/feedback";
@@ -124,6 +126,93 @@ function NotReadyTitle() {
   return null;
 }
 
+// The narrow-window notice (SPEC §Account entry step 1; DESIGN_TOKENS SA-5): the Scratch Trash dialog
+// card over a dimmed overlay, above every app layer (the highest is the Scratch modal, `z-[400]`),
+// with no action. The app is not replaced: every other child of `body` gets `inert` while the notice
+// shows, portalled dialogs and the Turnstile host included, so nothing under it can be used and
+// widening the window brings back the same screen. A portal added meanwhile is made inert by the
+// observer; widening removes only what this notice set.
+function useInertBody(noticeRef: React.RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const notice = noticeRef.current;
+    const set = new Set<Element>();
+    const previouslyFocused = document.activeElement;
+    const apply = () => {
+      for (const child of document.body.children) {
+        if (child === notice || child.hasAttribute("inert")) continue;
+        child.setAttribute("inert", "");
+        set.add(child);
+      }
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(document.body, { childList: true });
+    return () => {
+      observer.disconnect();
+      for (const element of set) element.removeAttribute("inert");
+      if (previouslyFocused instanceof HTMLElement && previouslyFocused.isConnected) {
+        previouslyFocused.focus({ preventScroll: true });
+      }
+    };
+  }, [noticeRef]);
+}
+
+function NarrowNotice() {
+  const ref = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const reasonId = useId();
+  const cardRef = useRef<HTMLDivElement>(null);
+  useInertBody(ref);
+  // Focus moves to the notice so a screen reader announces it; widening returns focus to where it was.
+  useLayoutEffect(() => cardRef.current?.focus({ preventScroll: true }), []);
+  // A press on the notice is outside any dialog the app left open; it must not reach that dialog's
+  // outside-press handler on `document`. A modal Radix layer sets `pointer-events: none` on `body`,
+  // which the notice would inherit and then never be the press's target, so it sets its own.
+  const stop = (event: React.SyntheticEvent) => event.stopPropagation();
+  return createPortal(
+    <div ref={ref} data-app-role="narrow-notice" className="pointer-events-auto" onPointerDown={stop} onMouseDown={stop} onClick={stop}>
+      <div className="scratch-trash-dialog-overlay fixed inset-0 z-[500] bg-black/50" />
+      <div
+        ref={cardRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        aria-labelledby={titleId}
+        aria-describedby={reasonId}
+        className="scratch-trash-dialog fixed top-[50%] left-[50%] z-[500] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg outline-none sm:max-w-lg"
+      >
+        <div className="scratch-trash-dialog__content grid gap-2">
+          <h2 id={titleId} data-slot="alert-dialog-title" className="text-lg font-semibold">
+            {NARROW_WINDOW.title}
+          </h2>
+          <p id={reasonId} data-slot="alert-dialog-description" className="text-sm text-muted-foreground">
+            {NARROW_WINDOW.reason}
+          </p>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// `inert` does not stop `document` and `window` listeners, so while the window is narrow no key
+// reaches the app: Esc would close the Bit popup and Cmd+K open the palette under the notice. It
+// is a layout effect so it is registered before any child's effect, the command palette's capture
+// listener on `window` included.
+function useNarrowKeyBlock() {
+  useLayoutEffect(() => {
+    const block = (event: KeyboardEvent) => {
+      if (isNarrowWindow()) event.stopImmediatePropagation();
+    };
+    window.addEventListener("keydown", block, { capture: true });
+    window.addEventListener("keyup", block, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", block, { capture: true });
+      window.removeEventListener("keyup", block, { capture: true });
+    };
+  }, []);
+}
+
 function FrameScreen({
   state,
   controller,
@@ -219,6 +308,8 @@ export function AppFrame({
   const controller = injected ?? (typeof window === "undefined" ? null : getSessionController());
   const state = useEntryState(controller);
   const router = useRouter();
+  const narrow = useSyncExternalStore(subscribeNarrowWindow, isNarrowWindow, () => false);
+  useNarrowKeyBlock();
 
   // A user change leaves the address naming the old user's ids. It goes back to Home through the
   // router while a screen replaces the app, so nothing of the new user mounts on the old route.
@@ -244,6 +335,7 @@ export function AppFrame({
       {/* Not ready: no page is mounted to set the tab title, so the frame sets the app name. */}
       {state.phase !== "ready" ? <NotReadyTitle /> : null}
       <FrameScreen state={state} controller={controller}>{children}</FrameScreen>
+      {narrow ? <NarrowNotice /> : null}
     </>
   );
   if (!hasCaptcha || !isClient) return screen;

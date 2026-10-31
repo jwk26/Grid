@@ -1040,3 +1040,101 @@ describe("session controller OAuth", () => {
     expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
   });
 });
+
+describe("no guest while the window is narrow (Task 238, S42 (4))", () => {
+  function narrowSetup(session: Parameters<typeof setup>[0] = {}) {
+    const t = setup(session);
+    let narrow = true;
+    const listeners = new Set<() => void>();
+    const exclusive = vi.fn(async (_name: string, task: () => Promise<unknown>) => task());
+    const controller = createSessionController({
+      getClient: () => ({ auth: t.auth, rpc: t.rpc }) as never,
+      storage: t.storage,
+      runExclusive: exclusive as never,
+      defer: (task) => task(),
+      viewport: {
+        isNarrow: () => narrow,
+        subscribe: (listener) => {
+          listeners.add(listener);
+          return () => listeners.delete(listener);
+        },
+      },
+    });
+    return {
+      ...t,
+      controller,
+      exclusive,
+      listeners,
+      setNarrow(next: boolean) {
+        narrow = next;
+        for (const listener of [...listeners]) listener();
+      },
+    };
+  }
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it("creates no guest and takes no lock while narrow, and enters once the window is wide", async () => {
+    const t = narrowSetup();
+    void t.controller.start();
+    await settle();
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+    expect(t.exclusive).not.toHaveBeenCalled();
+    expect(t.controller.getState()).toEqual({ phase: "entering" });
+    t.setNarrow(false);
+    await settle();
+    await settle();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("keeps waiting when the width changes but is still narrow", async () => {
+    const t = narrowSetup();
+    void t.controller.start();
+    await settle();
+    t.setNarrow(true);
+    await settle();
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+    t.setNarrow(false);
+    await settle();
+    await settle();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets a restored session through while narrow (only guest creation waits)", async () => {
+    const t = narrowSetup({ session: { id: "guest-a" } });
+    await t.controller.start();
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("lets the session-expired marker through while narrow", async () => {
+    const t = narrowSetup();
+    t.storage.setItem(SESSION_EXPIRED_KEY, "guest");
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "session-expired", variant: "guest" });
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+  });
+
+  it("stops a superseded entry from waiting on: after a retry, widening creates one guest", async () => {
+    const t = narrowSetup();
+    void t.controller.start();
+    await settle();
+    void t.controller.retry();
+    await settle();
+    expect(t.listeners.size).toBe(2);
+    t.setNarrow(false);
+    await settle();
+    await settle();
+    await settle();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+    expect(t.listeners.size).toBe(0);
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("with no viewport option the window counts as wide", async () => {
+    const t = setup();
+    await t.controller.start();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+  });
+});
