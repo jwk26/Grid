@@ -231,3 +231,18 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 ### Checkpoint — Task 237 (full gate on the final tree, 2026-10-31)
 - Verified on `a6e7e9e` with the working tree holding only this ledger: `git diff --check` clean; `pnpm test` (2320, 130 files); `pnpm test:db` (975 = 955 + 20, after its own reset); `pnpm lint` (0 errors, 11 warnings, as the baseline); `pnpm typecheck`; `pnpm build`. The dev server on port 3000 was stopped by its PID before the build.
 - Decision: Task 237 accepted (user, 2026-10-31).
+
+## Task 238 — Add guest cleanup and the narrow-window notice
+
+### Current state
+- Status: Awaiting User Decision
+- Next: go-ahead on the work plan
+- Open: none
+
+### Log
+- Work plan:
+  - Files: a new migration `20261039000000_guest_cleanup.sql` (`create extension if not exists pg_cron`, `internal.cleanup_guests()` owned by `postgres` with `PLANNING_STANDARD` §6 checklist applied: no client EXECUTE, fixed `search_path`, the daily `cron.schedule`); `supabase/tests/guest-cleanup.db.test.ts`; `src/lib/auth/session.ts` (a viewport option: no guest creation while narrow, entry continues on widening); `src/components/layout/app-frame.tsx` (narrow notice laid over the mounted, `inert` app) with `src/lib/copy/feedback.ts` (the SPEC sentence) and their tests.
+  - Stage 1 — cleanup, database: tests first (a guest idle 7+ days is deleted with all its rows; one at 6 days and one whose `last_visit_at` an `cleanup_expired_trash()` call refreshed is kept; an account with a deletion request is deleted with all rows, a real account without one is never deleted; an account with a staged candidate is deleted (S29); no client role can execute the function; the job is registered once and owned by `postgres`), then the migration. Checkpoint: stage acceptance with the gate and the `expert` SQL review.
+  - Stage 2 — narrow notice: tests first (below 1024px the notice shows and the app below is `inert` but still mounted; widening removes it with the same DOM and a typed draft intact; a visit without a session creates no guest while narrow and starts entry on widening; a visit with a session is unaffected). The notice reuses the Scratch Trash dialog card look (SA-5: `bg-black/50` overlay, centred card, title and sentence, no actions), semantic tokens only, `data-app-role="narrow-notice"`. Checkpoint: a prepared headed window at 1440×900 you narrow and widen yourself.
+  - Open point for the judgment of the working session: a guest whose auth user exists but whose `accounts` row was never made (sign-in done, `ensure_account()` never ran) has no `last_visit_at`; I clean those up by `auth.users.created_at` older than 7 days with the same rule, which SCHEMA does not state. I will note it in the SCHEMA §Guest cleanup only if you approve; otherwise I leave them.
+  - Verification: full gate including `pnpm test:db`; `expert` review with the SQL checklist; browser checks on local Supabase, the cross-browser-profile deletion screens (account-deleted for a valid token, session-expired for an expired one) with two isolated profiles.
