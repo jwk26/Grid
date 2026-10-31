@@ -1334,7 +1334,9 @@ no `accounts` row (sign-in finished, `ensure_account()` never ran) has no
 `last_visit_at`; the job deletes it 7 days after `auth.users.created_at`. This
 covers the extra guest of two first-visit tabs (SPEC §Several tabs). Under the
 account-deletion fallback the same job also deletes every account with a
-deletion request. The
+deletion request. The job deletes one account at a time; an account that
+deadlocks with a client write in flight is skipped and taken by the next run,
+so one busy account never stops the others. The
 job is owned by `postgres`, the one role that can delete from `auth.users`.
 Task 218 proved `pg_cron` on the free plan (off by default; the Task 238
 migration enables it), so the S22 fallback, a scheduled GitHub Actions call,
