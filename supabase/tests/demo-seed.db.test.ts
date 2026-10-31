@@ -27,7 +27,7 @@ const BLOCK = [
   { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 },
   { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 },
 ];
-const COUNTS = { nodes: 73, bits: 269, chunks: 10, rows: 11, candidates: 2 };
+const COUNTS = { nodes: 87, bits: 267, chunks: 85, rows: 21, candidates: 3 };
 
 let guest: TestUser;
 beforeAll(async () => {
@@ -256,41 +256,58 @@ describe("demo seed: the copied rows", () => {
         }
       }
       // A level-2 Node holds Bits only.
-      const level2 = new Set(s.nodes.filter((n) => n.level === 2).map((n) => n.id));
-      expect(s.nodes.filter((n) => n.parent_id !== null && level2.has(n.parent_id))).toEqual([]);
-      // The shape of the seed: counts per tree, per Grid and per level. A Node's Bit count
-      // includes an archived or trashed Bit it holds.
-      expect(s.nodes.filter((n) => n.parent_id === null && n.system_role === null)).toHaveLength(15);
-      expect(s.nodes.filter((n) => n.level === 1)).toHaveLength(50);
-      expect(s.nodes.filter((n) => n.level === 2)).toHaveLength(6);
+      const level2Ids = new Set(s.nodes.filter((n) => n.level === 2).map((n) => n.id));
+      expect(s.nodes.filter((n) => n.parent_id !== null && level2Ids.has(n.parent_id))).toEqual([]);
+      // The shape of the seed, as properties: no fixed count repeats across Grids.
       const active = (b: BitRow) => b.deleted_at === null && b.archived_at === null;
       const activeBits = seedBits.filter(active);
       const bitsOf = (id: string) => seedBits.filter((b) => b.parent_id === id).length;
       const subsOf = (id: string) => subNodes.filter((n) => n.parent_id === id);
       const l0 = s.nodes.filter((n) => n.parent_id === null && n.system_role === null);
+      expect(l0).toHaveLength(15);
       const trees = ["사이트 개편", "팀 워크숍", "집안일", "Reading list"].map((t) => l0.find((n) => n.title === t)!);
+      const treeIds = new Set(trees.map((t) => t.id));
+      // Level-1 branches that reach level 2.
+      const branches = (n: (typeof s.nodes)[number]) => subsOf(n.id).filter((c) => subsOf(c.id).length > 0).length;
+      for (const n of l0) {
+        expect(subsOf(n.id).length).toBeGreaterThanOrEqual(2);
+        expect(branches(n)).toBeGreaterThanOrEqual(1);
+      }
       for (const t of trees) {
         expect(subsOf(t.id)).toHaveLength(7);
-        expect(bitsOf(t.id)).toBe(10);
-        for (const c of subsOf(t.id)) expect(bitsOf(c.id)).toBe(5);
+        expect(branches(t)).toBeGreaterThanOrEqual(2);
+        expect(branches(t)).toBeLessThanOrEqual(3);
+        expect(bitsOf(t.id)).toBeGreaterThanOrEqual(8);
+        expect(bitsOf(t.id)).toBeLessThanOrEqual(14);
       }
-      const treeIds = new Set(trees.map((t) => t.id));
-      for (const n of l0) expect(subsOf(n.id).length).toBeGreaterThanOrEqual(2);
       for (const n of l0.filter((x) => !treeIds.has(x.id))) {
-        expect(subsOf(n.id)).toHaveLength(2);
-        expect(bitsOf(n.id)).toBe(3);
-        for (const c of subsOf(n.id)) expect(bitsOf(c.id)).toBe(1);
+        expect(bitsOf(n.id)).toBeGreaterThanOrEqual(2);
+        expect(bitsOf(n.id)).toBeLessThanOrEqual(6);
       }
-      const l2 = s.nodes.filter((x) => x.level === 2);
-      for (const n of l2) expect(bitsOf(n.id)).toBe(5);
-      expect(new Set(l2.map((n) => n.parent_id)).size).toBe(2);
-      for (const p of new Set(l2.map((n) => n.parent_id!))) expect(l2.filter((n) => n.parent_id === p)).toHaveLength(3);
+      const level1 = s.nodes.filter((n) => n.level === 1);
+      const level2 = s.nodes.filter((n) => n.level === 2);
+      expect(level1.filter((n) => subsOf(n.id).length > 0).length / level1.length).toBeGreaterThanOrEqual(0.4);
+      expect(level2.length).toBeGreaterThanOrEqual(18);
+      expect(level2.length).toBeLessThanOrEqual(23);
+      const spread = (nodes: typeof s.nodes, lo: number, hi: number, share: number) => {
+        const counts = nodes.map((n) => bitsOf(n.id));
+        for (const c of counts) {
+          expect(c).toBeGreaterThanOrEqual(lo);
+          expect(c).toBeLessThanOrEqual(hi);
+        }
+        const freq = new Map<number, number>();
+        for (const c of counts) freq.set(c, (freq.get(c) ?? 0) + 1);
+        expect(Math.max(...freq.values()) / counts.length).toBeLessThanOrEqual(share);
+        expect(freq.size).toBeGreaterThanOrEqual(5);
+      };
+      spread(level1, 1, 8, 0.3);
+      spread(level2, 1, 5, 0.3);
       const perParent = new Map<string, number>();
       for (const b of seedBits) perParent.set(b.parent_id, (perParent.get(b.parent_id) ?? 0) + 1);
       expect(Math.max(...perParent.values())).toBeLessThanOrEqual(16);
       // Room left under the guest limits to create.
-      expect(s.nodes.length).toBeLessThanOrEqual(75);
-      expect(s.bits.length).toBeLessThanOrEqual(275);
+      expect(s.nodes.length).toBeLessThanOrEqual(90);
+      expect(s.bits.length).toBeLessThanOrEqual(270);
 
       // No gaps: sub-Nodes fill the left zone row by row from (2,2); each Bit column runs from
       // y 1 without a gap; the first half of a Grid's Bits sit in the x 9 column.
@@ -334,6 +351,50 @@ describe("demo seed: the copied rows", () => {
         }
       }
       expect(blocks).toBe(4);
+    });
+  });
+
+  it("shows signs of use: completed Bits, deadlines, Chunks, descriptions, idle branches, consumed rows", async () => {
+    const u = await createTestUser("dsuse");
+    await inGuest(u, async (db) => {
+      await ensure(db);
+      const s = await snapshot(db);
+      const at = (await seededAt(db, u))!;
+      const inbox = s.nodes.find((n) => n.system_role === "inbox")!;
+      const seedBits = s.bits.filter((b) => b.parent_id !== inbox.id);
+      const open = seedBits.filter((b) => b.deleted_at === null && b.archived_at === null);
+      const near = (n: number, lo: number, hi: number) => {
+        expect(n).toBeGreaterThanOrEqual(lo);
+        expect(n).toBeLessThanOrEqual(hi);
+      };
+      near(seedBits.filter((b) => b.status === "complete").length, 45, 58);
+      const withDeadline = open.filter((b) => b.deadline !== null);
+      near(withDeadline.length, 60, 75);
+      const overdue = withDeadline.filter((b) => b.status !== "complete" && b.deadline! < at);
+      near(overdue.length, 3, 5);
+      const imminent = withDeadline.filter((b) => b.status !== "complete" && b.deadline! >= at && b.deadline! <= at + 3 * DAY);
+      expect(imminent.length).toBeGreaterThanOrEqual(5);
+      const chunked = new Set(s.chunks.map((c) => c.parent_id));
+      near(chunked.size, 22, 28);
+      near(s.chunks.length, 75, 90);
+      const inProgress = [...chunked].filter((id) => {
+        const own = s.chunks.filter((c) => c.parent_id === id);
+        return own.some((c) => c.status === "complete") && own.some((c) => c.status !== "complete");
+      });
+      expect(inProgress.length).toBeGreaterThanOrEqual(5);
+      near(seedBits.filter((b) => b.description !== "").length, 13, 17);
+      for (const b of seedBits) expect(b.description.length).toBeLessThanOrEqual(1000);
+      const below = s.nodes.filter((n) => n.system_role === null && n.parent_id !== null);
+      expect(below.filter((n) => n.mtime < at - 14 * DAY).length).toBeGreaterThanOrEqual(8);
+      expect(below.filter((n) => n.mtime >= at - 5 * DAY).length).toBeGreaterThanOrEqual(20);
+      const scratches = s.bits.filter((b) => b.parent_id === inbox.id);
+      near(scratches.length, 6, 8);
+      const consumed = s.scratch_breakdowns.filter((r) => r.consumed_at !== null);
+      expect(consumed.length).toBeGreaterThanOrEqual(3);
+      for (const r of consumed) expect(r.consumed_at!).toBeGreaterThanOrEqual(r.created_at);
+      const sources = new Set(s.staged_candidates.map((k) => k.source_breakdown_id));
+      for (const r of consumed) expect(sources.has(r.id)).toBe(false);
+      expect(s.scratch_breakdowns.filter((r) => r.consumed_at === null).length).toBeGreaterThan(consumed.length);
     });
   });
 
