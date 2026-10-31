@@ -126,8 +126,8 @@ function NotReadyTitle() {
   return null;
 }
 
-// The narrow-window notice (SPEC §Account entry step 1; DESIGN_TOKENS SA-5): the Scratch Trash dialog
-// card over a dimmed overlay, above every app layer (the highest is the Scratch modal, `z-[400]`),
+// The narrow-window notice (SPEC §Account entry step 1; DESIGN_TOKENS SA-5): the SA-4 frame as an
+// opaque full-window layer, above every app layer (the highest is the Scratch modal, `z-[400]`),
 // with no action. The app is not replaced: every other child of `body` gets `inert` while the notice
 // shows, portalled dialogs and the Turnstile host included, so nothing under it can be used and
 // widening the window brings back the same screen. A portal added meanwhile is made inert by the
@@ -170,8 +170,17 @@ function NarrowNotice() {
   // which the notice would inherit and then never be the press's target, so it sets its own.
   const stop = (event: React.SyntheticEvent) => event.stopPropagation();
   return createPortal(
-    <div ref={ref} data-app-role="narrow-notice" className="pointer-events-auto" onPointerDown={stop} onMouseDown={stop} onClick={stop}>
-      <div className="scratch-trash-dialog-overlay fixed inset-0 z-[500] bg-black/50" />
+    <div
+      ref={ref}
+      data-app-role="narrow-notice"
+      className="pointer-events-auto fixed inset-0 z-[500]"
+      onPointerDown={stop}
+      onMouseDown={stop}
+      onClick={stop}
+    >
+      {/* The SA-4 frame's surface and text block (the `Screen` look) as a full-window layer; it is
+          not a `FrameScreen`, since those replace the app and the app must stay mounted. The fixed
+          wrapper is a separate element because `.triage-shell` sets `position: relative`. */}
       <div
         ref={cardRef}
         role="dialog"
@@ -179,13 +188,14 @@ function NarrowNotice() {
         tabIndex={-1}
         aria-labelledby={titleId}
         aria-describedby={reasonId}
-        className="scratch-trash-dialog fixed top-[50%] left-[50%] z-[500] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg outline-none sm:max-w-lg"
+        className="triage-shell triage-shell--frame h-full w-full bg-background outline-none"
+        data-triage-role="shell-background"
       >
-        <div className="scratch-trash-dialog__content grid gap-2">
-          <h2 id={titleId} data-slot="alert-dialog-title" className="text-lg font-semibold">
+        <div className="grid max-w-[440px] place-self-center justify-items-center gap-3 text-center">
+          <h1 id={titleId} className="text-xl font-semibold">
             {NARROW_WINDOW.title}
-          </h2>
-          <p id={reasonId} data-slot="alert-dialog-description" className="text-sm text-muted-foreground">
+          </h1>
+          <p id={reasonId} className="text-sm text-muted-foreground">
             {NARROW_WINDOW.reason}
           </p>
         </div>

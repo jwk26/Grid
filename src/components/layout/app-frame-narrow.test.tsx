@@ -97,7 +97,14 @@ describe("the narrow-window notice", () => {
     expect(card).toHaveAccessibleDescription(NARROW_WINDOW.reason);
     expect(notice()?.querySelectorAll("button, a, input")).toHaveLength(0);
     // The Scratch modal is z-[400]; the notice sits above it.
-    expect(notice()?.innerHTML).toMatch(/z-\[500\]/);
+    // `.triage-shell` sets `position: relative`, so the fixed full-window layer is the wrapper.
+    expect(notice()).toHaveClass("fixed", "inset-0", "z-[500]");
+    expect(card).not.toHaveClass("fixed");
+    // The SA-4 frame's opaque surface (the shell background), not a dimmed overlay and a card.
+    expect(card).toHaveAttribute("data-triage-role", "shell-background");
+    expect(card).toHaveClass("triage-shell", "triage-shell--frame", "bg-background");
+    expect(notice()?.querySelector(".bg-black\\/50")).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: NARROW_WINDOW.title })).toBeInTheDocument();
   });
 
   it("puts inert on every body child except the notice, and removes only what it set when the window widens", () => {
