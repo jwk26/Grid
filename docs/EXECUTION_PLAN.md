@@ -802,7 +802,7 @@ checkpoint.
 
 **Commit message:** `feat(db): copy the demo seed into new guests`.
 
-### Task 238: [ ] Add guest cleanup and the narrow-window notice
+### Task 238: [x] Add guest cleanup and the narrow-window notice
 
 **Files and actions:** migration: `create extension if not exists pg_cron`
 (off by default on the free plan; Task 218 proved that a job scheduled by

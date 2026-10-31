@@ -235,8 +235,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 ## Task 238 — Add guest cleanup and the narrow-window notice
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Stage 2 acceptance (the opaque narrow-window notice in four themes, then Task 238 acceptance)
+- Status: Accepted
+- Next: Task 238A
 - Open: none (mi-5 Deferred)
 
 ### Log
@@ -257,6 +257,7 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Review (advisory, 2026-11-01, Task finish): approve. Checked: the notice stays laid over the mounted app; the recorded gate on the final code (`pnpm test` 2496, `lint`, `typecheck`, `build`) and `pnpm test:db` 987 with no SQL change since; the ledger state and mi-5. The look check passed in the four themes (user, 2026-11-01). The toast above the notice and the second no-op `update_bit` on narrowing stay as they are. Apply: the two notes below. Not applied: none.
 - Task 239 note: `supabase db dump` carries `pg_cron` and `internal.cleanup_guests()` but not the `cron.job` row (checked locally, 2026-11-01). The restore test and the restore steps re-register the `cleanup-guests` job and confirm one row owned by `postgres`.
 - Task 240 note: the smoke item "guest cleanup scheduled" checks one active `cleanup-guests` row owned by `postgres` in production `cron.job`, and after the first 03:17 UTC run a `succeeded` row in `cron.job_run_details`; if the first run falls after the smoke, that check is recorded at the Phase 48 close.
+- Decision: Task 238 accepted, with the advisory Task finish review (its Task 239 and Task 240 notes are taken for those tasks; nothing changes in this task) (user, 2026-11-01).
 
 ### Checkpoint — Stage 1 (guest cleanup, database)
 - Changed: `supabase/migrations/20261039000000_guest_cleanup.sql` (`pg_cron`, `internal.cleanup_guests()`, daily job `cleanup-guests` at 03:17 UTC); `supabase/tests/guest-cleanup.db.test.ts` (12 cases); `supabase/tests/write-role.db.test.ts` (one line: `cleanup_guests()` is the one internal function `griddo_writer` cannot run).
