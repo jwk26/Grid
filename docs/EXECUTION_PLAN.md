@@ -1132,7 +1132,7 @@ are judged under real latency (SPEC §Write feel).
 
 **Commit message:** `feat(inbox): carry the Undo status in the Undo slot`.
 
-### Task 248: [ ] Add the Home button and the breadcrumb reveal
+### Task 248: [x] Add the Home button and the breadcrumb reveal
 
 **Files and actions:**
 - `src/components/layout/home-button.tsx` and test: top-most on every route;

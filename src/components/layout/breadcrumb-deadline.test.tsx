@@ -276,8 +276,8 @@ describe("BreadcrumbDeadline", () => {
     fireEvent.click(screen.getByRole("button", { name: "Set all-day deadline" }));
     await waitFor(() => {
       expect(screen.getByTestId("deadline-conflict-modal")).toBeInTheDocument();
+      expect(onHeldChange).toHaveBeenLastCalledWith(true);
     });
-    expect(onHeldChange).toHaveBeenLastCalledWith(true);
 
     unmount();
     expect(onHeldChange).toHaveBeenLastCalledWith(false);
