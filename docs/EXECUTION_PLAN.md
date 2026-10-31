@@ -218,7 +218,7 @@ SaaS lane:
   →[Phase 49 Final Close]→225→226→227→228→229  Phase 45 (S43 (4): zone migration no-op)
   →230  Phase 46
   →[Phase 49 Final Close]→231→232→233→234  Phase 47
-  →235→236→237→238→239→240  Phase 48
+  →235→236→237→238→238A→239→240  Phase 48
 
 Feedback lane:
   241→242→243→244  Phase 49 (waits for none; beside Phases 42–44)
@@ -253,7 +253,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 45 | Completed | [Client switch](execution-plan/archive/phase-45.md) | 225–229 | Accepted and archived (2026-10-29); no migration; MI-19 closed; MI-24, mi-1, mi-2, mi-3 and Phase 35 MI-23 carried in `Issues_Deferred.md`. Phases 46 and 50 may start. |
 | Phase 46 | Completed | [Dexie removal](execution-plan/archive/phase-46.md) | 230 | Accepted and archived (2026-10-30); no migration; nothing carried over. Phase 47 may start. |
 | Phase 47 | Completed | [Feel and resilience](execution-plan/archive/phase-47.md) | 231–234 | Accepted and archived (2026-10-30); no migration; Phase 35 MI-23 closed; nothing carried over. Phase 48 may start. |
-| Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 | Phase 47 close/main sync. |
+| Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 + 238A | Phase 47 close/main sync. |
 | Phase 49 | Completed | [Feedback lane, part 1: theme set, status primitives, toasts](execution-plan/archive/phase-49.md) | 241–244 | Accepted and archived (2026-10-24); ISSUE-20-01 and MI-13 resolved in Task 241; mi-1, mi-2 and mi-3 bound to Task 248 in `Issues_Deferred.md`. Phases 45 and 47 no longer wait for it. |
 | Phase 50 | Completed | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](execution-plan/archive/phase-50.md) | 245–250 + 245A | Accepted and archived (2026-10-31); no migration; Phase 35 MI-14 and MI-21, Phase 45 mi-1–mi-3 and Phase 49 mi-1–mi-3 closed; follow-ups in `Issues_Deferred.md`. The theme stage no longer waits for it. |
 | Phases 36–40 | Retired (feedback F28, 2026-10-22) | [Terminal, Claymorphism + Origami, GridDO + Tiny Desk, Graphite, and the Task 208 campaign gate](execution-plan/archive/phases-36-40-retired.md) | 180–208 | Retired as superseded; never runnable. Numbers are not reused. |
@@ -832,6 +832,36 @@ checkpoint.
 
 **Commit message:** `feat(account): add guest cleanup and the narrow-window notice`.
 
+### Task 238A: [ ] Fit the Node card content at every supported width
+
+User, 2026-11-01, from the Task 238 visual check. The Node card shrinks with
+its cell, but its content has fixed floors that sum to 63px (icon 24, lift 6,
+padding 8 and 7, title 18), so below a window about 1534px wide the content no
+longer fits: the icon meets the title near 1350px and leaves the card at
+1024px, where the card is 34.7px.
+
+**Files and actions:** `src/app/globals.css`, the
+`.grid-cell-container > *` rule: lower the floors so they sum to no more than
+the card at 1024px, and reduce `--grid-inset` for a small cell; the exact
+values are set in a visual round with the user. `DESIGN_TOKENS.md`
+§Responsive Grid Node Tokens follows. Tokens only; no change to the Grid
+layout, the cell count or `MIN_WINDOW_WIDTH`. Bit cards are out of scope
+(`2026-10-31-grid-bit-card-footprint`).
+
+**Dependencies:** Task 238.
+
+**Authority:** user, 2026-11-01; DESIGN_TOKENS §Responsive Grid Node Tokens;
+SPEC §Responsive Breakpoints.
+
+**Observable acceptance:** at window widths from 1024px to 1920px, in the four
+themes, a Node's icon overlaps neither its title nor the card edge, on the Grid
+and on the Inbox Explorer cards; the look at 1920px is unchanged.
+
+**Verification:** full gate; the agent measures the icon, title and card edges
+across the widths; the user judges the look at 1280, 1366 and 1440px.
+
+**Commit message:** `fix(grid): fit the Node card content at every supported width`.
+
 ### Task 239: [ ] Name the product and add the backup job
 
 **Files and actions:** "grid" in `src/app/layout.tsx` metadata, the `sr-only`
@@ -844,7 +874,7 @@ failure notice; the connection secret read from outside Git); the user
 installs it and forces one run with `launchctl kickstart`; one restore test
 into local Supabase that brings back the account rows with their auth users.
 
-**Dependencies:** Task 238.
+**Dependencies:** Task 238A.
 
 **Authority:** S06, S24, S35; user answer Q2 (2026-10-22).
 
