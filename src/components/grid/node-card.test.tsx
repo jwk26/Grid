@@ -5,6 +5,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useArchiveActions } from "@/hooks/use-archive";
 import type { Node } from "@/types";
 
+import type { NewlyUndoSlotModel } from "./newly-undo-slot";
+
+function slot(over: Partial<NewlyUndoSlotModel> = {}): NewlyUndoSlotModel {
+  return {
+    status: null,
+    phaseKey: "",
+    sentence: "Undo this placement.",
+    disabled: false,
+    label: "Undo placement of item",
+    onActivate: vi.fn(),
+    reason: "available",
+    ...over,
+  };
+}
+
 vi.mock("motion/react", async () => {
   const React = await import("react");
 
@@ -112,7 +127,7 @@ describe("NodeCard", () => {
     const navigate = vi.fn(), activateUndo = vi.fn();
     const ref = { current: null as HTMLButtonElement | null };
     const view = render(<NodeCard presentation="inbox-explorer" node={node} onClick={navigate}
-      ref={ref} isNewlyPlaced undo={{ disabled: false, reason: "available", onActivate: activateUndo }} />);
+      ref={ref} isNewlyPlaced undo={slot({ label: "Undo placement of Mixed Case Finder", disabled: false, reason: "available", onActivate: activateUndo })} />);
     const card = screen.getByRole("button", { name: node.title });
     expect(card).toHaveAttribute("data-card-presentation", "inbox-explorer");
     expect(card).toHaveAttribute("data-triage-role", "explorer-card-node");
@@ -155,7 +170,7 @@ describe("NodeCard", () => {
         isNewlyPlaced={false}
         node={node}
         onClick={navigate}
-        undo={{ disabled: false, onActivate: activateUndo, reason: "available" }}
+        undo={slot({ label: "Undo placement of Undo node", disabled: false, onActivate: activateUndo, reason: "available" })}
       />,
     );
 
@@ -169,7 +184,7 @@ describe("NodeCard", () => {
         isNewlyPlaced={true}
         node={node}
         onClick={navigate}
-        undo={{ disabled: true, onActivate: activateUndo, reason: "dependencies" }}
+        undo={slot({ label: "Undo placement of Undo node", disabled: true, onActivate: activateUndo, reason: "dependencies" })}
       />,
     );
     expect(screen.getByText("NEW")).toBeInTheDocument();
@@ -309,7 +324,7 @@ describe("B2b — archive context menu (NodeCard)", () => {
 describe("Task170 Newly Undo pilot Node Q01", () => {
   it("renders an ordinary inbox Undo2 independently and exposes the exact tooltip reason", () => {
     const item=createNode({title:"Pilot node"}); const navigate=vi.fn(), activate=vi.fn();
-    const {container}=render(<NodeCard presentation="inbox-explorer" node={item} onClick={navigate} isNewlyPlaced undo={{disabled:false,reason:"available",tooltip:"Undo this placement.",onActivate:activate}} />);
+    const {container}=render(<NodeCard presentation="inbox-explorer" node={item} onClick={navigate} isNewlyPlaced undo={slot({ label: "Undo placement of Pilot node",disabled:false,reason:"available",sentence:"Undo this placement.",onActivate:activate})} />);
     const action=screen.getByRole("button",{name:"Undo placement of Pilot node"});
     expect(action.querySelector("svg.lucide-undo-2")).not.toBeNull();
     expect(action).not.toHaveTextContent("Undo");
@@ -326,7 +341,7 @@ it("Task170 Node unavailable Undo exposes its exact reason on semantic focus and
   // JSDOM has no layout observer; this shim enables semantic tooltip DOM only.
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   const item=createNode({title:"Tooltip node"});const activate=vi.fn(),navigate=vi.fn(),ref=vi.fn();
-  render(<NodeCard presentation="inbox-explorer" node={item} onClick={navigate} isNewlyPlaced undoActionRef={ref} undo={{disabled:true,reason:"result-mutated",tooltip:"This item changed after placement. Undo is unavailable.",onActivate:activate}} />);
+  render(<NodeCard presentation="inbox-explorer" node={item} onClick={navigate} isNewlyPlaced undoActionRef={ref} undo={slot({ label: "Undo placement of Tooltip node",disabled:true,reason:"result-mutated",sentence:"This item changed after placement. Undo is unavailable.",onActivate:activate})} />);
   const action=screen.getByRole("button",{name:"Undo placement of Tooltip node"});
   expect(action).toHaveAttribute("aria-disabled","true");expect(action).not.toBeDisabled();expect(ref).toHaveBeenCalledWith(action);
   fireEvent.focus(action);expect(await screen.findByRole("tooltip")).toHaveTextContent("This item changed after placement. Undo is unavailable.");
@@ -366,7 +381,7 @@ describe("Task 179A Explorer truncated-title tooltip", () => {
   const open = () => document.querySelector(TITLE_ROLE);
   const title = () => document.querySelector('[data-triage-role="explorer-card-title"]') as HTMLElement;
   const root = () => document.querySelector('[data-triage-role="explorer-card-node"]') as HTMLElement;
-  const undoProps = { disabled: false, reason: "available", tooltip: "Undo this placement.", onActivate: vi.fn() };
+  const undoProps = slot();
   const hover = () => fireEvent.pointerMove(title(), { pointerType: "mouse" });
 
   it("shows the full title above a truncated title on pointer hover and none for a fitting title", async () => {
@@ -409,18 +424,6 @@ describe("Task 179A Explorer truncated-title tooltip", () => {
     vi.restoreAllMocks();
   });
 
-  it("does not leave the card in the undo state after hovering an Undo that has no tooltip", async () => {
-    view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} isNewlyPlaced undo={{ ...undoProps, tooltip: undefined }} />);
-    const undo = screen.getByRole("button", { name: /Undo placement of/ });
-    fireEvent.pointerMove(undo, { pointerType: "mouse" });
-    fireEvent.focus(undo);
-    fireEvent.pointerLeave(undo);
-    fireEvent.blur(undo);
-    view.rerender(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} isNewlyPlaced undo={undoProps} />);
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).toBeNull();
-  });
-
   it("opens on card-root focus only when it matches :focus-visible and the card root is the target", async () => {
     view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} />);
     focusVisible = false;
@@ -438,7 +441,7 @@ describe("Task 179A Explorer truncated-title tooltip", () => {
   it("does not open when a descendant, not the card root, takes focus", async () => {
     view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} isNewlyPlaced undo={undoProps} />);
     fireEvent.focus(screen.getByRole("button", { name: /Undo placement of/ }));
-    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).not.toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-feedback-role="status-tooltip"]')).not.toBeNull());
     expect(open()).toBeNull();
   });
 
@@ -510,12 +513,12 @@ describe("Task 179A Explorer truncated-title tooltip", () => {
     view = render(<NodeCard presentation="inbox-explorer" node={item} onClick={vi.fn()} isNewlyPlaced undo={undoProps} />);
     const undo = screen.getByRole("button", { name: /Undo placement of/ });
     fireEvent.focus(undo);
-    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).not.toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-feedback-role="status-tooltip"]')).not.toBeNull());
     hover();
     await waitFor(() => expect(open()).not.toBeNull());
-    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-feedback-role="status-tooltip"]')).toBeNull());
     fireEvent.focus(undo);
-    await waitFor(() => expect(document.querySelector('[data-triage-role="explorer-undo-tooltip"]')).not.toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-feedback-role="status-tooltip"]')).not.toBeNull());
     await waitFor(() => expect(open()).toBeNull());
   });
 
@@ -534,5 +537,45 @@ describe("Task 179A Explorer truncated-title tooltip", () => {
     fireEvent.focus(root());
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(open()).toBeNull();
+  });
+});
+
+
+describe("Task 247 Undo slot status (NodeCard)", () => {
+  const label = "Undo placement of Slot item";
+
+  it.each([
+    ["pending", "pending", "loader", false],
+    ["unknown", "unknown", "question", true],
+    ["reconciling", "reconciling", "question", true],
+    ["problem", "problem", "exclamation", true],
+  ] as const)("shows the %s status in the slot and emphasis only with ? and !", async (_name, status, glyph, emphasis) => {
+    vi.useRealTimers();
+    const undo = slot({ label, status, sentence: "Slot sentence." });
+    const { container } = render(<NodeCard presentation="inbox-explorer" node={createNode({ title: "Slot item" })} onClick={vi.fn()} isNewlyPlaced undo={undo} />);
+    // The loader waits out the display delay; ? and ! show at once.
+    if (glyph === "loader") {
+      await waitFor(() => expect(container.querySelector('[data-glyph="loader"]')).not.toBeNull());
+    } else {
+      expect(container.querySelector(`[data-glyph="${glyph}"]`)).not.toBeNull();
+    }
+    const button = screen.getByRole("button", { name: label });
+    expect(button.querySelector('[data-feedback-role="status-icon"]')).toHaveAttribute("aria-hidden", "true");
+    expect(button.querySelector("svg.lucide-undo-2")).toBeNull();
+    expect(container.querySelector('[data-triage-role="explorer-card-node"]')?.hasAttribute("data-status-emphasis")).toBe(emphasis);
+    expect(container.querySelector('[data-newly-action-kind]')).toBeNull();
+    // The status-slot-button role marks only a slot that shows ? or !.
+    expect(button.hasAttribute("data-feedback-role")).toBe(emphasis);
+  });
+
+  it("describes the slot with the tooltip sentence once and keeps aria-disabled, never disabled", () => {
+    const undo = slot({ label, status: "problem", disabled: true, sentence: "Conflict. Slot sentence." });
+    render(<NodeCard presentation="inbox-explorer" node={createNode({ title: "Slot item" })} onClick={vi.fn()} isNewlyPlaced undo={undo} />);
+    const button = screen.getByRole("button", { name: label });
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).not.toBeDisabled();
+    const ids = (button.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean);
+    expect(ids).toHaveLength(1);
+    expect(document.getElementById(ids[0])).toHaveTextContent("Conflict. Slot sentence.");
   });
 });

@@ -87,7 +87,6 @@ import {
   callUpdateBit,
   callUpdateChunk,
   callUpdateNode,
-  callWithReserved,
 } from "@/lib/db/supabase-calls";
 import { getSupabaseClient, type GriddoSupabaseClient } from "@/lib/db/supabase-client";
 import {
@@ -179,10 +178,6 @@ type CommandWriteKey =
   | "undoDirectPlacement"
   | "reconcileDirectPlacementUndo";
 
-// Writes that send no request: the breadcrumb-zone migration is client-only until Task 249
-// (S43 (4)).
-type NoRequestWriteKey = "runBreadcrumbZoneMigration";
-
 type SearchResult = Awaited<ReturnType<DataStore["searchAll"]>>[number];
 
 // A view's maps are replaced, never mutated, so the sorted copy is cached per map reference and
@@ -250,8 +245,6 @@ export const WRITE_FUNCTION: Record<OrdinaryWriteKey | CommandWriteKey, string> 
   trashScratch: "trash_scratch",
   reconcileTrashScratch: "reconcile_trash_scratch",
 };
-
-export const NO_REQUEST_WRITE_METHODS: readonly string[] = ["runBreadcrumbZoneMigration"];
 
 const chunkUpdateSchema = chunkSchema.omit({ id: true, parentId: true }).partial();
 
@@ -698,7 +691,7 @@ export function createSupabaseStore(
       );
     },
     restoreNode: async (id) => {
-      await send(`nodes:${id}`, (c) => callWithReserved(c, "restore_node", id), nodeAbout(id));
+      await send(`nodes:${id}`, (c) => callById(c, "restore_node", id), nodeAbout(id));
     },
     hardDeleteNode: async (id) => {
       await send(`nodes:${id}`, (c) => callById(c, "hard_delete_node", id), nodeAbout(id));
@@ -714,7 +707,7 @@ export function createSupabaseStore(
       );
     },
     unarchiveNode: async (id) => {
-      await send(`nodes:${id}`, (c) => callWithReserved(c, "unarchive_node", id), nodeAbout(id));
+      await send(`nodes:${id}`, (c) => callById(c, "unarchive_node", id), nodeAbout(id));
     },
     cleanupExpiredTrash: async () => {
       // An automatic call: while offline it waits for the next hour, with no toast.
@@ -781,7 +774,7 @@ export function createSupabaseStore(
       );
     },
     restoreBit: async (id) => {
-      await send(`bits:${id}`, (c) => callWithReserved(c, "restore_bit", id), bitAbout(id));
+      await send(`bits:${id}`, (c) => callById(c, "restore_bit", id), bitAbout(id));
     },
     hardDeleteBit: async (id) => {
       await send(`bits:${id}`, (c) => callById(c, "hard_delete_bit", id), bitAbout(id));
@@ -797,7 +790,7 @@ export function createSupabaseStore(
       );
     },
     unarchiveBit: async (id) => {
-      await send(`bits:${id}`, (c) => callWithReserved(c, "unarchive_bit", id), bitAbout(id));
+      await send(`bits:${id}`, (c) => callById(c, "unarchive_bit", id), bitAbout(id));
     },
     createChunk: async (data, options) => {
       const parsed = createChunkSchema.parse(data);
@@ -840,7 +833,7 @@ export function createSupabaseStore(
       );
     },
     promoteBitToNode: async (bitId) => {
-      const envelope = await send(`bits:${bitId}`, (c) => callWithReserved(c, "promote_bit_to_node", bitId), bitAbout(bitId));
+      const envelope = await send(`bits:${bitId}`, (c) => callById(c, "promote_bit_to_node", bitId), bitAbout(bitId));
       const nodeId = (envelope.result as { id?: string } | null)?.id;
       if (!nodeId) throw new Error("promote_bit_to_node returned no Node id");
       return nodeFromRow(upserted(envelope, "nodes", nodeId) as never);
@@ -966,7 +959,7 @@ export function createSupabaseStore(
       .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)),
   });
 
-  const commands: Pick<DataStore, CommandWriteKey | NoRequestWriteKey> = {
+  const commands: Pick<DataStore, CommandWriteKey> = {
     addBreakdown: async (command) => {
       const parsed = addBreakdownCommandSchema.parse(command);
       return addResult(parsed.operationId, parsed, await runCommand(scratchKey(parsed.scratchBitId), commandCalls.addBreakdownCall(parsed)));
@@ -1103,8 +1096,6 @@ export function createSupabaseStore(
       await refetchIfAlreadyApplied(envelope);
       return trashResult(parsed, envelope);
     },
-    // The breadcrumb zone stays client-only until Task 249 (S43 (4)).
-    runBreadcrumbZoneMigration: async () => ({ relocated: 0 }),
   };
 
   const store: DataStore = { ...ordinary, ...commands, ...reads };

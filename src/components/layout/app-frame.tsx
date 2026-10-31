@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { StatusIcon } from "@/components/feedback/status-icon";
 import { Button } from "@/components/ui/button";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useDisplayDelay } from "@/hooks/use-display-delay";
 import {
   getSessionController,
@@ -90,6 +91,12 @@ function LoadingScreen() {
   );
 }
 
+// Mounted only while the account is not ready, so it never overwrites a page's own title.
+function NotReadyTitle() {
+  useDocumentTitle(null);
+  return null;
+}
+
 export function AppFrame({
   children,
   controller: injected,
@@ -106,43 +113,55 @@ export function AppFrame({
     void controller?.start();
   }, [controller]);
 
-  switch (state.phase) {
-    case "ready":
-      return <>{children}</>;
-    case "load-failure":
-      return (
-        <Screen
-          key={state.phase}
-          title={LOAD_FAILURE.title}
-          reason={LOAD_FAILURE.reason[state.reason]}
-          actions={<Button onClick={() => void controller?.retry()}>{LOAD_FAILURE.retry}</Button>}
-        />
-      );
-    case "guest-failure":
-      return (
-        <Screen
-          key={state.phase}
-          title={GUEST_CREATION_FAILURE.title}
-          reason={GUEST_CREATION_FAILURE.reason[state.reason]}
-          actions={
-            <Button onClick={() => void controller?.retry()}>{GUEST_CREATION_FAILURE.retry}</Button>
-          }
-        />
-      );
-    case "session-expired":
-      return (
-        <Screen
-          key={state.phase}
-          title={SESSION_EXPIRED[state.variant].title}
-          reason={SESSION_EXPIRED[state.variant].reason}
-          actions={
-            <Button onClick={() => void controller?.continueAsGuest()}>
-              {SESSION_EXPIRED.continueAsGuest}
-            </Button>
-          }
-        />
-      );
-    case "entering":
-      return <LoadingScreen />;
+  if (state.phase === "ready") {
+    return <>{children}</>;
+  }
+
+  // Not ready: no page is mounted to set the tab title, so the frame sets the app name.
+  return (
+    <>
+      <NotReadyTitle />
+      {renderScreen(state)}
+    </>
+  );
+
+  function renderScreen(state: Exclude<EntryState, { phase: "ready" }>) {
+    switch (state.phase) {
+      case "load-failure":
+        return (
+          <Screen
+            key={state.phase}
+            title={LOAD_FAILURE.title}
+            reason={LOAD_FAILURE.reason[state.reason]}
+            actions={<Button onClick={() => void controller?.retry()}>{LOAD_FAILURE.retry}</Button>}
+          />
+        );
+      case "guest-failure":
+        return (
+          <Screen
+            key={state.phase}
+            title={GUEST_CREATION_FAILURE.title}
+            reason={GUEST_CREATION_FAILURE.reason[state.reason]}
+            actions={
+              <Button onClick={() => void controller?.retry()}>{GUEST_CREATION_FAILURE.retry}</Button>
+            }
+          />
+        );
+      case "session-expired":
+        return (
+          <Screen
+            key={state.phase}
+            title={SESSION_EXPIRED[state.variant].title}
+            reason={SESSION_EXPIRED[state.variant].reason}
+            actions={
+              <Button onClick={() => void controller?.continueAsGuest()}>
+                {SESSION_EXPIRED.continueAsGuest}
+              </Button>
+            }
+          />
+        );
+      case "entering":
+        return <LoadingScreen />;
+    }
   }
 }

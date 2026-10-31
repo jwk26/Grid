@@ -132,8 +132,8 @@ describe("Inbox/Triage core-English copy", () => {
         dirty: "Unsaved changes.",
         saving: "Saving…",
         savingBeforeContinuing: "Saving before continuing…",
-        offline: "Offline. Your draft is still here.",
         notApplied: "Not saved. Your draft is still here.",
+        unknown: "We couldn't confirm whether your changes were saved.",
         reconciling: "Checking whether your changes were saved…",
         saved: "Saved.",
       },
@@ -155,7 +155,6 @@ describe("Inbox/Triage core-English copy", () => {
         close: "Close",
       },
       actions: {
-        retrySave: "Retry save",
         stayHere: "Stay here",
       },
     });
@@ -386,8 +385,8 @@ describe("Inbox/Triage core-English copy", () => {
     expect(154 in INBOX_TRIAGE_COPY.receiptDependent).toBe(false);
   });
 
-  it("owns the exact approved DP-VQ02 Add/Unstage success wording", () => {
-    expect(INBOX_TRIAGE_COPY.breakdownSuccess).toEqual({
+  it("owns the hidden Add/Unstage announcement wording", () => {
+    expect(INBOX_TRIAGE_COPY.breakdownAnnouncement).toEqual({
       add: "Added.",
       unstage: "Returned to Breakdown.",
     });

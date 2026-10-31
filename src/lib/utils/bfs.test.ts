@@ -40,12 +40,4 @@ describe("findNearestEmptyCell", () => {
 
     expect(findNearestEmptyCell(occupied, 0, 0)).toBeNull();
   });
-
-  it("skips blocked cells during BFS traversal", () => {
-    const blocked = new Set(["0,0", "1,0", "0,1"]);
-    const result = findNearestEmptyCell(new Set(), 0, 0, blocked);
-
-    expect(result).not.toBeNull();
-    expect(blocked.has(`${result!.x},${result!.y}`)).toBe(false);
-  });
 });

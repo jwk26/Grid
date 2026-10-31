@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { AppFrame } from "@/components/layout/app-frame";
 import type { EntryState, SessionController } from "@/lib/auth/session";
 
@@ -45,6 +46,24 @@ describe("AppFrame", () => {
     );
     expect(spies.start).toHaveBeenCalledTimes(1);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("sets the app name as the tab title while the account is not ready, and leaves a page's own title once it is", () => {
+    document.title = "stale";
+    const fake = fakeController({ phase: "load-failure", reason: "other" } as EntryState);
+    const Page = () => {
+      useDocumentTitle("Trash");
+      return <App />;
+    };
+    render(
+      <AppFrame controller={fake.controller}>
+        <Page />
+      </AppFrame>,
+    );
+    expect(document.title).toBe("GridDO");
+
+    fake.set({ phase: "ready" });
+    expect(document.title).toBe("Trash – GridDO");
   });
 
   it("shows no Loading screen for a load under 300ms", () => {

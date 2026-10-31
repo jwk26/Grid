@@ -379,17 +379,6 @@ export interface DataStore {
 
   /** Returns child Bits whose deadlines exceed the given deadline. Used before/after updateNode to detect conflicts. */
   getChildDeadlineConflicts(nodeId: string, deadline: number, deadlineAllDay: boolean): Promise<Bit[]>;
-
-  /**
-   * Relocates active items in this parent whose position overlaps the breadcrumb
-   * blocked zone. Runs exactly once per parent across sessions (durable marker).
-   * Returns the count of relocated items. Aborts silently (no marker) if any item
-   * cannot be placed outside the zone.
-   */
-  runBreadcrumbZoneMigration(
-    parentId: string | null,
-    blockedCells: Set<string>,
-  ): Promise<{ relocated: number }>;
 }
 
 /**

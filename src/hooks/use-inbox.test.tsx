@@ -87,7 +87,10 @@ describe("useInbox", () => {
       externalScratchRemoval: null,
       ownTrashMarkers: {},
     });
-    useTriagePreferencesStore.setState({ poolCreatedAtSort: "DESC" });
+    useTriagePreferencesStore.setState({
+      poolCreatedAtSort: "DESC",
+      lastSelectedScratchId: null,
+    });
     liveReadMock.mockImplementation((query: () => Promise<unknown>) => ({
       subscribe: (observer: {
         next: (value: unknown) => void;
@@ -653,6 +656,77 @@ describe("useInbox", () => {
         scratchPoolResultIds: ["visible"],
       });
     });
+  });
+
+  function mockInboxWithScratches(ids: string[]) {
+    const inbox = createNode({ id: "inbox", systemRole: "inbox" });
+    const bits = ids.map((id, index) =>
+      createBit({ id, parentId: inbox.id, createdAt: 1000 - index }),
+    );
+    getDataStoreMock.mockResolvedValue({
+      getAllActiveNodes: vi.fn().mockResolvedValue([inbox]),
+      getAllActiveBits: vi.fn().mockResolvedValue(bits),
+      createBit: vi.fn(),
+    } as unknown as DataStore);
+  }
+
+  it("restores the device-saved Scratch on first entry", async () => {
+    mockInboxWithScratches(["first", "saved"]);
+    useTriagePreferencesStore.setState({ lastSelectedScratchId: "saved" });
+
+    renderHook(() => useInbox());
+
+    await waitFor(() => {
+      expect(useTriageStore.getState().selectedScratchId).toBe("saved");
+    });
+  });
+
+  it("falls back to the first Scratch and replaces an unresolved saved id", async () => {
+    mockInboxWithScratches(["first", "second"]);
+    useTriagePreferencesStore.setState({ lastSelectedScratchId: "deleted" });
+
+    renderHook(() => useInbox());
+
+    await waitFor(() => {
+      expect(useTriageStore.getState().selectedScratchId).toBe("first");
+    });
+    await waitFor(() => {
+      expect(useTriagePreferencesStore.getState().lastSelectedScratchId).toBe(
+        "first",
+      );
+    });
+  });
+
+  it("saves each later selection to the device preference", async () => {
+    mockInboxWithScratches(["first", "second"]);
+
+    renderHook(() => useInbox());
+
+    await waitFor(() => {
+      expect(useTriagePreferencesStore.getState().lastSelectedScratchId).toBe(
+        "first",
+      );
+    });
+    act(() => useTriageStore.getState().selectScratch("second"));
+    await waitFor(() => {
+      expect(useTriagePreferencesStore.getState().lastSelectedScratchId).toBe(
+        "second",
+      );
+    });
+  });
+
+  it("keeps the saved id when the Inbox has no Scratch", async () => {
+    mockInboxWithScratches([]);
+    useTriagePreferencesStore.setState({ lastSelectedScratchId: "saved" });
+
+    renderHook(() => useInbox());
+
+    await waitFor(() => {
+      expect(useTriageStore.getState().selectedScratchId).toBeNull();
+    });
+    expect(useTriagePreferencesStore.getState().lastSelectedScratchId).toBe(
+      "saved",
+    );
   });
 
   it("clears selection for a true empty Inbox snapshot", async () => {

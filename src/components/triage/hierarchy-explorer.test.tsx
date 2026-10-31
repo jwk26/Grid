@@ -337,7 +337,23 @@ function seedDeepGrid() {
   return { home, level1, level2, level3 };
 }
 
+// Radix tooltips measure with ResizeObserver, which jsdom lacks.
+function stubResizeObserver() {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+}
+
+async function findUndoLive(text: string) {
+  return waitFor(() => {
+    const live = screen
+      .getAllByText(text)
+      .find((node) => node.parentElement?.hasAttribute("data-undo-state"));
+    if (live === undefined) throw new Error(`No Undo live region says ${text}`);
+    return live;
+  });
+}
+
 beforeEach(async () => {
+  stubResizeObserver();
   gridByParent = new Map();
   useTriageStore.setState({
     selectedScratchId: null,
@@ -743,7 +759,7 @@ describe("HierarchyExplorer Task 134 base", () => {
     expect(columnPane("hierarchy-section-body-l3")).toHaveAttribute("data-triage-unavailable", "true");
     rerender(<HierarchyExplorer {...defaultProps} />);
     expect(row).not.toHaveAttribute("data-triage-paint-suppressed");
-    expect(button).toHaveAttribute("aria-disabled", "false");
+    expect(button).not.toHaveAttribute("aria-disabled", "true");
   });
 
   it("keeps the shared Explorer context across Scratch switches", () => {
@@ -1460,10 +1476,16 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
     if (kind === "mutated") undoRepository.getPlacementUndoTruth.mockImplementation(async command => ({operationId:command.operationId,status:"conflict",result:{...command.resultSnapshot,version:command.resultSnapshot.version+1},source:command.sourceSnapshot,candidate:null}));
     if (kind === "terminal-conflict") undoRepository.undoDirectPlacement.mockImplementation(async command => ({operationId:command.operationId,status:"conflict",result:{...command.resultSnapshot,version:command.resultSnapshot.version+1},source:command.sourceSnapshot,candidate:null}));
     renderWithUndo([entry]);const action=await screen.findByRole("button",{name:"Undo placement of Pilot partition"});
-    if (kind === "terminal-conflict") {await waitFor(()=>expect(action).toHaveAttribute("aria-disabled","false"));fireEvent.click(action);}
-    await waitFor(()=>expect(action).toHaveAttribute("aria-disabled",kind === "available" ? "false" : "true"));
-    const reason=screen.getByText(kind === "available" ? "Undo this placement." : "This item changed after placement. Undo is unavailable.");
-    expect(reason.parentElement).toHaveClass(kind === "terminal-conflict" ? "newly-status-rail" : "newly-status-announcement");
+    if (kind === "terminal-conflict") {await waitFor(()=>expect(action).not.toHaveAttribute("aria-disabled", "true"));fireEvent.click(action);}
+    await waitFor(()=>kind === "available" ? expect(action).not.toHaveAttribute("aria-disabled","true") : expect(action).toHaveAttribute("aria-disabled","true"));
+    const sentence=kind === "available" ? "Undo this placement." : "This item changed after placement. Undo is unavailable.";
+    // The sentence is the slot's one description and a hidden live announcement, never a visible rail.
+    const describedBy=action.getAttribute("aria-describedby");expect(describedBy).not.toBeNull();
+    expect(document.getElementById(describedBy!)).toHaveTextContent(sentence);
+    expect(screen.getAllByText(sentence).some(node=>node.parentElement?.classList.contains("sr-only"))).toBe(true);
+    expect(document.querySelector(".newly-status-rail")).toBeNull();
+    // An answered conflict is a ! (unavailable); a mutated or available item keeps ↶.
+    expect(action.querySelector('[data-feedback-role="status-icon"]')?.getAttribute("data-glyph") ?? null).toBe(kind === "terminal-conflict" ? "exclamation" : null);
     expect(action).not.toBeDisabled();expect(screen.getByText("NEW")).toBeInTheDocument();
   });
 
@@ -1478,25 +1500,18 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
     });
     const sentence = "Finish or cancel the placement in progress first.";
     await waitFor(() => expect(action).toHaveAttribute("aria-disabled", "true"));
-    const reason = screen.getByText(sentence);
-    expect(reason.parentElement).toHaveClass("newly-status-announcement");
-    expect(reason.parentElement).toHaveAttribute("aria-live", "polite");
+    const live = screen.getAllByText(sentence).find((node) => node.parentElement?.classList.contains("sr-only"))!;
+    expect(live.parentElement).toHaveAttribute("aria-live", "polite");
     expect(document.querySelector(".newly-status-rail")).toBeNull();
     expect(action).not.toBeDisabled();
-    expect(action).toHaveAttribute("aria-describedby", reason.id);
+    expect(document.getElementById(action.getAttribute("aria-describedby")!)).toHaveTextContent(sentence);
     expect(screen.getByText("NEW")).toBeInTheDocument();
 
-    // Radix popper measures with ResizeObserver, which jsdom lacks.
-    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
-    try {
-      act(() => action.focus());
-      expect(action).toHaveFocus();
-      expect(await screen.findByRole("tooltip")).toHaveTextContent(sentence);
-      fireEvent.click(action);
-      expect(undoRepository.undoDirectPlacement).not.toHaveBeenCalled();
-    } finally {
-      vi.unstubAllGlobals();
-    }
+    act(() => action.focus());
+    expect(action).toHaveFocus();
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(sentence);
+    fireEvent.click(action);
+    expect(undoRepository.undoDirectPlacement).not.toHaveBeenCalled();
   });
 
   it("returns the card to its prior state when the placement closes", async () => {
@@ -1514,7 +1529,7 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
     const reopened = await screen.findByRole("button", {
       name: "Undo placement of Placement close card",
     });
-    await waitFor(() => expect(reopened).toHaveAttribute("aria-disabled", "false"));
+    await waitFor(() => expect(reopened).not.toHaveAttribute("aria-disabled", "true"));
     expect(screen.queryByText("Finish or cancel the placement in progress first.")).toBeNull();
     expect(document.querySelector(".newly-status-rail")).toBeNull();
   });
@@ -1544,7 +1559,7 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
         name: "Undo placement of Owner gone",
       });
       await waitFor(() => expect(action).toHaveAttribute("aria-disabled", "true"));
-      expect(screen.getByText(reason)).toBeInTheDocument();
+      expect(document.getElementById(action.getAttribute("aria-describedby")!)).toHaveTextContent(reason);
       expect(screen.getByText("NEW")).toBeInTheDocument();
       expect(undoRepository.undoDirectPlacement).not.toHaveBeenCalled();
     },
@@ -1704,7 +1719,7 @@ describe("HierarchyExplorer Task 156 ordinary-card Undo", () => {
     fireEvent.click(undoButton);
 
     await waitFor(() => {
-      expect(undoButton).toHaveAttribute("aria-disabled", "false");
+      expect(undoButton).not.toHaveAttribute("aria-disabled", "true");
       expect(undoButton).toHaveAccessibleName("Check again");
     });
     expect(
@@ -1793,7 +1808,7 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
       </TriageOperationLockContext.Provider>,
     );
 
-    const checkingCopy = await screen.findByText(
+    const checkingCopy = await findUndoLive(
       "Checking whether Undo is available…",
     );
     expect(checkingCopy.closest("[data-undo-state='checking']")).not.toBeNull();
@@ -1833,7 +1848,7 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
       </TriageOperationLockContext.Provider>,
     );
 
-    const lockedCopy = await screen.findByText(
+    const lockedCopy = await findUndoLive(
       "Wait for the current action to finish.",
     );
     expect(lockedCopy.closest("[data-undo-state='operation-locked']")).not.toBeNull();
@@ -1869,12 +1884,10 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
     const undoButton = await screen.findByRole("button", {
       name: "Undo placement of Success target",
     });
-    await waitFor(() => expect(undoButton).toHaveAttribute("aria-disabled", "false"));
+    await waitFor(() => expect(undoButton).not.toHaveAttribute("aria-disabled", "true"));
     fireEvent.click(undoButton);
 
-    const successRail = await screen.findByText("Restored “Source 1”.", {
-      selector: ".newly-status-reason",
-    });
+    const successRail = await findUndoLive("Restored “Source 1”.");
     expect(successRail.closest("[data-undo-state='success']")).not.toBeNull();
     expect(
       screen.queryByRole("button", { name: "Undo placement of Success target" }),
@@ -1915,8 +1928,8 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
     const undoButton = await screen.findByRole("button", {
       name: "Undo placement of Undo target",
     });
-    const rail = await screen.findByText("Undo this placement.");
-    await waitFor(() => expect(undoButton).toHaveAttribute("aria-disabled", "false"));
+    const rail = await findUndoLive("Undo this placement.");
+    await waitFor(() => expect(undoButton).not.toHaveAttribute("aria-disabled", "true"));
 
     expect(card).toHaveAttribute("aria-current", "true");
     expect(card).toHaveAttribute("data-newly-placed", "true");
@@ -1925,7 +1938,7 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
       "newly-placed",
     );
     expect(rail.closest("[data-undo-state='available']")).not.toBeNull();
-    expect(undoButton).toHaveAttribute("aria-describedby", rail.id);
+    expect(document.getElementById(undoButton.getAttribute("aria-describedby")!)).toHaveTextContent("Undo this placement.");
   });
 
   it("keeps Retry on the same operation and preserves ordinary success focus", async () => {
@@ -1983,7 +1996,7 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
     const undoButton = await screen.findByRole("button", {
       name: "Undo placement of Undo target",
     });
-    await waitFor(() => expect(undoButton).toHaveAttribute("aria-disabled", "false"));
+    await waitFor(() => expect(undoButton).not.toHaveAttribute("aria-disabled", "true"));
     fireEvent.click(undoButton);
 
     const retry = await screen.findByRole("button", { name: "Retry" });
@@ -2000,28 +2013,26 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Restored “Source 1”.");
   });
 
+  it("reserves one Undo width for ↶, ?, ! and the loader (no recovery-width rules)", () => {
+    expect(globalsCss).not.toContain("data-newly-action-kind");
+    expect(globalsCss).not.toMatch(/--newly-action-reserve:\s*(?:6\.25rem|112px)/);
+    expect(globalsCss).toMatch(/\.newly-undo-action \{[^}]*--status-icon-size: 12px;/);
+  });
+
   it("defines static reduced-motion parity and all eight Newly rail theme families", () => {
     for (const role of [
       "newly-card-shell",
       "newly-marker",
       "newly-undo-action",
-      "newly-status-rail",
-      "newly-status-mark",
-      "newly-status-reason",
     ]) {
       expect(globalsCss).toContain(`.${role}`);
     }
-    for (const theme of [
-      "neumorphism",
-      "claymorphism",
-      "retro-mac",
-    ]) {
-      expect(globalsCss).toContain(
-        `:root[data-color-theme="${theme}"] .newly-status-rail`,
-      );
+    // The always-visible rail and its status roles are retired (Task 247).
+    for (const retired of ["newly-status-rail", "newly-status-mark", "newly-status-reason", "newly-undo-tooltip"]) {
+      expect(globalsCss).not.toContain(retired);
     }
     expect(globalsCss).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.newly-status-rail[\s\S]*transition: none/,
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.newly-undo-action[\s\S]*transition: none/,
     );
     const newlyBlocks = [
       ...globalsCss.matchAll(/[^{}]*\.newly-(?:marker|undo|status)[^{}]*\{([^}]*)\}/g),
@@ -2101,6 +2112,50 @@ describe("HierarchyExplorer Task 153 placement reliability rail", () => {
       view.unmount();
     },
   );
+
+  it("keeps the whole placement card in view when a terminal answer arrives, since it can be taller than its column", () => {
+    const original = HTMLElement.prototype.getBoundingClientRect;
+    const scrolls: number[] = [];
+    HTMLElement.prototype.getBoundingClientRect = function () {
+      const box = (top: number, bottom: number) =>
+        ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top, toJSON() {} }) as DOMRect;
+      if (this.hasAttribute("data-triage-explorer-column")) return box(0, 100);
+      if (this.dataset.triageRole === "placement-affordance") return box(0, 300);
+      return box(0, 0);
+    };
+    const scrollTop = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+    Object.defineProperty(Element.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return 0;
+      },
+      set(value: number) {
+        scrolls.push(value);
+      },
+    });
+    try {
+      setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+      render(
+        <HierarchyExplorer
+          {...defaultProps}
+          placementSnapshot={placementSnapshot({
+            phase: "terminal",
+            resultType: "node",
+            terminalKind: "account-limit",
+            terminalStatus: "rejected",
+            rejection: { code: "account_limit", table: "nodes", limit: 300 },
+          })}
+        />,
+      );
+      // The card's bottom is 200px below the column's: scroll down by that much, never back to 0.
+      expect(scrolls).toContain(200);
+      expect(scrolls).not.toContain(0);
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = original;
+      if (scrollTop) Object.defineProperty(Element.prototype, "scrollTop", scrollTop);
+      else delete (Element.prototype as { scrollTop?: number }).scrollTop;
+    }
+  });
 
   it.each([
     ["nodes", "“Project” wasn’t placed. This account has reached its limit of 300 Nodes. Your source is unchanged."],
@@ -3364,9 +3419,11 @@ describe("HierarchyExplorer Task 158 search-result Undo", () => {
     await waitFor(() => expect(undo).not.toHaveAttribute("aria-disabled", "true"));
     fireEvent.click(undo);
 
-    expect(await screen.findByText(
-      "We couldn’t confirm whether “Search Unknown” was undone.",
-    )).toBeVisible();
+    await waitFor(() =>
+      expect(
+        document.querySelector('[data-triage-role="explorer-search-undo-status"]'),
+      ).toHaveTextContent("We couldn’t confirm whether “Search Unknown” was undone."),
+    );
     expect(screen.getByRole("button", { name: "Check again" })).toHaveFocus();
     expect(explorerSearchResultRow()).toBeVisible();
     expect(explorerSearchState.completeResultUndo).not.toHaveBeenCalled();

@@ -273,11 +273,3 @@ describe("an unknown outcome", () => {
     expect(reconciled).toMatchObject({ status: "already_applied", breakdown: { id: add.breakdownId } });
   });
 });
-
-describe("commands that send nothing", () => {
-  it("the zone migration does nothing", async () => {
-    w.calls.length = 0;
-    expect(await w.store.runBreadcrumbZoneMigration(null, new Set(["0,0"]))).toEqual({ relocated: 0 });
-    expect(w.calls).toEqual([]);
-  });
-});

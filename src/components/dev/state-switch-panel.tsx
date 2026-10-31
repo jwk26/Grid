@@ -61,7 +61,7 @@ type ItemKind = "add" | "editor" | "row" | "candidate";
 
 const APPLICABLE_STATES: Record<ItemKind, readonly ForcedState[]> = {
   add: ["delayed-pending", "reconciling", "unknown", "not-applied", "rejected", "conflict"],
-  editor: ["delayed-pending", "reconciling", "not-applied", "editor-offline"],
+  editor: ["delayed-pending", "reconciling", "unknown", "not-applied", "editor-offline"],
   row: ["delayed-pending", "reconciling", "unknown", "not-applied", "rejected", "conflict"],
   candidate: [
     "delayed-pending",
@@ -90,6 +90,7 @@ function sentenceFor(
     const status = copy.inlineEditor.status;
     if (state === "delayed-pending") return status.saving;
     if (state === "reconciling") return status.reconciling;
+    if (state === "unknown") return status.unknown;
     return status.notApplied;
   }
   if (kind === "candidate") {

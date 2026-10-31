@@ -107,6 +107,30 @@ describe("CalendarLayout node creation", () => {
     });
   });
 
+  it("shows the create-dialog sentence naming Home when the root grid is full", async () => {
+    getGridOccupancyMock.mockResolvedValueOnce(
+      new Set(Array.from({ length: 18 * 9 }, (_, i) => `${i % 18},${Math.floor(i / 18)}`)),
+    );
+    render(
+      <CalendarLayout>
+        <div />
+      </CalendarLayout>,
+    );
+
+    act(() => {
+      capturedCallbacks.onNodeCreate?.();
+    });
+
+    await screen.findByRole("dialog");
+    fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Full" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create Node" }));
+
+    expect(
+      await screen.findByText("“Home” has no empty cell. Move or delete an item to make room."),
+    ).toBeInTheDocument();
+    expect(createNodeMock).not.toHaveBeenCalled();
+  });
+
   it("closes dialog after successful create", async () => {
     render(
       <CalendarLayout>

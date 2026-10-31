@@ -55,7 +55,6 @@ describe("useGridActions", () => {
     getGridOccupancy: vi.fn(),
     softDeleteNode: vi.fn(),
     softDeleteBit: vi.fn(),
-    runBreadcrumbZoneMigration: vi.fn(),
   } as unknown as DataStore;
 
   beforeEach(() => {

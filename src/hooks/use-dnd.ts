@@ -14,7 +14,6 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { toast } from "sonner";
 import { toastCopy } from "@/lib/copy/feedback";
 import { dropReportedFailure } from "@/lib/db/write-failure";
 import { showToast } from "@/lib/feedback/toast";
@@ -36,11 +35,8 @@ import {
   type TriageDropData,
 } from "@/lib/grid-dnd";
 import { findNearestEmptyCell } from "@/lib/utils/bfs";
-import {
-  getStaticBlockedCells,
-  isCellBlocked,
-} from "@/lib/utils/breadcrumb-zone";
 import type { CandidateCommandOutcome } from "@/hooks/use-staged-candidates";
+import type { RepositoryOperationStatus } from "@/lib/db/schema";
 import type { TriageOperationLock } from "@/hooks/use-triage-operation-lock";
 import type { TriagePlacementRelease } from "@/hooks/use-triage-placement";
 
@@ -393,6 +389,7 @@ export function useTriageDnd(
   {
     beginPlacement,
     focusUnstagedSource,
+    isCandidateListed,
     isPlacementOpen,
     operationLock,
     reconcileStageCandidate,
@@ -402,6 +399,8 @@ export function useTriageDnd(
   }: {
     beginPlacement: (release: TriagePlacementRelease) => boolean;
     focusUnstagedSource: (sourceBreakdownId: string) => void;
+    /** Whether the candidate is in the authoritative list now; omitted: never checked. */
+    isCandidateListed?: (candidateId: string) => boolean;
     isPlacementOpen: () => boolean;
     operationLock: TriageOperationLock;
     reconcileStageCandidate: (
@@ -428,6 +427,10 @@ export function useTriageDnd(
   overTargetId: string | null;
   refreshRenderedTarget: (point: { x: number; y: number }) => void;
   targetFeedback: TriageTargetFeedback;
+  /** One read-only check of a held unknown Stage or Unstage; never a resend. */
+  checkUnknownOperation: (operationId: string) => Promise<void>;
+  /** Tells a held Unstage that its candidate left the list. */
+  notifyCandidateGone: (candidateId: string) => void;
 } {
   const [activeDragItem, setActiveDragItem] =
     useState<TriageActiveDragItem>(null);
@@ -523,12 +526,7 @@ export function useTriageDnd(
         ) {
           return;
         }
-        const position = findNearestEmptyCell(
-          occupancy,
-          0,
-          0,
-          getStaticBlockedCells(),
-        );
+        const position = findNearestEmptyCell(occupancy, 0, 0);
         setTargetFeedback({
           dropId: target.dropId,
           state: position === null ? "full" : "valid",
@@ -540,12 +538,73 @@ export function useTriageDnd(
     return true;
   }, [clearDragTarget, selectedScratchId]);
 
+  // A Stage or Unstage whose request and automatic check both failed stays held with the lock
+  // (SPEC §Durable Staging, Unknown recovery). It is checked again only read-only, on the item's
+  // `?` or once in the background when its Scratch is removed elsewhere; it is never resent.
+  const heldUnknownRef = useRef(
+    new Map<
+      string,
+      {
+        scratchId: string | null;
+        candidateId: string;
+        checking: boolean;
+        backgroundChecked: boolean;
+        run: () => Promise<boolean>;
+      }
+    >(),
+  );
+
+  // The Scratch selected right now, for a command that ends after its Scratch already left.
+  const selectedScratchIdRef = useRef(selectedScratchId);
+  useEffect(() => {
+    selectedScratchIdRef.current = selectedScratchId;
+  }, [selectedScratchId]);
+
+  const hold = (
+    kind: "stage" | "unstage",
+    operationId: string,
+    candidateId: string,
+    run: () => Promise<CandidateCommandOutcome<{ status: RepositoryOperationStatus }>>,
+    onTerminal: (status: RepositoryOperationStatus) => void,
+  ) => {
+    const scratchId = selectedScratchId;
+    heldUnknownRef.current.set(operationId, {
+      scratchId,
+      candidateId,
+      checking: false,
+      backgroundChecked: false,
+      run: async () => {
+        const outcome = await run();
+        if ("outcome" in outcome) return false;
+        heldUnknownRef.current.delete(operationId);
+        operationLock.release(operationId, outcome.status);
+        onTerminal(outcome.status);
+        return true;
+      },
+    });
+    // Its Scratch was removed elsewhere while the command was out (the effect below already ran),
+    // or its candidate had already left the list: the one background check happens now.
+    if (
+      selectedScratchIdRef.current !== scratchId ||
+      (kind === "unstage" && isCandidateListed?.(candidateId) === false)
+    ) {
+      const held = heldUnknownRef.current.get(operationId);
+      if (held !== undefined) {
+        held.backgroundChecked = true;
+        void checkUnknownOperation(operationId);
+      }
+    }
+  };
+
   const finishStage = async (command: StageCandidateCommand): Promise<void> => {
     let outcome = await stageCandidate(command);
     if ("outcome" in outcome) {
       outcome = await reconcileStageCandidate(command);
     }
-    if ("outcome" in outcome) return;
+    if ("outcome" in outcome) {
+      hold("stage", command.operationId, command.candidateId, () => reconcileStageCandidate(command), () => {});
+      return;
+    }
     operationLock.release(command.operationId, outcome.status);
   };
 
@@ -556,12 +615,51 @@ export function useTriageDnd(
     if ("outcome" in outcome) {
       outcome = await reconcileUnstageCandidate(command);
     }
-    if ("outcome" in outcome) return;
+    const onTerminal = (status: RepositoryOperationStatus) => {
+      if (status === "applied" || status === "already_applied") {
+        focusUnstagedSource(command.sourceBreakdownId);
+      }
+    };
+    if ("outcome" in outcome) {
+      hold("unstage", command.operationId, command.candidateId, () => reconcileUnstageCandidate(command), onTerminal);
+      return;
+    }
     operationLock.release(command.operationId, outcome.status);
-    if (outcome.status === "applied" || outcome.status === "already_applied") {
-      focusUnstagedSource(command.sourceBreakdownId);
+    onTerminal(outcome.status);
+  };
+
+  const checkUnknownOperation = async (operationId: string): Promise<void> => {
+    const held = heldUnknownRef.current.get(operationId);
+    if (held === undefined || held.checking) return;
+    held.checking = true;
+    try {
+      await held.run();
+    } finally {
+      held.checking = false;
     }
   };
+
+  // A held Unstage whose candidate left the list while its Scratch stays selected has no `?` left
+  // to press: it gets the same one background check (SPEC §Durable Staging, Unknown recovery).
+  const notifyCandidateGone = (candidateId: string): void => {
+    for (const [operationId, held] of heldUnknownRef.current) {
+      if (held.candidateId === candidateId && !held.backgroundChecked) {
+        held.backgroundChecked = true;
+        void checkUnknownOperation(operationId);
+      }
+    }
+  };
+
+  // The selected Scratch left while a command is held (removed elsewhere; selecting another
+  // Scratch is refused while the lock is held): one background check, never retried on its own.
+  useEffect(() => {
+    for (const [operationId, held] of heldUnknownRef.current) {
+      if (held.scratchId !== selectedScratchId && !held.backgroundChecked) {
+        held.backgroundChecked = true;
+        void checkUnknownOperation(operationId);
+      }
+    }
+  }, [selectedScratchId]);
 
   useEffect(() => {
     const cancelOnEscape = (event: KeyboardEvent) => {
@@ -769,12 +867,7 @@ export function useTriageDnd(
       const occupancy = await dataStore.getGridOccupancy(
         target.parentNodeId,
       );
-      const position = findNearestEmptyCell(
-        occupancy,
-        0,
-        0,
-        getStaticBlockedCells(),
-      );
+      const position = findNearestEmptyCell(occupancy, 0, 0);
       const expectedAncestorIds = await readExpectedAncestorIds(
         dataStore,
         target.parentNodeId,
@@ -847,12 +940,7 @@ export function useTriageDnd(
 
     const dataStore = await getDataStore();
     const occupancy = await dataStore.getGridOccupancy(target.parentNodeId);
-    const position = findNearestEmptyCell(
-      occupancy,
-      0,
-      0,
-      getStaticBlockedCells(),
-    );
+    const position = findNearestEmptyCell(occupancy, 0, 0);
     const expectedAncestorIds = await readExpectedAncestorIds(
       dataStore,
       target.parentNodeId,
@@ -896,13 +984,16 @@ export function useTriageDnd(
     overTargetId,
     refreshRenderedTarget: updateRenderedTarget,
     targetFeedback,
+    checkUnknownOperation,
+    notifyCandidateGone,
   };
 }
 
-export function useDnd(getBlockedCells: () => Set<string>): {
+export function useDnd(): {
   sensors: ReturnType<typeof useSensors>;
   handleDragStart: (event: DragStartEvent) => void;
   handleDragEnd: (event: DragEndEvent) => Promise<{ id: string; type: "node" | "bit"; title: string } | undefined>;
+  handleDragCancel: () => void;
   handleDragOver: (event: DragOverEvent) => void;
   handleConflictUpdateParent: () => Promise<void>;
   handleConflictKeepChild: () => void;
@@ -958,12 +1049,7 @@ export function useDnd(getBlockedCells: () => Set<string>): {
   ) {
     const dataStore = await getDataStore();
     const occupancy = await dataStore.getGridOccupancy(parentId);
-    const position = findNearestEmptyCell(
-      occupancy,
-      originX,
-      originY,
-      getStaticBlockedCells(),
-    );
+    const position = findNearestEmptyCell(occupancy, originX, originY);
 
     if (!position) {
       const target = parentId === null ? undefined : await dataStore.getNode(parentId);
@@ -1025,11 +1111,6 @@ export function useDnd(getBlockedCells: () => Set<string>): {
 
     if (isGridDropData(dropData)) {
       if (dropData.kind === "grid-cell") {
-        if (isCellBlocked(dropData.x, dropData.y, getBlockedCells())) {
-          toast("Cell reserved by breadcrumb");
-          return;
-        }
-
         if ((dragItem.parentId ?? null) !== dropData.parentId) {
           return;
         }
@@ -1093,6 +1174,8 @@ export function useDnd(getBlockedCells: () => Set<string>): {
 
       if (dropData.kind === "grid-breadcrumb-drop") {
         if (dragItem.type !== "node" && dragItem.type !== "bit") return;
+        // No Bit on Home: the drop is refused with no write and no dialog.
+        if (dragItem.type === "bit" && dropData.targetNodeId === null) return;
         setPendingAncestorMove({
           itemId: dragItem.id,
           itemType: dragItem.type,
@@ -1255,10 +1338,17 @@ export function useDnd(getBlockedCells: () => Set<string>): {
     setOverTargetId(event.over?.id ? String(event.over.id) : null);
   };
 
+  // An Escape-cancelled drag ends without a write: it clears what `endDrag` clears.
+  const handleDragCancel = () => {
+    setOverTargetId(null);
+    setActiveItem(null);
+  };
+
   return {
     sensors,
     handleDragStart,
     handleDragEnd,
+    handleDragCancel,
     handleDragOver,
     handleConflictUpdateParent,
     handleConflictKeepChild,

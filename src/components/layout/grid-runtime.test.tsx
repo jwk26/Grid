@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GRID_COLS } from "@/lib/constants";
-import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
+import { useEditModeStore } from "@/stores/edit-mode-store";
 import { useQuickCaptureStore } from "@/stores/quick-capture-store";
 import { useToastAnchorStore } from "@/stores/toast-anchor-store";
 import type { Bit, Node } from "@/types";
@@ -35,7 +35,6 @@ const useParamsMock = vi.hoisted(() => vi.fn());
 const useNodeMock = vi.hoisted(() => vi.fn());
 const useDndMock = vi.hoisted(() => vi.fn());
 const getDataStoreMock = vi.hoisted(() => vi.fn());
-const runBreadcrumbZoneMigrationMock = vi.hoisted(() => vi.fn());
 const getGridOccupancyMock = vi.hoisted(() => vi.fn());
 const createNodeMock = vi.hoisted(() => vi.fn());
 const createBitMock = vi.hoisted(() => vi.fn());
@@ -127,7 +126,6 @@ vi.mock("@/hooks/use-grid-actions", () => ({
     createBit: createBitMock,
     softDeleteNode: softDeleteNodeMock,
     softDeleteBit: softDeleteBitMock,
-    runBreadcrumbZoneMigration: runBreadcrumbZoneMigrationMock,
   }),
 }));
 
@@ -166,13 +164,39 @@ vi.mock("@/lib/utils/bfs", () => ({
 
 vi.mock("@/components/layout/sidebar", () => ({
   Sidebar: ({
+    breadcrumbSlot,
+    homeLanding,
+    homeRevealHandlers,
     isAddActive,
     onAddClick,
   }: {
+    breadcrumbSlot?: React.ReactNode;
+    homeLanding?: boolean;
+    homeRevealHandlers?: {
+      onPointerEnter: () => void;
+      onPointerLeave: () => void;
+      onPointerMove: () => void;
+      onFocus: () => void;
+      onBlur: () => void;
+    };
     isAddActive?: boolean;
     onAddClick?: () => void;
   }) => (
     <div>
+      <button
+        aria-label="sidebar-home"
+        data-app-role="home-button"
+        data-landing={homeLanding ? "true" : "false"}
+        data-reveal={homeRevealHandlers ? "true" : "false"}
+        onBlur={homeRevealHandlers?.onBlur}
+        onFocus={homeRevealHandlers?.onFocus}
+        onPointerEnter={homeRevealHandlers?.onPointerEnter}
+        onPointerLeave={homeRevealHandlers?.onPointerLeave}
+        type="button"
+      >
+        Home
+      </button>
+      {breadcrumbSlot}
       <button
         aria-label="sidebar-add"
         data-active={isAddActive ? "true" : "false"}
@@ -228,15 +252,38 @@ vi.mock("@/components/layout/breadcrumbs", async () => {
   const { forwardRef } = await import("react");
 
   return {
-    Breadcrumbs: forwardRef<HTMLDivElement, { nodeId: string | null }>(
-      function BreadcrumbsMock({ nodeId }, ref) {
-        return (
-          <div data-testid="breadcrumbs" ref={ref}>
-            {nodeId ?? "root"}
-          </div>
-        );
-      },
-    ),
+    Breadcrumbs: forwardRef<
+      HTMLDivElement,
+      {
+        nodeId: string;
+        phase: string;
+        instant: boolean;
+        handlers: { onPointerEnter: () => void; onPointerLeave: () => void; onPointerMove: () => void; onFocus: () => void; onBlur: () => void };
+        onHeldChange: (held: boolean) => void;
+      }
+    >(function BreadcrumbsMock({ nodeId, phase, instant, handlers, onHeldChange }, ref) {
+      return (
+        <div data-testid="breadcrumbs" ref={ref}>
+          <span
+            data-instant={instant ? "true" : "false"}
+            data-phase={phase}
+            data-testid="breadcrumb-reveal"
+            onPointerEnter={handlers.onPointerEnter}
+            onPointerLeave={handlers.onPointerLeave}
+          >
+            {nodeId}
+          </span>
+          <button
+            aria-label="segment"
+            onBlur={handlers.onBlur}
+            onFocus={handlers.onFocus}
+            type="button"
+          />
+          <button aria-label="hold" onClick={() => onHeldChange(true)} type="button" />
+          <button aria-label="release" onClick={() => onHeldChange(false)} type="button" />
+        </div>
+      );
+    }),
   };
 });
 
@@ -390,11 +437,11 @@ function RuntimeProbe() {
         Add at cell
       </button>
       <button
-        aria-label="add-at-blocked-cell"
+        aria-label="add-at-top-left-cell"
         onClick={() => openAddAtCell(0, 0)}
         type="button"
       >
-        Add at blocked cell
+        Add at top-left cell
       </button>
       <button
         aria-label="request-bit-delete"
@@ -451,10 +498,8 @@ describe("GridRuntime", () => {
   });
 
   beforeEach(() => {
-    useBreadcrumbZoneStore.setState({ blockedCells: new Set() });
     useQuickCaptureStore.setState({ activeOverlay: null });
     getDataStoreMock.mockResolvedValue({
-      runBreadcrumbZoneMigration: runBreadcrumbZoneMigrationMock,
       getArchivedItems: vi.fn().mockResolvedValue({ nodes: [], bits: [] }),
       getAllActiveNodes: vi
         .fn()
@@ -463,7 +508,6 @@ describe("GridRuntime", () => {
         ]),
       getAllActiveBits: vi.fn().mockResolvedValue([]),
     });
-    runBreadcrumbZoneMigrationMock.mockResolvedValue({ relocated: 0 });
     createNodeDialogSubmission.current = {
       title: "  New node  ",
       icon: "Folder",
@@ -560,24 +604,10 @@ describe("GridRuntime", () => {
       </GridRuntime>,
     );
 
-    expect(screen.getByTestId("breadcrumbs").parentElement).toHaveClass(
-      "pointer-events-none",
-      "w-full",
-    );
-    expect(screen.getByTestId("breadcrumbs").parentElement?.parentElement).toHaveClass(
-      "pointer-events-none",
-      "absolute",
-      "top-3",
-      "left-3",
-      "right-3",
-      "z-30",
-      "flex",
-      "flex-col",
-      "gap-1.5",
-      "items-start",
-    );
+    // L0 has no breadcrumb; Home alone is the way back.
+    expect(screen.queryByTestId("breadcrumbs")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("sidebar-home")).toHaveAttribute("data-reveal", "false");
     expect(screen.getByTestId("display-level")).toHaveAttribute("data-level", "0");
-    expect(screen.getByTestId("breadcrumbs")).toHaveTextContent("root");
     expect(screen.getByLabelText("add-at-cell").parentElement?.parentElement).toHaveClass(
       "h-full",
       "overflow-y-auto",
@@ -612,7 +642,6 @@ describe("GridRuntime", () => {
       new Set(["0,0"]),
       2,
       2,
-      new Set(["0,0"]),
     );
 
     fireEvent.click(screen.getByLabelText("request-bit-delete"));
@@ -744,45 +773,6 @@ describe("GridRuntime", () => {
     expect(useQuickCaptureStore.getState().activeOverlay).toBe("scratch");
   });
 
-  it("runs breadcrumb migration once per parent and refreshes the parent id on navigation", async () => {
-    useParamsMock.mockReturnValue({});
-    useNodeMock.mockReturnValue(null);
-
-    const { rerender } = render(
-      <GridRuntime>
-        <RuntimeProbe />
-      </GridRuntime>,
-    );
-
-    await waitFor(() => {
-      expect(runBreadcrumbZoneMigrationMock).toHaveBeenCalledTimes(1);
-    });
-    expect(runBreadcrumbZoneMigrationMock).toHaveBeenNthCalledWith(
-      1,
-      null,
-      new Set(["0,0"]),
-    );
-
-    const parentNode = createNode({ id: "parent-node", level: 0 });
-    useParamsMock.mockReturnValue({ nodeId: parentNode.id });
-    useNodeMock.mockReturnValue(parentNode);
-
-    rerender(
-      <GridRuntime>
-        <RuntimeProbe />
-      </GridRuntime>,
-    );
-
-    await waitFor(() => {
-      expect(runBreadcrumbZoneMigrationMock).toHaveBeenCalledTimes(2);
-    });
-    expect(runBreadcrumbZoneMigrationMock).toHaveBeenNthCalledWith(
-      2,
-      parentNode.id,
-      new Set(["0,0"]),
-    );
-  });
-
   describe("a create the server refuses inside the Node dialog", () => {
     async function openNodeDialogAndSubmit() {
       const { findNearestEmptyCell } = await import("@/lib/utils/bfs");
@@ -850,13 +840,6 @@ describe("GridRuntime", () => {
 
     expect(screen.getByTestId("display-level")).toHaveAttribute("data-level", "1");
     expect(screen.getByTestId("breadcrumbs")).toHaveTextContent(parentNode.id);
-    expect(screen.getByTestId("breadcrumbs").parentElement?.parentElement).toHaveClass(
-      "pointer-events-none",
-      "absolute",
-      "top-3",
-      "left-3",
-      "z-30",
-    );
 
     fireEvent.click(screen.getByLabelText("add-at-cell"));
     fireEvent.click(screen.getByLabelText("choose-node"));
@@ -879,7 +862,6 @@ describe("GridRuntime", () => {
       new Set(["1,1"]),
       4,
       3,
-      new Set(["0,0"]),
     );
   });
 
@@ -1025,7 +1007,6 @@ describe("GridRuntime", () => {
       new Set(["10,1"]),
       GRID_COLS - 3,
       2,
-      new Set(["0,0"]),
     );
   });
 
@@ -1101,7 +1082,6 @@ describe("GridRuntime", () => {
       new Set(["2,2"]),
       GRID_COLS - 3,
       2,
-      new Set<string>(),
     );
   });
 
@@ -1184,10 +1164,9 @@ describe("GridRuntime", () => {
     expect(scrollWrapper).not.toHaveClass("overflow-y-auto");
   });
 
-  it("makes openAddAtCell a no-op for blocked cells", () => {
+  it("opens the Add flow for a top-left cell like any other cell", () => {
     useParamsMock.mockReturnValue({});
     useNodeMock.mockReturnValue(null);
-    useBreadcrumbZoneStore.setState({ blockedCells: new Set(["0,0"]) });
 
     render(
       <GridRuntime>
@@ -1195,10 +1174,11 @@ describe("GridRuntime", () => {
       </GridRuntime>,
     );
 
-    fireEvent.click(screen.getByLabelText("add-at-blocked-cell"));
+    fireEvent.click(screen.getByLabelText("add-at-top-left-cell"));
 
-    expect(screen.queryByLabelText("submit-node")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("create-item-chooser")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("submit-node") ?? screen.queryByTestId("create-item-chooser"),
+    ).toBeInTheDocument();
   });
 
   it("shows a move confirmation dialog when a pending node move exists", () => {
@@ -1429,6 +1409,181 @@ describe("GridRuntime", () => {
     });
   });
 
+  describe("breadcrumb reveal", () => {
+    const phase = () => screen.getByTestId("breadcrumb-reveal").dataset.phase;
+    const press = (key = "Escape") =>
+      act(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+      });
+
+    function renderNodeGrid() {
+      const node = createNode({ id: "parent-node" });
+      useParamsMock.mockReturnValue({ nodeId: node.id });
+      useNodeMock.mockReturnValue(node);
+      return render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      useEditModeStore.setState({ isEditMode: false });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      useEditModeStore.setState({ isEditMode: false });
+    });
+
+    it("renders the breadcrumb right after Home in the sidebar, shown for the entry", () => {
+      renderNodeGrid();
+
+      const home = screen.getByLabelText("sidebar-home");
+      expect(home).toHaveAttribute("data-reveal", "true");
+      expect(
+        home.compareDocumentPosition(screen.getByTestId("breadcrumbs")) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(phase()).toBe("shown");
+
+      act(() => void vi.advanceTimersByTime(3000));
+      expect(phase()).toBe("folding");
+      act(() => void vi.advanceTimersByTime(350));
+      expect(phase()).toBe("hidden");
+      expect(screen.getByLabelText("sidebar-home")).toHaveAttribute("data-landing", "true");
+    });
+
+    it("reveals on Home hover, hides 1 second after the pointer leaves", () => {
+      renderNodeGrid();
+      act(() => void vi.advanceTimersByTime(3400));
+      expect(phase()).toBe("hidden");
+
+      fireEvent.pointerEnter(screen.getByLabelText("sidebar-home"));
+      expect(phase()).toBe("shown");
+      fireEvent.pointerLeave(screen.getByLabelText("sidebar-home"));
+      act(() => void vi.advanceTimersByTime(1000));
+      expect(phase()).toBe("folding");
+    });
+
+    it("keeps the toast anchor with the reveal: the row while hidden, below the bar while shown", () => {
+      renderNodeGrid();
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBe(62);
+
+      act(() => void vi.advanceTimersByTime(3000));
+      // Folding: the stack stays below the bar until it has folded away.
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBe(62);
+      act(() => void vi.advanceTimersByTime(400));
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBeNull();
+
+      fireEvent.pointerEnter(screen.getByLabelText("sidebar-home"));
+      expect(useToastAnchorStore.getState().breadcrumbBottom).toBe(62);
+    });
+
+    it("shows for a whole drag, in place", () => {
+      useDndMock.mockReturnValue({
+        ...useDndMock(),
+        activeItem: null,
+      });
+      const { rerender } = renderNodeGrid();
+      act(() => void vi.advanceTimersByTime(3400));
+      expect(phase()).toBe("hidden");
+
+      useDndMock.mockReturnValue({
+        ...useDndMock(),
+        activeItem: { id: "n1", type: "node", title: "Plans" },
+      });
+      rerender(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(phase()).toBe("shown");
+      expect(screen.getByTestId("breadcrumb-reveal").dataset.instant).toBe("true");
+      act(() => void vi.advanceTimersByTime(10000));
+      expect(phase()).toBe("shown");
+    });
+
+    it("Esc hides the breadcrumb first and exits edit mode on the next press", () => {
+      useEditModeStore.setState({ isEditMode: true });
+      renderNodeGrid();
+      expect(phase()).toBe("shown");
+
+      press();
+      expect(useEditModeStore.getState().isEditMode).toBe(true);
+      expect(phase()).toBe("folding");
+
+      press();
+      expect(useEditModeStore.getState().isEditMode).toBe(false);
+    });
+
+    it("Esc on a segment moves focus to Home", () => {
+      renderNodeGrid();
+      screen.getByLabelText("segment").focus();
+
+      press();
+
+      expect(document.activeElement).toBe(screen.getByLabelText("sidebar-home"));
+      expect(phase()).toBe("folding");
+    });
+
+    it("Esc leaves the breadcrumb and edit mode alone while a dialog layer is open", () => {
+      useEditModeStore.setState({ isEditMode: true });
+      renderNodeGrid();
+      useQuickCaptureStore.setState({ activeOverlay: "scratch" });
+
+      press();
+
+      expect(phase()).toBe("shown");
+      expect(useEditModeStore.getState().isEditMode).toBe(true);
+      useQuickCaptureStore.setState({ activeOverlay: null });
+    });
+
+    it("Esc leaves everything alone while the deadline picker holds the breadcrumb", () => {
+      useEditModeStore.setState({ isEditMode: true });
+      renderNodeGrid();
+      fireEvent.click(screen.getByLabelText("hold"));
+
+      press();
+      expect(phase()).toBe("shown");
+      expect(useEditModeStore.getState().isEditMode).toBe(true);
+
+      fireEvent.click(screen.getByLabelText("release"));
+      press();
+      expect(phase()).toBe("folding");
+    });
+
+    it("Esc during a drag changes nothing but the drag", () => {
+      useEditModeStore.setState({ isEditMode: true });
+      useDndMock.mockReturnValue({
+        ...useDndMock(),
+        activeItem: { id: "n1", type: "node", title: "Plans" },
+      });
+      renderNodeGrid();
+
+      press();
+
+      expect(phase()).toBe("shown");
+      expect(useEditModeStore.getState().isEditMode).toBe(true);
+    });
+
+    it("exits edit mode with Esc on L0, where there is no breadcrumb", () => {
+      useEditModeStore.setState({ isEditMode: true });
+      useParamsMock.mockReturnValue({});
+      useNodeMock.mockReturnValue(null);
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+
+      press();
+
+      expect(useEditModeStore.getState().isEditMode).toBe(false);
+    });
+  });
+
   describe("toast anchor", () => {
     it("publishes the bottom of the breadcrumb cluster", () => {
       useParamsMock.mockReturnValue({ nodeId: "parent-node" });
@@ -1562,12 +1717,13 @@ describe("GridRuntime", () => {
       expect(useToastAnchorStore.getState().dragActive).toBe(false);
     });
 
-    it("clears the drag when it is cancelled, even though useDnd keeps its active item", () => {
+    it("clears the toast drag flag and the useDnd drag state when a drag is cancelled", () => {
       useParamsMock.mockReturnValue({});
       useNodeMock.mockReturnValue(null);
-      // useDnd has no cancel handler: an Escape-cancelled drag leaves its activeItem set.
+      const handleDragCancel = vi.fn();
       useDndMock.mockReturnValue({
         ...useDndMock(),
+        handleDragCancel,
         activeItem: { id: "bit-1", type: "bit", title: "Ship launch" },
       });
 
@@ -1582,6 +1738,38 @@ describe("GridRuntime", () => {
 
       act(() => dndContextProps.current?.onDragCancel?.({ active: { id: "draggable-bit-1" } }));
       expect(useToastAnchorStore.getState().dragActive).toBe(false);
+      expect(handleDragCancel).toHaveBeenCalledOnce();
+    });
+
+    it("sets the tab title: app name on L0, the Node's name, Inbox and Archive", () => {
+      const cases: Array<[Record<string, unknown>, string | null, string]> = [
+        [{}, null, "GridDO"],
+        [{ nodeId: "n1" }, createNode({ id: "n1", title: "Plans" }) as never, "Plans – GridDO"],
+        [{ nodeId: "i1" }, createNode({ id: "i1", title: "Inbox", systemRole: "inbox" }) as never, "Inbox – GridDO"],
+        [{ nodeId: "a1" }, createNode({ id: "a1", title: "x", systemRole: "archive_view" }) as never, "Archive – GridDO"],
+      ];
+      for (const [params, node, title] of cases) {
+        useParamsMock.mockReturnValue(params);
+        useNodeMock.mockReturnValue(node);
+        const { unmount } = render(
+          <GridRuntime>
+            <RuntimeProbe />
+          </GridRuntime>,
+        );
+        expect(document.title).toBe(title);
+        unmount();
+      }
+    });
+
+    it("does not use the previous Node's name while the routed Node has not arrived", () => {
+      useParamsMock.mockReturnValue({ nodeId: "n2" });
+      useNodeMock.mockReturnValue(createNode({ id: "n1", title: "Plans" }));
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(document.title).toBe("GridDO");
     });
 
     it("measures the breadcrumb when it appears after a stale Inbox node on client navigation", () => {

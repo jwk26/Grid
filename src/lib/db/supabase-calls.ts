@@ -15,17 +15,6 @@ import type { GriddoSupabaseClient } from "@/lib/db/supabase-client";
 // later tasks add one wrapper per function). An API error is thrown, so the store treats it as
 // an `error` outcome; a rule violation arrives as an envelope with `rejected`.
 
-// The top-left 3x2 block the fixed breadcrumb may cover; passed until Task 249 (SCHEMA Internal
-// functions, cell picking).
-export const BREADCRUMB_RESERVED_CELLS = [
-  { x: 0, y: 0 },
-  { x: 1, y: 0 },
-  { x: 2, y: 0 },
-  { x: 0, y: 1 },
-  { x: 1, y: 1 },
-  { x: 2, y: 1 },
-];
-
 export async function fetchSnapshotValue(client: GriddoSupabaseClient): Promise<unknown> {
   const { data, error } = await client.rpc("get_snapshot");
   if (error) throw new Error(`get_snapshot failed: ${error.message}`);
@@ -62,15 +51,12 @@ export async function callWrite(
 }
 
 export const callEnsureAccount = (client: GriddoSupabaseClient) =>
-  callWrite(client, "ensure_account", {
-    p_reserved_cells: BREADCRUMB_RESERVED_CELLS,
-  } satisfies Args<"ensure_account">);
+  callWrite(client, "ensure_account", {} satisfies Args<"ensure_account">);
 
 export const callUpdateNode = (client: GriddoSupabaseClient, id: string, patch: NodePatch) =>
   callWrite(client, "update_node", {
     p_id: id,
     p_changes: nodePatchToRow(patch),
-    p_reserved_cells: BREADCRUMB_RESERVED_CELLS,
   } satisfies Args<"update_node">);
 
 export const callCreateNode = (client: GriddoSupabaseClient, id: string, values: NodeCreateRow) =>
@@ -115,26 +101,21 @@ export const callReorderChunks = (client: GriddoSupabaseClient, bitId: string, c
     p_chunk_ids: [...chunkIds],
   } satisfies Args<"reorder_chunks">);
 
-// Lifecycle: soft delete, hard delete and archive take the id; restore, unarchive and promotion
-// also take the reserved block (feedback F34).
+// Lifecycle: every function here takes only the id.
 type IdFunction =
   | "soft_delete_node"
   | "soft_delete_bit"
   | "hard_delete_node"
   | "hard_delete_bit"
   | "archive_node"
-  | "archive_bit";
-export const callById = (client: GriddoSupabaseClient, name: IdFunction, id: string) =>
-  callWrite(client, name, { p_id: id });
-
-type ReservedFunction =
+  | "archive_bit"
   | "restore_node"
   | "restore_bit"
   | "unarchive_node"
   | "unarchive_bit"
   | "promote_bit_to_node";
-export const callWithReserved = (client: GriddoSupabaseClient, name: ReservedFunction, id: string) =>
-  callWrite(client, name, { p_id: id, p_reserved_cells: BREADCRUMB_RESERVED_CELLS });
+export const callById = (client: GriddoSupabaseClient, name: IdFunction, id: string) =>
+  callWrite(client, name, { p_id: id });
 
 export const callEmptyTrash = (client: GriddoSupabaseClient) => callWrite(client, "empty_trash", {});
 

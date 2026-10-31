@@ -25,7 +25,8 @@ Execution plan mode: scaled
 > (2026-10-26); Tasks 225–229 are accepted `[x]` and Phase 45 is closed
 > (2026-10-29); Task 230 is accepted `[x]` and Phase 46 is closed
 > (2026-10-30); Tasks 231–234 are accepted `[x]` and Phase 47 is closed
-> (2026-10-30); Tasks 180–208 and Phases 36–40 are retired as
+> (2026-10-30); Tasks 245–250 and repair Task 245A are accepted `[x]` and
+> Phase 50 is closed (2026-10-31); Tasks 180–208 and Phases 36–40 are retired as
 > superseded (feedback F28, promotion ②), their text in
 > [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
 > Phases 32–33 remain reserved.
@@ -147,9 +148,9 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phase 47 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30); Phase 47 (SaaS lane, part 6) closed through `/end-phase 47` (2026-10-30). The SaaS lane continues with Phase 48; the feedback lane continues with Phase 50. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 are bound to Task 248, MI-14 to Task 250 and MI-21 to Tasks 245–246; MI-19 closed in Task 229 and MI-23 in Task 234; Phase 45 MI-24 goes to the theme stage, mi-1 to Task 245, mi-2 to Task 246 and mi-3 to Task 249. |
+| Execution lifecycle | Phases 47 and 50 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30); Phase 47 (SaaS lane, part 6) closed through `/end-phase 47` (2026-10-30); Phase 50 (feedback lane, part 2) closed through `/end-phase 50` (2026-10-31). The SaaS lane continues with Phase 48; the feedback lane is finished. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 closed in Task 248, MI-14 in Task 250 and MI-21 in Tasks 245–246; MI-19 closed in Task 229 and MI-23 in Task 234; Phase 45 MI-24 goes to the theme stage; its mi-1 closed in Task 245, mi-2 in Task 246 and mi-3 in Task 249. |
 | SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26, Phase 45 (Tasks 225–229) on 2026-10-29, Phase 46 (Task 230) and Phase 47 (Tasks 231–234) on 2026-10-30; the migrations of Phases 42–44 are on production, and Phases 45–47 changed none. The app runs on local Supabase; Dexie is removed. MI-8 is bound to Task 240. Phase 48 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
-| Feedback lane | `IN PROGRESS` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); its mi-1, mi-2 and mi-3 are bound to Task 248. Phase 50 waits for nothing more since the Phase 45 close (2026-10-29); it carries Phase 45 mi-1 (Task 245), mi-2 (Task 246) and mi-3 (Task 249) ([the phase waits](#lanes-and-phase-waits)). |
+| Feedback lane | `COMPLETED` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); Phase 50 (Tasks 245–250 and 245A) closed and archived (2026-10-31). What it left is in `Issues_Deferred.md`. The theme stage follows. |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
 | Headless/base UI | Tasks 127–163 accepted | Task 163 integration and bounded R01/I01 corrections are included in the Phase 31 Final Close transaction. Original task evidence is retained; correction/candidate evidence is separate. |
@@ -221,7 +222,7 @@ SaaS lane:
 
 Feedback lane:
   241→242→243→244  Phase 49 (waits for none; beside Phases 42–44)
-  [Phase 49 + Phase 45 Final Close]→245→246→247→248→249; 250  Phase 50 (beside Phases 46–48)
+  [Phase 49 + Phase 45 Final Close]→245→245A→246→247→248→249; 250  Phase 50 (beside Phases 46–48)
 
 Retired Tasks 164/165 and 180–208 are not dependency nodes.
 Cross-phase arrows also require the preceding phase's actual Final Close/main
@@ -254,7 +255,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 47 | Completed | [Feel and resilience](execution-plan/archive/phase-47.md) | 231–234 | Accepted and archived (2026-10-30); no migration; Phase 35 MI-23 closed; nothing carried over. Phase 48 may start. |
 | Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 | Phase 47 close/main sync. |
 | Phase 49 | Completed | [Feedback lane, part 1: theme set, status primitives, toasts](execution-plan/archive/phase-49.md) | 241–244 | Accepted and archived (2026-10-24); ISSUE-20-01 and MI-13 resolved in Task 241; mi-1, mi-2 and mi-3 bound to Task 248 in `Issues_Deferred.md`. Phases 45 and 47 no longer wait for it. |
-| Phase 50 | Planned / unstarted | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](#phase-50--inbox-status-breadcrumb-reveal-and-last-scratch) | 245–250 | Phase 49 and Phase 45 close/main sync; runs beside Phases 46–48; does not block Phase 48; closes before the theme stage. |
+| Phase 50 | Completed | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](execution-plan/archive/phase-50.md) | 245–250 + 245A | Accepted and archived (2026-10-31); no migration; Phase 35 MI-14 and MI-21, Phase 45 mi-1–mi-3 and Phase 49 mi-1–mi-3 closed; follow-ups in `Issues_Deferred.md`. The theme stage no longer waits for it. |
 | Phases 36–40 | Retired (feedback F28, 2026-10-22) | [Terminal, Claymorphism + Origami, GridDO + Tiny Desk, Graphite, and the Task 208 campaign gate](execution-plan/archive/phases-36-40-retired.md) | 180–208 | Retired as superseded; never runnable. Numbers are not reused. |
 
 ## Theme Realization Task Sets
@@ -885,7 +886,8 @@ Phase 48 and closes before the theme stage.
   close of each phase runs `pnpm test:db` under the CLAUDE.md Local Supabase
   rule once `main` has it (Task 213); before that the close ledger records it
   as not applicable. Decision-only Task 242 runs `git diff --check`.
-- **Database:** no task edits `supabase/`. From Phase 50 the browser checks run
+- **Database:** no task edits `supabase/`, except the one test block Task 249
+  deletes (user, 2026-10-31). From Phase 50 the browser checks run
   on local Supabase (Phase 45 is on `main`); a task never resets the database
   or adds a migration, and seeds again after a SaaS-lane reset.
 - **Checkpoints:** a user-visible task is checked in the running app in
@@ -909,269 +911,17 @@ completion-time scope are in
 mi-1, mi-2 and mi-3 are in [Issues_Deferred.md](issues/Issues_Deferred.md)
 and bound to Task 248 (Phase 50), whose entry below carries them.
 
-## Phase 50 — Inbox Status, Breadcrumb Reveal And Last Scratch
+## Phase 50 — Completed / Archived
 
-Waits for: Phase 49 and Phase 45 Final Close and `main` sync (runs beside
-Phases 46–48). Does not block Phase 48; closes before the theme stage. Its
-checks run on local Supabase (Shared rules above).
-
-### Task 245: [ ] Show Breakdown, Add and editor statuses on the item
-
-**Files and actions:**
-- `src/components/triage/breakdown-panel.tsx` and test: remove the `DP-VQ02`
-  wash, check, visible text and 160px slot; add the 22px status slot with the
-  status icon, emphasis and tooltip on the row's grip and slot; the Add field
-  icon at its right end with emphasis and tooltip, `Check again` and
-  `Retry Add` beside Add; Delete's `Check again` in the action cluster; the
-  editor states of `DP-VQ04`'s amendment (loader, `!`, tooltip, `Stay here`);
-  the hidden polite `Added.` and `Saved.` (F01, F04–F07).
-- `src/hooks/use-scratch-breakdowns.ts` and test: an editor save attempted
-  while offline keeps the draft and shows the offline write-attempt toast
-  (SPEC §Toasts), through the Task 232 helper and the Task 233 monitor if they
-  are on `main`, otherwise a direct call and `navigator.onLine`. Whichever of
-  Task 233 and this task lands second also removes `breakdown-panel.tsx`'s own
-  `navigator.onLine` subscription for the offline Retry.
-- `src/components/triage/triage-workspace.tsx` and test: the Unstage success
-  projection that drove the `DP-VQ02` row signal now feeds only the hidden
-  announcement.
-- `src/lib/copy/inbox-triage.ts` and test: tooltip use of the existing
-  sentences; no visible success key.
-- `src/app/globals.css`: the Breakdown row grid with the status slot; remove
-  the success roles.
-- `inbox-triage-theme-realization.test.tsx`: the new roles.
-
-**Dependencies:** Phase 49 and Phase 45 Final Close and `main` sync; this
-phase's lifecycle gate; `DP-FB-01` recorded.
-
-**Authority:** F01, F02, F04–F07, F09; MI-21 (row part); SPEC §Item status
-presentation, §Breakdown and Selected Scratch Context; DESIGN_TOKENS `DP-VQ02`
-retirement and the `DP-VQ04`, `DP-VQ05` amendments.
-
-**Observable acceptance:** at 1024px with the Pool open a Breakdown row's title
-keeps its width (the row reserves 22px, not 160px); an Add success shows
-nothing on screen and a screen reader hears `Added.`; a slow Add shows the
-loader only after 300ms; unknown shows `?` with `Check again`, not applied
-`!` with `Retry Add`, each with emphasis and its sentence on hover and focus;
-Delete and the editors follow the same rule; an offline editor save keeps the
-draft and shows the toast; the conflict view is unchanged; a status icon on a
-locked row is reachable by keyboard and shows its sentence on focus.
-
-**Verification:** gate; `expert` review (state-to-presentation mapping and
-timing); browser checkpoint with the state switch.
-
-**Commit message:** `feat(inbox): show Breakdown and editor statuses on the item`.
-
-### Task 246: [ ] Show Staging statuses on the item and widen the Nodes zone
-
-**Files and actions:**
-- `src/components/triage/staging-zone.tsx` and test: the status icon at a Node
-  card's top-right corner and a Bit row's end in place of the in-card line;
-  the problem tooltip leads with the full title, since the label truncates,
-  unless the sentence contains it; the status icon is focusable where its host
-  is not in the Tab order (a Stage projection, an integrity slot); an Unstage
-  failure shows `!` on its candidate (cleared by a new operation for it, its
-  disappearance or a Scratch switch); the alert band only for Stage failures
-  and the stale-invalidation notices; the integrity slot's `!`; the Staging
-  side of the Unstage hold and clear, while the hidden `Returned to Breakdown.`
-  stays with Task 245's workspace projection, so it is announced once (F01, F04,
-  F06–F09).
-- `src/components/triage/triage-workspace.tsx` and test, where the Stage and
-  Unstage alerts are created, and `src/hooks/use-staged-candidates.ts` and
-  test: route Unstage failures to the candidate instead of the alert; the
-  stale-invalidation notices (changed-elsewhere drop cancellation, placement
-  closed) stay in the band.
-- `src/app/globals.css`: the `staging-node-grid` (one card's minimum width,
-  auto-fill, one or two columns) (F10).
-- `src/lib/copy/inbox-triage.ts`; `inbox-triage-theme-realization.test.tsx`.
-
-**Dependencies:** Task 245.
-
-**Authority:** F06–F10; MI-21 (Staging part); SPEC §Durable Staging;
-DESIGN_TOKENS `DP-VQ06-STAGING` amendment.
-
-**Observable acceptance:** at 1024px with the Pool open a Node card is never
-narrower than one card and the well shows one column, two when they fit;
-pending shows the loader after 300ms; unknown and reconciling show `?`; an
-Unstage failure shows `!` on the candidate and no band; a Stage failure keeps
-the band, and so do the stale-invalidation notices; the status icon of a Stage
-projection or integrity slot is reachable by keyboard and shows its sentence on
-focus.
-
-**Verification:** gate; `expert` review (failure routing); browser checkpoint
-with the state switch.
-
-**Commit message:** `feat(inbox): show Staging statuses on the item and widen the Nodes zone`.
-
-### Task 247: [ ] Carry the Undo status in the Undo slot
-
-**Files and actions:** `src/components/triage/hierarchy-explorer.tsx`,
-`src/components/grid/node-card.tsx`, `src/components/grid/bit-card.tsx`,
-`src/components/triage/grid-explorer-search-results.tsx` and their tests;
-`src/lib/copy/inbox-triage.ts`; `src/app/globals.css`: remove the
-`newly-status-rail` and its text recovery actions; the slot states of
-DESIGN_TOKENS §Undo slot status amendment for ordinary rows and search results;
-an unavailable `↶` and an action-less `!` use `aria-disabled="true"`, never
-`disabled`; the slot tooltip adds `Select to check again.` or
-`Select to try again.`; the card body keeps its Task 179A title tooltip and the
-slot shows only its own, one tooltip at a time.
-
-**Dependencies:** Task 246.
-
-**Authority:** F06, F07, F09; SPEC §Actual-card Newly Placed and Undo;
-DESIGN_TOKENS Undo slot status amendment.
-
-**Observable acceptance:** each Undo state shows in the slot and no rail
-remains; the row keeps its width; `?` checks again and `!` retries; an
-unavailable control takes focus and shows its reason on keyboard focus and on
-hover; search results behave the same; focus destinations are unchanged; the
-card body's Task 179A title tooltip still shows and never doubles with the slot
-tooltip.
-
-**Verification:** gate; `expert` review; browser checkpoint with the state
-switch, ordinary columns and search; one check of Add, Stage and Undo under
-browser network throttling on local Supabase, so the loader and the 300ms delay
-are judged under real latency (SPEC §Write feel).
-
-**Commit message:** `feat(inbox): carry the Undo status in the Undo slot`.
-
-### Task 248: [ ] Add the Home button and the breadcrumb reveal
-
-**Files and actions:**
-- `src/components/layout/home-button.tsx` and test: top-most on every route;
-  navigates to `/` through the sidebar's departure-guarded `navigate`
-  (`requestActiveTriageDeparture`), so an Add draft or a pending Inbox
-  operation keeps its guard; `aria-current="page"` on L0; the landing emphasis (F21,
-  F23).
-- `src/components/layout/sidebar.tsx` and test: the order Home, account icon
-  (when present), `+`; the Calendar and system-route-only Home goes.
-- `src/hooks/use-breadcrumb-reveal.ts` and test: the triggers (hover or focus
-  on Home or the breadcrumb, 3 seconds after entering a Node, any Node or Bit
-  drag), the 1-second hide with the fade, the deadline picker hold, the `Esc`
-  order of SPEC; after `Esc` the hover and focus triggers stay suppressed until
-  pointer and focus leave and return, and `Esc` on a segment moves focus to
-  Home (F22, F23). Until Task 249 the zone keeps reserving the cells under the
-  bar's shown position, as today.
-- `src/components/layout/breadcrumbs.tsx`, `breadcrumb-deadline.tsx` and tests:
-  the reveal surface in DOM order right after the Home button (no positive
-  `tabindex`); only segments and the chip take the pointer; during a drag each
-  ancestor segment is a drop target with its signal, the surface is
-  translucent and the chip hidden; the chip in the breadcrumb row (F24, F25).
-- Tab titles of SPEC §Feedback copy: `src/components/layout/grid-runtime.tsx`
-  sets `{title} – {APP_NAME}` on a Node's Grid, `Inbox – {APP_NAME}` and
-  `Archive – {APP_NAME}` on the system Nodes and `APP_NAME` alone on L0; the
-  Calendar pages (`src/app/calendar/weekly/page.tsx`, `monthly/page.tsx`) and
-  `src/app/trash/page.tsx` set `Calendar – {APP_NAME}` and `Trash – {APP_NAME}`;
-  `APP_NAME` in `src/lib/constants.ts` (`GridDO` until Task 239).
-- `src/components/grid/edit-mode-overlay.tsx`: its document-level `Esc` yields
-  to the layer order, so edit mode exits only after the dialog layer, the
-  deadline picker and the breadcrumb (user, 2026-10-22).
-- `src/lib/animations/motion-language.ts` and `src/lib/constants.ts`: the
-  breadcrumb motion and timing tokens of DESIGN_TOKENS §Motion Language.
-- `src/hooks/use-toast-anchor.ts`: the stack follows the revealed breadcrumb
-  (F12).
-- `src/app/globals.css`: `home-button`, `breadcrumb-reveal`,
-  `breadcrumb-drop-target`.
-- Drag cancel (Phase 49 mi-3): `src/hooks/use-dnd.ts` and its test gain a
-  cancel handler that clears `activeItem` and the drag state `handleDragEnd`
-  clears, without a write; the `DndContext` in `grid-runtime.tsx` and in
-  `src/app/calendar/layout.tsx` wire it to `onDragCancel`, so an
-  `Esc`-cancelled drag no longer leaves the cards dimmed, the scroll wrapper
-  clipped or the breadcrumb drag-styled or revealed.
-- Calendar (Phase 49 mi-1, mi-2), `src/app/calendar/layout.tsx` with
-  `calendar-node-creation.test.tsx`, `calendar-bit-creation.test.tsx` and a
-  drag-flag test:
-  its drags set and clear the toast anchor store's drag flag on start, end and
-  cancel, as `grid-runtime.tsx` does, so the stack is translucent and
-  pointer-transparent over the Pool and the unschedule zone; its Node and Bit
-  create dialogs show the create-dialog sentence of SPEC §Feedback copy
-  (`createDialogNoEmptyCell` in `src/lib/copy/feedback.ts`; the target is
-  `Home` for a Node, the chosen parent for a Bit) instead of
-  `No empty cells available in the root grid.` and
-  `No empty cells available in the parent node.`
-
-**Dependencies:** Task 247.
-
-**Authority:** F12, F16 (create dialog), F21–F25; Phase 49 mi-1, mi-2, mi-3;
-SPEC §Breadcrumb reveal and Home button, §Feedback copy; DESIGN_TOKENS
-§Feedback Status Surfaces, §Motion Language, Sidebar, Breadcrumbs.
-
-**Observable acceptance:** Home sits at the top on every route and reveals the
-breadcrumb only on a Node's Grid; the breadcrumb shows for 3 seconds on entry,
-on hover or focus and during a drag, and hides 1 second after the pointer and
-focus leave; Tab from Home enters its segments; `Esc` follows the layer order;
-a card under the bar stays clickable; a drag drops on an ancestor segment;
-under reduced motion nothing moves; each page shows its tab title (a Node's
-name, `Inbox`, `Archive`, `Calendar`, `Trash`, and the app name alone on L0),
-also after client navigation; in edit mode with the breadcrumb shown, one `Esc`
-hides the breadcrumb and a second exits edit mode; Home with an Add draft open
-shows the departure sheet; the user
-rechecks that the deadline is visible
-only while the breadcrumb is shown (F25); after an `Esc`-cancelled drag on a
-Grid or the Calendar the cards, the breadcrumb and the toast stack return to
-their resting state; during a Calendar drag the toast stack is translucent;
-a full-Grid create from the Calendar keeps the dialog with the same sentence
-as the Grid pages.
-
-**Verification:** gate; `expert` review (reveal state machine, `Esc` order,
-DnD pass-through and drag cancel, focus order); browser checkpoint with mouse
-and keyboard, including an `Esc`-cancelled drag on a Grid and on the Calendar.
-
-**Commit message:** `feat(shell): add the Home button and the breadcrumb reveal`.
-
-### Task 249: [ ] Remove the blocked breadcrumb zone
-
-**Files and actions:** delete `src/stores/breadcrumb-zone-store.ts` and
-`src/lib/utils/breadcrumb-zone.ts` with its test; remove the zone measurement
-and every `isCellBlocked` or blocked-cell guard from `grid-runtime.tsx`,
-`grid-view.tsx`, `use-grid-actions.ts`, `use-dnd.ts` (with the
-`Cell reserved by breadcrumb` toast) and `src/lib/grid-dnd.ts`; remove
-`runBreadcrumbZoneMigration` from `datastore.ts`, the Supabase store's no-op
-and, if Phase 46 has not removed it, `indexeddb.ts`, with every `settings` use
-and no Dexie version bump; delete the reserved top-left block the client
-passes as `p_reserved_cells` and stop passing it from `src/lib/db/supabase-store.ts`
-and `src/lib/auth/session.ts` (the server parameter stays at its default; no SQL
-change, feedback F34); update the tests that cover the zone
-(`grid-view.test.tsx`, `use-grid-actions.test.ts`, `use-triage-dnd.test.ts`,
-`grid-dnd.test.ts`, `grid-runtime.test.tsx`, `indexeddb.migration.test.ts`).
-
-**Dependencies:** Task 248.
-
-**Authority:** F26, F34; F16 (dropped toast); SCHEMA §Not ported, §Internal
-functions; SPEC §Breadcrumb reveal and Home button.
-
-**Observable acceptance:** the cells under the breadcrumb accept Add,
-placement and drops like any other cell, including a drag dropped on a
-top-left cell under the revealed bar; a restore, an unhide or a promotion into
-a Grid whose only free cells are top-left lands there; no zone code or `settings` read or
-write remains; every gate passes.
-
-**Verification:** gate; `expert` review (Add, placement and DnD paths); a
-search for the zone names returns nothing; browser checkpoint of a create and a
-drop into the top-left cells.
-
-**Commit message:** `refactor(grid): remove the blocked breadcrumb zone`.
-
-### Task 250: [ ] Remember the last selected Scratch on this device
-
-**Files and actions:** `src/stores/triage-preferences-store.ts` and test: a
-validated `lastSelectedScratchId`; the Inbox selection owner
-(`triage-store.ts` and the Pool or Workspace selection path) and their tests:
-on first entry, reload or a new session, restore it when it resolves to an
-active Scratch of this account, otherwise use the first active Scratch as
-today; the search-hidden and Archive or Trash handoff rules are unchanged.
-
-**Dependencies:** this phase's lifecycle gate.
-
-**Authority:** F27; Phase 35 MI-14; SPEC §Scratch Pool (Selection and
-re-entry), §Inbox/Triage State Ownership; SCHEMA device preferences.
-
-**Observable acceptance:** a reload returns to the last selected Scratch; a
-deleted or archived one, or one from another account, falls back to the first
-active Scratch; no domain data is written.
-
-**Verification:** gate; browser checkpoint (reload; another local test user).
-
-**Commit message:** `feat(inbox): remember the last selected Scratch on this device`.
+Feedback-lane Tasks 245–250 and repair Task 245A are accepted. Their task
+contracts and completion-time scope are in
+[the Phase 50 archive](execution-plan/archive/phase-50.md). Inbox statuses sit
+on the item, the Undo slot carries the Undo status, the sidebar Home button
+reveals the breadcrumb, no Grid cell is reserved for it, and the last selected
+Scratch persists per device. Phase 35 MI-14 and MI-21, Phase 45 mi-1, mi-2 and
+mi-3 and Phase 49 mi-1, mi-2 and mi-3 closed in these tasks. No migration
+changed, so nothing went to production. Carried items are in
+[Issues_Deferred.md](issues/Issues_Deferred.md).
 
 ## Phases 36–40 — Retired
 
@@ -1272,19 +1022,19 @@ This register covers every implementation/test path declared by two or more task
 | `color-theme` | `src/lib/color-themes.ts`; `src/stores/color-theme-store.ts` and test; `src/components/layout/color-theme-toggle.tsx`; `src/app/layout.tsx` | 241; 239 (`layout.tsx` metadata) |
 | `grid-shell` | `src/components/layout/grid-runtime.tsx`; `src/components/layout/breadcrumbs.tsx`; `src/components/layout/breadcrumb-deadline.tsx`; `src/components/grid/grid-view.tsx`; `src/hooks/use-grid-actions.ts`; `src/lib/grid-dnd.ts` and their tests | 244 (`grid-runtime.tsx`), 248, 249, and any SaaS task that names one of them |
 | `toast-anchor` | `src/hooks/use-toast-anchor.ts` and test; `src/stores/toast-anchor-store.ts` | 244 creates; 248 extends |
-| `reserved-cells` | `src/lib/utils/breadcrumb-zone.ts` (the static top-left block) | 227, 228 read it; 249 deletes it and stops passing it from `supabase-store.ts` and `session.ts` |
+| `reserved-cells` | `BREADCRUMB_RESERVED_CELLS` in `src/lib/db/supabase-calls.ts` (the static top-left block) | 227, 228 read it; 249 deleted it and stopped passing it |
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** the SaaS lane continues with Phase 48 / Task 235; the feedback lane continues with Phase 50 / Task 245. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** the SaaS lane continues with Phase 48 / Task 235; the feedback lane is finished (Phase 50 closed). Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers:** Phase 51 / Task 251. Planned Phases 42–50 and
   Tasks 213–250 are allocated; retired Phases 36–40 and Tasks 180–208 keep
   their numbers; none may be reused for another meaning.
-- Graph reconciliation: 111 accepted tasks (101–163 plus 105A, 166–172, 171A,
-  173–179 plus 176A and 179A, 209–212, 213–234, and 241–244), nineteen
-  completed archives (Phases 23–31, 34, 35, 41–47 and 49), two historical
-  unaccepted transfer records (164/165), 29 retired tasks (180–208) in retired
-  Phases 36–40, 6 unaccepted tasks (235–240) in Phase 48, 6 unaccepted tasks
-  (245–250) in Phase 50, and two reserved phases (32–33).
+- Graph reconciliation: 118 accepted tasks (101–163 plus 105A, 166–172, 171A,
+  173–179 plus 176A and 179A, 209–212, 213–234, 241–244, and 245–250 plus
+  245A), twenty completed archives (Phases 23–31, 34, 35, 41–47, 49 and 50), two
+  historical unaccepted transfer records (164/165), 29 retired tasks (180–208)
+  in retired Phases 36–40, 6 unaccepted tasks (235–240) in Phase 48, and two
+  reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

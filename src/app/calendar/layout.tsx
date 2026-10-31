@@ -3,7 +3,7 @@
 import { DndContext, closestCorners } from "@dnd-kit/core";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ItemsPool } from "@/components/calendar/items-pool";
 import { NodePool } from "@/components/calendar/node-pool";
 import { CreateBitDialog } from "@/components/grid/create-bit-dialog";
@@ -13,12 +13,17 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { DeadlineConflictModal } from "@/components/shared/deadline-conflict-modal";
 import { useDnd } from "@/hooks/use-dnd";
 import { useGridActions } from "@/hooks/use-grid-actions";
+import { createDialogNoEmptyCell } from "@/lib/copy/feedback";
 import { GRID_COLS } from "@/lib/constants";
 import { findNearestEmptyCell } from "@/lib/utils/bfs";
 import { classifyCreateRefusal } from "@/lib/feedback/create-refusal";
 import { hexToHsl } from "@/lib/utils/color";
 import { cn } from "@/lib/utils";
 import { useCalendarStore } from "@/stores/calendar-store";
+import { useToastAnchorStore } from "@/stores/toast-anchor-store";
+
+// The create-dialog target for a Node created at L0 (SPEC §Feedback copy).
+const HOME_TARGET = "Home";
 
 export default function CalendarLayout({
   children,
@@ -34,17 +39,24 @@ export default function CalendarLayout({
     conflictState,
     handleConflictKeepChild,
     handleConflictUpdateParent,
+    handleDragCancel,
     handleDragEnd,
     handleDragOver,
     handleDragStart,
     overTargetId,
     sensors,
-  } = useDnd(() => new Set<string>());
+  } = useDnd();
+  const setToastDragActive = useToastAnchorStore((state) => state.setDragActive);
+  const resetToastAnchor = useToastAnchorStore((state) => state.reset);
   const isPoolCollapsed = useCalendarStore((state) => state.isPoolCollapsed);
   const drillDownPath = useCalendarStore((state) => state.drillDownPath);
   const togglePool = useCalendarStore((state) => state.togglePool);
   const defaultParentId =
     drillDownPath.length > 0 ? (drillDownPath[drillDownPath.length - 1] ?? null) : null;
+
+  // The toast stack is translucent and pointer-transparent while a Node or Bit is
+  // dragged (F12); leaving the Calendar must not keep the flag.
+  useEffect(() => resetToastAnchor, [resetToastAnchor]);
 
   async function handleCalendarNodeSubmit({
     title,
@@ -63,10 +75,10 @@ export default function CalendarLayout({
 
     try {
       const occupied = await getGridOccupancy(null);
-      const cell = findNearestEmptyCell(occupied, 2, 2, new Set());
+      const cell = findNearestEmptyCell(occupied, 2, 2);
 
       if (cell === null) {
-        setCreateError("No empty cells available in the root grid.");
+        setCreateError(createDialogNoEmptyCell(HOME_TARGET));
         return;
       }
 
@@ -102,6 +114,7 @@ export default function CalendarLayout({
     icon,
     priority,
     parentId,
+    parentTitle,
     deadline: _deadline,
     deadlineAllDay: _deadlineAllDay,
   }: CreateBitDialogValues) {
@@ -114,10 +127,12 @@ export default function CalendarLayout({
       }
 
       const occupied = await getGridOccupancy(parentId);
-      const cell = findNearestEmptyCell(occupied, GRID_COLS - 3, 2, new Set());
+      const cell = findNearestEmptyCell(occupied, GRID_COLS - 3, 2);
 
       if (cell === null) {
-        setBitCreateError("No empty cells available in the parent node.");
+        setBitCreateError(
+          parentTitle ? createDialogNoEmptyCell(parentTitle) : "Unable to find parent node.",
+        );
         return;
       }
 
@@ -162,9 +177,19 @@ export default function CalendarLayout({
       <main className="ml-12 flex min-w-0 flex-1 flex-col overflow-hidden">
         <DndContext
           collisionDetection={closestCorners}
-          onDragEnd={handleDragEnd}
+          onDragCancel={() => {
+            setToastDragActive(false);
+            handleDragCancel();
+          }}
+          onDragEnd={(event) => {
+            setToastDragActive(false);
+            return handleDragEnd(event);
+          }}
           onDragOver={handleDragOver}
-          onDragStart={handleDragStart}
+          onDragStart={(event) => {
+            setToastDragActive(true);
+            handleDragStart(event);
+          }}
           sensors={sensors}
         >
           <div className="flex min-h-0 flex-1">

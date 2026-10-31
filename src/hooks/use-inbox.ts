@@ -68,6 +68,7 @@ export function useInbox(): {
   const poolCreatedAtSort = useTriagePreferencesStore(
     (state) => state.poolCreatedAtSort,
   );
+  const selectedScratchId = useTriageStore((state) => state.selectedScratchId);
 
   const orderedActiveScratchBits = useMemo(
     () =>
@@ -276,6 +277,9 @@ export function useInbox(): {
       activeIds: orderedActiveScratchBits.map((bit) => bit.id),
       visibleIds: visibleScratchBits.map((bit) => bit.id),
       ownTrashIds,
+      // Read, not subscribed: saving a selection must not re-run reconcile.
+      preferredScratchId:
+        useTriagePreferencesStore.getState().lastSelectedScratchId,
     });
   }, [
     activeScratchBitsReady,
@@ -284,6 +288,22 @@ export function useInbox(): {
     reconcileScratchPoolContext,
     visibleScratchBits,
   ]);
+
+  // Device-local only. A selection held after its Scratch left the active set
+  // (external removal, own Trash) is not worth restoring, and an empty Inbox
+  // keeps the saved id.
+  useEffect(() => {
+    if (
+      !activeScratchBitsReady ||
+      selectedScratchId === null ||
+      !activeScratchBits.some((bit) => bit.id === selectedScratchId)
+    ) {
+      return;
+    }
+    useTriagePreferencesStore
+      .getState()
+      .setLastSelectedScratchId(selectedScratchId);
+  }, [activeScratchBits, activeScratchBitsReady, selectedScratchId]);
 
   const createScratchBit = useCallback(
     async (title: string) => {

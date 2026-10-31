@@ -307,11 +307,15 @@ Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
 - **Pointer** (F24). While shown, only its segments and the deadline chip take
   the pointer; the rest of the bar lets it through, so a card under it stays
   clickable, and "hovered" above means a segment or the chip. During a drag
-  each ancestor segment is a drop target with a visible "drop here" signal
-  (the ancestor-move confirmation and the no-Bit-on-Home rule stay); the rest
-  of the bar lets the pointer through to the cells beneath, its surface turns
-  translucent and the deadline chip hides, so the top-left cells stay
-  droppable.
+  each ancestor segment is a drop target (the ancestor-move confirmation and
+  the no-Bit-on-Home rule stays: Home is still a target for a Bit, so the drop does
+  not reach a card under the segment, and is refused with no write and no dialog); only the segment under the pointer shows that
+  it will take the drop, with a light hover-level signal, and the other
+  ancestors are not marked (user, 2026-10-31, Task 248: teaching the ancestor
+  drop belongs to a future first-visit Grid tour). The rest of the bar lets
+  the pointer through to the cells beneath and the deadline chip hides, so the
+  top-left cells stay droppable. The surface keeps its resting look (no added
+  transparency) (user, 2026-10-31, Task 248).
 - **Layering.** The breadcrumb sits above grid cells and cards and below the
   drag overlay, popovers, dialogs, the Bit popup and the palette. The toast
   stack sits below it while it is shown ([Toasts](#toasts)).
@@ -328,12 +332,10 @@ Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
   placement and drops treat every cell alike. The zone measurement and store,
   the `isCellBlocked` guards, `runBreadcrumbZoneMigration` (the Phase 45 no-op
   included) and its `settings` markers are removed (SCHEMA §Not ported).
-  Until Task 249 the cells under the bar's shown position stay reserved as
-  today, even while the bar is hidden, and the client passes the top-left 3×2
-  block as reserved cells to every server function that chooses a cell, so a
-  new account, a restore, an unhide or a promotion never lands under the fixed
-  breadcrumb (SCHEMA §Internal functions, feedback F34). Task 249 stops passing
-  it.
+  The client no longer passes reserved cells to the server functions that
+  choose a cell (SCHEMA §Internal functions, feedback F34), so a new account, a
+  restore, an unhide or a promotion may land under a segment of the revealed
+  bar (Task 249).
 - Below 1024px the reveal is a desktop feature (S42 (4)).
 
 ### Bit Detail Popup (Modal — not a route)
@@ -690,7 +692,8 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   emphasis on the field, `Retry Add` beside Add. Staging Node card: the
   top-right corner. Staging Bit row: the row end. Explorer Newly row: the Undo
   slot ([Actual-card Newly Placed and Undo](#actual-card-newly-placed-and-undo)).
-  Staging has no recovery controls.
+  Staging's only recovery control is the `?` of an unknown Stage or Unstage
+  (Phase 50 mi-11); Staging has no Retry.
 - **Decision surfaces keep their sentences** (F08): the Placement plate, the
   Archive completion card, the Scratch Trash dialog and the inline-editor
   conflict view. A Stage failure whose item disappears keeps the Staging
@@ -739,7 +742,7 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   explicit blur-save exceptions: the editor stays open and dirty while the
   Trash dialog is open. During Save/reconcile, the editor/draft stays
   visible and conflicting Edit/Trash/DnD/Cancel actions lock. Failure or offline
-  preserves draft and logical focus; reconnection enables manual Retry but does
+  preserves draft and logical focus; reconnection lets the user Save again but does
   not auto-save or create an offline queue.
 - **Editor states** (F05, Phase 50): `Unsaved changes.` shows no text (the
   enabled Save is the signal); `Saving…` and
@@ -748,7 +751,16 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   plus the existing `Stay here`, the sentence in the tooltip; `Not saved.`
   becomes `!` plus the tooltip; `Offline. Your draft is still here.` is
   replaced by the offline write-attempt toast ([Toasts](#toasts)), and the
-  draft stays in the editor. The conflict view stays as built.
+  draft stays in the editor. The conflict view stays as built. A save whose
+  outcome is unknown (an error or the request timeout) shows `?` at once with
+  `We couldn't confirm whether your changes were saved.` in the tooltip and a
+  compact `Check again` in place of Save and Cancel; it is never resent, the lock
+  stays until a terminal answer, and `Check again` reconciles read-only (Task
+  245A, Phase 50 mi-2). An editor invalidated while it holds such a save shows
+  the recovery view at once and checks once, read-only, in the background; a
+  terminal answer releases the lock and the view stays. If that check fails,
+  the view offers `Check again` and Close stays unavailable until a terminal
+  answer; the check is never retried on its own (Phase 50 mi-3).
 - Editors capture `{record ID, base value, version, lifecycle}` in client memory
   and use SCHEMA CAS. A stale write never becomes last-write-wins. Text conflict
   offers inline use-mine/use-latest semantics against the acknowledged latest
@@ -830,7 +842,17 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   Active source. A rejected/conflict result instead applies returned authority:
   a modified row refreshes, an already-staged row shows its existing candidate,
   and a deleted row leaves the list; none is auto-staged from the drag snapshot.
-  An unknown outcome reconciles before a repeat drag. No repeated pulse or
+  An unknown outcome is checked once, read-only, right after it, and never
+  resent. If that check fails too, the Stage projection or candidate keeps
+  `?` and the operation lock, and its `?` is a button that runs the same
+  read-only check (`Check again`; the tooltip adds `Select to check again.`).
+  It turns unavailable at once; a terminal answer applies as the command's
+  own result would and releases the lock; a check that fails returns to `?`.
+  When the Scratch is removed elsewhere while a Staging command is held, or
+  the held command's candidate leaves the list while its Scratch stays
+  selected, one read-only check runs in the background and is never retried
+  on its own; a held command gets at most one such automatic check (Phase 50
+  mi-11, mi-12, user 2026-10-30). No repeated pulse or
   layout-changing motion is permitted.
 - A transient drag-time Staging target and the whole Breakdown section drop-
   back invoke the same Unstage command; there is no permanent unstage button.
@@ -1474,7 +1496,7 @@ guest, so a cancelled OAuth sign-in returns to that screen (user,
   longer toast (`grid-runtime.tsx`, two sites): when the target Grid has no
   empty cell, the dialog stays open, keeps the typed title and shows the inline
   error below, at every level, L0 included (Task 244).
-  `Cell reserved by breadcrumb` (`use-dnd.ts`) goes with the blocked zone (Task
+  `Cell reserved by breadcrumb` (`use-dnd.ts`) went with the blocked zone (Task
   249).
 - **Inline editor offline** (F05, Task 245): an editor save attempted while
   offline shows the offline write-attempt toast instead of the editor's own
@@ -1798,7 +1820,7 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/db/database.types.ts` *(Phase 42, generated)* | `supabase gen types typescript` output; types the row converter (S33) |
 | `src/lib/db/row-mapping.ts` *(Phase 42)* | snake_case database rows ↔ camelCase TypeScript types, at the snapshot loader and the function-result boundary only (S11) |
 | `src/lib/db/snapshot-store.ts` *(Phase 42)* | Account snapshot: base, pending-write layer, envelope application, refetch, subscriptions (Decision 19) |
-| `src/lib/db/supabase-calls.ts` *(Phase 42)* | One typed wrapper per database function the snapshot store calls (`get_snapshot`, `ensure_account`, `update_node`; later tasks add theirs), and the reserved breadcrumb cells passed until Task 249 |
+| `src/lib/db/supabase-calls.ts` *(Phase 42)* | One typed wrapper per database function the snapshot store calls (`get_snapshot`, `ensure_account`, `update_node`; later tasks add theirs) |
 | `src/lib/db/boundary-cases.ts` *(Phase 42)* | One table of boundary values per field rule, run against the Zod schemas and the database CHECKs so both give the same verdict (S12, S33) |
 | `src/lib/db/supabase-store.ts` *(Phase 45)* | `DataStore` implementation: reads over the snapshot, one RPC per write |
 | `src/lib/db/supabase-command-calls.ts` *(Phase 45)* | Typed arguments of the Inbox/Triage command and reconcile functions, beside `supabase-calls.ts` for the ordinary writes |
@@ -1829,6 +1851,9 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/components/feedback/toast-icons.tsx` *(Phase 49)* | The Toaster's ✓, `!` and `×` icons, and `offlineToastIcon` (Lucide `wifi-off`), which the offline write-attempt warning passes as its `icon` so Task 232's helper reuses it (F15, F18) |
 | `src/lib/dev/state-switch.ts`, `src/components/dev/state-switch-panel.tsx` *(Phase 49, development only)* | [Development state switch](#development-state-switch) (F30) |
 | `src/components/layout/home-button.tsx`, `src/hooks/use-breadcrumb-reveal.ts` *(Phase 50)* | Sidebar Home button and the breadcrumb reveal state: triggers, hiding, `Esc`, drag (F21–F25) |
+| `src/components/layout/sidebar-icon-button.tsx` *(Phase 50)* | The sidebar rail's shared icon button, which `home-button.tsx` and the rail entries use |
+| `src/hooks/use-document-title.ts` *(Phase 50)* | Sets each page's tab title ([Feedback copy](#feedback-copy)) |
+| `src/components/grid/newly-undo-slot.tsx` *(Phase 50)* | The Newly Undo button as the status slot, for Node and Bit cards and the replacement-search results (F07, F09) |
 | `src/lib/copy/feedback.ts` *(Phase 49)* | Toast, app-state and blocking copy (F14); Task 244 creates it with the create-dialog sentence |
 | `supabase/config.toml`, `supabase/migrations/`, `supabase/tests/` *(Phase 42)* | Local Supabase configuration, migrations in Git, `pnpm test:db` suites |
 | `supabase/seed.sql`, `scripts/dev-fixtures/` *(Phase 45, local only)* | `dev.seed_fixture()` and the browser-check fixture that signs in as a local `@griddo.test` user and seeds through it; usage in each script header |

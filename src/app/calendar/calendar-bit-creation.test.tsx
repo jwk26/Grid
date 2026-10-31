@@ -31,12 +31,17 @@ vi.mock("@/components/grid/create-bit-dialog", () => ({
     onSubmit: (v: unknown) => Promise<void>;
     requireParent?: boolean;
     defaultParentId?: string | null;
+    error?: string;
   }) => {
     capturedBitDialogProps.onSubmit = props.onSubmit;
     capturedBitDialogProps.open = props.open;
     capturedBitDialogProps.requireParent = props.requireParent ?? false;
     capturedBitDialogProps.defaultParentId = props.defaultParentId;
-    return props.open ? <div role="dialog" data-testid="bit-dialog" /> : null;
+    return props.open ? (
+      <div role="dialog" data-testid="bit-dialog">
+        {props.error}
+      </div>
+    ) : null;
   },
 }));
 
@@ -183,6 +188,41 @@ describe("CalendarLayout bit creation", () => {
       expect(createBitMock).toHaveBeenCalledWith(
         expect.objectContaining({ parentId: "parent-123", deadline: null }), { report: false });
     });
+  });
+
+  it("shows the create-dialog sentence naming the chosen parent when its Grid is full", async () => {
+    getGridOccupancyMock.mockResolvedValueOnce(
+      new Set(Array.from({ length: 18 * 9 }, (_, i) => `${i % 18},${Math.floor(i / 18)}`)),
+    );
+    render(
+      <CalendarLayout>
+        <div />
+      </CalendarLayout>,
+    );
+
+    act(() => {
+      capturedCallbacks.onBitCreate?.();
+    });
+
+    await screen.findByTestId("bit-dialog");
+
+    await act(async () => {
+      await capturedBitDialogProps.onSubmit?.({
+        title: "Test Bit",
+        description: "",
+        icon: "circle",
+        priority: null,
+        parentId: "parent-123",
+        parentTitle: "Plans",
+        deadline: null,
+        deadlineAllDay: false,
+      });
+    });
+
+    expect(
+      await screen.findByText("“Plans” has no empty cell. Move or delete an item to make room."),
+    ).toBeInTheDocument();
+    expect(createBitMock).not.toHaveBeenCalled();
   });
 
   it("closes dialog after successful bit create", async () => {

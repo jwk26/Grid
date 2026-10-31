@@ -1,6 +1,5 @@
 "use client";
 
-import { useConnectionState } from "@/lib/db/connection";
 import {
   useCallback,
   useContext,
@@ -28,6 +27,16 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  StatusAnnouncement,
+  useStatusAnnouncement,
+} from "@/components/feedback/status-announcement";
+import {
+  StatusIcon,
+  statusEmphasisProps,
+  useStatusPresentation,
+} from "@/components/feedback/status-icon";
+import { StatusTooltip } from "@/components/feedback/status-tooltip";
 import {
   invalidateTriageDragSource,
   type TriageDragItem,
@@ -58,6 +67,12 @@ import {
 import { useTriageDepartureContext } from "@/hooks/use-triage-departure";
 import { useTriageOperationLockContext } from "@/hooks/use-triage-operation-lock";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
+import {
+  forcedItemKeys,
+  useForcedItemStatus,
+  type ForcedState,
+} from "@/lib/feedback/forced-item-status";
+import type { ItemStatus } from "@/lib/feedback/item-status";
 import type {
   AddBreakdownCommand,
   DeleteBreakdownCommand,
@@ -79,7 +94,6 @@ type OpenEditorSnapshot = NonNullable<ConditionalEditorSnapshot>;
 const SCRATCH_TITLE_INLINE_LIMIT = 60;
 const BREAKDOWN_CONTENT_INLINE_LIMIT = 120;
 const BREAKDOWN_UNSTAGE_DROP_ID = "triage-remove-drop:breakdown";
-const BREAKDOWN_SUCCESS_DURATION_MS = 1600;
 
 export type BreakdownSuccessSignal = Readonly<{
   kind: "add" | "unstage";
@@ -308,6 +322,28 @@ export function ArchiveOperationCard({
   );
 }
 
+/** The sentence a forced development state shows on an editor. */
+function forcedEditorSentence(
+  state: ForcedState,
+  status: (typeof INBOX_TRIAGE_COPY)["inlineEditor"]["status"],
+): string | null {
+  switch (state) {
+    case "delayed-pending":
+      return status.saving;
+    case "reconciling":
+      return status.reconciling;
+    case "unknown":
+      return status.unknown;
+    case "not-applied":
+    case "rejected":
+    case "conflict":
+    case "integrity":
+      return status.notApplied;
+    case "editor-offline":
+      return null;
+  }
+}
+
 function InlineEditor({
   contentAfter,
   contentBefore,
@@ -318,7 +354,6 @@ function InlineEditor({
   onSave,
   onUseMine,
   snapshot,
-  successSignal,
   actionRole,
   actionTestId,
 }: {
@@ -331,7 +366,6 @@ function InlineEditor({
   onSave: () => Promise<boolean>;
   onUseMine: () => Promise<boolean>;
   snapshot: OpenEditorSnapshot;
-  successSignal?: BreakdownSuccessSignal | null;
   actionRole: string;
   actionTestId: string;
 }) {
@@ -352,12 +386,27 @@ function InlineEditor({
   const latestVersionRef = useRef(snapshot.latest?.version ?? null);
   const [copyStatus, setCopyStatus] = useState("");
   const [latestStatus, setLatestStatus] = useState("");
-  // One offline source for the app: the connection monitor (SPEC §Connection states).
-  const isBrowserOnline = useConnectionState() !== "offline";
+  const forcedEditor = useForcedItemStatus(
+    isScratchTitle
+      ? forcedItemKeys.scratchTitleEditor(snapshot.target.id)
+      : forcedItemKeys.breakdownEditor(snapshot.target.id),
+  );
+  const [isFieldTooltipOpen, setIsFieldTooltipOpen] = useState(false);
+  const checkAgainRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const heldCommandRef = useRef(snapshot.command !== null);
 
   useEffect(() => {
     const field = fieldRef.current;
-    if (field === null || snapshot.phase === "invalidated") return;
+    // Unknown and reconciling keep focus on Check again.
+    if (
+      field === null ||
+      snapshot.phase === "invalidated" ||
+      snapshot.phase === "unknown" ||
+      snapshot.phase === "reconciling"
+    ) {
+      return;
+    }
     if (snapshot.focusIntent !== "field" && snapshot.focusIntent !== "field-end") {
       return;
     }
@@ -367,6 +416,33 @@ function InlineEditor({
       field.setSelectionRange(end, end);
     }
   }, [snapshot.focusIntent, snapshot.phase, snapshot.target.id]);
+
+  // Entering unknown from a Save click unmounts Save: move focus to Check again
+  // rather than leave it on the page body.
+  useEffect(() => {
+    if (snapshot.phase !== "unknown") return;
+    if (
+      document.activeElement === null ||
+      document.activeElement === document.body
+    ) {
+      checkAgainRef.current?.focus();
+    }
+  }, [snapshot.phase]);
+
+  // A terminal answer clears the command: Check again goes away and Close is
+  // enabled, so focus moves to Close instead of falling to the page body.
+  useEffect(() => {
+    const held = snapshot.command !== null;
+    if (
+      heldCommandRef.current &&
+      !held &&
+      snapshot.phase === "invalidated" &&
+      (document.activeElement === null || document.activeElement === document.body)
+    ) {
+      closeRef.current?.focus();
+    }
+    heldCommandRef.current = held;
+  }, [snapshot.command, snapshot.phase]);
 
   useEffect(() => {
     const nextVersion = snapshot.latest?.version ?? null;
@@ -390,12 +466,50 @@ function InlineEditor({
           : snapshot.phase === "pristine" ||
               snapshot.phase === "dirty" ||
               snapshot.phase === "saving" ||
-              snapshot.phase === "offline" ||
+              snapshot.phase === "unknown" ||
               snapshot.phase === "reconciling"
             ? copy.status[snapshot.phase]
             : snapshot.phase === "conflict"
               ? copy.conflict.heading
               : copy.recovery.heading;
+
+  // Item status (feedback F02, F05): saving shows the loader, reconciling `?`
+  // then the loader, not saved `!`. A forced development state takes its place.
+  const realStatus: ItemStatus | null =
+    snapshot.phase === "saving"
+      ? "pending"
+      : snapshot.phase === "unknown"
+        ? "unknown"
+        : snapshot.phase === "reconciling"
+          ? "reconciling"
+          : snapshot.phase === "not_applied"
+            ? "problem"
+            : null;
+  const realSentence =
+    realStatus === null ? null : statusCopy;
+  const forcedStatus = forcedEditor?.status ?? null;
+  const itemStatus = forcedStatus ?? realStatus;
+  const statusSentence =
+    forcedStatus !== null && forcedEditor !== null
+      ? forcedEditorSentence(forcedEditor.state, copy.status)
+      : realSentence;
+  const presentation = useStatusPresentation(
+    itemStatus,
+    forcedStatus !== null
+      ? `forced:${forcedEditor?.state}`
+      : `${snapshot.phase}:${snapshot.command?.operationId ?? ""}`,
+  );
+  // Save and Cancel are unavailable at once while a save is in flight.
+  const isInFlight =
+    snapshot.phase === "saving" || snapshot.phase === "reconciling";
+  // Unknown and reconciling show Check again instead of Save and Cancel.
+  const isCheckingPhase =
+    snapshot.phase === "unknown" || snapshot.phase === "reconciling";
+  // A tooltip opened while no status showed must not wait to open on its own
+  // when one appears later: drop the flag while there is no glyph.
+  if (presentation.glyph === null && isFieldTooltipOpen) {
+    setIsFieldTooltipOpen(false);
+  }
 
   function handleFieldBlur(
     event: FocusEvent<HTMLInputElement>,
@@ -422,6 +536,7 @@ function InlineEditor({
     }
     if (
       snapshot.phase !== "saving" &&
+      snapshot.phase !== "unknown" &&
       snapshot.phase !== "reconciling" &&
       snapshot.phase !== "conflict"
     ) {
@@ -471,13 +586,15 @@ function InlineEditor({
     }
   }
 
-  const describedBy = [
-    snapshot.phase === "pristine" || snapshot.phase === "dirty"
-      ? null
-      : statusId,
-  ].filter((id): id is string => id !== null);
+  // Validation, conflict and invalidated keep their own status element; the item
+  // statuses are described by the tooltip's sentence.
+  const describedByOwnStatus =
+    snapshot.phase === "validation" ||
+    snapshot.phase === "conflict" ||
+    snapshot.phase === "invalidated";
   const commonFieldProps = {
-    "aria-describedby": describedBy.length > 0 ? describedBy.join(" ") : undefined,
+    ...(describedByOwnStatus ? { "aria-describedby": statusId } : {}),
+    ...statusEmphasisProps(presentation),
     "aria-invalid": snapshot.phase === "validation" || undefined,
     "aria-label": fieldLabel,
     className: "triage-inline-editor__field",
@@ -497,14 +614,13 @@ function InlineEditor({
     },
     onKeyDown: handleFieldKeyDown,
     readOnly:
-      snapshot.phase === "saving" || snapshot.phase === "reconciling",
+      snapshot.phase === "saving" ||
+      snapshot.phase === "unknown" ||
+      snapshot.phase === "reconciling",
     value: snapshot.draft,
   };
   const isIssuePhase =
-    snapshot.phase === "offline" ||
-    snapshot.phase === "not_applied" ||
-    snapshot.phase === "conflict" ||
-    snapshot.phase === "invalidated";
+    snapshot.phase === "conflict" || snapshot.phase === "invalidated";
 
   return (
     <>
@@ -535,7 +651,15 @@ function InlineEditor({
                 <label className="sr-only" htmlFor={fieldId}>
                   {fieldLabel}
                 </label>
-                <input ref={fieldRef} type="text" {...commonFieldProps} />
+                <StatusTooltip
+                  open={isFieldTooltipOpen && presentation.glyph !== null}
+                  sentence={statusSentence ?? ""}
+                  onOpenChange={(next) =>
+                    setIsFieldTooltipOpen(next && presentation.glyph !== null)
+                  }
+                >
+                  <input ref={fieldRef} type="text" {...commonFieldProps} />
+                </StatusTooltip>
               </>
             )}
             {snapshot.phase === "validation" ? (
@@ -547,25 +671,25 @@ function InlineEditor({
               >
                 {validationCopy}
               </span>
-            ) : (snapshot.phase === "saving" ||
-                snapshot.phase === "reconciling") ? (
-              <div
-                id={statusId}
-                aria-atomic="true"
-                aria-live="polite"
-                className="sr-only"
-                data-triage-role="inline-editor-announcement"
-              >
-                {statusCopy}
-              </div>
             ) : null}
+            {/* One polite container stays mounted; only its text changes. */}
+            <div
+              aria-atomic="true"
+              aria-live="polite"
+              className="sr-only"
+              data-triage-role="inline-editor-announcement"
+            >
+              {realSentence !== null ? (
+                <span key={`${snapshot.phase}:${snapshot.pendingIntent}`}>
+                  {realSentence}
+                </span>
+              ) : null}
+            </div>
           </div>
           {contentAfter}
         </div>
       </div>
-      {!isScratchTitle ? (
-        <BreakdownSuccessSlot signal={successSignal} />
-      ) : null}
+      {!isScratchTitle ? <BreakdownStatusSlot /> : null}
       <div
         className="triage-fixed-action-slot"
         data-testid={actionTestId}
@@ -577,22 +701,67 @@ function InlineEditor({
             className="triage-inline-editor__actions"
             data-triage-role="inline-editor-actions"
           >
-            {(snapshot.phase === "pristine" ||
-              snapshot.phase === "dirty" ||
-              snapshot.phase === "validation") && (
+            {/* The 22px status box is always reserved, empty until a glyph shows. */}
+            <span
+              className="triage-inline-editor__status-slot"
+              data-triage-role="inline-editor-status-slot"
+            >
+              {statusSentence !== null ? (
+                <StatusIcon presentation={presentation} sentence={statusSentence} />
+              ) : null}
+            </span>
+            {isCheckingPhase ? (
+              <Button
+                ref={checkAgainRef}
+                aria-disabled={
+                  snapshot.phase === "reconciling" ? "true" : undefined
+                }
+                data-triage-role="inline-editor-check-again"
+                size="xs"
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  if (snapshot.phase !== "unknown") return;
+                  checkAgainRef.current?.focus();
+                  void editor.reconcile();
+                }}
+              >
+                {INBOX_TRIAGE_COPY.reliability.actions.checkAgain}
+              </Button>
+            ) : snapshot.pendingIntent && isInFlight ? (
+              <Button
+                size="xs"
+                type="button"
+                variant="outline"
+                onClick={editor.stayHere}
+              >
+                {copy.actions.stayHere}
+              </Button>
+            ) : (
               <>
                 <Button
                   className={cn(
-                    snapshot.phase === "dirty" &&
+                    (snapshot.phase === "dirty" ||
+                      snapshot.phase === "not_applied") &&
                       "hover:bg-destructive/10",
                   )}
                   data-triage-contrast={
-                    snapshot.phase === "dirty" ? "adaptive" : undefined
+                    snapshot.phase === "dirty" ||
+                    snapshot.phase === "not_applied"
+                      ? "adaptive"
+                      : undefined
                   }
                   data-triage-emphasis={
-                    snapshot.phase === "dirty" ? "destructive" : undefined
+                    snapshot.phase === "dirty" ||
+                    snapshot.phase === "not_applied"
+                      ? "destructive"
+                      : undefined
                   }
-                  disabled={snapshot.phase !== "dirty"}
+                  disabled={
+                    isInFlight ||
+                    (snapshot.phase !== "dirty" &&
+                      snapshot.phase !== "not_applied")
+                  }
                   size="xs"
                   type="button"
                   variant="ghost"
@@ -602,6 +771,7 @@ function InlineEditor({
                 </Button>
                 <Button
                   data-triage-treatment="text"
+                  disabled={isInFlight}
                   size="xs"
                   type="button"
                   variant="ghost"
@@ -609,42 +779,6 @@ function InlineEditor({
                 >
                   {INBOX_TRIAGE_COPY.baseActions.cancel}
                 </Button>
-              </>
-            )}
-            {snapshot.phase === "saving" && (
-              <>
-                <span data-triage-role="inline-editor-progress">
-                  {snapshot.pendingIntent
-                    ? copy.status.savingBeforeContinuing
-                    : copy.status.saving}
-                </span>
-                {snapshot.pendingIntent && (
-                  <Button
-                    size="xs"
-                    type="button"
-                    variant="outline"
-                    onClick={editor.stayHere}
-                  >
-                    {copy.actions.stayHere}
-                  </Button>
-                )}
-              </>
-            )}
-            {snapshot.phase === "reconciling" && (
-              <>
-                <span data-triage-role="inline-editor-progress">
-                  {copy.status.reconciling}
-                </span>
-                {snapshot.pendingIntent && (
-                  <Button
-                    size="xs"
-                    type="button"
-                    variant="outline"
-                    onClick={editor.stayHere}
-                  >
-                    {copy.actions.stayHere}
-                  </Button>
-                )}
               </>
             )}
           </div>
@@ -672,29 +806,6 @@ function InlineEditor({
             )}
           </span>
           <div data-triage-role="inline-editor-issue-actions">
-            {(snapshot.phase === "offline" ||
-              snapshot.phase === "not_applied") && (
-              <>
-                <Button
-                  disabled={
-                    snapshot.phase === "offline" && !isBrowserOnline
-                  }
-                  size="xs"
-                  type="button"
-                  onClick={() => void onSave()}
-                >
-                  {copy.actions.retrySave}
-                </Button>
-                <Button
-                  size="xs"
-                  type="button"
-                  variant="outline"
-                  onClick={() => editor.cancel()}
-                >
-                  {INBOX_TRIAGE_COPY.baseActions.cancel}
-                </Button>
-              </>
-            )}
             {snapshot.phase === "conflict" && (
               <>
                 <Button size="xs" type="button" onClick={() => void onUseMine()}>
@@ -723,7 +834,24 @@ function InlineEditor({
                 <Button size="xs" type="button" onClick={() => void copyDraft()}>
                   {copy.conflict.copyDraft}
                 </Button>
+                {snapshot.command !== null ? (
+                  <Button
+                    aria-disabled={snapshot.checking === true ? "true" : undefined}
+                    data-triage-role="inline-editor-check-again"
+                    size="xs"
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (snapshot.checking === true) return;
+                      void editor.reconcile();
+                    }}
+                  >
+                    {INBOX_TRIAGE_COPY.reliability.actions.checkAgain}
+                  </Button>
+                ) : null}
                 <Button
+                  ref={closeRef}
+                  disabled={snapshot.command !== null}
                   size="xs"
                   type="button"
                   variant="outline"
@@ -760,64 +888,47 @@ function getReliabilityState(
   return null;
 }
 
-function ReliabilityLine({
-  action,
-  actionRef,
-  copy,
-  isReconciling,
-  onAction,
-  surface,
-  state,
-}: {
-  action: string | null;
-  actionRef?: (element: HTMLButtonElement | null) => void;
-  copy: string;
-  isReconciling: boolean;
-  onAction?: () => void;
-  surface: "add" | "delete";
-  state: ReliabilityState;
-}) {
-  return (
-    <div
-      className={cn(
-        "breakdown-reliability",
-        surface === "add"
-          ? "breakdown-add-reliability"
-          : "breakdown-delete-reliability",
-      )}
-      data-triage-role="breakdown-reliability"
-    >
-      <span
-        aria-atomic="true"
-        aria-live="polite"
-        className="breakdown-reliability__status"
-        data-triage-reliability-state={state}
-        role="status"
-      >
-        {copy}
-      </span>
-      {action !== null ? (
-        <Button
-          ref={actionRef}
-          aria-disabled={isReconciling ? "true" : undefined}
-          className="breakdown-reliability__action"
-          data-triage-role="breakdown-reliability-action"
-          size="xs"
-          type="button"
-          variant={
-            action === INBOX_TRIAGE_COPY.reliability.actions.retryAdd
-              ? "default"
-              : "ghost"
-          }
-          onClick={() => {
-            if (!isReconciling) onAction?.();
-          }}
-        >
-          {action}
-        </Button>
-      ) : null}
-    </div>
-  );
+type SentenceKey =
+  | "pending"
+  | "unknown"
+  | "reconciling"
+  | "notApplied"
+  | "rejected"
+  | "conflict";
+
+function sentenceKeyOf(state: ReliabilityState): SentenceKey {
+  return state === "not-applied" ? "notApplied" : state;
+}
+
+/** The Add or Delete sentence a forced development state shows, or null for none. */
+function forcedSentenceKey(state: ForcedState): SentenceKey | null {
+  switch (state) {
+    case "delayed-pending":
+      return "pending";
+    case "reconciling":
+    case "unknown":
+    case "rejected":
+    case "conflict":
+      return state;
+    case "not-applied":
+    case "integrity":
+      return "notApplied";
+    case "editor-offline":
+      return null;
+  }
+}
+
+function itemStatusOfReliability(state: ReliabilityState): ItemStatus {
+  switch (state) {
+    case "pending":
+    case "unknown":
+    case "reconciling":
+      return state;
+    case "not-applied":
+    case "rejected":
+    case "conflict":
+      return "problem";
+  }
 }
 
 function BreakdownRow({
@@ -834,7 +945,6 @@ function BreakdownRow({
   deleteOperation,
   onDeleteReliabilityActionRef,
   onReconcileDelete,
-  successSignal,
 }: {
   row: ScratchBreakdown;
   isStaged: boolean;
@@ -852,7 +962,6 @@ function BreakdownRow({
     element: HTMLButtonElement | null,
   ) => void;
   onReconcileDelete: (operationId: string) => void;
-  successSignal: BreakdownSuccessSignal | null;
 }) {
   const {
     attributes,
@@ -899,22 +1008,74 @@ function BreakdownRow({
       ? editor.snapshot
       : null;
   const deleteReliabilityState = getReliabilityState(deleteOperation);
-  const deleteReliabilityCopy =
-    deleteReliabilityState === null
+  const forced = useForcedItemStatus(forcedItemKeys.breakdown(row.id));
+  const forcedRowKey =
+    forced === null || forced.status === null
       ? null
-      : INBOX_TRIAGE_COPY.reliability.delete[
-          deleteReliabilityState === "not-applied"
-            ? "notApplied"
-            : deleteReliabilityState
-        ];
+      : forcedSentenceKey(forced.state);
+  const sentenceKey =
+    forcedRowKey ??
+    (deleteReliabilityState === null
+      ? null
+      : sentenceKeyOf(deleteReliabilityState));
+  const itemStatus =
+    forcedRowKey !== null && forced !== null
+      ? forced.status
+      : deleteReliabilityState === null
+        ? null
+        : itemStatusOfReliability(deleteReliabilityState);
+  const presentation = useStatusPresentation(
+    itemStatus,
+    forcedRowKey !== null
+      ? `forced:${forced?.state}`
+      : (deleteOperation?.operationId ?? ""),
+  );
+  const statusSentence =
+    sentenceKey === null ? null : INBOX_TRIAGE_COPY.reliability.delete[sentenceKey];
+  const statusDescriptionId = useId();
   const deleteReliabilityAction =
-    deleteReliabilityState === null || deleteReliabilityState === "pending"
+    deleteOperation === null ||
+    deleteReliabilityState === null ||
+    deleteReliabilityState === "pending"
       ? null
       : INBOX_TRIAGE_COPY.reliability.actions.checkAgain;
   const isDeleteInFlight =
     deleteOperation !== null && deleteOperation.phase !== "terminal";
   const isDragDisabled = isStaged || isOperationLocked || isDeleteInFlight;
-  const isSuccess = successSignal !== null;
+  const gripAriaDescribedBy =
+    [
+      (attributes as { "aria-describedby"?: string })["aria-describedby"],
+      statusSentence === null ? undefined : statusDescriptionId,
+    ]
+      .filter((id): id is string => id !== undefined)
+      .join(" ") || undefined;
+  const gripButton = (
+    <button
+      ref={setActivatorNodeRef}
+      aria-label="Drag breakdown"
+      data-source-version={row.version}
+      data-triage-staging-focus-source="true"
+      data-triage-drag-source="breakdown-grip"
+      data-triage-role="breakdown-grip-control"
+      disabled={isDragDisabled}
+      className={cn(
+        "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-transparent text-muted-foreground/60 hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+        isDragDisabled
+          ? "cursor-not-allowed"
+          : "cursor-grab active:cursor-grabbing",
+      )}
+      type="button"
+      {...attributes}
+      {...listeners}
+      aria-describedby={gripAriaDescribedBy}
+    >
+      <GripVertical
+        aria-hidden="true"
+        className={cn("h-4 w-4 transition-colors", gripColorClass)}
+        data-testid="breakdown-grip"
+      />
+    </button>
+  );
 
   return (
     <div
@@ -926,10 +1087,8 @@ function BreakdownRow({
       data-breakdown-id={row.id}
       data-triage-layout="fixed-inline-editor"
       data-triage-role={isStaged ? "breakdown-staged-row" : "breakdown-active-row"}
-      data-triage-state={
-        isStaged ? "staged" : isSuccess ? "success" : "active"
-      }
-      data-triage-success-kind={successSignal?.kind}
+      data-triage-state={isStaged ? "staged" : "active"}
+      {...statusEmphasisProps(presentation)}
       data-triage-reliability-state={deleteReliabilityState ?? undefined}
       data-triage-reliability-surface={
         deleteReliabilityState === null ? undefined : "delete"
@@ -937,7 +1096,6 @@ function BreakdownRow({
       role="listitem"
       className={cn(
         "group triage-fixed-breakdown-row border-b border-border/30 transition-[background-color,border-color,color,opacity] last:border-b-0 motion-reduce:transition-none",
-        deleteReliabilityState !== null && "triage-fixed-breakdown-row--reliability",
         isStaged && !isDragging && "opacity-50 transition-opacity duration-200",
         isDragging &&
           "opacity-30 border border-dashed border-muted bg-transparent",
@@ -949,30 +1107,13 @@ function BreakdownRow({
         data-triage-block-slot="stretch"
         data-triage-role="breakdown-drag-slot"
       >
-        <button
-          ref={setActivatorNodeRef}
-          aria-label="Drag breakdown"
-          data-source-version={row.version}
-          data-triage-staging-focus-source="true"
-          data-triage-drag-source="breakdown-grip"
-          data-triage-role="breakdown-grip-control"
-          disabled={isDragDisabled}
-          className={cn(
-            "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-transparent text-muted-foreground/60 hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-            isDragDisabled
-              ? "cursor-not-allowed"
-              : "cursor-grab active:cursor-grabbing",
-          )}
-          type="button"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical
-            aria-hidden="true"
-            className={cn("h-4 w-4 transition-colors", gripColorClass)}
-            data-testid="breakdown-grip"
-          />
-        </button>
+        {statusSentence !== null && presentation.glyph !== null ? (
+          <StatusTooltip sentence={statusSentence}>
+            <span className="inline-flex">{gripButton}</span>
+          </StatusTooltip>
+        ) : (
+          gripButton
+        )}
       </div>
       {editorSnapshot !== null ? (
         <InlineEditor
@@ -985,7 +1126,6 @@ function BreakdownRow({
           onSave={onSave}
           onUseMine={onUseMine}
           snapshot={editorSnapshot}
-          successSignal={successSignal}
         />
       ) : (
         <>
@@ -1005,13 +1145,52 @@ function BreakdownRow({
               {row.content}
             </div>
           </div>
-          <BreakdownSuccessSlot signal={successSignal} />
+          {statusSentence !== null && presentation.glyph !== null ? (
+            <StatusTooltip sentence={statusSentence}>
+              <div
+                className="breakdown-status-slot"
+                data-testid="breakdown-status-slot"
+                data-triage-role="breakdown-status-slot"
+              >
+                <StatusIcon
+                  focusable={isDragDisabled}
+                  presentation={presentation}
+                  sentence={statusSentence}
+                />
+              </div>
+            </StatusTooltip>
+          ) : (
+            <BreakdownStatusSlot />
+          )}
           <div
             className="triage-fixed-action-slot"
             data-testid="breakdown-action-slot"
             data-triage-block-slot="stretch"
             data-triage-role="breakdown-action-slot"
           >
+            {deleteReliabilityAction !== null ? (
+              <Button
+                ref={(element) => onDeleteReliabilityActionRef(row.id, element)}
+                aria-disabled={
+                  deleteReliabilityState === "reconciling" ? "true" : undefined
+                }
+                className="breakdown-reliability__action"
+                data-triage-role="breakdown-reliability-action"
+                size="xs"
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  if (
+                    deleteReliabilityState !== "reconciling" &&
+                    deleteOperation !== null
+                  ) {
+                    onReconcileDelete(deleteOperation.operationId);
+                  }
+                }}
+              >
+                {deleteReliabilityAction}
+              </Button>
+            ) : null}
             <button
               ref={(element) => onEditRef(row.id, element)}
               aria-label={INBOX_TRIAGE_COPY.baseActions.edit}
@@ -1051,53 +1230,34 @@ function BreakdownRow({
           </div>
         </>
       )}
-      {deleteReliabilityState !== null && deleteReliabilityCopy !== null ? (
-        <ReliabilityLine
-          action={deleteReliabilityAction}
-          actionRef={(element) =>
-            onDeleteReliabilityActionRef(row.id, element)
-          }
-          copy={deleteReliabilityCopy}
-          isReconciling={deleteReliabilityState === "reconciling"}
-          state={deleteReliabilityState}
-          surface="delete"
-          onAction={() => {
-            if (deleteOperation !== null) {
-              onReconcileDelete(deleteOperation.operationId);
-            }
-          }}
-        />
-      ) : null}
+      {/* One polite container per row stays mounted; only its text changes, so
+          the first sentence of a Delete is announced too. */}
+      <span
+        id={statusDescriptionId}
+        aria-atomic="true"
+        aria-live="polite"
+        className="sr-only"
+        data-triage-role="breakdown-row-status-announcement"
+        role="status"
+      >
+        {statusSentence !== null ? (
+          <span key={`${deleteOperation?.operationId ?? forced?.state}:${sentenceKey}`}>
+            {statusSentence}
+          </span>
+        ) : null}
+      </span>
     </div>
   );
 }
 
-function BreakdownSuccessSlot({
-  signal = null,
-}: {
-  signal?: BreakdownSuccessSignal | null;
-}) {
-  const copy = signal === null ? null : INBOX_TRIAGE_COPY.breakdownSuccess[signal.kind];
+/** The always-reserved 22px status column of a row (feedback F07). */
+function BreakdownStatusSlot() {
   return (
     <div
-      className="breakdown-success-slot"
-      data-testid="breakdown-success-slot"
-      data-triage-role="breakdown-success-status"
-    >
-      {copy === null ? null : (
-        <span
-          aria-atomic="true"
-          aria-live="polite"
-          className="breakdown-success-status"
-          role="status"
-        >
-          <span aria-hidden="true" data-triage-role="breakdown-success-check">
-            ✓
-          </span>{" "}
-          {copy}
-        </span>
-      )}
-    </div>
+      className="breakdown-status-slot"
+      data-testid="breakdown-status-slot"
+      data-triage-role="breakdown-status-slot"
+    />
   );
 }
 
@@ -1252,9 +1412,7 @@ export function BreakdownPanel({
   );
   const [isAdding, setIsAdding] = useState(false);
   const [newContent, setNewContent] = useState("");
-  const [activeSuccessSignal, setActiveSuccessSignal] =
-    useState<BreakdownSuccessSignal | null>(null);
-  const successTimerRef = useRef<number | null>(null);
+  const { announcement, announce } = useStatusAnnouncement();
   const pendingSuccessSignalRef = useRef<BreakdownSuccessSignal | null>(null);
   const signaledSuccessIdentitiesRef = useRef(new Set<string>());
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1323,27 +1481,52 @@ export function BreakdownPanel({
       ? null
       : rawAddOperation;
   const addReliabilityState = getReliabilityState(addOperation);
-  const addReliabilityCopy =
-    addReliabilityState === null
+  const forcedAdd = useForcedItemStatus(
+    selectedScratchId === null ? null : forcedItemKeys.add(selectedScratchId),
+  );
+  const forcedAddSentenceKey =
+    forcedAdd === null || forcedAdd.status === null
       ? null
-      : addReliabilityState === "rejected" &&
+      : forcedSentenceKey(forcedAdd.state);
+  const addSentenceKey =
+    forcedAddSentenceKey ??
+    (addReliabilityState === null ? null : sentenceKeyOf(addReliabilityState));
+  const addStatusSentence =
+    addSentenceKey === null
+      ? null
+      : forcedAddSentenceKey === null &&
+          addSentenceKey === "rejected" &&
           addOperation?.rejection?.code === "account_limit"
         ? INBOX_TRIAGE_COPY.reliability.add.rejectedAccountLimit.replace(
             "{limit}",
             String(addOperation.rejection.limit ?? ""),
           )
-        : INBOX_TRIAGE_COPY.reliability.add[
-            addReliabilityState === "not-applied"
-              ? "notApplied"
-              : addReliabilityState
-          ];
+        : INBOX_TRIAGE_COPY.reliability.add[addSentenceKey];
+  const addItemStatus =
+    forcedAddSentenceKey !== null && forcedAdd !== null
+      ? forcedAdd.status
+      : addReliabilityState === null
+        ? null
+        : itemStatusOfReliability(addReliabilityState);
+  const addPresentation = useStatusPresentation(
+    addItemStatus,
+    forcedAddSentenceKey !== null
+      ? `forced:${forcedAdd?.state}`
+      : (addOperation?.operationId ?? ""),
+  );
+  const [isAddTooltipOpen, setIsAddTooltipOpen] = useState(false);
+  if (addPresentation.glyph === null && isAddTooltipOpen) {
+    setIsAddTooltipOpen(false);
+  }
   const addReliabilityAction =
-    addReliabilityState === "unknown" ||
-    addReliabilityState === "reconciling"
-      ? INBOX_TRIAGE_COPY.reliability.actions.checkAgain
-      : addReliabilityState === "not-applied"
-        ? INBOX_TRIAGE_COPY.reliability.actions.retryAdd
-        : null;
+    forcedAddSentenceKey !== null
+      ? null
+      : addReliabilityState === "unknown" ||
+          addReliabilityState === "reconciling"
+        ? INBOX_TRIAGE_COPY.reliability.actions.checkAgain
+        : addReliabilityState === "not-applied"
+          ? INBOX_TRIAGE_COPY.reliability.actions.retryAdd
+          : null;
   const deleteOperationsByBreakdownId = new Map(
     operations
       .filter(
@@ -1354,24 +1537,15 @@ export function BreakdownPanel({
       .map((operation) => [operation.breakdownId, operation] as const),
   );
 
-  const startSuccess = useCallback((signal: BreakdownSuccessSignal) => {
-    pendingSuccessSignalRef.current = null;
-    if (successTimerRef.current !== null) {
-      window.clearTimeout(successTimerRef.current);
-    }
-    setActiveSuccessSignal(signal);
-    successTimerRef.current = window.setTimeout(() => {
-      successTimerRef.current = null;
-      setActiveSuccessSignal((current) =>
-        current !== null &&
-        current.kind === signal.kind &&
-        current.operationId === signal.operationId &&
-        current.rowId === signal.rowId
-          ? null
-          : current,
-      );
-    }, BREAKDOWN_SUCCESS_DURATION_MS);
-  }, []);
+  // Success shows nothing on screen (feedback F01); a screen reader hears the
+  // sentence once (F04).
+  const startSuccess = useCallback(
+    (signal: BreakdownSuccessSignal) => {
+      pendingSuccessSignalRef.current = null;
+      announce(INBOX_TRIAGE_COPY.breakdownAnnouncement[signal.kind]);
+    },
+    [announce],
+  );
 
   const isSuccessTargetActive = useCallback(
     (signal: BreakdownSuccessSignal) =>
@@ -1385,11 +1559,6 @@ export function BreakdownPanel({
       const identity = `${signal.kind}\u0000${signal.operationId}\u0000${signal.rowId}`;
       if (signaledSuccessIdentitiesRef.current.has(identity)) return;
       signaledSuccessIdentitiesRef.current.add(identity);
-      if (successTimerRef.current !== null) {
-        window.clearTimeout(successTimerRef.current);
-        successTimerRef.current = null;
-      }
-      setActiveSuccessSignal(null);
       pendingSuccessSignalRef.current = signal;
       if (isSuccessTargetActive(signal)) startSuccess(signal);
     },
@@ -1409,15 +1578,6 @@ export function BreakdownPanel({
       startSuccess(pendingSignal);
     }
   }, [breakdowns, isSuccessTargetActive, stagedSourceIds, startSuccess]);
-
-  useEffect(
-    () => () => {
-      if (successTimerRef.current !== null) {
-        window.clearTimeout(successTimerRef.current);
-      }
-    },
-    [],
-  );
 
   useEffect(
     () =>
@@ -1600,6 +1760,17 @@ export function BreakdownPanel({
       draft.length > 0 || addCompletionHoldRef.current,
     );
   }
+
+  // Check again that ends in an applied answer closes the editor from
+  // `reconciling`; no other path leaves that phase for a closed editor.
+  const editorPhase = editor.snapshot?.phase ?? null;
+  const previousEditorPhaseRef = useRef(editorPhase);
+  useEffect(() => {
+    if (previousEditorPhaseRef.current === "reconciling" && editorPhase === null) {
+      setEditorAnnouncement(INBOX_TRIAGE_COPY.inlineEditor.status.saved);
+    }
+    previousEditorPhaseRef.current = editorPhase;
+  }, [editorPhase]);
 
   async function handleEditorSave(): Promise<boolean> {
     const snapshot = editor.snapshot;
@@ -2169,6 +2340,7 @@ export function BreakdownPanel({
           Return to Breakdown
         </div>
       ) : null}
+      <StatusAnnouncement announcement={announcement} />
       <div aria-atomic="true" aria-live="polite" className="sr-only">
         {editorAnnouncement}
       </div>
@@ -2395,11 +2567,6 @@ export function BreakdownPanel({
                   onReconcileDelete={(operationId) =>
                     void handleReconcileDelete(operationId)
                   }
-                  successSignal={
-                    activeSuccessSignal?.rowId === item.row.id
-                      ? activeSuccessSignal
-                      : null
-                  }
                   onEditRef={(id, element) => {
                     if (element === null) rowEditRefs.current.delete(id);
                     else rowEditRefs.current.set(id, element);
@@ -2495,33 +2662,51 @@ export function BreakdownPanel({
           }
           inert={isDepartureDecision ? true : undefined}
         >
-          {isAdding || addReliabilityState !== null ? (
-            <input
-              ref={(element) => {
-                inputRef.current = element;
-                addEntryRef.current = element;
-              }}
-              className="block h-8 w-full appearance-none rounded-md border border-border bg-background px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
-              data-triage-role="breakdown-add-field"
-              maxLength={500}
-              onChange={(event) => updateAddDraft(event.target.value)}
-              onCompositionEnd={() => {
-                isComposingRef.current = false;
-              }}
-              onCompositionStart={() => {
-                isComposingRef.current = true;
-              }}
-              onKeyDown={handleInputKeyDown}
-              placeholder="Add a note..."
-              readOnly={
-                operationLock.activeOperation !== null ||
-                addReliabilityState === "pending" ||
-                addReliabilityState === "unknown" ||
-                addReliabilityState === "reconciling"
-              }
-              type="text"
-              value={newContent}
-            />
+          {isAdding || addReliabilityState !== null || addStatusSentence !== null ? (
+            <div className="breakdown-add-field-wrap">
+              <StatusTooltip
+                open={isAddTooltipOpen && addPresentation.glyph !== null}
+                sentence={addStatusSentence ?? ""}
+                onOpenChange={(next) =>
+                  setIsAddTooltipOpen(next && addPresentation.glyph !== null)
+                }
+              >
+                <input
+                  ref={(element) => {
+                    inputRef.current = element;
+                    addEntryRef.current = element;
+                  }}
+                  className="block h-8 w-full appearance-none rounded-md border border-border bg-background px-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  data-triage-role="breakdown-add-field"
+                  {...statusEmphasisProps(addPresentation)}
+                  maxLength={500}
+                  onChange={(event) => updateAddDraft(event.target.value)}
+                  onCompositionEnd={() => {
+                    isComposingRef.current = false;
+                  }}
+                  onCompositionStart={() => {
+                    isComposingRef.current = true;
+                  }}
+                  onKeyDown={handleInputKeyDown}
+                  placeholder="Add a note..."
+                  readOnly={
+                    operationLock.activeOperation !== null ||
+                    addReliabilityState === "pending" ||
+                    addReliabilityState === "unknown" ||
+                    addReliabilityState === "reconciling"
+                  }
+                  type="text"
+                  value={newContent}
+                />
+              </StatusTooltip>
+              {addStatusSentence !== null ? (
+                <StatusIcon
+                  className="breakdown-add-status-icon"
+                  presentation={addPresentation}
+                  sentence={addStatusSentence}
+                />
+              ) : null}
+            </div>
           ) : (
             <div
               ref={(element) => {
@@ -2539,36 +2724,61 @@ export function BreakdownPanel({
               Add a note...
             </div>
           )}
-          <Button
-            data-triage-role="breakdown-add-control"
-            disabled={
-              operationLock.activeOperation !== null ||
-              !isAdding ||
-              newContent.trim().length === 0
-            }
-            size="sm"
-            type="button"
-            onClick={() => void handleAdd({ keepInputOpen: true })}
-          >
-            {INBOX_TRIAGE_COPY.baseActions.add}
-          </Button>
-          {addReliabilityState !== null && addReliabilityCopy !== null ? (
-            <ReliabilityLine
-              action={addReliabilityAction}
-              actionRef={(element) => {
-                addReliabilityActionRef.current = element;
-              }}
-              copy={addReliabilityCopy}
-              isReconciling={addReliabilityState === "reconciling"}
-              state={addReliabilityState}
-              surface="add"
-              onAction={
-                addReliabilityState === "not-applied"
-                  ? () => void handleRetryAdd()
-                  : () => void handleReconcileAdd()
+          <div className="breakdown-add-actions">
+            {addReliabilityAction !== null ? (
+              <Button
+                ref={addReliabilityActionRef}
+                aria-disabled={
+                  addReliabilityState === "reconciling" ? "true" : undefined
+                }
+                className="breakdown-reliability__action"
+                data-triage-role="breakdown-reliability-action"
+                size="xs"
+                type="button"
+                variant={
+                  addReliabilityState === "not-applied" ? "default" : "ghost"
+                }
+                onClick={() => {
+                  if (addReliabilityState === "reconciling") return;
+                  if (addReliabilityState === "not-applied") {
+                    void handleRetryAdd();
+                  } else {
+                    void handleReconcileAdd();
+                  }
+                }}
+              >
+                {addReliabilityAction}
+              </Button>
+            ) : null}
+            <Button
+              data-triage-role="breakdown-add-control"
+              disabled={
+                operationLock.activeOperation !== null ||
+                !isAdding ||
+                newContent.trim().length === 0
               }
-            />
-          ) : null}
+              size="sm"
+              type="button"
+              onClick={() => void handleAdd({ keepInputOpen: true })}
+            >
+              {INBOX_TRIAGE_COPY.baseActions.add}
+            </Button>
+          </div>
+          {/* One container stays mounted, so a screen reader registers it before
+              its text changes; the inner text is keyed per state. */}
+          <div
+            aria-atomic="true"
+            aria-live="polite"
+            className="sr-only"
+            data-triage-role="breakdown-add-status-announcement"
+            role="status"
+          >
+            {addStatusSentence !== null ? (
+              <span key={`${addOperation?.operationId ?? forcedAdd?.state}:${addSentenceKey}`}>
+                {addStatusSentence}
+              </span>
+            ) : null}
+          </div>
         </div>
         {isDepartureDecision ? (
           <div
