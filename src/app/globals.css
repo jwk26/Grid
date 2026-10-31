@@ -537,7 +537,7 @@
 
 /* During a drag the surface keeps its resting look (the toast stack is the translucent one);
    the chip is hidden and only the segments take the pointer. */
-/* `visibility`, not `display`: the row keeps its width, so the reserved zone does not shrink mid-drag. */
+/* `visibility`, not `display`: the row keeps its width, so the bar does not shrink mid-drag. */
 .breadcrumb-reveal[data-dragging="true"] .breadcrumb-reveal__chip {
   visibility: hidden;
 }

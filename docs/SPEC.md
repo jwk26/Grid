@@ -331,12 +331,10 @@ Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
   placement and drops treat every cell alike. The zone measurement and store,
   the `isCellBlocked` guards, `runBreadcrumbZoneMigration` (the Phase 45 no-op
   included) and its `settings` markers are removed (SCHEMA §Not ported).
-  Until Task 249 the cells under the bar's shown position stay reserved as
-  today, even while the bar is hidden, and the client passes the top-left 3×2
-  block as reserved cells to every server function that chooses a cell, so a
-  new account, a restore, an unhide or a promotion never lands under the fixed
-  breadcrumb (SCHEMA §Internal functions, feedback F34). Task 249 stops passing
-  it.
+  The client no longer passes reserved cells to the server functions that
+  choose a cell (SCHEMA §Internal functions, feedback F34), so a new account, a
+  restore, an unhide or a promotion may land under a segment of the revealed
+  bar (Task 249).
 - Below 1024px the reveal is a desktop feature (S42 (4)).
 
 ### Bit Detail Popup (Modal — not a route)
@@ -1497,7 +1495,7 @@ guest, so a cancelled OAuth sign-in returns to that screen (user,
   longer toast (`grid-runtime.tsx`, two sites): when the target Grid has no
   empty cell, the dialog stays open, keeps the typed title and shows the inline
   error below, at every level, L0 included (Task 244).
-  `Cell reserved by breadcrumb` (`use-dnd.ts`) goes with the blocked zone (Task
+  `Cell reserved by breadcrumb` (`use-dnd.ts`) went with the blocked zone (Task
   249).
 - **Inline editor offline** (F05, Task 245): an editor save attempted while
   offline shows the offline write-attempt toast instead of the editor's own
@@ -1821,7 +1819,7 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/db/database.types.ts` *(Phase 42, generated)* | `supabase gen types typescript` output; types the row converter (S33) |
 | `src/lib/db/row-mapping.ts` *(Phase 42)* | snake_case database rows ↔ camelCase TypeScript types, at the snapshot loader and the function-result boundary only (S11) |
 | `src/lib/db/snapshot-store.ts` *(Phase 42)* | Account snapshot: base, pending-write layer, envelope application, refetch, subscriptions (Decision 19) |
-| `src/lib/db/supabase-calls.ts` *(Phase 42)* | One typed wrapper per database function the snapshot store calls (`get_snapshot`, `ensure_account`, `update_node`; later tasks add theirs), and the reserved breadcrumb cells passed until Task 249 |
+| `src/lib/db/supabase-calls.ts` *(Phase 42)* | One typed wrapper per database function the snapshot store calls (`get_snapshot`, `ensure_account`, `update_node`; later tasks add theirs) |
 | `src/lib/db/boundary-cases.ts` *(Phase 42)* | One table of boundary values per field rule, run against the Zod schemas and the database CHECKs so both give the same verdict (S12, S33) |
 | `src/lib/db/supabase-store.ts` *(Phase 45)* | `DataStore` implementation: reads over the snapshot, one RPC per write |
 | `src/lib/db/supabase-command-calls.ts` *(Phase 45)* | Typed arguments of the Inbox/Triage command and reconcile functions, beside `supabase-calls.ts` for the ordinary writes |

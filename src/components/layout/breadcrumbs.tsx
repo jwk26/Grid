@@ -54,8 +54,8 @@ function BreadcrumbSegmentButton({
 
 /**
  * The revealed breadcrumb (feedback F22-F25), one row: the segments and the deadline
- * chip. The outer element is the row's shown-position box (the zone and the toast
- * anchor measure it); `breadcrumb-reveal` carries the clip and slide, and each
+ * chip. The outer element is the row's shown-position box (the toast anchor and
+ * the Home focus handoff read it); `breadcrumb-reveal` carries the clip and slide, and each
  * `breadcrumb-reveal__surface` carries its own opacity, because neither may run on
  * the element that has `backdrop-filter` (DESIGN_TOKENS FB-11). Hidden, it stays
  * mounted so it stays in the accessibility tree and in Tab order.

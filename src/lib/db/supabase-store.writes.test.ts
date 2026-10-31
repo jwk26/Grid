@@ -2,10 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { baseEntities } from "@/lib/db/boundary-cases";
 import { bitToRow, chunkToRow, nodeToRow } from "@/lib/db/row-mapping";
 import { SnapshotStore, type Envelope } from "@/lib/db/snapshot-store";
-import { BREADCRUMB_RESERVED_CELLS } from "@/lib/db/supabase-calls";
 import type { GriddoSupabaseClient } from "@/lib/db/supabase-client";
 import {
-  NO_REQUEST_WRITE_METHODS,
   WRITE_FUNCTION,
   createSupabaseStore,
 } from "@/lib/db/supabase-store";
@@ -89,7 +87,7 @@ describe("ordinary writes: the request each method sends", () => {
     });
   });
 
-  it("restore, unarchive and promotion pass the reserved block; nothing else does", async () => {
+  it("restore, unarchive, promotion and the lifecycle writes send only the id", async () => {
     const { rpc, store } = setup(() =>
       ok(
         applied(
@@ -107,15 +105,15 @@ describe("ordinary writes: the request each method sends", () => {
     await store.promoteBitToNode(BIT);
     await store.softDeleteNode(NODE);
     await store.archiveBit(BIT);
-    const sent = rpc.mock.calls.map(([name, args]) => [name, args.p_reserved_cells]);
+    const sent = rpc.mock.calls.map(([name, args]) => [name, args]);
     expect(sent).toEqual([
-      ["restore_node", BREADCRUMB_RESERVED_CELLS],
-      ["unarchive_node", BREADCRUMB_RESERVED_CELLS],
-      ["restore_bit", BREADCRUMB_RESERVED_CELLS],
-      ["unarchive_bit", BREADCRUMB_RESERVED_CELLS],
-      ["promote_bit_to_node", BREADCRUMB_RESERVED_CELLS],
-      ["soft_delete_node", undefined],
-      ["archive_bit", undefined],
+      ["restore_node", { p_id: NODE }],
+      ["unarchive_node", { p_id: NODE }],
+      ["restore_bit", { p_id: BIT }],
+      ["unarchive_bit", { p_id: BIT }],
+      ["promote_bit_to_node", { p_id: BIT }],
+      ["soft_delete_node", { p_id: NODE }],
+      ["archive_bit", { p_id: BIT }],
     ]);
   });
 
@@ -242,7 +240,7 @@ describe("write method coverage", () => {
       "getChildDeadlineConflicts",
     ]);
     const writes = Object.keys(store).filter((key) => !reads.has(key)).sort();
-    const covered = [...Object.keys(WRITE_FUNCTION), ...NO_REQUEST_WRITE_METHODS].sort();
+    const covered = Object.keys(WRITE_FUNCTION).sort();
     expect(covered).toEqual(writes);
   });
 });

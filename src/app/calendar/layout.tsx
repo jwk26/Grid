@@ -45,7 +45,7 @@ export default function CalendarLayout({
     handleDragStart,
     overTargetId,
     sensors,
-  } = useDnd(() => new Set<string>());
+  } = useDnd();
   const setToastDragActive = useToastAnchorStore((state) => state.setDragActive);
   const resetToastAnchor = useToastAnchorStore((state) => state.reset);
   const isPoolCollapsed = useCalendarStore((state) => state.isPoolCollapsed);
@@ -75,7 +75,7 @@ export default function CalendarLayout({
 
     try {
       const occupied = await getGridOccupancy(null);
-      const cell = findNearestEmptyCell(occupied, 2, 2, new Set());
+      const cell = findNearestEmptyCell(occupied, 2, 2);
 
       if (cell === null) {
         setCreateError(createDialogNoEmptyCell(HOME_TARGET));
@@ -127,7 +127,7 @@ export default function CalendarLayout({
       }
 
       const occupied = await getGridOccupancy(parentId);
-      const cell = findNearestEmptyCell(occupied, GRID_COLS - 3, 2, new Set());
+      const cell = findNearestEmptyCell(occupied, GRID_COLS - 3, 2);
 
       if (cell === null) {
         setBitCreateError(

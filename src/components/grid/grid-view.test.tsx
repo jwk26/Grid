@@ -1,8 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { GRID_COLS, GRID_ROWS } from "@/lib/constants";
-import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
 import { useEditModeStore } from "@/stores/edit-mode-store";
 import type { Bit, Node } from "@/types";
 import { GridView } from "./grid-view";
@@ -110,10 +109,6 @@ function createNode(overrides: Partial<Node>): Node {
     pastDeadlineDismissed: overrides.pastDeadlineDismissed ?? false,
   };
 }
-
-beforeEach(() => {
-  useBreadcrumbZoneStore.setState({ blockedCells: new Set() });
-});
 
 afterEach(() => {
   cleanup();
@@ -243,27 +238,24 @@ describe("GridView", () => {
     expect(bitCard).toHaveClass("cursor-grab", "active:cursor-grabbing", "select-none");
   });
 
-  it("suppresses + affordance on blocked cells", () => {
+  it("offers the + affordance and calls onAddAtCell on the top-left cells", () => {
     useEditModeStore.setState({ isEditMode: true });
-    useBreadcrumbZoneStore.setState({ blockedCells: new Set(["0,0"]) });
     vi.mocked(useGridData).mockReturnValue({
       nodes: [],
       bits: [],
       isLoading: false,
     });
+    const onAddAtCell = vi.fn();
 
     const { container } = render(
-      <GridView
-        level={0}
-        onAddAtCell={vi.fn()}
-        parentId={null}
-      />,
+      <GridView level={0} onAddAtCell={onAddAtCell} parentId={null} />,
     );
 
-    const blockedCell = container.querySelector('[data-position="0,0"]');
-    const openCell = container.querySelector('[data-position="1,0"]');
+    const topLeft = container.querySelector('[data-position="0,0"]');
+    const addButton = topLeft?.querySelector('button[aria-label="Add item"]');
 
-    expect(blockedCell?.querySelector('button[aria-label="Add item"]')).toBeNull();
-    expect(openCell?.querySelector('button[aria-label="Add item"]')).not.toBeNull();
+    expect(addButton).not.toBeNull();
+    fireEvent.click(addButton as Element);
+    expect(onAddAtCell).toHaveBeenCalledWith(0, 0);
   });
 });

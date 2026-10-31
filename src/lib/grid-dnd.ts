@@ -1,5 +1,4 @@
 import { closestCenter, pointerWithin, type CollisionDetection } from "@dnd-kit/core";
-import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
 
 export type GridDropData =
   | {
@@ -110,31 +109,27 @@ export function getGridDeleteDropId(): string {
 }
 
 export const gridCollisionDetection: CollisionDetection = (args) => {
-  const blockedCells = useBreadcrumbZoneStore.getState().blockedCells;
   const pointerCandidates = pointerWithin(args).filter(
     (candidate) =>
       typeof candidate.id === "string" &&
       (candidate.id.startsWith("grid-node-drop:") ||
-        candidate.id.startsWith("grid-breadcrumb:") ||
+        isGridBreadcrumbDropId(candidate.id) ||
         candidate.id === "grid-delete-drop"),
   );
 
   if (pointerCandidates.length > 0) {
-    return pointerCandidates;
+    // A Node card can sit under a breadcrumb segment, and pointerWithin orders
+    // by corner distance: the visible segment must win over the card below it.
+    return [
+      ...pointerCandidates.filter((candidate) => isGridBreadcrumbDropId(candidate.id)),
+      ...pointerCandidates.filter((candidate) => !isGridBreadcrumbDropId(candidate.id)),
+    ];
   }
 
-  return closestCenter(args).filter((candidate) => {
-    if (typeof candidate.id !== "string") return false;
-    if (!candidate.id.startsWith("grid-cell:")) return false;
-
-    const parts = candidate.id.split(":");
-    const x = parseInt(parts[parts.length - 2], 10);
-    const y = parseInt(parts[parts.length - 1], 10);
-
-    if (Number.isNaN(x) || Number.isNaN(y)) return true;
-
-    return !blockedCells.has(`${x},${y}`);
-  });
+  return closestCenter(args).filter(
+    (candidate) =>
+      typeof candidate.id === "string" && candidate.id.startsWith("grid-cell:"),
+  );
 };
 
 export const triageCollisionDetection: CollisionDetection = (args) =>

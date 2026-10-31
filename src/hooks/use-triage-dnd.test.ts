@@ -118,11 +118,6 @@ vi.mock("@/lib/utils/bfs", () => ({
   findNearestEmptyCell: findNearestEmptyCellMock,
 }));
 
-vi.mock("@/lib/utils/breadcrumb-zone", () => ({
-  getStaticBlockedCells: () => new Set<string>(),
-  isCellBlocked: vi.fn(() => false),
-}));
-
 type DragEndEvent = Parameters<
   ReturnType<typeof useTriageDnd>["handleDragEnd"]
 >[0];

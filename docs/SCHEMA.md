@@ -661,18 +661,12 @@ The demo seed fits the guest limits.
 
 ### Not ported
 
-- `settings`, which holds only breadcrumb-zone migration markers. Until Task
-  249 no write puts data in the top-left block: the client guards its measured
-  zone, every server-side cell choice skips the reserved cells the client
-  passes ([Internal functions](#internal-functions), feedback F34), the demo
-  seed and the development fixture keep the block free, and S04 discards local
-  data (S11, S41). Phase 45 implements
-  `runBreadcrumbZoneMigration` in the Supabase store as a no-op, and the zone
-  guards stay client-only (S43 (4), the plan under feedback F33). Feedback F26
-  (Phase 50, Task 249) then removes the zone, the method from the `DataStore`
-  interface and the Supabase store, and every `settings` use. The Dexie
-  `settings` store went with Dexie in Phase 46, so nothing of it remains to
-  change.
+- `settings`, which held only breadcrumb-zone migration markers. Feedback F26
+  (Phase 50, Task 249) removed the zone, `runBreadcrumbZoneMigration` from the
+  `DataStore` interface and the Supabase store, and every `settings` use; no
+  write reserves the top-left block any more ([Internal
+  functions](#internal-functions), feedback F34). The Dexie `settings` store
+  went with Dexie in Phase 46.
 - `candidateOrphanAuditEvents` and the confirmed-orphan command (S18).
 - Local IndexedDB data: discarded, with no export, import or migration (S04).
 - Device preferences (color theme, Inbox sorts and, from Phase 50, the last
@@ -1150,11 +1144,9 @@ relocated as if that cell were occupied. The callers are `ensure_account()`,
 `promote_bit_to_node()`. Each takes `p_reserved_cells jsonb default '[]'`: an
 array of at most six `{x, y}` cells inside the 18×9 grid, which the function
 only validates (otherwise `rejected` with `invalid_input`) and applies in every
-Grid it places in. Until Task 249 the client passes the top-left 3×2 block the
-fixed breadcrumb may cover (`x` 0–2, `y` 0–1); Task 249 stops passing it, and
-the parameter stays at its default with no SQL change. Writes that take the
-client's cell (create, move, placement) are not affected: the client avoids its
-own measured zone until Task 249.
+Grid it places in. The client passes nothing (Task 249 stopped passing the
+top-left 3×2 block), so the parameter stays at its default with no SQL change.
+Writes that take the client's cell (create, move, placement) are not affected.
 
 ### Result envelope
 

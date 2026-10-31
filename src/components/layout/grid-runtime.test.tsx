@@ -3,7 +3,6 @@ import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GRID_COLS } from "@/lib/constants";
-import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
 import { useEditModeStore } from "@/stores/edit-mode-store";
 import { useQuickCaptureStore } from "@/stores/quick-capture-store";
 import { useToastAnchorStore } from "@/stores/toast-anchor-store";
@@ -36,7 +35,6 @@ const useParamsMock = vi.hoisted(() => vi.fn());
 const useNodeMock = vi.hoisted(() => vi.fn());
 const useDndMock = vi.hoisted(() => vi.fn());
 const getDataStoreMock = vi.hoisted(() => vi.fn());
-const runBreadcrumbZoneMigrationMock = vi.hoisted(() => vi.fn());
 const getGridOccupancyMock = vi.hoisted(() => vi.fn());
 const createNodeMock = vi.hoisted(() => vi.fn());
 const createBitMock = vi.hoisted(() => vi.fn());
@@ -128,7 +126,6 @@ vi.mock("@/hooks/use-grid-actions", () => ({
     createBit: createBitMock,
     softDeleteNode: softDeleteNodeMock,
     softDeleteBit: softDeleteBitMock,
-    runBreadcrumbZoneMigration: runBreadcrumbZoneMigrationMock,
   }),
 }));
 
@@ -440,11 +437,11 @@ function RuntimeProbe() {
         Add at cell
       </button>
       <button
-        aria-label="add-at-blocked-cell"
+        aria-label="add-at-top-left-cell"
         onClick={() => openAddAtCell(0, 0)}
         type="button"
       >
-        Add at blocked cell
+        Add at top-left cell
       </button>
       <button
         aria-label="request-bit-delete"
@@ -501,10 +498,8 @@ describe("GridRuntime", () => {
   });
 
   beforeEach(() => {
-    useBreadcrumbZoneStore.setState({ blockedCells: new Set() });
     useQuickCaptureStore.setState({ activeOverlay: null });
     getDataStoreMock.mockResolvedValue({
-      runBreadcrumbZoneMigration: runBreadcrumbZoneMigrationMock,
       getArchivedItems: vi.fn().mockResolvedValue({ nodes: [], bits: [] }),
       getAllActiveNodes: vi
         .fn()
@@ -513,7 +508,6 @@ describe("GridRuntime", () => {
         ]),
       getAllActiveBits: vi.fn().mockResolvedValue([]),
     });
-    runBreadcrumbZoneMigrationMock.mockResolvedValue({ relocated: 0 });
     createNodeDialogSubmission.current = {
       title: "  New node  ",
       icon: "Folder",
@@ -648,7 +642,6 @@ describe("GridRuntime", () => {
       new Set(["0,0"]),
       2,
       2,
-      new Set(),
     );
 
     fireEvent.click(screen.getByLabelText("request-bit-delete"));
@@ -780,39 +773,6 @@ describe("GridRuntime", () => {
     expect(useQuickCaptureStore.getState().activeOverlay).toBe("scratch");
   });
 
-  it("runs breadcrumb migration once per parent and refreshes the parent id on navigation", async () => {
-    useParamsMock.mockReturnValue({});
-    useNodeMock.mockReturnValue(null);
-
-    const { rerender } = render(
-      <GridRuntime>
-        <RuntimeProbe />
-      </GridRuntime>,
-    );
-
-    // L0 shows no breadcrumb, so its zone is empty and nothing is migrated.
-    expect(runBreadcrumbZoneMigrationMock).not.toHaveBeenCalled();
-
-    const parentNode = createNode({ id: "parent-node", level: 0 });
-    useParamsMock.mockReturnValue({ nodeId: parentNode.id });
-    useNodeMock.mockReturnValue(parentNode);
-
-    rerender(
-      <GridRuntime>
-        <RuntimeProbe />
-      </GridRuntime>,
-    );
-
-    await waitFor(() => {
-      expect(runBreadcrumbZoneMigrationMock).toHaveBeenCalledTimes(1);
-    });
-    expect(runBreadcrumbZoneMigrationMock).toHaveBeenNthCalledWith(
-      1,
-      parentNode.id,
-      new Set(["0,0"]),
-    );
-  });
-
   describe("a create the server refuses inside the Node dialog", () => {
     async function openNodeDialogAndSubmit() {
       const { findNearestEmptyCell } = await import("@/lib/utils/bfs");
@@ -902,7 +862,6 @@ describe("GridRuntime", () => {
       new Set(["1,1"]),
       4,
       3,
-      new Set(["0,0"]),
     );
   });
 
@@ -1048,7 +1007,6 @@ describe("GridRuntime", () => {
       new Set(["10,1"]),
       GRID_COLS - 3,
       2,
-      new Set(["0,0"]),
     );
   });
 
@@ -1124,7 +1082,6 @@ describe("GridRuntime", () => {
       new Set(["2,2"]),
       GRID_COLS - 3,
       2,
-      new Set<string>(),
     );
   });
 
@@ -1207,10 +1164,9 @@ describe("GridRuntime", () => {
     expect(scrollWrapper).not.toHaveClass("overflow-y-auto");
   });
 
-  it("makes openAddAtCell a no-op for blocked cells", () => {
+  it("opens the Add flow for a top-left cell like any other cell", () => {
     useParamsMock.mockReturnValue({});
     useNodeMock.mockReturnValue(null);
-    useBreadcrumbZoneStore.setState({ blockedCells: new Set(["0,0"]) });
 
     render(
       <GridRuntime>
@@ -1218,10 +1174,11 @@ describe("GridRuntime", () => {
       </GridRuntime>,
     );
 
-    fireEvent.click(screen.getByLabelText("add-at-blocked-cell"));
+    fireEvent.click(screen.getByLabelText("add-at-top-left-cell"));
 
-    expect(screen.queryByLabelText("submit-node")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("create-item-chooser")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("submit-node") ?? screen.queryByTestId("create-item-chooser"),
+    ).toBeInTheDocument();
   });
 
   it("shows a move confirmation dialog when a pending node move exists", () => {

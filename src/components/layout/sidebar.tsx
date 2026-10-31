@@ -168,7 +168,7 @@ function SystemNodeItem({
     }
 
     const occupied = await getGridOccupancy(null);
-    const cell = findNearestEmptyCell(occupied, 0, 0, new Set());
+    const cell = findNearestEmptyCell(occupied, 0, 0);
 
     if (cell === null) {
       showToast(toastCopy.homeFull, label);

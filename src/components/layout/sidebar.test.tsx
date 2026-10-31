@@ -631,7 +631,6 @@ describe("Sidebar", () => {
       occupied,
       0,
       0,
-      new Set(),
     );
   });
 

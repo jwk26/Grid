@@ -14,7 +14,6 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { toast } from "sonner";
 import { toastCopy } from "@/lib/copy/feedback";
 import { dropReportedFailure } from "@/lib/db/write-failure";
 import { showToast } from "@/lib/feedback/toast";
@@ -36,10 +35,6 @@ import {
   type TriageDropData,
 } from "@/lib/grid-dnd";
 import { findNearestEmptyCell } from "@/lib/utils/bfs";
-import {
-  getStaticBlockedCells,
-  isCellBlocked,
-} from "@/lib/utils/breadcrumb-zone";
 import type { CandidateCommandOutcome } from "@/hooks/use-staged-candidates";
 import type { RepositoryOperationStatus } from "@/lib/db/schema";
 import type { TriageOperationLock } from "@/hooks/use-triage-operation-lock";
@@ -531,12 +526,7 @@ export function useTriageDnd(
         ) {
           return;
         }
-        const position = findNearestEmptyCell(
-          occupancy,
-          0,
-          0,
-          getStaticBlockedCells(),
-        );
+        const position = findNearestEmptyCell(occupancy, 0, 0);
         setTargetFeedback({
           dropId: target.dropId,
           state: position === null ? "full" : "valid",
@@ -877,12 +867,7 @@ export function useTriageDnd(
       const occupancy = await dataStore.getGridOccupancy(
         target.parentNodeId,
       );
-      const position = findNearestEmptyCell(
-        occupancy,
-        0,
-        0,
-        getStaticBlockedCells(),
-      );
+      const position = findNearestEmptyCell(occupancy, 0, 0);
       const expectedAncestorIds = await readExpectedAncestorIds(
         dataStore,
         target.parentNodeId,
@@ -955,12 +940,7 @@ export function useTriageDnd(
 
     const dataStore = await getDataStore();
     const occupancy = await dataStore.getGridOccupancy(target.parentNodeId);
-    const position = findNearestEmptyCell(
-      occupancy,
-      0,
-      0,
-      getStaticBlockedCells(),
-    );
+    const position = findNearestEmptyCell(occupancy, 0, 0);
     const expectedAncestorIds = await readExpectedAncestorIds(
       dataStore,
       target.parentNodeId,
@@ -1009,7 +989,7 @@ export function useTriageDnd(
   };
 }
 
-export function useDnd(getBlockedCells: () => Set<string>): {
+export function useDnd(): {
   sensors: ReturnType<typeof useSensors>;
   handleDragStart: (event: DragStartEvent) => void;
   handleDragEnd: (event: DragEndEvent) => Promise<{ id: string; type: "node" | "bit"; title: string } | undefined>;
@@ -1069,12 +1049,7 @@ export function useDnd(getBlockedCells: () => Set<string>): {
   ) {
     const dataStore = await getDataStore();
     const occupancy = await dataStore.getGridOccupancy(parentId);
-    const position = findNearestEmptyCell(
-      occupancy,
-      originX,
-      originY,
-      getStaticBlockedCells(),
-    );
+    const position = findNearestEmptyCell(occupancy, originX, originY);
 
     if (!position) {
       const target = parentId === null ? undefined : await dataStore.getNode(parentId);
@@ -1136,11 +1111,6 @@ export function useDnd(getBlockedCells: () => Set<string>): {
 
     if (isGridDropData(dropData)) {
       if (dropData.kind === "grid-cell") {
-        if (isCellBlocked(dropData.x, dropData.y, getBlockedCells())) {
-          toast("Cell reserved by breadcrumb");
-          return;
-        }
-
         if ((dragItem.parentId ?? null) !== dropData.parentId) {
           return;
         }

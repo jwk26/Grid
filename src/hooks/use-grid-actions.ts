@@ -31,20 +31,11 @@ export function useGridActions() {
     return dataStore.softDeleteBit(id);
   }, []);
 
-  const runBreadcrumbZoneMigration = useCallback(
-    async (parentId: string | null, blockedCells: Set<string>): Promise<void> => {
-      const dataStore = await getDataStore();
-      await dataStore.runBreadcrumbZoneMigration(parentId, blockedCells);
-    },
-    [],
-  );
-
   return {
     getGridOccupancy,
     createNode,
     createBit,
     softDeleteNode,
     softDeleteBit,
-    runBreadcrumbZoneMigration,
   };
 }

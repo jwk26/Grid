@@ -29,18 +29,13 @@ import { useDnd } from "@/hooks/use-dnd";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useGridActions } from "@/hooks/use-grid-actions";
 import { useNode } from "@/hooks/use-node";
-import { GRID_COLS, GRID_ROWS } from "@/lib/constants";
+import { GRID_COLS } from "@/lib/constants";
 import { createDialogNoEmptyCell } from "@/lib/copy/feedback";
 import { gridCollisionDetection } from "@/lib/grid-dnd";
 import { cn } from "@/lib/utils";
-import {
-  isCellBlocked,
-  rectToBlockedCells,
-} from "@/lib/utils/breadcrumb-zone";
 import { hexToHsl } from "@/lib/utils/color";
 import { findNearestEmptyCell } from "@/lib/utils/bfs";
 import { isDeadlineAfter } from "@/lib/utils/deadline";
-import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
 import { classifyCreateRefusal } from "@/lib/feedback/create-refusal";
 import { dropReportedFailure } from "@/lib/db/write-failure";
 import { useEditModeStore } from "@/stores/edit-mode-store";
@@ -140,14 +135,13 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
     pendingNodeMove,
     pendingAncestorMove,
     sensors,
-  } = useDnd(() => useBreadcrumbZoneStore.getState().blockedCells);
+  } = useDnd();
   const {
     createBit,
     createNode,
     getGridOccupancy,
     softDeleteBit,
     softDeleteNode,
-    runBreadcrumbZoneMigration,
   } = useGridActions();
   const [placementContext, setPlacementContext] = useState<PlacementContext>({
     mode: "auto",
@@ -158,10 +152,6 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | undefined>(undefined);
   const [breadcrumbHeld, setBreadcrumbHeld] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
-  const gridContainerRef = useRef<HTMLDivElement>(null);
-  const migrationSessionRef = useRef<Set<string>>(new Set());
-  const setBlockedCells = useBreadcrumbZoneStore((state) => state.setBlockedCells);
-  const blockedCells = useBreadcrumbZoneStore((state) => state.blockedCells);
   const activeOverlay = useQuickCaptureStore((state) => state.activeOverlay);
   const setActiveOverlay = useQuickCaptureStore((state) => state.setActiveOverlay);
   const closeAll = useQuickCaptureStore((state) => state.closeAll);
@@ -236,55 +226,6 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
     };
   }, [reveal.phase, setToastBreadcrumbBottom, nodeId, showsBreadcrumb]);
 
-  // Until Task 249 the cells under the bar's shown position stay reserved, hidden or
-  // not: the measured box is the row itself, which no reveal transform moves.
-  // `showsBreadcrumb` is a dependency: `useNode` keeps the previous node until
-  // the new one arrives, so on client navigation from the Inbox the cluster
-  // mounts after `nodeId` has already changed and has to be measured then.
-  useEffect(() => {
-    const cluster = clusterRef.current;
-    const container = gridContainerRef.current;
-
-    if (!cluster || !container) {
-      return;
-    }
-
-    const clusterElement = cluster;
-    const containerElement = container;
-
-    function updateZone() {
-      const clusterRect = clusterElement.getBoundingClientRect();
-      const containerRect = containerElement.getBoundingClientRect();
-      const cells = rectToBlockedCells({
-        containerRect,
-        clusterRect,
-        cols: GRID_COLS,
-        rows: GRID_ROWS,
-        gap: 8 /* --grid-gap: 0.5rem */,
-      });
-
-      setBlockedCells(cells);
-
-      const sessionKey = nodeId ?? "__root__";
-      if (cells.size > 0 && !migrationSessionRef.current.has(sessionKey)) {
-        migrationSessionRef.current.add(sessionKey);
-        void runBreadcrumbZoneMigration(nodeId, cells);
-      }
-    }
-
-    const ro = new ResizeObserver(updateZone);
-    ro.observe(clusterElement);
-    ro.observe(containerElement);
-    updateZone();
-
-    return () => {
-      ro.disconnect();
-      setBlockedCells(new Set());
-      // clear on unmount — prevents stale state when leaving the grid layout entirely
-      // (intra-grid navigations re-trigger ResizeObserver; cleanup only fires on full layout exit)
-    };
-  }, [setBlockedCells, nodeId, showsBreadcrumb]);
-
   function openAdd(context: PlacementContext) {
     setPlacementContext(context);
     setError(undefined);
@@ -345,7 +286,7 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
       const occupied = await getGridOccupancy(nodeId);
       const originX = placementContext.mode === "auto" ? 2 : placementContext.x;
       const originY = placementContext.mode === "auto" ? 2 : placementContext.y;
-      const cell = findNearestEmptyCell(occupied, originX, originY, blockedCells);
+      const cell = findNearestEmptyCell(occupied, originX, originY);
 
       if (cell === null) {
         // `node` is set whenever `nodeId` is: the missing-parent case returned above.
@@ -421,14 +362,7 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
       const originX =
         placementContext.mode === "auto" ? GRID_COLS - 3 : placementContext.x;
       const originY = placementContext.mode === "auto" ? 2 : placementContext.y;
-      const relevantBlockedCells =
-        nodeId === null ? new Set<string>() : blockedCells;
-      const cell = findNearestEmptyCell(
-        occupied,
-        originX,
-        originY,
-        relevantBlockedCells,
-      );
+      const cell = findNearestEmptyCell(occupied, originX, originY);
 
       if (cell === null) {
         // The Node whose Grid receives the Bit: the current Node, or the parent
@@ -567,14 +501,9 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
             data-testid="display-level"
           >
             <AddFlowProvider
-              openAddAtCell={(x, y) => {
-                if (!isCellBlocked(x, y, blockedCells)) {
-                  openAdd({ mode: "cell", x, y });
-                }
-              }}
+              openAddAtCell={(x, y) => openAdd({ mode: "cell", x, y })}
             >
               <div
-                ref={gridContainerRef}
                 className={cn(
                   "h-full overflow-x-hidden",
                   activeItem ? "overflow-hidden" : "overflow-y-auto",

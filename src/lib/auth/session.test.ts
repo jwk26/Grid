@@ -84,8 +84,8 @@ describe("session controller entry", () => {
     const t = setup();
     await t.controller.start();
     expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
-    const ensureCall = t.rpc.mock.calls.find(([name]) => name === "ensure_account") as unknown as [string, { p_reserved_cells: unknown[] }];
-    expect(ensureCall[1].p_reserved_cells).toHaveLength(6);
+    const ensureCall = t.rpc.mock.calls.find(([name]) => name === "ensure_account") as unknown as [string, Record<string, unknown>];
+    expect(ensureCall[1]).toEqual({});
     expect(t.rpc.mock.calls.map(([name]) => name)).toEqual(["ensure_account", "get_snapshot"]);
     expect(t.controller.getState()).toEqual({ phase: "ready" });
   });
