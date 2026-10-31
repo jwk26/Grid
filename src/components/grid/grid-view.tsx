@@ -198,7 +198,11 @@ export function GridView({
   const { nodes, bits } = useGridData(parentId);
   const isEditMode = useEditModeStore((state) => state.isEditMode);
   const { active, over } = useDndContext();
-  const isOverBreadcrumb = isGridBreadcrumbDropId(over?.id);
+  // A Bit over Home is refused, so the grid is not marked for it either.
+  const bitOverHome =
+    (active?.data?.current as { type?: string } | undefined)?.type === "bit" &&
+    (over?.data?.current as { targetNodeId?: string | null } | undefined)?.targetNodeId === null;
+  const isOverBreadcrumb = isGridBreadcrumbDropId(over?.id) && !bitOverHome;
   const itemsByPosition = new Map<string, GridItem>();
   const borderOpacity = levelOpacityMap[level] ?? levelOpacityMap[3];
 

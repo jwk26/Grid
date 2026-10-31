@@ -5,7 +5,7 @@ import { getGridBreadcrumbDropId, getGridCellDropId } from "@/lib/grid-dnd";
 import { GridView } from "./grid-view";
 
 const dndContext = vi.hoisted(() => ({
-  value: { active: null, over: null } as { active: unknown; over: { id: string } | null },
+  value: { active: null, over: null } as { active: unknown; over: { id: string; data?: { current: unknown } } | null },
 }));
 
 vi.mock("@dnd-kit/core", async (importOriginal) => ({
@@ -39,6 +39,13 @@ describe("GridView drag layer", () => {
 
     dndContext.value = { active: { id: "draggable-n1" }, over: { id: getGridBreadcrumbDropId(null) } };
     expect(renderGrid()).toHaveAttribute("data-over-breadcrumb", "true");
+    cleanup();
+
+    dndContext.value = {
+      active: { id: "draggable-b1", data: { current: { type: "bit" } } },
+      over: { id: getGridBreadcrumbDropId(null), data: { current: { targetNodeId: null } } },
+    };
+    expect(renderGrid()).not.toHaveAttribute("data-over-breadcrumb");
     cleanup();
 
     dndContext.value = { active: { id: "draggable-n1" }, over: { id: getGridCellDropId("parent-node", 1, 1) } };

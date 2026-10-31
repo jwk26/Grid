@@ -1174,6 +1174,8 @@ export function useDnd(): {
 
       if (dropData.kind === "grid-breadcrumb-drop") {
         if (dragItem.type !== "node" && dragItem.type !== "bit") return;
+        // No Bit on Home: the drop is refused with no write and no dialog.
+        if (dragItem.type === "bit" && dropData.targetNodeId === null) return;
         setPendingAncestorMove({
           itemId: dragItem.id,
           itemType: dragItem.type,

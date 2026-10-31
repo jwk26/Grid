@@ -308,7 +308,8 @@ Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
   the pointer; the rest of the bar lets it through, so a card under it stays
   clickable, and "hovered" above means a segment or the chip. During a drag
   each ancestor segment is a drop target (the ancestor-move confirmation and
-  the no-Bit-on-Home rule stay); only the segment under the pointer shows that
+  the no-Bit-on-Home rule stays: Home is still a target for a Bit, so the drop does
+  not reach a card under the segment, and is refused with no write and no dialog); only the segment under the pointer shows that
   it will take the drop, with a light hover-level signal, and the other
   ancestors are not marked (user, 2026-10-31, Task 248: teaching the ancestor
   drop belongs to a future first-visit Grid tour). The rest of the bar lets

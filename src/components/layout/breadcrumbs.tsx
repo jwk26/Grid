@@ -22,8 +22,10 @@ function BreadcrumbSegmentButton({
   onClick: () => void;
   dragActiveItem?: DragActiveItem;
 }) {
-  // The root accepts a Node but never a Bit (the no-Bit-on-Home rule).
-  const disabled = nodeId === null && dragActiveItem?.type === "bit";
+  // The root accepts a Node but never a Bit (the no-Bit-on-Home rule). Home stays a drop
+  // target for a Bit so the drop does not fall through to a card under the segment;
+  // `useDnd` refuses it without a write or a dialog.
+  const refusesDrop = nodeId === null && dragActiveItem?.type === "bit";
   const { isOver, setNodeRef } = useDroppable({
     id: getGridBreadcrumbDropId(nodeId),
     data: {
@@ -31,9 +33,8 @@ function BreadcrumbSegmentButton({
       targetNodeId: nodeId,
       targetNodeTitle: label,
     },
-    disabled,
   });
-  const isDropTarget = Boolean(dragActiveItem) && !disabled && isOver;
+  const isDropTarget = Boolean(dragActiveItem) && !refusesDrop && isOver;
 
   return (
     <button

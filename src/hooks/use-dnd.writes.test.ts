@@ -100,6 +100,19 @@ describe("useDnd write failures", () => {
     expect(store.updateBit).not.toHaveBeenCalled();
   });
 
+  it("refuses a Bit dropped on Home with no write and no dialog", async () => {
+    const { result } = renderHook(() => useDnd());
+
+    await act(async () => {
+      await result.current.handleDragEnd(
+        dragEnd({ ...node, type: "bit" }, { kind: "grid-breadcrumb-drop", targetNodeId: null }),
+      );
+    });
+
+    expect(result.current.pendingAncestorMove).toBeNull();
+    expect(store.updateBit).not.toHaveBeenCalled();
+  });
+
   it("calls Home the target when the Grid that is full is L0", async () => {
     const full = new Set<string>();
     for (let x = 0; x < 18; x += 1) for (let y = 0; y < 9; y += 1) full.add(`${x},${y}`);

@@ -194,6 +194,9 @@ describe("Breadcrumbs", () => {
 
     expect(screen.getByRole("button", { name: "Home" })).not.toHaveClass("breadcrumb-drop-target");
     expect(droppableMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: getGridBreadcrumbDropId(null) }),
+    );
+    expect(droppableMock).not.toHaveBeenCalledWith(
       expect.objectContaining({ id: getGridBreadcrumbDropId(null), disabled: true }),
     );
   });
