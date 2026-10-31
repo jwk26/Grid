@@ -35,6 +35,7 @@ theme-stage planning session turns this into a code-ready decision later.
 |---|---|---|
 | Paper, the new default theme | `2026-10-21-default-theme` (branch `prototype/default-theme`) | draft; prototype in progress |
 | Grid and Inbox Node/Bit card look per theme | `2026-10-20-grid-card-theme-alignment` | draft |
+| Grid Bit card footprint (a Bit covers its neighbors and hides drop cells), decided before each theme's Bit card styling | `2026-10-31-grid-bit-card-footprint` | draft |
 | Claymorphism polish and realization | `2026-10-20-claymorphism-polish` | draft |
 | Sidebar, Grid breadcrumb and Home button skins | `2026-10-20-app-shell-theme-coverage` | draft |
 | `retro-mac` and `neumorphism` finishing of the new surfaces (status icons, toast blend, Home button, breadcrumb reveal, account icon and modal, connection badge, loading, failure and expiry screens) | this entry (from feedback F29 and SaaS S40) | to plan |
