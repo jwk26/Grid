@@ -1329,8 +1329,12 @@ to a new guest only from there.
 `internal.cleanup_guests()` runs daily through `pg_cron` and deletes anonymous
 auth users whose `last_visit_at` is more than 7 days old; the cascade removes
 their rows (S10, S22, S42 (5)). A guest with an open tab stays: the hourly
-`cleanup_expired_trash()` call records its visit. Under the account-deletion
-fallback the same job also deletes every account with a deletion request. The
+`cleanup_expired_trash()` call records its visit. An anonymous auth user with
+no `accounts` row (sign-in finished, `ensure_account()` never ran) has no
+`last_visit_at`; the job deletes it 7 days after `auth.users.created_at`. This
+covers the extra guest of two first-visit tabs (SPEC §Several tabs). Under the
+account-deletion fallback the same job also deletes every account with a
+deletion request. The
 job is owned by `postgres`, the one role that can delete from `auth.users`.
 Task 218 proved `pg_cron` on the free plan (off by default; the Task 238
 migration enables it), so the S22 fallback, a scheduled GitHub Actions call,
