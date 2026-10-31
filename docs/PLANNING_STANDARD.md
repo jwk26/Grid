@@ -571,7 +571,7 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
 - [ ] **Test gate and lanes (S20, F33):** every SaaS-lane task runs
   `pnpm test:db`; the feedback lane (Phases 49–50) runs it only at a phase
   close, when the SaaS lane is not doing database work, never edits
-  `supabase/`, and in Phase 50 never resets the database or adds a migration
+  `supabase/` (except the one test block Task 249 deletes), and in Phase 50 never resets the database or adds a migration
   during the phase.
 - [ ] **Feedback rules (F02, F11, F13, F14):** toasts go through the shared
   helper and only for SPEC's four uses; toast, app-state and blocking copy

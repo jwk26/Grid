@@ -693,7 +693,7 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   top-right corner. Staging Bit row: the row end. Explorer Newly row: the Undo
   slot ([Actual-card Newly Placed and Undo](#actual-card-newly-placed-and-undo)).
   Staging's only recovery control is the `?` of an unknown Stage or Unstage
-  (Phase 50 mi-1); Staging has no Retry.
+  (Phase 50 mi-11); Staging has no Retry.
 - **Decision surfaces keep their sentences** (F08): the Placement plate, the
   Archive completion card, the Scratch Trash dialog and the inline-editor
   conflict view. A Stage failure whose item disappears keeps the Staging
@@ -742,7 +742,7 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   explicit blur-save exceptions: the editor stays open and dirty while the
   Trash dialog is open. During Save/reconcile, the editor/draft stays
   visible and conflicting Edit/Trash/DnD/Cancel actions lock. Failure or offline
-  preserves draft and logical focus; reconnection enables manual Retry but does
+  preserves draft and logical focus; reconnection lets the user Save again but does
   not auto-save or create an offline queue.
 - **Editor states** (F05, Phase 50): `Unsaved changes.` shows no text (the
   enabled Save is the signal); `Saving…` and
@@ -852,7 +852,7 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   the held command's candidate leaves the list while its Scratch stays
   selected, one read-only check runs in the background and is never retried
   on its own; a held command gets at most one such automatic check (Phase 50
-  mi-1, mi-2, user 2026-10-30). No repeated pulse or
+  mi-11, mi-12, user 2026-10-30). No repeated pulse or
   layout-changing motion is permitted.
 - A transient drag-time Staging target and the whole Breakdown section drop-
   back invoke the same Unstage command; there is no permanent unstage button.
@@ -1851,6 +1851,9 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/components/feedback/toast-icons.tsx` *(Phase 49)* | The Toaster's ✓, `!` and `×` icons, and `offlineToastIcon` (Lucide `wifi-off`), which the offline write-attempt warning passes as its `icon` so Task 232's helper reuses it (F15, F18) |
 | `src/lib/dev/state-switch.ts`, `src/components/dev/state-switch-panel.tsx` *(Phase 49, development only)* | [Development state switch](#development-state-switch) (F30) |
 | `src/components/layout/home-button.tsx`, `src/hooks/use-breadcrumb-reveal.ts` *(Phase 50)* | Sidebar Home button and the breadcrumb reveal state: triggers, hiding, `Esc`, drag (F21–F25) |
+| `src/components/layout/sidebar-icon-button.tsx` *(Phase 50)* | The sidebar rail's shared icon button, which `home-button.tsx` and the rail entries use |
+| `src/hooks/use-document-title.ts` *(Phase 50)* | Sets each page's tab title ([Feedback copy](#feedback-copy)) |
+| `src/components/grid/newly-undo-slot.tsx` *(Phase 50)* | The Newly Undo button as the status slot, for Node and Bit cards and the replacement-search results (F07, F09) |
 | `src/lib/copy/feedback.ts` *(Phase 49)* | Toast, app-state and blocking copy (F14); Task 244 creates it with the create-dialog sentence |
 | `supabase/config.toml`, `supabase/migrations/`, `supabase/tests/` *(Phase 42)* | Local Supabase configuration, migrations in Git, `pnpm test:db` suites |
 | `supabase/seed.sql`, `scripts/dev-fixtures/` *(Phase 45, local only)* | `dev.seed_fixture()` and the browser-check fixture that signs in as a local `@griddo.test` user and seeds through it; usage in each script header |

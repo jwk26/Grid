@@ -64,7 +64,7 @@ interface StagingZoneProps {
   projection?: StagingZoneProjection;
   newCandidateIds?: ReadonlySet<string>;
   onObservedTop?: () => void;
-  /** Runs one read-only check of a held unknown command; never a resend (Phase 50 mi-1). */
+  /** Runs one read-only check of a held unknown command; never a resend (Phase 50 mi-11). */
   onCheckAgain?: (operationId: string) => void;
 }
 

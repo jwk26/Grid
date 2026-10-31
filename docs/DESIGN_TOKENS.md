@@ -948,7 +948,7 @@ The attached family maps through Staging-native theme roles:
   title on its own line, since the label truncates, unless the sentence
   already contains it. Where the host is not in the Tab order (a Stage
   projection, an integrity slot), the status icon is focusable.
-- **Unknown recovery** (Phase 50 mi-1, user 2026-10-30). When the automatic
+- **Unknown recovery** (Phase 50 mi-11, user 2026-10-30). When the automatic
   read-only check after an unknown Stage or Unstage also fails, the item's `?`
   is a button that runs that check again, as the Undo slot's `?` does: the
   unknown sentence plus `Select to check again.` as tooltip, unavailable at
@@ -1453,7 +1453,7 @@ only its own tooltip, and one tooltip shows at a time. The row keeps its
 width; NEW, selection, the separate slot control, the operation identity and
 the focus destinations stay. Only `?` and `!` add item
 emphasis. The `newly-status-rail`, `newly-status-mark`, `newly-status-action`
-and `newly-status-reason` roles retire; the slot uses the
+and `newly-status-reason` roles and the `newly-undo-tooltip` binding retire; the slot uses the
 [Feedback Status Surfaces](#feedback-status-surfaces) roles. Until Phase 50 the
 contracts above stay in force as built.
 

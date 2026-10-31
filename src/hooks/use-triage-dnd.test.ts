@@ -477,7 +477,7 @@ describe("useTriageDnd — Task 145 durable Stage/Unstage adapters", () => {
     expect(reconcileUnstageCandidateMock).toHaveBeenCalledOnce();
   });
 
-  describe("a command whose automatic check also failed (Phase 50 mi-1)", () => {
+  describe("a command whose automatic check also failed (Phase 50 mi-11)", () => {
     async function holdUnknownStage(scratchId = "scratch-1") {
       stageCandidateMock.mockImplementationOnce(async (command) => ({
         operationId: command.operationId,

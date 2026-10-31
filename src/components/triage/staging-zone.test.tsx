@@ -780,7 +780,7 @@ describe("StagingZone — commit-to-snapshot repair (Task 176A)", () => {
     }
   });
 
-  describe("an unknown command's `?` (Phase 50 mi-1)", () => {
+  describe("an unknown command's `?` (Phase 50 mi-11)", () => {
     function renderChecked(op: View, onCheckAgain = vi.fn()) {
       render(
         <StagingZone
