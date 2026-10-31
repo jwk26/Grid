@@ -885,7 +885,8 @@ Phase 48 and closes before the theme stage.
   close of each phase runs `pnpm test:db` under the CLAUDE.md Local Supabase
   rule once `main` has it (Task 213); before that the close ledger records it
   as not applicable. Decision-only Task 242 runs `git diff --check`.
-- **Database:** no task edits `supabase/`. From Phase 50 the browser checks run
+- **Database:** no task edits `supabase/`, except the one test block Task 249
+  deletes (user, 2026-10-31). From Phase 50 the browser checks run
   on local Supabase (Phase 45 is on `main`); a task never resets the database
   or adds a migration, and seeds again after a SaaS-lane reset.
 - **Checkpoints:** a user-visible task is checked in the running app in
@@ -1237,7 +1238,10 @@ tests that cover the zone and the reserved block (`grid-view.test.tsx`,
 `use-grid-actions.test.ts`, `use-triage-dnd.test.ts`, `grid-dnd.test.ts`,
 `grid-runtime.test.tsx`, `indexeddb.migration.test.ts`,
 `supabase-calls.test.ts`, `supabase-store.writes.test.ts`,
-`src/lib/auth/session.test.ts`).
+`src/lib/auth/session.test.ts`); delete the `commands that send nothing` block
+of `supabase/tests/supabase-store-commands.db.test.ts`, which calls the removed
+method, since `pnpm typecheck` covers that file. This block is the only
+`supabase/` edit (user, 2026-10-31); `pnpm test:db` at the phase close checks it.
 
 **Dependencies:** Task 248.
 
@@ -1248,9 +1252,11 @@ ported, §Internal functions; SPEC §Breadcrumb reveal and Home button.
 placement and drops like any other cell, including a drag dropped on a
 top-left cell under the revealed bar; a restore, an unhide or a promotion into
 a Grid whose only free cells are top-left lands there; no zone code or `settings` read or
-write remains; the 156-Bit Full folder fixture reads as full (no empty cell in
-the Create dialog), and the `inbox-triage.js` header recipe drops its zone
-workaround if it no longer applies (Phase 45 mi-3); every gate passes.
+write remains; the 156-Bit Full folder fixture keeps its top-left block free
+(`seed.sql` does not change, user, 2026-10-31), so a create lands in each of
+those six cells and the seventh shows `has no empty cell` in the Create dialog,
+and the `inbox-triage.js` header recipe says this (Phase 45 mi-3); every gate
+passes.
 
 **Verification:** gate; `expert` review (Add, placement and DnD paths); a
 search for the zone names returns nothing; browser checkpoint of a create and a
