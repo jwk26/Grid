@@ -27,7 +27,7 @@ const BLOCK = [
   { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 },
   { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 },
 ];
-const COUNTS = { nodes: 65, bits: 264, chunks: 10, rows: 11, candidates: 2 };
+const COUNTS = { nodes: 73, bits: 269, chunks: 10, rows: 11, candidates: 2 };
 
 let guest: TestUser;
 beforeAll(async () => {
@@ -258,39 +258,47 @@ describe("demo seed: the copied rows", () => {
       // A level-2 Node holds Bits only.
       const level2 = new Set(s.nodes.filter((n) => n.level === 2).map((n) => n.id));
       expect(s.nodes.filter((n) => n.parent_id !== null && level2.has(n.parent_id))).toEqual([]);
-      // The shape of the seed: counts per tree, per Grid and per level.
-      expect(s.nodes.filter((n) => n.parent_id === null && n.system_role === null)).toHaveLength(30);
-      expect(s.nodes.filter((n) => n.level === 1)).toHaveLength(24);
-      expect(s.nodes.filter((n) => n.level === 2)).toHaveLength(9);
+      // The shape of the seed: counts per tree, per Grid and per level. A Node's Bit count
+      // includes an archived or trashed Bit it holds.
+      expect(s.nodes.filter((n) => n.parent_id === null && n.system_role === null)).toHaveLength(15);
+      expect(s.nodes.filter((n) => n.level === 1)).toHaveLength(50);
+      expect(s.nodes.filter((n) => n.level === 2)).toHaveLength(6);
       const active = (b: BitRow) => b.deleted_at === null && b.archived_at === null;
       const activeBits = seedBits.filter(active);
-      const bitsOf = (id: string) => activeBits.filter((b) => b.parent_id === id).length;
+      const bitsOf = (id: string) => seedBits.filter((b) => b.parent_id === id).length;
       const subsOf = (id: string) => subNodes.filter((n) => n.parent_id === id);
       const l0 = s.nodes.filter((n) => n.parent_id === null && n.system_role === null);
       const trees = ["사이트 개편", "팀 워크숍", "집안일", "Reading list"].map((t) => l0.find((n) => n.title === t)!);
       for (const t of trees) {
-        expect(subsOf(t.id)).toHaveLength(6);
+        expect(subsOf(t.id)).toHaveLength(7);
         expect(bitsOf(t.id)).toBe(10);
         for (const c of subsOf(t.id)) expect(bitsOf(c.id)).toBe(5);
       }
       const treeIds = new Set(trees.map((t) => t.id));
+      for (const n of l0) expect(subsOf(n.id).length).toBeGreaterThanOrEqual(2);
       for (const n of l0.filter((x) => !treeIds.has(x.id))) {
-        expect(subsOf(n.id)).toHaveLength(0);
-        expect(bitsOf(n.id)).toBe(2);
+        expect(subsOf(n.id)).toHaveLength(2);
+        expect(bitsOf(n.id)).toBe(3);
+        for (const c of subsOf(n.id)) expect(bitsOf(c.id)).toBe(1);
       }
-      for (const n of s.nodes.filter((x) => x.level === 2)) expect(bitsOf(n.id)).toBe(5);
-      expect(Math.max(...new Set(seedBits.map((b) => b.parent_id)).values().map((id) => seedBits.filter((b) => b.parent_id === id).length))).toBeLessThanOrEqual(16);
+      const l2 = s.nodes.filter((x) => x.level === 2);
+      for (const n of l2) expect(bitsOf(n.id)).toBe(5);
+      expect(new Set(l2.map((n) => n.parent_id)).size).toBe(2);
+      for (const p of new Set(l2.map((n) => n.parent_id!))) expect(l2.filter((n) => n.parent_id === p)).toHaveLength(3);
+      const perParent = new Map<string, number>();
+      for (const b of seedBits) perParent.set(b.parent_id, (perParent.get(b.parent_id) ?? 0) + 1);
+      expect(Math.max(...perParent.values())).toBeLessThanOrEqual(16);
       // Room left under the guest limits to create.
-      expect(s.nodes.length).toBeLessThanOrEqual(70);
-      expect(s.bits.length).toBeLessThanOrEqual(270);
+      expect(s.nodes.length).toBeLessThanOrEqual(75);
+      expect(s.bits.length).toBeLessThanOrEqual(275);
 
-      // No gaps: sub-Nodes fill the row y 2 from x 2; each Bit column runs from y 1 without a gap;
-      // the first half of a Grid's Bits sit in the x 9 column.
+      // No gaps: sub-Nodes fill the left zone row by row from (2,2); each Bit column runs from
+      // y 1 without a gap; the first half of a Grid's Bits sit in the x 9 column.
       const grids = new Set([...subNodes.map((n) => n.parent_id!), ...activeBits.map((b) => b.parent_id)]);
       for (const g of grids) {
-        const xs = subsOf(g).map((n) => n.x).sort((a, b) => a - b);
-        expect(xs).toEqual(xs.map((_, i) => 2 + i));
-        for (const n of subsOf(g)) expect(n.y).toBe(2);
+        const cells = subsOf(g).map((n) => [n.y, n.x]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+        const wanted = cells.map((_, i) => [2 + Math.floor(i / 6), 2 + (i % 6)]);
+        expect(cells).toEqual(wanted);
         for (const col of [9, 13]) {
           const ys = activeBits.filter((b) => b.parent_id === g && b.x === col).map((b) => b.y).sort((a, b) => a - b);
           expect(ys).toEqual(ys.map((_, i) => 1 + i));
@@ -301,7 +309,7 @@ describe("demo seed: the copied rows", () => {
         expect(left - right).toBeLessThanOrEqual(1);
       }
 
-      // L0: the Nodes stand in five blocks of neighbours, each Node next to another one of its block,
+      // L0: the Nodes stand in four blocks of neighbours, each Node next to another one of its block,
       // clear of the reserved block and the system Node cells.
       const cells = new Set(l0.map((n) => `${n.x},${n.y}`));
       for (const n of l0) {
@@ -325,7 +333,7 @@ describe("demo seed: the copied rows", () => {
           for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) stack.push(`${x + dx},${y + dy}`);
         }
       }
-      expect(blocks).toBe(5);
+      expect(blocks).toBe(4);
     });
   });
 
