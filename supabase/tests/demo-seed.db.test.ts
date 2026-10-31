@@ -27,7 +27,7 @@ const BLOCK = [
   { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 },
   { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 },
 ];
-const COUNTS = { nodes: 10, bits: 31, chunks: 10, rows: 11, candidates: 2 };
+const COUNTS = { nodes: 32, bits: 116, chunks: 10, rows: 11, candidates: 2 };
 
 let guest: TestUser;
 beforeAll(async () => {
@@ -133,14 +133,14 @@ describe("demo seed: the copied rows", () => {
   it("keeps a free original cell and moves a seed row off a hand-made reserved cell", async () => {
     const u = await createTestUser("dsrc");
     await inGuest(u, async (db) => {
-      await ensure(db, [...BLOCK.slice(0, 5), { x: 6, y: 2 }]);
+      await ensure(db, [...BLOCK.slice(0, 5), { x: 5, y: 2 }]);
       const s = await snapshot(db);
       const web = s.nodes.find((n) => n.title === "사이트 개편")!;
-      expect(`${web.x},${web.y}`).not.toBe("6,2");
+      expect(`${web.x},${web.y}`).not.toBe("5,2");
       const l0 = s.nodes.filter((n) => n.parent_id === null).map((n) => `${n.x},${n.y}`);
       expect(new Set(l0).size).toBe(l0.length);
       const other = s.nodes.find((n) => n.title === "팀 워크숍")!;
-      expect(`${other.x},${other.y}`).toBe("8,2");
+      expect(`${other.x},${other.y}`).toBe("7,2");
     });
   });
 
@@ -235,6 +235,35 @@ describe("demo seed: the copied rows", () => {
     });
   });
 
+  it("puts sub-Nodes in the left zone and Bits in the right zone, with no two Bits overlapping", async () => {
+    const u = await createTestUser("dszone");
+    await inGuest(u, async (db) => {
+      await ensure(db);
+      const s = await snapshot(db);
+      const inbox = s.nodes.find((n) => n.system_role === "inbox")!;
+      const subNodes = s.nodes.filter((n) => n.system_role === null && n.parent_id !== null);
+      expect(subNodes.length).toBeGreaterThan(0);
+      for (const n of subNodes) {
+        expect(n.x).toBeLessThanOrEqual(7);
+        expect(n.level).toBeLessThanOrEqual(2);
+      }
+      const seedBits = s.bits.filter((b) => b.parent_id !== inbox.id);
+      for (const b of seedBits) expect([9, 13]).toContain(b.x);
+      // A Bit card spans two cells: no two Bits of a Grid are within one column of each other.
+      for (const b of seedBits) {
+        for (const c of seedBits) {
+          if (b.id !== c.id && b.parent_id === c.parent_id && b.y === c.y) expect(Math.abs(b.x - c.x)).toBeGreaterThanOrEqual(2);
+        }
+      }
+      // A level-2 Node holds Bits only.
+      const level2 = new Set(s.nodes.filter((n) => n.level === 2).map((n) => n.id));
+      expect(s.nodes.filter((n) => n.parent_id !== null && level2.has(n.parent_id))).toEqual([]);
+      // About four Bits per Grid, and the shape of the rework.
+      expect(s.nodes.filter((n) => n.parent_id === null && n.system_role === null)).toHaveLength(10);
+      expect(s.nodes.filter((n) => n.level === 2)).toHaveLength(5);
+    });
+  });
+
   it("passes the Zod schemas of every table", async () => {
     const u = await createTestUser("dszod");
     await inGuest(u, async (db) => {
@@ -256,6 +285,7 @@ describe("demo seed: the copied rows", () => {
       const at = (await seededAt(db, u))!;
       const offsite = s.nodes.find((n) => n.title === "팀 워크숍")!;
       expect(offsite.deadline).toBe(at + 3 * DAY);
+      expect(offsite.deadline).toBe(Math.max(...s.bits.filter((b) => b.parent_id !== null).filter((b) => [offsite.id, ...s.nodes.filter((n) => n.parent_id === offsite.id).map((n) => n.id)].includes(b.parent_id)).map((b) => b.deadline ?? 0)));
       expect(offsite.mtime).toBe(at - 4 * DAY);
       const spanish = s.nodes.find((n) => n.title === "스페인어")!;
       expect(spanish.mtime).toBe(at - 14 * DAY);
@@ -264,8 +294,8 @@ describe("demo seed: the copied rows", () => {
       const copy = s.bits.find((b) => b.title === "홈페이지 문구 쓰기")!;
       expect(copy.deadline! - at).toBeGreaterThan(0);
       expect(copy.deadline! - at).toBeLessThan(DAY);
-      const aging = ["Finish The Pragmatic Programmer", "Read the Postgres docs on RLS",
-        "Skim the React 19 release notes", "Reread chapter 3 of Designing Data-Intensive Applications"];
+      const aging = ["Finish Clean Code", "Read the RLS docs",
+        "Skim React 19 notes", "Reread DDIA chapter 3"];
       expect(aging.map((t) => (at - s.bits.find((b) => b.title === t)!.mtime) / DAY)).toEqual([5, 6, 11, 12]);
     });
   });
