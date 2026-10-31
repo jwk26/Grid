@@ -158,6 +158,49 @@ describe("cleanup_guests()", () => {
     expect(await rowCounts(db, stays)).toEqual(staysBefore);
   });
 
+  it("skips an account that deadlocks with a client write, deletes the others, and takes it on the next run", async () => {
+    const a = await createGuest(db);
+    const b = await createGuest(db);
+    await commitEnsure(db, a, true);
+    await commitEnsure(db, b, true);
+    await ageVisit(db, a, 9);
+    await ageVisit(db, b, 9);
+    const writer = await connect(); // a client write on account A, holding a Node lock
+    const runner = await connect(); // the cleanup job
+    try {
+      await writer.query("begin");
+      await writer.query("select id from app.nodes where user_id = $1 limit 1 for update", [a.id]);
+      // The cleanup reaches A, deletes its auth user and blocks in the cascade on the Node lock.
+      const runnerPid = (await runner.query("select pg_backend_pid() as pid")).rows[0].pid as number;
+      const run = runner.query("select internal.cleanup_guests()");
+      const blocked = async () => {
+        for (let i = 0; i < 100; i++) {
+          const { rows } = await db.query(
+            "select 1 from pg_stat_activity where pid = $1 and wait_event_type = 'Lock'",
+            [runnerPid],
+          );
+          if (rows.length > 0) return;
+          await new Promise((r) => setTimeout(r, 50));
+        }
+        throw new Error("the cleanup never blocked on the Node lock");
+      };
+      await blocked();
+      // The write's foreign key check on A's auth user: a cycle. The cleanup waited first, so its
+      // deadlock check fires first and it is the victim.
+      await writer.query("select 1 from auth.users where id = $1 for key share", [a.id]);
+      await writer.query("commit");
+      await run; // ends without an error: the handler skipped A
+    } finally {
+      await writer.query("rollback").catch(() => undefined);
+      await writer.end();
+      await runner.end();
+    }
+    expect(await authUserExists(db, a)).toBe(true);
+    expect(await authUserExists(db, b)).toBe(false);
+    await cleanup(db);
+    expect(await authUserExists(db, a)).toBe(false);
+  });
+
   it("can run twice in a row and with nothing to delete", async () => {
     await cleanup(db);
     await cleanup(db);
