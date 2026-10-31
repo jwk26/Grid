@@ -1220,7 +1220,7 @@ and keyboard, including an `Esc`-cancelled drag on a Grid and on the Calendar.
 
 **Commit message:** `feat(shell): add the Home button and the breadcrumb reveal`.
 
-### Task 249: [ ] Remove the blocked breadcrumb zone
+### Task 249: [x] Remove the blocked breadcrumb zone
 
 **Files and actions:** delete `src/stores/breadcrumb-zone-store.ts` and
 `src/lib/utils/breadcrumb-zone.ts` with its test; remove the zone measurement

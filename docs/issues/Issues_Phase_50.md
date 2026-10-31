@@ -265,8 +265,8 @@ Plan fixes at start: Task 249 names `supabase-calls.ts` (`BREADCRUMB_RESERVED_CE
 ## Task 249 — Remove the blocked breadcrumb zone
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 249 acceptance (user visual check in the prepared window)
+- Status: Accepted
+- Next: Task 245 or the next open task of the phase
 - Open: none
 
 ### Log
