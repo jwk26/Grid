@@ -1148,7 +1148,7 @@ free cell in row-major order for a system Node and for a new item without an
 original cell (a Bit made from a Chunk at promotion), otherwise the nearest
 free cell from the item's original cell (BFS, as `findNearestEmptyCell` does). It treats
 each reserved cell as taken, so an item whose original cell is reserved is
-relocated as if that cell were occupied. The callers are `ensure_account()`,
+relocated as if that cell were occupied. The callers are `ensure_account()` (the system Nodes and the demo seed copy, which places each active seed row at its original cell through `internal.copy_demo_seed()`),
 `update_node()` when it shows a hidden system Node, `restore_node()`,
 `restore_bit()`, `unarchive_node()`, `unarchive_bit()` and
 `promote_bit_to_node()`. Each takes `p_reserved_cells jsonb default '[]'`: an
@@ -1248,7 +1248,15 @@ checks the locked rows again after it holds them (S30; user, 2026-10-22):
   where there is no parent row to lock, it alone keeps two creates out of one
   cell.
 - **Inbox.** Inbox commands lock their Scratch Bit row `for update`.
-- **Account.** `ensure_account()` locks the account row.
+- **Account.** `ensure_account()` locks the account row. Its demo seed step (Task 237) takes
+  the Inbox Grid advisory lock after that row lock, and only for a guest that
+  looks empty, so a capture into an Inbox committed by an earlier call cannot
+  land in a seed cell. This is the one place an advisory lock follows a row
+  lock. A new guest creates its Inbox and its seed in one uncommitted
+  transaction, so no other tab can contend; only a guest made before the seed
+  existed, with its Inbox committed, can meet `restore_node()` of its Inbox in
+  the opposite hash order, and Postgres then aborts one call, whose retry
+  succeeds (`expert` review, 2026-10-31).
 - **Order.** A function that needs several locks takes the advisory lock first,
   then row locks in a fixed order (Nodes ordered by id, then Bits, then
   Chunks), so two functions cannot deadlock.
