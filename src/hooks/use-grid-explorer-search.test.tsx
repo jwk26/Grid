@@ -709,7 +709,7 @@ describe("useGridExplorerSearch", () => {
       onFocusResult: result.current.focusResult, onQueryChange: result.current.setQuery,
       onRetry: result.current.retry, onScrollTopChange: result.current.setResultScrollTop,
       onSelectResult: vi.fn(),
-      getResultUndo: () => ({ actionLabel: "Undo", copy: "Undo this placement.", disabled: false, state: "available", onActivate: () => result.current.completeResultUndo({ removedIndex: 0, resultKey: "node:alpha", source: "Breakdown source", title: "Alpha" }) }),
+      getResultUndo: () => ({ copy: "Undo this placement.", disabled: false, label: "Undo placement of Alpha", phaseKey: "", reason: "available", sentence: "Undo this placement.", state: "available", status: null, onActivate: () => result.current.completeResultUndo({ removedIndex: 0, resultKey: "node:alpha", source: "Breakdown source", title: "Alpha" }) }),
     });
     const view = render(<GridExplorerSearchResults {...props()} />);
     const undo = screen.getByRole("button", { name: "Undo placement of Alpha" });

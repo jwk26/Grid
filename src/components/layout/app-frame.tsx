@@ -8,6 +8,7 @@ import { StatusIcon } from "@/components/feedback/status-icon";
 import { Button } from "@/components/ui/button";
 import { setTurnstileHost } from "@/lib/auth/turnstile";
 import { takeHomeReturn } from "@/lib/auth/user-change";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useDisplayDelay } from "@/hooks/use-display-delay";
 import {
   getSessionController,
@@ -115,6 +116,12 @@ function TurnstileHost({ visible }: { visible: boolean }) {
     />,
     document.body,
   );
+}
+
+// Mounted only while the account is not ready, so it never overwrites a page's own title.
+function NotReadyTitle() {
+  useDocumentTitle(null);
+  return null;
 }
 
 function FrameScreen({
@@ -232,7 +239,13 @@ export function AppFrame({
     () => false,
   );
   const hasCaptcha = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
-  const screen = <FrameScreen state={state} controller={controller}>{children}</FrameScreen>;
+  const screen = (
+    <>
+      {/* Not ready: no page is mounted to set the tab title, so the frame sets the app name. */}
+      {state.phase !== "ready" ? <NotReadyTitle /> : null}
+      <FrameScreen state={state} controller={controller}>{children}</FrameScreen>
+    </>
+  );
   if (!hasCaptcha || !isClient) return screen;
   return (
     <>

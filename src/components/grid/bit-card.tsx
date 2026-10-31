@@ -3,7 +3,7 @@
 import type { ComponentPropsWithoutRef, Ref } from "react";
 import { forwardRef } from "react";
 import { format } from "date-fns";
-import { Check, MoreHorizontal, Undo2, X } from "lucide-react";
+import { Check, MoreHorizontal, X } from "lucide-react";
 import { NODE_ICON_MAP } from "@/lib/constants/node-icons";
 import { cn } from "@/lib/utils";
 import { getAgingFilter, getAgingState } from "@/lib/utils/aging";
@@ -17,8 +17,9 @@ import {
 import { useArchiveActions } from "@/hooks/use-archive";
 import { useEditModeStore } from "@/stores/edit-mode-store";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { statusEmphasisProps, useStatusPresentation } from "@/components/feedback/status-icon";
 import { ExplorerTitle, useExplorerCardTooltips } from "./explorer-title-tooltip";
+import { NewlyUndoSlot, type NewlyUndoSlotModel } from "./newly-undo-slot";
 import type { Bit } from "@/types";
 
 type BitCardProps = {
@@ -31,14 +32,7 @@ type BitCardProps = {
   isDragging?: boolean;
   isNewlyPlaced?: boolean;
   undoActionRef?: Ref<HTMLButtonElement>;
-  undo?: Readonly<{
-    disabled: boolean;
-    describedBy?: string;
-    label?: string;
-    onActivate: () => void;
-    reason: string;
-    tooltip?: string;
-  }>;
+  undo?: NewlyUndoSlotModel;
 } & Omit<ComponentPropsWithoutRef<"div">, "children" | "onClick">;
 
 export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard(
@@ -82,33 +76,7 @@ export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard
   );
   const formattedDeadline = bit.deadline ? format(new Date(bit.deadline), "MMM d") : null;
 
-  const undoButton = undo !== undefined ? (
-<button
-          data-triage-role="explorer-card-undo"
-          type="button"
-          aria-describedby={undo.describedBy}
-          aria-disabled={undo.disabled}
-          aria-label={
-            undo.label === undefined ||
-            undo.label === INBOX_TRIAGE_COPY.newlyPlacedUndo.actions.undo
-              ? `Undo placement of ${bit.title}`
-              : undo.label
-          }
-          className="newly-undo-action absolute bottom-0 right-0 z-20 rounded px-1 text-[10px] font-semibold"
-          data-undo-reason={undo.reason}
-          ref={undoActionRef}
-          onKeyDown={isExplorer ? (event) => event.stopPropagation() : undefined}
-          onClick={(event) => {
-            event.stopPropagation();
-            if (undo.disabled) return;
-            undo.onActivate();
-          }}
-        >
-          {isExplorer && (undo.label === undefined || undo.label === INBOX_TRIAGE_COPY.newlyPlacedUndo.actions.undo)
-            ? <Undo2 aria-hidden="true" className="size-3" />
-            : undo.label ?? INBOX_TRIAGE_COPY.newlyPlacedUndo.actions.undo}
-        </button>
-  ) : null;
+  const undoPresentation = useStatusPresentation(undo?.status ?? null, undo?.phaseKey);
 
   return (
     <div
@@ -119,6 +87,7 @@ export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard
       data-card-muted={isComplete || (!isExplorer && pastDeadline) ? "true" : undefined}
       data-card-state={isComplete ? "completed" : pastDeadline ? "overdue" : "active"}
       data-newly-placed={isNewlyPlaced ? "true" : undefined}
+      {...statusEmphasisProps(undoPresentation)}
       className={cn(
         "group/bit relative z-10 inline-flex shrink-0 select-none items-stretch rounded-[10px] border border-border bg-card shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
         isExplorer ? "cursor-default" : "cursor-grab active:cursor-grabbing",
@@ -244,18 +213,18 @@ export const BitCard = forwardRef<HTMLDivElement, BitCardProps>(function BitCard
         </span>
       ) : null}
 
-      {undo !== undefined && isExplorer ? (
-        <TooltipProvider><Tooltip
-          open={undo.tooltip === undefined ? false : tooltips.undoOpen}
-          onOpenChange={undo.tooltip === undefined ? undefined : tooltips.onUndoOpenChange}
-        >
-          <TooltipTrigger asChild>{undoButton}</TooltipTrigger>
-          {undo.tooltip !== undefined ? <TooltipContent side="top" sideOffset={4} avoidCollisions={false}
-            className="newly-undo-tooltip" data-triage-role="explorer-undo-tooltip">
-            {undo.tooltip}
-          </TooltipContent> : null}
-        </Tooltip></TooltipProvider>
-      ) : undoButton}
+      {undo !== undefined ? (
+        <NewlyUndoSlot
+          buttonRef={undoActionRef}
+          className="newly-undo-action absolute bottom-0 right-0 z-20 rounded px-1 text-[10px] font-semibold"
+          model={undo}
+          onKeyDown={isExplorer ? (event) => event.stopPropagation() : undefined}
+          open={isExplorer ? tooltips.undoOpen : undefined}
+          onOpenChange={isExplorer ? tooltips.onUndoOpenChange : undefined}
+          presentation={undoPresentation}
+          role="explorer-card-undo"
+        />
+      ) : null}
 
       {/* Past-deadline overlay */}
       {!isExplorer && pastDeadline ? (

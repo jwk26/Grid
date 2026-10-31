@@ -2,9 +2,11 @@
 
 import { Sidebar } from "@/components/layout/sidebar";
 import { TrashList } from "@/components/trash/trash-list";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useTrashData } from "@/hooks/use-trash-data";
 
 export default function TrashPage() {
+  useDocumentTitle("Trash");
   const { items, isLoading } = useTrashData();
 
   return (

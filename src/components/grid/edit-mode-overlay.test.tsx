@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { useEditModeStore } from "@/stores/edit-mode-store";
 import { EditModeOverlay } from "./edit-mode-overlay";
@@ -16,7 +16,7 @@ describe("EditModeOverlay", () => {
     expect(screen.queryByText("Edit Mode — Press ESC to exit")).not.toBeInTheDocument();
   });
 
-  it("renders the overlay and exits edit mode on Escape", async () => {
+  it("renders the overlay and leaves Escape to the layer order owner in GridRuntime", () => {
     useEditModeStore.setState({ isEditMode: true });
 
     render(<EditModeOverlay />);
@@ -25,9 +25,6 @@ describe("EditModeOverlay", () => {
 
     fireEvent.keyDown(document, { key: "Escape" });
 
-    await waitFor(() => {
-      expect(screen.queryByText("Edit Mode — Press ESC to exit")).not.toBeInTheDocument();
-    });
-    expect(useEditModeStore.getState().isEditMode).toBe(false);
+    expect(useEditModeStore.getState().isEditMode).toBe(true);
   });
 });

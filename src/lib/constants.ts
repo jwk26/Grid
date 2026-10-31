@@ -1,3 +1,6 @@
+// The product name in tab titles (SPEC §Feedback copy); Task 239 renames it to "grid".
+export const APP_NAME = "GridDO";
+
 // Grid dimensions
 export const GRID_COLS = 18;
 export const GRID_ROWS = 9;
@@ -21,6 +24,10 @@ export const INBOX_BADGE_HIGH_THRESHOLD = 15;
 // Display delay (feedback F02): a pending or reconciling presentation shows only
 // after this long. It postpones presentation and never decides success.
 export const DISPLAY_DELAY_MS = 300;
+
+// Breadcrumb reveal (feedback F22, F23; SPEC §Breadcrumb reveal and Home button)
+export const BREADCRUMB_HIDE_DELAY_MS = 1000;
+export const BREADCRUMB_ENTRY_REVEAL_MS = 3000;
 
 // Account snapshot writes (SPEC Write feel, Architecture Decision 19)
 export const REQUEST_TIMEOUT_MS = 15000;

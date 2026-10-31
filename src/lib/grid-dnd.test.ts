@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useBreadcrumbZoneStore } from "@/stores/breadcrumb-zone-store";
 import {
+  getGridBreadcrumbDropId,
+  getGridCellDropId,
+  getGridNodeDropId,
   getTriageRemoveDropId,
   gridCollisionDetection,
+  isGridBreadcrumbDropId,
   isTriageDropData,
   triageCollisionDetection,
 } from "./grid-dnd";
@@ -19,7 +22,6 @@ describe("gridCollisionDetection", () => {
   beforeEach(() => {
     closestCenterMock.mockReset();
     pointerWithinMock.mockReset();
-    useBreadcrumbZoneStore.setState({ blockedCells: new Set() });
   });
 
   it("returns node-drop targets when the pointer is inside one", () => {
@@ -78,16 +80,24 @@ describe("gridCollisionDetection", () => {
     expect(closestCenterMock).not.toHaveBeenCalled();
   });
 
-  it("excludes blocked grid-cell candidates from closestCenter results", () => {
+  it("puts the breadcrumb target first when a Node card sits under the segment", () => {
     const args = { collisionRect: null } as never;
-    const blockedTarget = { id: "grid-cell:root:0:0" };
-    const availableTarget = { id: "grid-cell:root:1:0" };
+    const nodeTarget = { id: "grid-node-drop:card-under-the-bar" };
+    const breadcrumbTarget = { id: "grid-breadcrumb:parent-node" };
 
-    useBreadcrumbZoneStore.setState({ blockedCells: new Set(["0,0"]) });
+    pointerWithinMock.mockReturnValue([nodeTarget, breadcrumbTarget]);
+
+    expect(gridCollisionDetection(args)).toEqual([breadcrumbTarget, nodeTarget]);
+  });
+
+  it("keeps a top-left grid cell as a drop target", () => {
+    const args = { collisionRect: null } as never;
+    const topLeft = { id: "grid-cell:root:0:0" };
+
     pointerWithinMock.mockReturnValue([]);
-    closestCenterMock.mockReturnValue([blockedTarget, availableTarget]);
+    closestCenterMock.mockReturnValue([topLeft]);
 
-    expect(gridCollisionDetection(args)).toEqual([availableTarget]);
+    expect(gridCollisionDetection(args)).toEqual([topLeft]);
   });
 });
 
@@ -109,5 +119,16 @@ describe("triage dnd helpers", () => {
     pointerWithinMock.mockReturnValue([unrelatedTarget, removeTarget]);
 
     expect(triageCollisionDetection(args)).toEqual([removeTarget]);
+  });
+});
+
+describe("breadcrumb drop ids", () => {
+  it("tells a breadcrumb drop id from the other drop ids", () => {
+    expect(isGridBreadcrumbDropId(getGridBreadcrumbDropId(null))).toBe(true);
+    expect(isGridBreadcrumbDropId(getGridBreadcrumbDropId("n1"))).toBe(true);
+    expect(isGridBreadcrumbDropId(getGridNodeDropId("n1"))).toBe(false);
+    expect(isGridBreadcrumbDropId(getGridCellDropId(null, 0, 0))).toBe(false);
+    expect(isGridBreadcrumbDropId(undefined)).toBe(false);
+    expect(isGridBreadcrumbDropId(42)).toBe(false);
   });
 });

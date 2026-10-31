@@ -1,8 +1,13 @@
 import type { ComponentProps } from "react";
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TriageDragItem } from "@/hooks/use-dnd";
+import {
+  clearForcedItemStates,
+  forcedItemKeys,
+  registerForcedItemStates,
+} from "@/lib/feedback/forced-item-status";
 import type { StagedCandidateProjection } from "@/hooks/use-staged-candidates";
 import { StagingAlertBand, StagingSubsection, StagingZone } from "./staging-zone";
 
@@ -511,9 +516,16 @@ describe("StagingZone — DP-VQ06-STAGING state projection", () => {
     );
 
     expect(screen.getByText("Keep me")).toBeInTheDocument();
-    expect(
-      screen.getByText("We couldn’t confirm whether “Keep me” was returned."),
-    ).toHaveAttribute("data-triage-state", "unknown");
+    const icon = screen.getByRole("img", {
+      name: "We couldn’t confirm whether “Keep me” was returned.",
+    });
+    expect(icon).toHaveAttribute("data-glyph", "question");
+    expect(icon.closest('[data-triage-role="staging-operation-status"]')).toHaveAttribute(
+      "data-triage-state",
+      "unknown",
+    );
+    // No command to check again unless the zone is given a way to run it.
+    expect(screen.queryByRole("button", { name: /We couldn’t confirm/ })).toBeNull();
     expect(useDraggableMock).toHaveBeenCalledOnce();
   });
 
@@ -536,10 +548,11 @@ describe("StagingZone — DP-VQ06-STAGING state projection", () => {
       />,
     );
 
-    expect(screen.getByText("Checking a staged Node source…")).toHaveAttribute(
-      "data-triage-role",
-      "staging-integrity-status",
-    );
+    const icon = screen.getByRole("img", { name: "Checking a staged Node source…" });
+    expect(icon).toHaveAttribute("data-glyph", "exclamation");
+    // The host is not in the Tab order, so the icon takes focus.
+    expect(icon).toHaveAttribute("tabindex", "0");
+    expect(icon.closest('[data-triage-role="staging-integrity-status"]')).not.toBeNull();
     expect(screen.queryByText("Unavailable")).not.toBeInTheDocument();
     expect(useDraggableMock).not.toHaveBeenCalled();
   });
@@ -729,20 +742,206 @@ describe("StagingZone — commit-to-snapshot repair (Task 176A)", () => {
     expect(screen.queryByText("Returning “Keep me” to Breakdown…")).not.toBeInTheDocument();
   });
 
-  it("keeps the in-card line for unknown and reconciling, outside any dimmed element", () => {
-    renderCard(operation({ phase: "unknown" }));
-    const unknown = screen.getByText("We couldn’t confirm whether “Keep me” was returned.");
-    expect(unknown).toHaveAttribute("data-triage-state", "unknown");
+  it("shows `?` for unknown and reconciling, outside any dimmed element, and nothing for a held pending", () => {
+    const card = renderCard(operation({ phase: "unknown" }));
+    const unknown = screen.getByRole("img", {
+      name: "We couldn’t confirm whether “Keep me” was returned.",
+    });
+    expect(unknown).toHaveAttribute("data-glyph", "question");
+    expect(card).toHaveAttribute("data-status-emphasis");
     expect(unknown.closest(".opacity-30")).toBeNull();
     cleanup();
     renderCard(operation({ phase: "reconciling" }));
-    expect(screen.getByText("Checking whether “Keep me” was returned…")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Checking whether “Keep me” was returned…" }),
+    ).toHaveAttribute("data-glyph", "question");
     cleanup();
     renderCard(operation({ phase: "reconciling", held: true }));
-    expect(screen.getByText("Checking whether “Keep me” was returned…")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Checking whether “Keep me” was returned…" }),
+    ).toBeInTheDocument();
     cleanup();
-    renderCard(operation({ phase: "pending", held: true }));
-    expect(screen.queryByText(/Returning/)).not.toBeInTheDocument();
+    const pending = renderCard(operation({ phase: "pending", held: true }));
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(pending).not.toHaveAttribute("data-status-emphasis");
+  });
+
+  it("shows the loader only after the 300ms display delay while pending", () => {
+    vi.useFakeTimers();
+    try {
+      renderCard(operation({ kind: "stage", phase: "pending" }));
+      expect(screen.queryByRole("img")).toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(screen.getByRole("img")).toHaveAttribute("data-glyph", "loader");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  describe("an unknown command's `?` (Phase 50 mi-11)", () => {
+    function renderChecked(op: View, onCheckAgain = vi.fn()) {
+      render(
+        <StagingZone
+          type="node"
+          projection={{ candidates: [], integrityCandidates: [], operations: [op] }}
+          onCheckAgain={onCheckAgain}
+        />,
+      );
+      return onCheckAgain;
+    }
+
+    it("is a button that runs the read-only check, with `Select to check again.` in its sentence", () => {
+      const onCheckAgain = renderChecked(
+        operation({ kind: "stage", phase: "unknown", candidateId: "p1", title: "Plan it" }),
+      );
+      const button = screen.getByRole("button", {
+        name: "We couldn’t confirm whether “Plan it” was staged. Select to check again.",
+      });
+      fireEvent.click(button);
+      expect(onCheckAgain).toHaveBeenCalledExactlyOnceWith("op-1");
+    });
+
+    it("is unavailable while the check runs, without a hint", () => {
+      const onCheckAgain = renderChecked(
+        operation({ kind: "stage", phase: "reconciling", candidateId: "p1", title: "Plan it" }),
+      );
+      const button = screen.getByRole("button", {
+        name: "Checking whether “Plan it” was staged…",
+      });
+      expect(button).toHaveAttribute("aria-disabled", "true");
+      fireEvent.click(button);
+      expect(onCheckAgain).not.toHaveBeenCalled();
+    });
+
+    it("stays a button on a durable candidate whose Unstage is unknown", () => {
+      const onCheckAgain = vi.fn();
+      const staged = createCandidate({ id: "candidate-1", content: "Keep me" });
+      render(
+        <StagingZone
+          type="node"
+          projection={{
+            candidates: [staged],
+            integrityCandidates: [],
+            operations: [operation({ phase: "unknown" })],
+          }}
+          onCheckAgain={onCheckAgain}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: /Select to check again\.$/ }));
+      expect(onCheckAgain).toHaveBeenCalledWith("op-1");
+    });
+  });
+
+  describe("a state forced by the development switch", () => {
+    afterEach(() => clearForcedItemStates());
+
+    it.each([
+      ["unknown", "question", "We couldn’t confirm whether “Keep me” was returned."],
+      ["conflict", "exclamation", "“Keep me” changed elsewhere and remains staged."],
+      ["integrity", "exclamation", "“Keep me”: Checking a staged Node source…"],
+    ] as const)("shows %s on the candidate", (state, glyph, sentence) => {
+      act(() => registerForcedItemStates({ [forcedItemKeys.candidate("candidate-1")]: state }));
+      const card = renderCard(null);
+      expect(screen.getByRole("img", { name: sentence })).toHaveAttribute("data-glyph", glyph);
+      expect(card).toHaveAttribute("data-status-emphasis");
+    });
+
+    it("shows no status for a forced editor-offline", () => {
+      act(() =>
+        registerForcedItemStates({ [forcedItemKeys.candidate("candidate-1")]: "editor-offline" }),
+      );
+      renderCard(null);
+      expect(screen.queryByRole("img")).toBeNull();
+    });
+  });
+
+  describe("the card root while a status shows (SPEC §Item status presentation)", () => {
+    function renderWith(op: View | null, check = false) {
+      useDraggableMock.mockReturnValue({
+        setNodeRef: vi.fn(),
+        setActivatorNodeRef: vi.fn(),
+        attributes: { role: "button", tabIndex: 0, "aria-describedby": "dnd-hint" },
+        listeners: {},
+        isDragging: false,
+      });
+      const staged = createCandidate({ id: "candidate-1", content: "Keep me" });
+      render(
+        <StagingZone
+          type="node"
+          projection={{
+            candidates: [staged],
+            integrityCandidates: [],
+            operations: op === null ? [] : [op],
+          }}
+          onCheckAgain={check ? vi.fn() : undefined}
+        />,
+      );
+      return screen.getByTestId("node-candidate-card");
+    }
+
+    it("points at the status sentence next to dnd-kit's own description", () => {
+      const card = renderWith(operation({ phase: "unknown" }));
+      const ids = card.getAttribute("aria-describedby")!.split(" ");
+      expect(ids[0]).toBe("dnd-hint");
+      expect(document.getElementById(ids[1])).toHaveTextContent(
+        "We couldn’t confirm whether “Keep me” was returned.",
+      );
+    });
+
+    it("keeps only dnd-kit's description when no status shows", () => {
+      const card = renderWith(null);
+      expect(card).toHaveAttribute("aria-describedby", "dnd-hint");
+      expect(card).toHaveAttribute("role", "button");
+    });
+
+    it("drops the button role and tab stop while a `?` check is on the card", () => {
+      const card = renderWith(operation({ phase: "unknown" }), true);
+      expect(card).not.toHaveAttribute("role");
+      expect(card).not.toHaveAttribute("tabindex");
+      expect(within(card).getByRole("button")).toBeInTheDocument();
+    });
+
+    it("keeps the role and tab stop without a check", () => {
+      const card = renderWith(operation({ phase: "unknown" }), false);
+      expect(card).toHaveAttribute("role", "button");
+      expect(card).toHaveAttribute("tabindex", "0");
+    });
+  });
+
+  describe("an Unstage failure on the candidate", () => {
+    function renderFailed(copy: string) {
+      const staged = createCandidate({ id: "candidate-1", content: "Keep me" });
+      render(
+        <StagingZone
+          type="node"
+          projection={{
+            candidates: [staged],
+            integrityCandidates: [],
+            operations: [],
+            unstageFailures: new Map([["candidate-1", { copy }]]),
+          }}
+        />,
+      );
+      return screen.getByTestId("node-candidate-card");
+    }
+
+    it("shows `!` with emphasis and the sentence, and no button", () => {
+      const card = renderFailed("“Keep me” changed elsewhere and remains staged.");
+      expect(
+        screen.getByRole("img", { name: "“Keep me” changed elsewhere and remains staged." }),
+      ).toHaveAttribute("data-glyph", "exclamation");
+      expect(card).toHaveAttribute("data-status-emphasis");
+      expect(screen.queryByRole("button")).toBeNull();
+    });
+
+    it("leads the sentence with the full title when it does not contain it", () => {
+      renderFailed("It changed elsewhere.");
+      expect(
+        screen.getByRole("img", { name: "“Keep me”: It changed elsewhere." }),
+      ).toBeInTheDocument();
+    });
   });
 
   it("renders a Stage projection with the candidate's title in the durable layout and keeps the unknown line", () => {
@@ -776,9 +975,12 @@ describe("StagingZone — commit-to-snapshot repair (Task 176A)", () => {
         }}
       />,
     );
-    expect(
-      screen.getByText("We couldn’t confirm whether “Plan it” was staged."),
-    ).toBeInTheDocument();
+    const icon = screen.getByRole("img", {
+      name: "We couldn’t confirm whether “Plan it” was staged.",
+    });
+    expect(icon).toHaveAttribute("data-glyph", "question");
+    // A Stage projection is not in the Tab order, so its icon takes focus.
+    expect(icon).toHaveAttribute("tabindex", "0");
   });
 
   it("dims the dragged card with no operation, and does not dim unknown or reconciling Unstage", () => {

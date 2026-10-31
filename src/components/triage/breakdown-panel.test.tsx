@@ -12,7 +12,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   BreakdownOperationProjection,
   ConditionalEditorSnapshot,
@@ -23,6 +23,11 @@ import {
   type TriageDepartureController,
 } from "@/hooks/use-triage-departure";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
+import {
+  clearForcedItemStates,
+  forcedItemKeys,
+  registerForcedItemStates,
+} from "@/lib/feedback/forced-item-status";
 import type { ScratchBreakdown } from "@/lib/db/schema";
 import type { Bit } from "@/types";
 import { useTriagePreferencesStore } from "@/stores/triage-preferences-store";
@@ -99,6 +104,21 @@ const getDataStoreMock = vi.hoisted(() => vi.fn());
 const archiveBitMock = vi.hoisted(() => vi.fn());
 const useInboxMock = vi.hoisted(() => vi.fn());
 const currentTime = new Date(2026, 5, 17, 12, 0, 0).getTime();
+function announcementOf(role: string): HTMLElement {
+  const element = document.querySelector<HTMLElement>(`[data-triage-role="${role}"]`);
+  if (element === null) throw new Error(`no ${role}`);
+  return element;
+}
+
+function announcementRegion(): HTMLElement {
+  const region = document.querySelector<HTMLElement>(
+    '[data-feedback-role="status-announcement"]',
+  );
+  if (region === null) throw new Error("no status announcement region");
+  return region;
+}
+
+const panelSource = readFileSync(join(process.cwd(), "src/components/triage/breakdown-panel.tsx"), "utf8");
 const globalsCss = readFileSync(
   join(process.cwd(), "src/app/globals.css"),
   "utf8",
@@ -467,6 +487,18 @@ function BreakdownPanel(
   );
 }
 
+beforeAll(() => {
+  // Radix Popper measures its anchor; jsdom has no ResizeObserver.
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+});
+
 describe("BreakdownPanel first read after a Scratch switch (MI-22)", () => {
   const readyState = (isReady: boolean, breakdowns: unknown[] = []) => ({
     breakdowns,
@@ -541,8 +573,7 @@ describe("BreakdownPanel first read after a Scratch switch (MI-22)", () => {
 });
 
 describe("BreakdownPanel", () => {
-  it("shows an authoritative Unstage signal once, preserves focus, and clears it at 1600ms", async () => {
-    vi.useFakeTimers();
+  it("announces an authoritative Unstage once, shows nothing on the row and keeps focus", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1", content: "Returned row" }),
@@ -556,30 +587,25 @@ describe("BreakdownPanel", () => {
     const grip = screen.getByRole("button", { name: "Drag breakdown" });
     grip.focus();
 
-    const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("✓ Returned to Breakdown.");
-    expect(status).toHaveAttribute("aria-live", "polite");
-    expect(status).toHaveAttribute("aria-atomic", "true");
-    expect(status.querySelector("[aria-hidden=true]")).toHaveTextContent("✓");
-    expect(screen.getByTestId("breakdown-row")).toHaveAttribute(
-      "data-triage-state",
-      "success",
-    );
+    const live = announcementRegion();
+    expect(live).toHaveTextContent("Returned to Breakdown.");
+    expect(live).toHaveAttribute("aria-live", "polite");
+    expect(live).toHaveAttribute("aria-atomic", "true");
+    expect(live).toHaveClass("sr-only");
+    const row = screen.getByTestId("breakdown-row");
+    expect(row).toHaveAttribute("data-triage-state", "active");
+    expect(row).not.toHaveTextContent("Returned to Breakdown.");
+    expect(row).not.toHaveTextContent("✓");
+    expect(screen.getByTestId("breakdown-status-slot")).toBeEmptyDOMElement();
     expect(grip).toHaveFocus();
 
-    act(() => vi.advanceTimersByTime(1599));
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    view.rerender(<BreakdownPanel successSignal={signal} />);
-    act(() => vi.advanceTimersByTime(1));
-    expect(screen.queryByRole("status")).toBeNull();
-
+    // The same identity, rerendered or replayed, is not announced again.
+    const textNode = live.firstElementChild;
     view.rerender(<BreakdownPanel successSignal={{ ...signal }} />);
-    act(() => vi.advanceTimersByTime(1600));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcementRegion().firstElementChild).toBe(textNode);
   });
 
-  it("interrupts a prior success with a different identity and restarts the exact lifetime", () => {
-    vi.useFakeTimers();
+  it("announces a different Unstage identity again", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1", content: "First" }),
@@ -590,30 +616,18 @@ describe("BreakdownPanel", () => {
         successSignal={{ kind: "unstage", operationId: "unstage-1", rowId: "row-1" }}
       />,
     );
-
-    act(() => vi.advanceTimersByTime(1000));
+    const first = announcementRegion().firstElementChild;
+    expect(first).not.toBeNull();
     view.rerender(
       <BreakdownPanel
         successSignal={{ kind: "unstage", operationId: "unstage-2", rowId: "row-2" }}
       />,
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Returned to Breakdown.",
-    );
-    expect(
-      screen
-        .getAllByTestId("breakdown-row")
-        .find((row) => row.getAttribute("data-breakdown-id") === "row-2"),
-    ).toHaveAttribute("data-triage-state", "success");
-
-    act(() => vi.advanceTimersByTime(600));
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(1000));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcementRegion()).toHaveTextContent("Returned to Breakdown.");
+    expect(announcementRegion().firstElementChild).not.toBe(first);
   });
 
-  it("starts Unstage lifetime only after the source row is restored as active", () => {
-    vi.useFakeTimers();
+  it("announces Unstage only after the source row is restored as active", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1", content: "Delayed restore" }),
@@ -633,17 +647,10 @@ describe("BreakdownPanel", () => {
     };
     const view = render(<BreakdownPanel successSignal={signal} />);
 
-    expect(screen.queryByRole("status")).toBeNull();
-    act(() => vi.advanceTimersByTime(1000));
+    expect(announcementRegion()).toBeEmptyDOMElement();
     triageStoreState.stagedCandidates["scratch-1"] = [];
     view.rerender(<BreakdownPanel successSignal={signal} />);
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Returned to Breakdown.",
-    );
-    act(() => vi.advanceTimersByTime(1599));
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(1));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcementRegion()).toHaveTextContent("Returned to Breakdown.");
   });
 
   it("treats a source in stagedSourceIds as staged before any candidate is listed, with grip, Edit and Delete disabled", () => {
@@ -729,8 +736,7 @@ describe("BreakdownPanel", () => {
     expect(editorState.invalidate).toHaveBeenCalled();
   });
 
-  it("holds the Unstage success signal while the source is still in stagedSourceIds", () => {
-    vi.useFakeTimers();
+  it("holds the Unstage announcement while the source is still in stagedSourceIds", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1", content: "Held unstage" }),
@@ -749,7 +755,7 @@ describe("BreakdownPanel", () => {
         successSignal={signal}
       />,
     );
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcementRegion()).toBeEmptyDOMElement();
 
     view.rerender(
       <RealBreakdownPanel
@@ -760,45 +766,10 @@ describe("BreakdownPanel", () => {
         successSignal={signal}
       />,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Returned to Breakdown.");
+    expect(announcementRegion()).toHaveTextContent("Returned to Breakdown.");
   });
 
-  it("keeps the row-local status mounted if inline edit begins during its lifetime", () => {
-    vi.useFakeTimers();
-    triageStoreState.selectedScratchId = "scratch-1";
-    hookState.breakdownsByScratch["scratch-1"] = [
-      createScratchBreakdown({ id: "row-1", content: "Edit during success" }),
-    ];
-    const signal = {
-      kind: "unstage" as const,
-      operationId: "unstage-edit",
-      rowId: "row-1",
-    };
-    const view = render(<BreakdownPanel successSignal={signal} />);
-    act(() => vi.advanceTimersByTime(600));
-    editorState.snapshot = {
-      target: { kind: "breakdown", id: "row-1" },
-      phase: "dirty",
-      base: { value: "Edit during success", version: 1, order: 0 },
-      draft: "Editing",
-      latest: null,
-      copyableDraft: null,
-      pendingIntent: false,
-      focusIntent: "field",
-      command: null,
-    };
-    view.rerender(<BreakdownPanel successSignal={signal} />);
-
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Returned to Breakdown.",
-    );
-    act(() => vi.advanceTimersByTime(999));
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(1));
-    expect(screen.queryByRole("status")).toBeNull();
-  });
-
-  it("turns a confirmed local Add into the shared row signal without moving input focus", async () => {
+  it("announces a confirmed local Add without showing it or moving input focus", async () => {
     const originalScrollIntoView = Element.prototype.scrollIntoView;
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -825,7 +796,11 @@ describe("BreakdownPanel", () => {
     fireEvent.change(input, { target: { value: "New row" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(await screen.findByRole("status")).toHaveTextContent("✓ Added.");
+    await waitFor(() =>
+      expect(announcementRegion()).toHaveTextContent("Added."),
+    );
+    expect(screen.getByTestId("breakdown-row")).not.toHaveTextContent("Added.");
+    expect(screen.queryByText("✓")).toBeNull();
     expect(input).toHaveFocus();
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -833,8 +808,7 @@ describe("BreakdownPanel", () => {
     });
   });
 
-  it("starts Add lifetime only when its committed row projection mounts", async () => {
-    vi.useFakeTimers();
+  it("announces Add only when its committed row projection mounts", async () => {
     const originalScrollIntoView = Element.prototype.scrollIntoView;
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -861,42 +835,31 @@ describe("BreakdownPanel", () => {
     fireEvent.keyDown(input, { key: "Enter" });
     await act(async () => Promise.resolve());
 
-    expect(screen.queryByRole("status")).toBeNull();
-    act(() => vi.advanceTimersByTime(1000));
+    expect(announcementRegion()).toBeEmptyDOMElement();
     hookState.breakdownsByScratch["scratch-1"] = [committedRow!];
     view.rerender(<BreakdownPanel />);
-    expect(screen.getByRole("status")).toHaveTextContent("Added.");
-    act(() => vi.advanceTimersByTime(1599));
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(1));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(announcementRegion()).toHaveTextContent("Added.");
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
       value: originalScrollIntoView,
     });
   });
 
-  it("reserves the success slot and binds exact motion and reduced-motion CSS", () => {
+  it("reserves a 22px empty status slot and carries no success wash, check or 160px slot", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1" }),
     ];
     render(<BreakdownPanel />);
 
-    expect(screen.getByTestId("breakdown-success-slot")).toBeEmptyDOMElement();
-    expect(globalsCss).toContain("animation: breakdown-success-wash 600ms ease-out forwards");
-    expect(globalsCss).toContain('[data-triage-state~="success"]');
-    expect(globalsCss).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(globalsCss).toContain(".breakdown-success-status");
-    for (const theme of [
-      "neumorphism",
-      "claymorphism",
-      "retro-mac",
-    ]) {
-      expect(globalsCss).toContain(
-        `[data-color-theme="${theme}"] [data-triage-role="breakdown-active-row"][data-triage-state~="success"]`,
-      );
-    }
+    expect(screen.getByTestId("breakdown-status-slot")).toBeEmptyDOMElement();
+    expect(globalsCss).toContain("--triage-breakdown-status-slot: 22px;");
+    expect(getCssBlock(".triage-fixed-breakdown-row")).toContain(
+      "var(--triage-breakdown-status-slot)",
+    );
+    expect(globalsCss).not.toMatch(/breakdown-success|data-triage-state~="success"/);
+    expect(globalsCss).not.toContain("--triage-breakdown-success-reserve");
+    expect(INBOX_TRIAGE_COPY).not.toHaveProperty("breakdownSuccess");
   });
   it("exposes a transient Breakdown drop-back target only for a staged drag", () => {
     triageStoreState.selectedScratchId = "scratch-1";
@@ -1063,23 +1026,27 @@ describe("BreakdownPanel", () => {
   });
 
   it("maps DP-VQ05 through all eight theme families with reduced-motion-identical static treatment", () => {
-    expect(globalsCss).toContain(".breakdown-add-reliability");
-    expect(globalsCss).toContain(".breakdown-delete-reliability");
+    expect(globalsCss).not.toContain(".breakdown-add-reliability");
+    expect(globalsCss).toMatch(
+      /:root:root \.triage-shell \.breakdown-add-field-wrap > \[data-triage-role="breakdown-add-field"\] \{\s*padding-inline-end: 30px;/,
+    );
+    expect(globalsCss).toMatch(
+      /color-theme="retro-mac"\] \.triage-shell \.breakdown-add-field-wrap:focus-within \.breakdown-add-status-icon \{\s*color: var\(--triage-context-surface\);/,
+    );
+    expect(globalsCss).toContain(".breakdown-add-status-icon");
+    expect(globalsCss).not.toContain(".breakdown-delete-reliability");
     for (const theme of [
       "neumorphism",
       "claymorphism",
       "retro-mac",
     ]) {
       expect(globalsCss).toContain(
-        `:root[data-color-theme="${theme}"] .breakdown-reliability`,
+        `:root[data-color-theme="${theme}"] .breakdown-reliability__action`,
       );
     }
+    expect(globalsCss).not.toMatch(/\.breakdown-reliability[ ,{]/);
     expect(globalsCss).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.breakdown-reliability,[\s\S]*\.breakdown-reliability \*[\s\S]*animation: none !important;[\s\S]*transition: none !important;/,
-    );
-    const reliabilityBlock = getCssBlock(".breakdown-reliability");
-    expect(reliabilityBlock).not.toMatch(
-      /animation|transform|transition|blink|pulse|bounce|spin/i,
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.breakdown-reliability__action,[\s\S]*animation: none !important;[\s\S]*transition: none !important;/,
     );
   });
 
@@ -1432,7 +1399,8 @@ describe("BreakdownPanel", () => {
       expect(fireEvent.keyDown(field, { key: "End" })).toBe(true);
       expect(field.selectionStart).toBe(60);
       expect(field).toHaveValue("T".repeat(60));
-      expect(field).toHaveFocus();
+      // Reconciling keeps focus on Check again.
+      if (phase === "saving") expect(field).toHaveFocus();
       expect(editorState.changeDraft).not.toHaveBeenCalled();
       expect(editorState.save).not.toHaveBeenCalled();
       expect(editorState.cancel).not.toHaveBeenCalled();
@@ -1669,8 +1637,6 @@ describe("BreakdownPanel", () => {
   });
 
   it.each([
-    ["offline", "Offline. Your draft is still here."],
-    ["not_applied", "Not saved. Your draft is still here."],
     ["conflict", "This changed elsewhere."],
     ["invalidated", "Draft not saved"],
   ] as const)(
@@ -1680,9 +1646,6 @@ describe("BreakdownPanel", () => {
       hookState.breakdownsByScratch["scratch-1"] = [
         createScratchBreakdown({ id: "row-1", content: "Authority" }),
       ];
-      if (phase === "offline") {
-        getConnectionMonitor().setForced("offline");
-      }
       editorState.snapshot = {
         target: { kind: "breakdown", id: "row-1" },
         phase,
@@ -1717,16 +1680,6 @@ describe("BreakdownPanel", () => {
         ),
       ).toHaveLength(1);
 
-      if (phase === "offline" || phase === "not_applied") {
-        const retry = within(overlay).getByRole("button", {
-          name: "Retry save",
-        });
-        if (phase === "offline") expect(retry).toBeDisabled();
-        else expect(retry).toBeEnabled();
-        expect(
-          within(overlay).getByRole("button", { name: "Cancel" }),
-        ).toBeVisible();
-      }
       if (phase === "conflict") {
         expect(
           within(overlay).getByRole("button", { name: "Use mine" }),
@@ -1763,7 +1716,6 @@ describe("BreakdownPanel", () => {
     ["scratch-title", "dirty", null],
     ["scratch-title", "validation", "Enter a Scratch title."],
     ["scratch-title", "saving", "Saving…"],
-    ["scratch-title", "offline", "Offline. Your draft is still here."],
     ["scratch-title", "not_applied", "Not saved. Your draft is still here."],
     ["scratch-title", "reconciling", "Checking whether your changes were saved…"],
     ["scratch-title", "conflict", "This changed elsewhere."],
@@ -1772,7 +1724,6 @@ describe("BreakdownPanel", () => {
     ["breakdown", "dirty", null],
     ["breakdown", "validation", "Enter breakdown content."],
     ["breakdown", "saving", "Saving…"],
-    ["breakdown", "offline", "Offline. Your draft is still here."],
     ["breakdown", "not_applied", "Not saved. Your draft is still here."],
     ["breakdown", "reconciling", "Checking whether your changes were saved…"],
     ["breakdown", "conflict", "This changed elsewhere."],
@@ -1830,10 +1781,7 @@ describe("BreakdownPanel", () => {
         ).not.toBeInTheDocument();
       } else {
         const statusOwner =
-          phase === "offline" ||
-          phase === "not_applied" ||
-          phase === "conflict" ||
-          phase === "invalidated"
+          phase === "conflict" || phase === "invalidated"
             ? (surface as HTMLElement).closest(
                 '[data-triage-layout="fixed-inline-editor"]',
               )
@@ -1845,21 +1793,28 @@ describe("BreakdownPanel", () => {
       if (phase === "saving" || phase === "reconciling") {
         const field = within(surface as HTMLElement).getByRole("textbox");
         expect(field).toHaveAttribute("readonly");
-        expect(field).toHaveFocus();
+        if (phase === "saving") expect(field).toHaveFocus();
         const sourceSurface = (surface as HTMLElement).closest(
           '[data-triage-layout="fixed-inline-editor"]',
-        );
-        expect(
-          within(sourceSurface as HTMLElement).getByTestId(
+        ) as HTMLElement;
+        const actions = within(
+          within(sourceSurface).getByTestId(
             targetKind === "scratch-title"
               ? "context-action-slot"
               : "breakdown-action-slot",
           ),
-        ).toHaveTextContent(
-          phase === "saving"
-            ? "Saving…"
-            : "Checking whether your changes were saved…",
         );
+        // No progress text any more: the status box, then Save and Cancel, both unavailable.
+        expect(actions.queryByText(/Saving…|Checking whether/)).toBeNull();
+        if (phase === "saving") {
+          expect(actions.getByRole("button", { name: "Save" })).toBeDisabled();
+          expect(actions.getByRole("button", { name: "Cancel" })).toBeDisabled();
+        } else {
+          expect(actions.getByRole("button", { name: "Check again" })).toHaveAttribute(
+            "aria-disabled",
+            "true",
+          );
+        }
       }
       if (phase === "validation") {
         expect(
@@ -2054,29 +2009,319 @@ describe("BreakdownPanel", () => {
     expect(screen.queryByRole("button", { name: "Check again" })).not.toBeInTheDocument();
   });
 
-  it("enables Retry save only after the connection comes back", () => {
-    triageStoreState.selectedScratchId = "scratch-1";
-    getConnectionMonitor().setForced("offline");
-    editorState.snapshot = {
-      target: { kind: "scratch-title", id: "scratch-1" },
-      phase: "offline",
-      base: { value: "Base", version: 1 },
-      draft: "Offline draft",
-      latest: null,
-      copyableDraft: null,
-      pendingIntent: false,
-      focusIntent: "field",
-      command: null,
-    };
-    render(<BreakdownPanel />);
-    const retry = screen.getByRole("button", { name: "Retry save" });
-    expect(retry).toBeDisabled();
+  describe("editor item statuses (feedback F05)", () => {
+    function openEditor(
+      kind: "scratch-title" | "breakdown",
+      phase: "dirty" | "saving" | "unknown" | "reconciling" | "not_applied",
+      extra: { pendingIntent?: boolean } = {},
+    ) {
+      triageStoreState.selectedScratchId = "scratch-1";
+      if (kind === "breakdown") {
+        hookState.breakdownsByScratch["scratch-1"] = [
+          createScratchBreakdown({ id: "row-1", content: "Current row" }),
+        ];
+      }
+      editorState.snapshot = {
+        target:
+          kind === "scratch-title"
+            ? { kind: "scratch-title", id: "scratch-1" }
+            : { kind: "breakdown", id: "row-1" },
+        phase,
+        base: {
+          value: kind === "scratch-title" ? "Scratch" : "Current row",
+          version: 1,
+          ...(kind === "breakdown" ? { order: 0 } : {}),
+        },
+        draft: "Edited text",
+        latest: null,
+        copyableDraft: null,
+        pendingIntent: extra.pendingIntent ?? false,
+        focusIntent: "field",
+        command: null,
+      };
+      const view = render(<BreakdownPanel />);
+      const field = screen.getByRole("textbox");
+      const slot = document.querySelector<HTMLElement>(
+        '[data-triage-role="inline-editor-status-slot"]',
+      ) as HTMLElement;
+      const actions = slot.parentElement as HTMLElement;
+      return { view, field, slot, actions };
+    }
 
-    act(() => getConnectionMonitor().setForced(null));
+    it.each(["scratch-title", "breakdown"] as const)(
+      "%s dirty shows no text and an empty reserved 22px status box, Save as the signal",
+      (kind) => {
+        const { slot, actions, field } = openEditor(kind, "dirty");
+        expect(slot).toBeEmptyDOMElement();
+        expect(slot.parentElement).toBe(actions);
+        expect(actions.firstElementChild).toBe(slot);
+        expect(screen.queryByText("Unsaved changes.")).toBeNull();
+        expect(within(actions).getByRole("button", { name: "Save" })).toBeEnabled();
+        expect(field).not.toHaveAttribute("data-status-emphasis");
+        expect(globalsCss).toMatch(
+          /\.triage-inline-editor__status-slot \{[^}]*inline-size: 22px;/,
+        );
+      },
+    );
 
-    expect(retry).toBeEnabled();
-    fireEvent.click(retry);
-    expect(editorState.save).toHaveBeenCalledTimes(1);
+    it.each(["scratch-title", "breakdown"] as const)(
+      "%s saving shows the loader only after 300ms, with Save and Cancel unavailable at once",
+      (kind) => {
+        vi.useFakeTimers();
+        const { slot, actions, field } = openEditor(kind, "saving");
+        expect(slot).toBeEmptyDOMElement();
+        expect(within(actions).getByRole("button", { name: "Save" })).toBeDisabled();
+        expect(within(actions).getByRole("button", { name: "Cancel" })).toBeDisabled();
+        expect(field).toHaveAttribute("readonly");
+        expect(announcementOf("inline-editor-announcement")).toHaveTextContent("Saving…");
+        act(() => vi.advanceTimersByTime(300));
+        expect(within(slot).getByRole("img", { name: "Saving…" })).toHaveAttribute(
+          "data-glyph",
+          "loader",
+        );
+        expect(field).not.toHaveAttribute("data-status-emphasis");
+        expect(within(actions).queryByText("Saving…")).toBeNull();
+      },
+    );
+
+    it.each(["scratch-title", "breakdown"] as const)(
+      "%s reconciling keeps `?` with emphasis until the loader is due",
+      (kind) => {
+        vi.useFakeTimers();
+        const { slot, field } = openEditor(kind, "reconciling");
+        const sentence = "Checking whether your changes were saved…";
+        expect(within(slot).getByRole("img", { name: sentence })).toHaveAttribute(
+          "data-glyph",
+          "question",
+        );
+        expect(field).toHaveAttribute("data-status-emphasis");
+        act(() => vi.advanceTimersByTime(300));
+        expect(within(slot).getByRole("img", { name: sentence })).toHaveAttribute(
+          "data-glyph",
+          "loader",
+        );
+        expect(field).not.toHaveAttribute("data-status-emphasis");
+      },
+    );
+
+    it.each(["scratch-title", "breakdown"] as const)(
+      "%s unknown shows `?` at once with emphasis, the sentence on the field and Check again in place of Save and Cancel",
+      async (kind) => {
+        vi.useFakeTimers();
+        const { slot, actions, field } = openEditor(kind, "unknown");
+        const sentence = "We couldn't confirm whether your changes were saved.";
+        expect(within(slot).getByRole("img", { name: sentence })).toHaveAttribute(
+          "data-glyph",
+          "question",
+        );
+        act(() => vi.advanceTimersByTime(1000));
+        expect(within(slot).getByRole("img", { name: sentence })).toHaveAttribute(
+          "data-glyph",
+          "question",
+        );
+        expect(field).toHaveAttribute("data-status-emphasis");
+        expect(field).toHaveAttribute("readonly");
+        expect(announcementOf("inline-editor-announcement")).toHaveTextContent(sentence);
+        expect(within(actions).queryByRole("button", { name: "Save" })).toBeNull();
+        expect(within(actions).queryByRole("button", { name: "Cancel" })).toBeNull();
+        fireEvent.blur(field);
+        expect(editorState.save).not.toHaveBeenCalled();
+        const check = within(actions).getByRole("button", { name: "Check again" });
+        expect(check).not.toHaveAttribute("aria-disabled");
+        fireEvent.click(check);
+        expect(check).toHaveFocus();
+        expect(editorState.reconcile).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it("moves focus to Check again when the editor enters unknown with focus on the page body", () => {
+      const { view } = openEditor("breakdown", "saving");
+      (document.activeElement as HTMLElement | null)?.blur();
+      editorState.snapshot = { ...editorState.snapshot!, phase: "unknown" };
+      view.rerender(<BreakdownPanel />);
+      expect(screen.getByRole("button", { name: "Check again" })).toHaveFocus();
+    });
+
+    it("announces Saved. once when Check again ends in an applied answer", () => {
+      const { view } = openEditor("breakdown", "reconciling");
+      editorState.snapshot = null;
+      view.rerender(<BreakdownPanel />);
+      expect(screen.getAllByText("Saved.").length).toBeGreaterThan(0);
+    });
+
+    it("offers Check again and no Close in the recovery view while a command is held", () => {
+      openEditor("breakdown", "dirty");
+      editorState.snapshot = {
+        ...editorState.snapshot!,
+        phase: "invalidated",
+        copyableDraft: "Edited text",
+        command: { operationId: "op-1" } as never,
+      };
+      const { unmount } = render(<BreakdownPanel />);
+      const overlay = screen.getAllByTestId("inline-editor-issue-overlay").at(-1) as HTMLElement;
+      expect(within(overlay).getByRole("button", { name: "Close" })).toBeDisabled();
+      fireEvent.click(within(overlay).getByRole("button", { name: "Check again" }));
+      expect(editorState.reconcile).toHaveBeenCalledTimes(1);
+      unmount();
+
+      editorState.snapshot = { ...editorState.snapshot!, command: null };
+      render(<BreakdownPanel />);
+      const settled = screen.getAllByTestId("inline-editor-issue-overlay").at(-1) as HTMLElement;
+      expect(within(settled).queryByRole("button", { name: "Check again" })).toBeNull();
+      expect(within(settled).getByRole("button", { name: "Close" })).toBeEnabled();
+    });
+
+    it("moves focus to Close when a recovery-view Check again clears the command", () => {
+      openEditor("breakdown", "dirty");
+      editorState.snapshot = {
+        ...editorState.snapshot!,
+        phase: "invalidated",
+        copyableDraft: "Edited text",
+        command: { operationId: "op-1" } as never,
+      };
+      const { rerender } = render(<BreakdownPanel />);
+      const check = screen.getAllByRole("button", { name: "Check again" }).at(-1) as HTMLElement;
+      check.focus();
+      check.blur();
+      editorState.snapshot = { ...editorState.snapshot!, command: null };
+      rerender(<BreakdownPanel />);
+      expect(screen.getAllByRole("button", { name: "Close" }).at(-1)).toHaveFocus();
+    });
+
+    it("keeps Check again focused and unavailable while reconciling from unknown", () => {
+      const { actions } = openEditor("breakdown", "reconciling");
+      const check = within(actions).getByRole("button", { name: "Check again" });
+      expect(check).toHaveAttribute("aria-disabled", "true");
+      fireEvent.click(check);
+      expect(editorState.reconcile).not.toHaveBeenCalled();
+    });
+
+    it.each(["scratch-title", "breakdown"] as const)(
+      "%s not-applied shows `!` with field emphasis, an enabled Save as the retry and no Retry save or overlay",
+      (kind) => {
+        const { slot, actions, field } = openEditor(kind, "not_applied");
+        const sentence = "Not saved. Your draft is still here.";
+        expect(within(slot).getByRole("img", { name: sentence })).toHaveAttribute(
+          "data-glyph",
+          "exclamation",
+        );
+        expect(field).toHaveAttribute("data-status-emphasis");
+        expect(field).toHaveAccessibleDescription(sentence);
+        expect(screen.queryByRole("button", { name: "Retry save" })).toBeNull();
+        expect(screen.queryByTestId("inline-editor-issue-overlay")).toBeNull();
+        const save = within(actions).getByRole("button", { name: "Save" });
+        expect(save).toBeEnabled();
+        expect(within(actions).getByRole("button", { name: "Cancel" })).toBeEnabled();
+        fireEvent.click(save);
+        expect(editorState.save).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it("does not open the editor tooltip by itself when a status appears after a hover with no status", async () => {
+      const { field, view } = openEditor("breakdown", "dirty");
+      fireEvent.pointerMove(field);
+      fireEvent.pointerLeave(field);
+      fireEvent.blur(field);
+      editorState.snapshot = { ...editorState.snapshot!, phase: "not_applied" };
+      view.rerender(<BreakdownPanel />);
+      await act(async () => Promise.resolve());
+      expect(screen.queryByRole("tooltip")).toBeNull();
+    });
+
+    it("not-applied shows the sentence in a tooltip on the field", async () => {
+      const { field } = openEditor("breakdown", "not_applied");
+      fireEvent.focus(field);
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(
+        "Not saved. Your draft is still here.",
+      );
+    });
+
+    it.each(["saving"] as const)(
+      "%s with a pending intent shows the status box and Stay here only",
+      (phase) => {
+        const { actions } = openEditor("breakdown", phase, { pendingIntent: true });
+        expect(within(actions).queryByRole("button", { name: "Save" })).toBeNull();
+        expect(within(actions).queryByRole("button", { name: "Cancel" })).toBeNull();
+        fireEvent.click(within(actions).getByRole("button", { name: "Stay here" }));
+        expect(editorState.stayHere).toHaveBeenCalledTimes(1);
+        expect(actions.firstElementChild).toHaveAttribute(
+          "data-triage-role",
+          "inline-editor-status-slot",
+        );
+      },
+    );
+
+    it("keeps one polite announcement container across editor phases", () => {
+      const { view } = openEditor("breakdown", "dirty");
+      const container = announcementOf("inline-editor-announcement");
+      expect(container).toBeEmptyDOMElement();
+      for (const [phase, sentence] of [
+        ["saving", "Saving…"],
+        ["reconciling", "Checking whether your changes were saved…"],
+        ["not_applied", "Not saved. Your draft is still here."],
+      ] as const) {
+        editorState.snapshot = { ...editorState.snapshot!, phase };
+        view.rerender(<BreakdownPanel />);
+        expect(announcementOf("inline-editor-announcement")).toBe(container);
+        expect(container).toHaveTextContent(sentence);
+        expect(container).toHaveAttribute("aria-live", "polite");
+      }
+    });
+
+    it.each([
+      ["delayed-pending", "Saving…", "loader"],
+      ["reconciling", "Checking whether your changes were saved…", "question"],
+      ["unknown", "We couldn't confirm whether your changes were saved.", "question"],
+      ["not-applied", "Not saved. Your draft is still here.", "exclamation"],
+      ["rejected", "Not saved. Your draft is still here.", "exclamation"],
+    ] as const)(
+      "shows a forced %s state on both editors with its own sentence",
+      (state, sentence, glyph) => {
+        vi.useFakeTimers();
+        for (const kind of ["scratch-title", "breakdown"] as const) {
+          triageStoreState.selectedScratchId = "scratch-1";
+          if (kind === "breakdown") {
+            hookState.breakdownsByScratch["scratch-1"] = [
+              createScratchBreakdown({ id: "row-1", content: "Current row" }),
+            ];
+          }
+          act(() => {
+            registerForcedItemStates({
+              [kind === "scratch-title"
+                ? forcedItemKeys.scratchTitleEditor("scratch-1")
+                : forcedItemKeys.breakdownEditor("row-1")]: state,
+            });
+          });
+          const { slot, field, view } = openEditor(kind, "dirty");
+          if (glyph === "loader") act(() => vi.advanceTimersByTime(300));
+          expect(within(slot).getByRole("img", { name: sentence })).toHaveAttribute(
+            "data-glyph",
+            glyph,
+          );
+          if (glyph !== "loader") {
+            expect(field).toHaveAttribute("data-status-emphasis");
+          }
+          act(() => clearForcedItemStates());
+          view.unmount();
+        }
+      },
+    );
+
+    it("shows no item status for forced editor-offline", () => {
+      act(() => {
+        registerForcedItemStates({
+          [forcedItemKeys.breakdownEditor("row-1")]: "editor-offline",
+        });
+      });
+      const { slot } = openEditor("breakdown", "dirty");
+      expect(slot).toBeEmptyDOMElement();
+      act(() => clearForcedItemStates());
+    });
+
+    it("no longer subscribes the panel to browser connectivity", () => {
+      expect(panelSource).not.toContain("subscribeToBrowserConnectivity");
+      expect(panelSource).not.toContain("navigator.onLine");
+    });
   });
 
   it("keeps the same editor semantics across light/dark and all eight color themes", () => {
@@ -2320,11 +2565,18 @@ describe("BreakdownPanel", () => {
       },
     ];
     render(<BreakdownPanel />);
+    const sentence =
+      "Add unavailable. This account has reached its limit of 300 breakdowns. Your draft is still here.";
+    // The whole reason is the field's description, the icon's name and a
+    // polite announcement; no visible line can cut it off (Phase 45 mi-1).
+    expect(screen.getByPlaceholderText("Add a note...")).toHaveAccessibleDescription(sentence);
+    expect(screen.getByRole("img", { name: sentence })).toHaveAttribute(
+      "data-glyph",
+      "exclamation",
+    );
     expect(
-      screen.getByText(
-        "Add unavailable. This account has reached its limit of 300 breakdowns. Your draft is still here.",
-      ),
-    ).toHaveAttribute("role", "status");
+      announcementOf("breakdown-add-status-announcement"),
+    ).toHaveTextContent(sentence);
   });
 
   it("keeps the plain rejected line for any other rejection code", () => {
@@ -2341,7 +2593,10 @@ describe("BreakdownPanel", () => {
       },
     ];
     render(<BreakdownPanel />);
-    expect(screen.getByText("Add unavailable. Your draft is still here.")).toBeInTheDocument();
+    expect(
+      announcementOf("breakdown-add-status-announcement"),
+    ).toHaveTextContent("Add unavailable. Your draft is still here.");
+    expect(announcementOf("breakdown-add-status-announcement")).not.toHaveTextContent("limit");
   });
 
   it.each([
@@ -2377,8 +2632,9 @@ describe("BreakdownPanel", () => {
       null,
     ],
   ] as const)(
-    "renders the authoritative Add %s/%s reliability state",
+    "shows the authoritative Add %s/%s on the field, with the action beside Add",
     (phase, status, copy, action) => {
+      vi.useFakeTimers();
       triageStoreState.selectedScratchId = "scratch-1";
       hookState.operations = [
         {
@@ -2393,28 +2649,63 @@ describe("BreakdownPanel", () => {
 
       render(<BreakdownPanel />);
 
-      const statusText = screen.getByText(copy);
-      const reliability = statusText.closest(
-        '[data-triage-reliability-surface="add"]',
-      );
-      const reliabilityLine = statusText.closest(
-        '[data-triage-role="breakdown-reliability"]',
-      );
-      expect(reliability).toHaveAttribute(
+      const field = screen.getByPlaceholderText("Add a note...");
+      const region = screen.getByTestId("breakdown-add-row");
+      expect(region).toHaveAttribute(
         "data-triage-reliability-state",
         phase === "terminal" ? status?.replace("_", "-") : phase,
       );
-      expect(statusText).toHaveAttribute("role", "status");
-      expect(statusText).toHaveAttribute("aria-live", "polite");
-      expect(statusText).toHaveAttribute("aria-atomic", "true");
-      if (action === null) {
-        expect(
-          within(reliabilityLine as HTMLElement).queryByRole("button"),
-        ).toBeNull();
+      // No second line any more: the sentence is the field's description and
+      // a hidden polite announcement, available at once.
+      expect(region.querySelector(".breakdown-reliability")).toBeNull();
+      expect(field).toHaveAccessibleDescription(copy);
+      const announcement = announcementOf("breakdown-add-status-announcement");
+      expect(announcement).toHaveTextContent(copy);
+      expect(announcement).toHaveAttribute("aria-live", "polite");
+      expect(announcement).toHaveAttribute("aria-atomic", "true");
+      expect(announcement).toHaveClass("sr-only");
+
+      if (phase === "pending") {
+        // Pending shows nothing until the display delay has passed.
+        expect(screen.queryByRole("img")).toBeNull();
+        expect(field).not.toHaveAttribute("data-status-emphasis");
+        act(() => vi.advanceTimersByTime(300));
+        expect(screen.getByRole("img", { name: copy })).toHaveAttribute(
+          "data-glyph",
+          "loader",
+        );
+        expect(field).not.toHaveAttribute("data-status-emphasis");
+      } else if (phase === "reconciling") {
+        // `?` stays, with its emphasis, until the loader is due.
+        expect(screen.getByRole("img", { name: copy })).toHaveAttribute(
+          "data-glyph",
+          "question",
+        );
+        expect(field).toHaveAttribute("data-status-emphasis");
+        act(() => vi.advanceTimersByTime(300));
+        expect(screen.getByRole("img", { name: copy })).toHaveAttribute(
+          "data-glyph",
+          "loader",
+        );
+        expect(field).not.toHaveAttribute("data-status-emphasis");
       } else {
-        const button = within(reliabilityLine as HTMLElement).getByRole("button", {
-          name: action,
-        });
+        expect(screen.getByRole("img", { name: copy })).toHaveAttribute(
+          "data-glyph",
+          phase === "unknown" ? "question" : "exclamation",
+        );
+        expect(field).toHaveAttribute("data-status-emphasis");
+      }
+      expect(field.closest(".breakdown-add-field-wrap")).toContainElement(
+        screen.getByRole("img", { name: copy }),
+      );
+
+      if (action === null) {
+        expect(within(region).queryByRole("button", { name: /Check again|Retry Add/ })).toBeNull();
+      } else {
+        const button = within(region).getByRole("button", { name: action });
+        expect(button.closest(".breakdown-add-actions")).toContainElement(
+          within(region).getByRole("button", { name: "Add" }),
+        );
         if (phase === "reconciling") {
           expect(button).toHaveAttribute("aria-disabled", "true");
           expect(button).not.toBeDisabled();
@@ -2424,6 +2715,128 @@ describe("BreakdownPanel", () => {
       expect(screen.queryByRole("button", { name: "Delete again" })).toBeNull();
     },
   );
+
+  it("does not open the Add tooltip by itself when a status appears after a hover with no status", async () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    const view = render(<BreakdownPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Add a note..." }));
+    const input = screen.getByPlaceholderText("Add a note...");
+    fireEvent.pointerMove(input);
+    fireEvent.pointerLeave(input);
+    fireEvent.blur(input);
+    hookState.operations = [
+      {
+        kind: "add",
+        operationId: "add-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "new-row",
+        phase: "unknown",
+      },
+    ];
+    view.rerender(<BreakdownPanel />);
+    await act(async () => Promise.resolve());
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("shows the Add tooltip with the sentence on field focus and nothing without a status", async () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.operations = [
+      {
+        kind: "add",
+        operationId: "add-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "new-row",
+        phase: "terminal",
+        status: "not_applied",
+      },
+    ];
+    const view = render(<BreakdownPanel />);
+    fireEvent.focus(screen.getByPlaceholderText("Add a note..."));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Not added. Your draft is still here.",
+    );
+
+    hookState.operations = [];
+    view.rerender(<BreakdownPanel />);
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(screen.queryByRole("img")).toBeNull();
+  });
+
+  it("keeps one Add announcement container mounted across states and re-announces each", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    const op = (phase: string, status?: string) => [
+      {
+        kind: "add",
+        operationId: "add-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "new-row",
+        phase,
+        ...(status === undefined ? {} : { status }),
+      },
+    ];
+    hookState.operations = [];
+    const view = render(<BreakdownPanel />);
+    const container = announcementOf("breakdown-add-status-announcement");
+    expect(container).toBeEmptyDOMElement();
+    for (const [operations, sentence] of [
+      [op("unknown"), "We couldn’t confirm whether it was added."],
+      [op("reconciling"), "Checking whether it was added…"],
+      [op("terminal", "not_applied"), "Not added. Your draft is still here."],
+    ] as const) {
+      hookState.operations = operations as never;
+      view.rerender(<BreakdownPanel />);
+      expect(announcementOf("breakdown-add-status-announcement")).toBe(container);
+      expect(container).toHaveTextContent(sentence);
+      expect(container).toHaveAttribute("aria-live", "polite");
+    }
+    hookState.operations = [];
+    view.rerender(<BreakdownPanel />);
+    expect(announcementOf("breakdown-add-status-announcement")).toBe(container);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("keeps the same Add input mounted and focused as a status appears and ends", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    const view = render(<BreakdownPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Add a note..." }));
+    const input = screen.getByPlaceholderText("Add a note...");
+    input.focus();
+    hookState.operations = [
+      {
+        kind: "add",
+        operationId: "add-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "new-row",
+        phase: "unknown",
+      },
+    ];
+    view.rerender(<BreakdownPanel />);
+    expect(screen.getByPlaceholderText("Add a note...")).toBe(input);
+    expect(input).toHaveFocus();
+    hookState.operations = [];
+    view.rerender(<BreakdownPanel />);
+    expect(screen.getByPlaceholderText("Add a note...")).toBe(input);
+    expect(input).toHaveFocus();
+  });
+
+  it("shows a forced development state on the Add field with its own sentence and no action", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    act(() => {
+      registerForcedItemStates({ [forcedItemKeys.add("scratch-1")]: "rejected" });
+    });
+    render(<BreakdownPanel />);
+    const sentence = "Add unavailable. Your draft is still here.";
+    expect(screen.getByRole("img", { name: sentence })).toHaveAttribute(
+      "data-glyph",
+      "exclamation",
+    );
+    expect(screen.getByPlaceholderText("Add a note...")).toHaveAttribute(
+      "data-status-emphasis",
+    );
+    expect(screen.queryByRole("button", { name: /Check again|Retry Add/ })).toBeNull();
+    act(() => clearForcedItemStates());
+    expect(screen.queryByRole("img")).toBeNull();
+  });
 
   it("reconciles and retries Add with the preserved command identity and focus", async () => {
     triageStoreState.selectedScratchId = "scratch-1";
@@ -2584,7 +2997,7 @@ describe("BreakdownPanel", () => {
         .compareDocumentPosition(screen.getByText("New confirmed row")) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.getByRole("status")).toHaveTextContent("Added.");
+    expect(announcementRegion()).toHaveTextContent("Added.");
 
     Object.defineProperty(Element.prototype, "scrollIntoView", {
       configurable: true,
@@ -3082,7 +3495,8 @@ describe("BreakdownPanel", () => {
     expect(
       view.container.querySelector('[data-triage-role="breakdown-add-completion-blocker"]'),
     ).toBeNull();
-    expect(input).not.toHaveAttribute("aria-describedby");
+    // Only the Add status sentence describes the field; no blocker sentence does.
+    expect(input).toHaveAccessibleDescription("Not added. Your draft is still here.");
     expect(input).toHaveFocus();
     expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
     expect(screen.queryByRole("region", { name: "Scratch complete" })).toBeNull();
@@ -3137,7 +3551,7 @@ describe("BreakdownPanel", () => {
       const field = screen.queryByRole("textbox", { name: "Scratch title" });
       if (field !== null) {
         expect(field.getAttribute("aria-describedby") ?? "").not.toMatch(/:r/);
-        if (phase !== "conflict") expect(field).toHaveFocus();
+        if (phase !== "conflict" && phase !== "reconciling") expect(field).toHaveFocus();
       }
       expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
     },
@@ -3161,9 +3575,10 @@ describe("BreakdownPanel", () => {
         }}
       />,
     );
-    const status = screen.getByRole("status");
+    const status = screen
+      .getAllByRole("status")
+      .find((element) => element.getAttribute("data-triage-role") === "archive-withdrawal-status");
     expect(status).toHaveTextContent(copy);
-    expect(status).toHaveAttribute("data-triage-role", "archive-withdrawal-status");
     expect(screen.queryByRole("button", { name: "Reopen" })).toBeNull();
     expect(screen.queryByRole("region", { name: "Scratch complete" })).toBeNull();
   });
@@ -3388,15 +3803,16 @@ describe("BreakdownPanel", () => {
   });
 
   it.each([
-    ["pending", undefined, "Deleting…"],
-    ["unknown", undefined, "We couldn’t confirm whether it was deleted."],
-    ["reconciling", undefined, "Checking whether it was deleted…"],
-    ["terminal", "not_applied", "Not deleted. This breakdown is still here."],
-    ["terminal", "rejected", "Delete unavailable. This breakdown is still here."],
-    ["terminal", "conflict", "This breakdown changed. Delete was not completed."],
+    ["pending", undefined, "Deleting…", "loader", false],
+    ["unknown", undefined, "We couldn’t confirm whether it was deleted.", "question", true],
+    ["reconciling", undefined, "Checking whether it was deleted…", "loader", true],
+    ["terminal", "not_applied", "Not deleted. This breakdown is still here.", "exclamation", true],
+    ["terminal", "rejected", "Delete unavailable. This breakdown is still here.", "exclamation", true],
+    ["terminal", "conflict", "This breakdown changed. Delete was not completed.", "exclamation", true],
   ] as const)(
-    "retains the source row for Delete %s/%s without a retry or resend action",
-    (phase, status, copy) => {
+    "shows Delete %s/%s on the row's status slot, with no second line, retry or resend action",
+    (phase, status, copy, glyph, hasCheckAgain) => {
+      vi.useFakeTimers();
       triageStoreState.selectedScratchId = "scratch-1";
       hookState.breakdownsByScratch["scratch-1"] = [
         createScratchBreakdown({ id: "row-1", content: "Retained row" }),
@@ -3413,26 +3829,157 @@ describe("BreakdownPanel", () => {
       ];
 
       render(<BreakdownPanel />);
+      const row = screen.getByText("Retained row").closest("[role=listitem]") as HTMLElement;
+      // The sentence is announced at once, whatever the icon shows.
+      expect(
+        within(row).getByText(copy, {
+          selector: '[data-triage-role="breakdown-row-status-announcement"] > span',
+        }).parentElement,
+      ).toHaveAttribute("aria-live", "polite");
+      expect(row.querySelector(".breakdown-reliability")).toBeNull();
 
-      const row = screen.getByText("Retained row").closest("[role=listitem]");
-      expect(row).toBeInTheDocument();
-      expect(within(row as HTMLElement).getByText(copy)).toBeInTheDocument();
-      expect(within(row as HTMLElement).queryByRole("button", { name: "Retry" })).toBeNull();
-      expect(
-        within(row as HTMLElement).queryByRole("button", { name: "Retry Delete" }),
-      ).toBeNull();
-      expect(
-        within(row as HTMLElement).queryByRole("button", { name: "Delete again" }),
-      ).toBeNull();
-      if (phase === "unknown" || phase === "reconciling" || status !== undefined) {
+      if (phase === "pending") {
+        // Pending shows nothing until the display delay has passed.
+        expect(within(row).getByTestId("breakdown-status-slot")).toBeEmptyDOMElement();
+        expect(row).not.toHaveAttribute("data-status-emphasis");
+      } else if (phase === "reconciling") {
+        // Reconciling keeps the `?` and its emphasis until the loader is due.
+        expect(within(row).getByRole("img", { name: copy })).toHaveAttribute(
+          "data-glyph",
+          "question",
+        );
+        expect(row).toHaveAttribute("data-status-emphasis");
+      }
+      if (glyph === "loader") act(() => vi.advanceTimersByTime(300));
+      const slot = within(row).getByTestId("breakdown-status-slot");
+      const icon = within(slot).getByRole("img", { name: copy });
+      expect(icon).toHaveAttribute("data-glyph", glyph);
+      if (glyph === "loader") {
+        expect(row).not.toHaveAttribute("data-status-emphasis");
+      } else {
+        expect(row).toHaveAttribute("data-status-emphasis");
+      }
+      // The grip is disabled while a Delete is in flight, so the icon takes focus.
+      const inFlight = phase !== "terminal";
+      if (inFlight) expect(icon).toHaveAttribute("tabindex", "0");
+      else expect(icon).not.toHaveAttribute("tabindex");
+
+      expect(within(row).queryByRole("button", { name: "Retry" })).toBeNull();
+      expect(within(row).queryByRole("button", { name: "Retry Delete" })).toBeNull();
+      expect(within(row).queryByRole("button", { name: "Delete again" })).toBeNull();
+      const checkAgain = within(row).queryByRole("button", { name: "Check again" });
+      if (hasCheckAgain) {
+        expect(checkAgain).toBeInTheDocument();
+        // It sits in the action cluster, before Edit and Trash.
         expect(
-          within(row as HTMLElement).getByRole("button", { name: "Check again" }),
-        ).toBeInTheDocument();
+          within(within(row).getByTestId("breakdown-action-slot")).getByRole("button", {
+            name: "Check again",
+          }),
+        ).toBe(checkAgain);
+      } else {
+        expect(checkAgain).toBeNull();
       }
     },
   );
 
-  it("clears a terminal Delete reliability line when the retained row starts a new source interaction", () => {
+  it("shows a Delete tooltip with the sentence on the enabled grip", async () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Retained row" }),
+    ];
+    hookState.operations = [
+      {
+        kind: "delete",
+        operationId: "delete-operation",
+        scratchBitId: "scratch-1",
+        breakdownId: "row-1",
+        phase: "terminal",
+        status: "not_applied",
+      },
+    ];
+    render(<BreakdownPanel />);
+    const grip = screen.getByRole("button", { name: "Drag breakdown" });
+    expect(grip).toBeEnabled();
+    expect(grip.getAttribute("aria-describedby")).toContain(
+      (
+        screen.getByText("Not deleted. This breakdown is still here.", {
+          selector: '[data-triage-role="breakdown-row-status-announcement"] > span',
+        }).parentElement as HTMLElement
+      ).id,
+    );
+    fireEvent.focus(grip);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Not deleted. This breakdown is still here.",
+    );
+    expect(
+      document.querySelector('[data-feedback-role="status-tooltip"]'),
+    ).toHaveClass("explorer-title-tooltip");
+  });
+
+  it("keeps one Delete announcement container per row mounted across states", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Container row" }),
+    ];
+    hookState.operations = [];
+    const view = render(<BreakdownPanel />);
+    const container = document.querySelector(
+      '[data-triage-role="breakdown-row-status-announcement"]',
+    ) as HTMLElement;
+    expect(container).toBeEmptyDOMElement();
+    for (const [phase, status, sentence] of [
+      ["pending", undefined, "Deleting…"],
+      ["unknown", undefined, "We couldn’t confirm whether it was deleted."],
+      ["terminal", "not_applied", "Not deleted. This breakdown is still here."],
+    ] as const) {
+      hookState.operations = [
+        {
+          kind: "delete",
+          operationId: "delete-operation",
+          scratchBitId: "scratch-1",
+          breakdownId: "row-1",
+          phase,
+          ...(status === undefined ? {} : { status }),
+        },
+      ];
+      view.rerender(<BreakdownPanel />);
+      expect(
+        document.querySelector('[data-triage-role="breakdown-row-status-announcement"]'),
+      ).toBe(container);
+      expect(container).toHaveTextContent(sentence);
+    }
+  });
+
+  it("shows a forced development state on the row without an operation", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", content: "Forced row" }),
+    ];
+    act(() => {
+      registerForcedItemStates({ [forcedItemKeys.breakdown("row-1")]: "conflict" });
+    });
+    render(<BreakdownPanel />);
+    const row = screen.getByText("Forced row").closest("[role=listitem]") as HTMLElement;
+    expect(
+      within(row).getByRole("img", {
+        name: "This breakdown changed. Delete was not completed.",
+      }),
+    ).toHaveAttribute("data-glyph", "exclamation");
+    expect(row).toHaveAttribute("data-status-emphasis");
+    expect(within(row).queryByRole("button", { name: "Check again" })).toBeNull();
+    act(() => clearForcedItemStates());
+    expect(within(row).queryByRole("img")).toBeNull();
+  });
+
+  it("clears a terminal Delete status when the retained row starts a new source interaction", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
       createScratchBreakdown({ id: "row-1", content: "Review then edit" }),
@@ -3451,18 +3998,17 @@ describe("BreakdownPanel", () => {
     render(<BreakdownPanel />);
     const row = screen.getByText("Review then edit").closest("[role=listitem]");
     expect(
-      within(row as HTMLElement).getByText(
-        "Not deleted. This breakdown is still here.",
-      ),
+      within(row as HTMLElement).getByRole("img", {
+        name: "Not deleted. This breakdown is still here.",
+      }),
     ).toBeInTheDocument();
 
     fireEvent.click(
       within(row as HTMLElement).getByRole("button", { name: "Edit" }),
     );
 
-    expect(
-      screen.queryByText("Not deleted. This breakdown is still here."),
-    ).toBeNull();
+    expect(screen.queryByRole("img", { name: /Not deleted/ })).toBeNull();
+    expect(screen.queryByText("Not deleted. This breakdown is still here.")).toBeNull();
   });
 
   it("does not restore a terminal reliability line after leaving and returning to its Scratch", () => {
@@ -3479,8 +4025,8 @@ describe("BreakdownPanel", () => {
     ];
     const view = render(<BreakdownPanel />);
     expect(
-      screen.getByText("Add unavailable. Your draft is still here."),
-    ).toBeInTheDocument();
+      announcementOf("breakdown-add-status-announcement"),
+    ).toHaveTextContent("Add unavailable. Your draft is still here.");
 
     triageStoreState.selectedScratchId = "scratch-2";
     view.rerender(<BreakdownPanel />);
@@ -3490,6 +4036,7 @@ describe("BreakdownPanel", () => {
     expect(
       screen.queryByText("Add unavailable. Your draft is still here."),
     ).toBeNull();
+    expect(screen.queryByRole("img")).toBeNull();
   });
 
   it("focuses the next visible row after confirmed Delete", async () => {
@@ -4295,7 +4842,7 @@ describe("shared Context creation-date metadata", () => {
       expect(prefix).not.toHaveAttribute("tabindex");
     };
     assertStamp();
-    for (const phase of ["pristine", "dirty", "saving", "reconciling", "offline", "not_applied", "conflict", "invalidated"] as const) {
+    for (const phase of ["pristine", "dirty", "saving", "reconciling", "not_applied", "conflict", "invalidated"] as const) {
       editorState.snapshot = { target: { kind: "scratch-title", id: "scratch-1" }, phase, base: { value: "Original title", version: 1 }, draft: "Retained draft", latest: phase === "conflict" ? { value: "Remote title", version: 2 } : null, copyableDraft: null, pendingIntent: false, focusIntent: "field", command: null };
       view.rerender(<BreakdownPanel />); assertStamp();
     }

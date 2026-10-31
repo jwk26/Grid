@@ -306,7 +306,7 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \.triage-fixed-context\[data-triage-state="complete"\] \[data-triage-role="context-identity-object"\]::before\s*\{[^}]*background: transparent;[^}]*border: 2px solid var\(--triage-context-marker-complete\)/);
   });
 
-  it("Task174 Breakdown rows keep the raised shadow family, drop the staged fade, and end the success wash on the raised row", () => {
+  it("Task174 Breakdown rows keep the raised shadow family, drop the staged fade, and carry no success wash", () => {
     const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
     const light = css.slice(css.indexOf(':root[data-color-theme="neumorphism"] {'));
     const dark = css.slice(css.indexOf('.dark[data-color-theme="neumorphism"] {'));
@@ -317,8 +317,8 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \[data-triage-role="breakdown-staged-row"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);[^}]*opacity: 0\.35;/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \[data-triage-role="breakdown-staged-row"\] :is\(\[data-triage-role="breakdown-grip-control"\], \[data-triage-role="breakdown-row-action"\]\):disabled \{\s*opacity: 0\.1;/);
     expect(css).toMatch(/\[data-triage-role="breakdown-active-row"\]\[data-triage-state="active"\]:hover \{\s*box-shadow: var\(--theme-shadow-card-hover\);/);
-    expect(css).toMatch(/--breakdown-success-rest-shadow: var\(--theme-shadow-card\);/);
-    expect(css).toMatch(/@keyframes breakdown-success-wash-neumorphism \{[\s\S]*?to \{[^}]*box-shadow: var\(--breakdown-success-rest-shadow\);/);
+    expect(css).not.toContain("breakdown-success");
+    expect(css).toMatch(/\.breakdown-status-slot \{[^}]*grid-column: 3;[^}]*justify-content: center;/);
     expect(css).toMatch(/\[data-triage-role="breakdown-ordinary-empty"\] > \[data-triage-role="breakdown-empty-object"\] \{[^}]*block-size: 112px;[^}]*box-shadow: var\(--theme-shadow-inset\);/);
     expect(css).toMatch(/\[data-triage-role="breakdown-consumed-completion"\] > \[data-triage-role="breakdown-empty-object"\] \{[^}]*block-size: 64px;[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-shell \.triage-fixed-breakdown-row \{[^}]*column-gap: 12px;/);
@@ -336,7 +336,6 @@ describe("Neumorphism L1 frame and Pool (Task 173)", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] :is\(\.scratch-trash-dialog, \.breakdown-delete-dialog\) \{/);
     expect(css).toMatch(/color-theme="neumorphism"\] :is\(\.scratch-trash-dialog-overlay, \.breakdown-delete-dialog-overlay\) \{/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-inline-editor__field \{[^}]*border-radius: 999px;[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
-    expect(css).toMatch(/color-theme="neumorphism"\] \.breakdown-reliability \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.breakdown-reliability__action \{[^}]*box-shadow: var\(--theme-shadow-card-xs\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.breakdown-departure-sheet \{[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
     expect(css).toMatch(/\[data-triage-role="breakdown-departure-continue"\]:active \{\s*background-color: var\(--page-bg\);\s*box-shadow: var\(--theme-shadow-card\);\s*color: var\(--triage-pool-sort-active\);/);
@@ -463,11 +462,16 @@ describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging__remove \{[^}]*block-size: 40px;[^}]*border-radius: 18px;[^}]*bottom: 16px;[^}]*inline-size: auto;[^}]*inset-inline: 16px;/);
   });
 
-  it("realizes DP-VQ06-STAGING as an inset alert well, raised count and alert action, and an inset status line", () => {
+  it("keeps the staged Bit row's start padding at the base 12px and trims only the end for the status slot", () => {
+    expect(css).toMatch(
+      /color-theme="neumorphism"\] \.staging-bit-status-row \{ padding-block: 9px; padding-inline: 12px 6px; \}/,
+    );
+  });
+
+  it("realizes DP-VQ06-STAGING as an inset alert well, raised count and alert action", () => {
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging \.staging-local-alert \{[^}]*border: 0;[^}]*box-shadow: var\(--theme-shadow-inset-sm\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging :is\(\.staging-alert-action, \.staging-arrival-count\) \{[^}]*box-shadow: var\(--theme-shadow-card-xs\);/);
     expect(css).toMatch(/color-theme="neumorphism"\] \.triage-staging :is\(\.staging-alert-action, \.staging-arrival-count\):not\(:disabled\):active \{\s*box-shadow: var\(--theme-shadow-inset-sm\);/);
-    expect(css).toMatch(/color-theme="neumorphism"\] \.staging-operation-status,\s*:root\[data-color-theme="neumorphism"\] \[data-triage-role="staging-integrity-status"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);/);
     expect(css).not.toMatch(/color-theme="neumorphism"\] \.staging-(?:operation-status|target-reason)[^{]*\{[^}]*content:/);
   });
 
@@ -482,7 +486,7 @@ describe("Neumorphism L3 drop targets and drag token (Task 175)", () => {
     expect(stage).toMatch(/\.triage-staging__well \{[^}]*border-color: transparent;[^}]*box-shadow: none;/);
     expect(stage).toMatch(/\.triage-staging__subsection\[data-triage-state="valid"\] \{[^}]*color-mix[^}]*box-shadow: var\(--theme-shadow-inset\), var\(--theme-shadow-inset-sm\);/);
     expect(stage).toMatch(/\[data-triage-state="invalid"\]\) \{[^}]*box-shadow: none;/);
-    expect(stage).toMatch(/\.triage-shell__subsection-heading, \.triage-staging__well > :is\(\.grid, \.flex-col\)\) \{[^}]*opacity: 0\.7;/);
+    expect(stage).toMatch(/\.triage-shell__subsection-heading, \.triage-staging__well > :is\(\.staging-node-grid, \.flex-col\)\) \{[^}]*opacity: 0\.7;/);
     expect(stage).not.toMatch(/outline|border-style|dashed|(?:^|[^a-z])ring/);
   });
 });
@@ -574,7 +578,9 @@ describe("Neumorphism L4 replacement search (Task 176 Stage 3)", () => {
 
   it("draws an inset field, an inset state trough and raised result rows, without CSS-injected copy", () => {
     expect(stage).toMatch(/\.explorer-search-field \{[^}]*border-radius: 999px;[^}]*box-shadow: var\(--theme-shadow-inset\);/);
-    expect(stage).toMatch(/\.explorer-search-status,[\s\S]*?explorer-search-undo-status"\] \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);/);
+    expect(stage).toMatch(/\.explorer-search-status,[\s\S]*?\.explorer-reveal-status \{[^}]*box-shadow: var\(--theme-shadow-inset-xs\);/);
+    expect(stage).not.toContain("explorer-search-undo-status");
+    expect(stage).toMatch(/\.explorer-search-undo \{[^}]*inline-size: 28px;[^}]*block-size|\.explorer-search-undo \{[^}]*block-size: 28px;[^}]*inline-size: 28px;/);
     expect(stage).toMatch(/\.explorer-search-result \{[^}]*border-radius: 18px;[^}]*box-shadow: var\(--theme-shadow-card\);/);
     expect(stage).toMatch(/\.explorer-search-status:empty \{[^}]*box-shadow: none;/);
     expect(stage).not.toMatch(/(?:^|[\s{;])content:/);
@@ -625,8 +631,9 @@ describe("Inbox/Triage shared theme realization — L4 replacement search", () =
       query: "note", resultScrollTop: 37, status: "ready" as const,
       results: [{ key: "bit:note" as const, id: "note", type: "bit" as const, title: "Note", icon: "FileText", color: null, breadcrumb: "Home / Documents", ancestorIds: ["documents"], nodePathIds: ["documents"], hierarchyOrder: 0, relevance: "title-prefix" as const, rank: 1 as const, duplicate: null }],
       onClose: vi.fn(), onFocusInput: vi.fn(), onFocusResult: vi.fn(), onQueryChange: vi.fn(), onRetry: vi.fn(), onScrollTopChange: vi.fn(), onSelectResult: vi.fn(),
-      getResultUndo: () => ({ actionLabel: "Check again", copy: "We couldn’t confirm whether “Note” was undone.", disabled: false, onActivate: activate, state: "unknown" }),
+      getResultUndo: () => ({ copy: "We couldn’t confirm whether “Note” was undone.", disabled: false, label: "Check again", onActivate: activate, phaseKey: "op", reason: "unknown", sentence: "We couldn’t confirm whether “Note” was undone. Select to check again.", state: "unknown", status: "unknown" as const }),
     };
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     const view = render(<GridExplorerSearchResults {...props} />);
     const input = screen.getByRole("searchbox");
     const row = document.querySelector('[data-triage-role="explorer-search-result"]')!;
@@ -643,7 +650,7 @@ describe("Inbox/Triage shared theme realization — L4 replacement search", () =
         expect(document.querySelector('[data-triage-role="explorer-search-result"]')).toBe(row);
         expect(viewport.scrollTop).toBe(37);
         expect(undo).toHaveFocus();
-        expect(screen.getByText(props.getResultUndo().copy)).toBeVisible();
+        expect(document.querySelector('[data-triage-role="explorer-search-undo-status"]')).toHaveTextContent(props.getResultUndo().copy);
         expect(document.querySelector('[data-triage-role="explorer-search-undo-status"]')).toBeInTheDocument();
       }
     }
@@ -756,7 +763,7 @@ describe("Phase 41 Scratch Trash realization (Task 210)", () => {
 describe("Phase 41 Retro Mac departure sheet realization (Task 211)", () => {
   const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
   const start = css.indexOf("/* Phase 41 (Task 211)");
-  const block = css.slice(start, css.indexOf("@media (prefers-reduced-motion: reduce) {\n  .breakdown-reliability,", start));
+  const block = css.slice(start, css.indexOf("@media (prefers-reduced-motion: reduce) {\n  .breakdown-reliability__action,", start));
   const rule = (selector: string) =>
     block.match(new RegExp(`${selector.replace(/[.[\]()*>]/g, "\\$&")} \\{([^}]*)\\}`))?.[1] ?? "";
 

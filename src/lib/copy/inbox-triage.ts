@@ -68,8 +68,8 @@ export interface InboxTriageCopy {
       readonly dirty: string;
       readonly saving: string;
       readonly savingBeforeContinuing: string;
-      readonly offline: string;
       readonly notApplied: string;
+      readonly unknown: string;
       readonly reconciling: string;
       readonly saved: string;
     };
@@ -91,7 +91,6 @@ export interface InboxTriageCopy {
       readonly close: string;
     };
     readonly actions: {
-      readonly retrySave: string;
       readonly stayHere: string;
     };
   };
@@ -249,7 +248,7 @@ export interface InboxTriageCopy {
       readonly retry: string;
     };
   };
-  readonly breakdownSuccess: {
+  readonly breakdownAnnouncement: {
     readonly add: string;
     readonly unstage: string;
   };
@@ -272,6 +271,8 @@ export interface InboxTriageCopy {
       readonly dismiss: string;
     };
   };
+  /** Added to a status tooltip whose icon runs a read-only check when selected (Tasks 246, 247). */
+  readonly statusHint: { readonly checkAgain: string; readonly tryAgain: string };
   readonly stagingStatus: {
     readonly operation: {
       readonly stagePending: string;
@@ -461,8 +462,8 @@ export const INBOX_TRIAGE_COPY = {
       dirty: "Unsaved changes.",
       saving: "Saving…",
       savingBeforeContinuing: "Saving before continuing…",
-      offline: "Offline. Your draft is still here.",
       notApplied: "Not saved. Your draft is still here.",
+      unknown: "We couldn't confirm whether your changes were saved.",
       reconciling: "Checking whether your changes were saved…",
       saved: "Saved.",
     },
@@ -484,7 +485,6 @@ export const INBOX_TRIAGE_COPY = {
       close: "Close",
     },
     actions: {
-      retrySave: "Retry save",
       stayHere: "Stay here",
     },
   },
@@ -652,7 +652,7 @@ export const INBOX_TRIAGE_COPY = {
       retry: "Retry",
     },
   },
-  breakdownSuccess: {
+  breakdownAnnouncement: {
     add: "Added.",
     unstage: "Returned to Breakdown.",
   },
@@ -674,6 +674,10 @@ export const INBOX_TRIAGE_COPY = {
       reviewNew: "Review new",
       dismiss: "Dismiss",
     },
+  },
+  statusHint: {
+    checkAgain: "Select to check again.",
+    tryAgain: "Select to try again.",
   },
   stagingStatus: {
     operation: {

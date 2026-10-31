@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { Calendar } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DateFirstDeadlinePicker } from "@/components/shared/date-first-deadline-picker";
 import { DeadlineConflictModal } from "@/components/shared/deadline-conflict-modal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -15,12 +15,25 @@ type PendingDeadlineValue = {
   deadlineAllDay: boolean;
 };
 
-export function BreadcrumbDeadline({ nodeId }: { nodeId: string }) {
+export function BreadcrumbDeadline({
+  nodeId,
+  onHeldChange,
+}: {
+  nodeId: string;
+  onHeldChange?: (held: boolean) => void;
+}) {
   const node = useNode(nodeId);
   const { updateNode, getChildDeadlineConflicts } = useNodeActions();
   const [isOpen, setIsOpen] = useState(false);
   const [pendingValue, setPendingValue] = useState<PendingDeadlineValue | null>(null);
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
+
+  // The picker and its conflict dialog keep the breadcrumb shown while open.
+  const held = isOpen || conflictModalOpen;
+  useEffect(() => {
+    onHeldChange?.(held);
+    return () => onHeldChange?.(false);
+  }, [held, onHeldChange]);
 
   if (!node || node.deadline === null) {
     return null;
@@ -79,7 +92,7 @@ export function BreadcrumbDeadline({ nodeId }: { nodeId: string }) {
       <Popover onOpenChange={setIsOpen} open={isOpen}>
         <PopoverTrigger asChild>
           <button
-            className="pointer-events-auto inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-border/40 bg-background/80 pl-2 pr-3 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-md transition-colors hover:text-foreground"
+            className="breadcrumb-reveal__surface breadcrumb-reveal__chip pointer-events-auto inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-border/40 bg-background/80 pl-2 pr-3 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-md transition-colors hover:text-foreground"
             type="button"
           >
             <Calendar className="h-3 w-3" />

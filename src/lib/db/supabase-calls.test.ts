@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  BREADCRUMB_RESERVED_CELLS,
   callEnsureAccount,
   callUpdateNode,
   fetchSnapshotValue,
@@ -14,13 +13,12 @@ const clientWith = (result: { data: unknown; error: { message: string } | null; 
 };
 
 describe("supabase calls", () => {
-  it("update_node sends snake_case changes only and the reserved block", async () => {
+  it("update_node sends snake_case changes only, with no reserved block", async () => {
     const { client, rpc } = clientWith({ data: { status: "applied", result: null, changes: {} }, error: null });
     await callUpdateNode(client, "id-1", { x: 3, deadlineAllDay: true, level: 2 } as never);
     expect(rpc).toHaveBeenCalledWith("update_node", {
       p_id: "id-1",
       p_changes: { x: 3, deadline_all_day: true },
-      p_reserved_cells: BREADCRUMB_RESERVED_CELLS,
     });
   });
 
@@ -52,10 +50,5 @@ describe("supabase calls", () => {
     const error = await callUpdateNode(client, "id-1", { x: 1 }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(Error);
     expect(error).not.toBeInstanceOf(UnknownOutcomeError);
-  });
-
-  it("the reserved block is the top-left 3x2 cells", () => {
-    expect(BREADCRUMB_RESERVED_CELLS).toHaveLength(6);
-    expect(BREADCRUMB_RESERVED_CELLS.every((c) => c.x <= 2 && c.y <= 1)).toBe(true);
   });
 });

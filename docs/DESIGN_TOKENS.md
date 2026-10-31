@@ -794,8 +794,9 @@ to the item status rule ([Feedback Status Surfaces](#feedback-status-surfaces)):
 | Pending intent (`Saving before continuing…`) | The loader plus the existing `Stay here`; the sentence in the tooltip |
 | `not-applied` (`Not saved.`) | `!` with emphasis and the tooltip in place of the overlay line; its existing recovery control stays as a compact control |
 | `offline` (`Offline. Your draft is still here.`) | No overlay: the draft stays in the editor and the offline write-attempt toast appears (SPEC §Toasts) |
+| `unknown` (Task 245A) | `?` at once with field emphasis and the tooltip `We couldn't confirm whether your changes were saved.`; a compact `Check again` replaces Save and Cancel in the action region; `reconciling` after it keeps `?`, then the loader |
 | `conflict` | Unchanged: the source-bound conflict view stays (F08) |
-| `invalidated` | Unchanged: the recovery overlay is a decision surface F05 does not touch |
+| `invalidated` | Unchanged: the recovery overlay is a decision surface F05 does not touch. Exception (Task 245A, mi-3): while it holds a save whose outcome is unconfirmed, a compact `Check again` sits beside Copy and Close is unavailable until a terminal answer |
 | Applied (`Saved.`) | Only the polite hidden announcement (F04) |
 
 The fixed geometry, the `9.5rem` action region and the lock rules stay. The
@@ -947,9 +948,25 @@ The attached family maps through Staging-native theme roles:
   title on its own line, since the label truncates, unless the sentence
   already contains it. Where the host is not in the Tab order (a Stage
   projection, an integrity slot), the status icon is focusable.
+- **Unknown recovery** (Phase 50 mi-11, user 2026-10-30). When the automatic
+  read-only check after an unknown Stage or Unstage also fails, the item's `?`
+  is a button that runs that check again, as the Undo slot's `?` does: the
+  unknown sentence plus `Select to check again.` as tooltip, unavailable at
+  once while it checks, the loader after `DISPLAY_DELAY_MS`, back to `?` if
+  the check fails. It never resends the command. This supersedes "no action
+  … exists before authority" in the Pending/reconcile copy row for unknown
+  only; Staging still has no Retry.
 - **Nodes zone** (F10, MI-21). The `Nodes` well is never narrower than one
   Node card and lays its cards in an auto-fill grid: one column when two do
-  not fit, two as today when they do; every theme shares it.
+  not fit, two as today when they do; every theme shares it. Values:
+  `--triage-staging-node-card-min` 4.5rem (the narrowest a card gets; the
+  Nodes column is that plus 2rem), a card's own `max-w-[80px] mx-auto` caps it
+  in every theme that does not realize its own size (no theme overrides
+  `max-inline-size` on `.triage-staging__node`, so a Stage projection card and
+  a candidate card keep one size), `--triage-staging-node-gap` 0.5rem
+  (12px in `neumorphism`), and the two-column threshold is two minimum cards
+  plus one gap (a well of 152px with the 0.5rem gap; the theme's well padding
+  counts against it).
 - Counts, arrival, neutral/invalid reasons and focus rules are unchanged. The
   Motion row's "no spinner" yields to the F03 loader only.
 
@@ -1436,7 +1453,7 @@ only its own tooltip, and one tooltip shows at a time. The row keeps its
 width; NEW, selection, the separate slot control, the operation identity and
 the focus destinations stay. Only `?` and `!` add item
 emphasis. The `newly-status-rail`, `newly-status-mark`, `newly-status-action`
-and `newly-status-reason` roles retire; the slot uses the
+and `newly-status-reason` roles and the `newly-undo-tooltip` binding retire; the slot uses the
 [Feedback Status Surfaces](#feedback-status-surfaces) roles. Until Phase 50 the
 contracts above stay in force as built.
 
@@ -1715,8 +1732,8 @@ Shared elements carry `data-feedback-role`:
 | `toast-stack` | The `sonner` stack | Top-left of the work area, right of the `3rem` sidebar, at the breadcrumb row; below the breadcrumb while it is shown; at most three toasts; translucent and pointer-transparent during a Node or Bit drag (F12) |
 | `toast` | One toast, `data-toast-kind="success|warning|error"` | The status tokens above; icon ✓, `!` or Lucide `wifi-off` (offline). `sonner` takes no `data-*` props, so `data-toast-kind` is realized by `sonner`'s own `data-type` (same values) on `[data-sonner-toast]`, and `toast-stack` by the `.toast-stack` class on its list (Task 244) |
 | `home-button` | Sidebar Home button (F21) | Sidebar icon-button size and focus ring of its neighbours, top-most; `aria-current="page"` on L0; briefly emphasized when the breadcrumb folds into it (F23) |
-| `breadcrumb-reveal` | The revealed breadcrumb surface over the grid's top-left (F22–F25) | Segments and the deadline chip in one row; only segments and the chip take the pointer; above cards, below the drag overlay, popovers, dialogs, the Bit popup and the palette; translucent during a drag with the chip hidden |
-| `breadcrumb-drop-target` | An ancestor segment during a drag (F24) | A visible "drop here" signal on the segment only |
+| `breadcrumb-reveal` | The revealed breadcrumb surface over the grid's top-left (F22–F25) | Segments and the deadline chip in one row; only segments and the chip take the pointer; above cards, below the drag overlay, popovers, dialogs, the Bit popup and the palette; its resting look during a drag (no added transparency) with the chip hidden |
+| `breadcrumb-drop-target` | The ancestor segment under the pointer during a drag (F24) | A light hover-level signal on that segment only; other ancestors are not marked |
 | `staging-node-grid` | The `Nodes` well's card grid (F10) | Minimum width of one Node card; auto-fill grid, one column when two cards do not fit, two when they do |
 
 ### Approved status surface realization — `DP-FB-01`
@@ -1731,7 +1748,7 @@ size and theme CSS. The option sheet is scratch and not committed.
 | Contract | Exact requirement |
 |---|---|
 | Status icon shape (FB-1, FB-5) | `data-feedback-role="status-icon"` is a 16px square box (`--status-icon-size: 16px`, 12px inside the Explorer Undo button). `data-status="unknown"` / `"problem"`: the glyph `?` / `!` at weight 800, line-height 1, font-size `0.62 ×` the box (about 10px), in `--theme-font`, inside a 1.5px circle (`border-radius: 999px`, border `currentColor`), colour `hsl(var(--status-item))`. `data-status="pending"` / `"reconciling"`: Lucide `loader-circle` at stroke 2.4, colour `hsl(var(--muted-foreground))`, no circle, `role="img"` named by the sentence of its state in SPEC Feedback copy (`src/lib/copy/inbox-triage.ts`), the same sentence the tooltip shows; it rotates 360deg in 0.9s, linear, infinite, appears only after `DISPLAY_DELAY_MS` (300ms) and is static under reduced motion. |
-| Item status colour (FB-2) | Neutral: `?` and `!` both use `--status-item` (values above); the loader uses `--muted-foreground`. No hue, no red; the glyph shape carries the kind. |
+| Item status colour (FB-2) | Neutral: `?` and `!` both use `--status-item` (values above); the loader uses `--muted-foreground`. No hue, no red; the glyph shape carries the kind. One exception (user, 2026-10-30, Task 245): where a theme inverts a focused field's surface (the `retro-mac` Breakdown Add field, ink background with surface text), the status icon inside that field takes the field's focused text colour while the field has focus, since `--status-item` nearly matches the inverted surface; no new value. |
 | Emphasis (FB-3, FB-3b) | `data-status-emphasis`, set only with `?` and `!`, never with the loader: `outline: 1.5px solid hsl(var(--status-item) / 0.8); outline-offset: 1px;` and a background layer `linear-gradient(hsl(var(--status-item) / 0.09), hsl(var(--status-item) / 0.09))` in `background-image`. It uses outline and `background-image` only, so each theme's own `box-shadow` stays (the `retro-mac` Staging card and Bit row set their own). The existing dimming of a locked source row or candidate stays. Known limit, accepted by the user on 2026-10-23 after seeing it: against the 2px black row borders of `retro-mac` this emphasis is faint; strengthening it per theme is theme-stage work, not a change to this contract. |
 | Status tooltip (FB-4) | The existing `TooltipContent` look: `z-50 w-fit rounded-md bg-foreground px-3 py-1.5 text-xs text-balance text-background` plus the `explorer-title-tooltip` class, which keeps it static and gives `neumorphism` its plate. No arrow animation, no controls, one at a time; the sentence is the SPEC status sentence. |
 | Placement and slots (FB-5) | Breakdown row: the third grid column of `.triage-fixed-breakdown-row` (`10rem`, the old success slot) becomes `22px`; `.breakdown-success-slot` loses its inline padding and centres the icon; the column is always reserved. Staging Node card: the icon sits at `top: 4px; right: 4px` inside the card. Staging Bit row: `right: 8px`, vertically centred. Add field: inside the field at `right: 8px`, vertically centred, with `padding-inline-end: 30px` on the field. |
@@ -1740,8 +1757,8 @@ size and theme CSS. The option sheet is scratch and not committed.
 | Toast surface (FB-9) | `sonner` DOM kept, restyled through `data-type`: `background: hsl(var(--status-{kind}-surface))`, `color: hsl(var(--status-{kind}-foreground))`, `border: 1px solid hsl(var(--status-{kind}-border))`, `border-radius: 12px`, `box-shadow: var(--theme-shadow)`, `--theme-font`. `retro-mac` shows `border-radius: 0` and `box-shadow: 2px 2px 0 hsl(var(--foreground))`; per-theme finishing otherwise belongs to the theme stage. Width 356px, 8px between toasts, 16px padding, 13px text. The icon is 16px in an 18px box in `hsl(var(--status-{kind}))`: a check (stroke 3) for success, `!` for failure and for a warning that is not offline, Lucide `wifi-off` for the offline write-attempt warning. Warning and failure toasts carry a `×` close control. The stack position is F12. |
 | Home landing emphasis (FB-10) | When the breadcrumb folds into Home (F23), the Home button runs once, starting when the fold ends (0.35s after the fold starts), 0.6s ease-out: `box-shadow` from `0 0 0 0 hsl(var(--primary) / 0.7)` to `0 0 0 10px hsl(var(--primary) / 0)` and `background-color` from `hsl(var(--primary) / 0.14)` to transparent. No size change. Reduced motion: no movement, a static `0 0 0 2px hsl(var(--primary))` ring with `hsl(var(--primary) / 0.12)` background for the same 0.6s. |
 | Breadcrumb reveal surface (FB-11) | The surface is unchanged from today: `h-8 rounded-lg border border-border/40 bg-background/80 shadow-sm backdrop-blur-md`. Structure (checked by the user on the option sheet, in the user's browser, 2026-10-23): `clip-path` and the `translateX` run on a wrapper element around the breadcrumb surface, and the opacity runs on the surface itself. They must not run on the element that has `backdrop-filter`: there the user saw a finished card fade in and out at 0.25× speed instead of unfolding from the left edge. Unfold from Home: 0.26s `cubic-bezier(0.2, 0.7, 0.2, 1)`, `clip-path: inset(0 100% 0 0)` to `inset(0)`, opacity 0.2 to 1 and `translateX(-8px)` to 0, from the left edge. Fold into Home (F23): the exact reverse of the unfold, 0.35s with the same `cubic-bezier(0.2, 0.7, 0.2, 1)`: `clip-path: inset(0)` to `inset(0 100% 0 0)` and `translateX(0)` to `translateX(-8px)`, towards the left edge; opacity goes 1 to 0 linearly and reaches 0 at 0.3s, inside the fold, so the fade is part of it and not a separate step. The Home landing emphasis below starts when the fold ends, 0.35s after the fold starts. Reduced motion: no movement; the breadcrumb appears and disappears in place (SPEC §Breadcrumb reveal and Home button). |
-| Drag translucency (FB-12) | During a Node or Bit drag the breadcrumb surface and the toast stack are at `opacity: 0.5` and pass the pointer through, except the breadcrumb segments (drop targets); the deadline chip is hidden. |
-| Segment drop signal (FB-13) | During a drag every ancestor segment (Home and the ancestor Nodes, not the current Node) shows `box-shadow: 0 0 0 2px hsl(var(--primary))` and `background: hsl(var(--primary) / 0.14)` with `--foreground` text; the segment under the pointer adds `0 0 0 5px hsl(var(--primary) / 0.25)`. No label. |
+| Drag translucency (FB-12) | During a Node or Bit drag the toast stack is at `opacity: 0.5`; the breadcrumb surface keeps full opacity, since `opacity` on the surface also halved the segment drop signal (FB-13) (user, 2026-10-31, Task 248). Both pass the pointer through, except the breadcrumb segments (drop targets); the deadline chip is hidden. |
+| Segment drop signal (FB-13) | Only the ancestor segment under the pointer (Home or an ancestor Node, not the current Node) shows `bg-accent text-accent-foreground` (the pre-Phase 50 look); no ring, glow or `box-shadow`, and the other ancestors are not marked. No label. Amended by the user on 2026-10-31 (Task 248): the 2px ring with the `--primary` tint on every ancestor and the 5px glow on the hovered one read as noise; teaching the ancestor drop belongs to a future first-visit Grid tour. |
 
 ### Decision prerequisite — `DP-FB-01`
 

@@ -21,14 +21,21 @@ export function validateCreatedAtSort(
     : DEFAULT_CREATED_AT_SORT;
 }
 
+/** A saved Scratch id is any non-empty string; whether it still resolves is checked at restore time. */
+export function validateLastSelectedScratchId(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 interface PersistedTriagePreferences {
   poolCreatedAtSort: CreatedAtSortDirection;
   breakdownCreatedAtSort: CreatedAtSortDirection;
+  lastSelectedScratchId: string | null;
 }
 
 interface TriagePreferencesState extends PersistedTriagePreferences {
   setPoolCreatedAtSort: (sort: CreatedAtSortDirection) => void;
   setBreakdownCreatedAtSort: (sort: CreatedAtSortDirection) => void;
+  setLastSelectedScratchId: (id: string | null) => void;
 }
 
 function normalizePersistedPreferences(
@@ -43,6 +50,9 @@ function normalizePersistedPreferences(
     poolCreatedAtSort: validateCreatedAtSort(preferences.poolCreatedAtSort),
     breakdownCreatedAtSort: validateCreatedAtSort(
       preferences.breakdownCreatedAtSort,
+    ),
+    lastSelectedScratchId: validateLastSelectedScratchId(
+      preferences.lastSelectedScratchId,
     ),
   };
 }
@@ -84,6 +94,9 @@ const triagePreferencesStorage: PersistStorage<PersistedTriagePreferences> = {
           breakdownCreatedAtSort: validateCreatedAtSort(
             value.state.breakdownCreatedAtSort,
           ),
+          lastSelectedScratchId: validateLastSelectedScratchId(
+            value.state.lastSelectedScratchId,
+          ),
         }),
       );
     } catch {
@@ -102,13 +115,22 @@ const triagePreferencesStorage: PersistStorage<PersistedTriagePreferences> = {
 
 export const useTriagePreferencesStore = create<TriagePreferencesState>()(
   persist<TriagePreferencesState, [], [], PersistedTriagePreferences>(
-    (set) => ({
+    (set, get) => ({
       poolCreatedAtSort: DEFAULT_CREATED_AT_SORT,
       breakdownCreatedAtSort: DEFAULT_CREATED_AT_SORT,
+      lastSelectedScratchId: null,
       setPoolCreatedAtSort: (sort) =>
         set({ poolCreatedAtSort: validateCreatedAtSort(sort) }),
       setBreakdownCreatedAtSort: (sort) =>
         set({ breakdownCreatedAtSort: validateCreatedAtSort(sort) }),
+      // An unchanged id must not call set: persist writes on every set and
+      // would rewrite the sorts from this tab's memory, overwriting a sort
+      // another tab changed.
+      setLastSelectedScratchId: (id) => {
+        const next = validateLastSelectedScratchId(id);
+        if (next === get().lastSelectedScratchId) return;
+        set({ lastSelectedScratchId: next });
+      },
     }),
     {
       name: TRIAGE_PREFERENCES_PERSISTENCE_KEY,
@@ -116,6 +138,7 @@ export const useTriagePreferencesStore = create<TriagePreferencesState>()(
       partialize: (state) => ({
         poolCreatedAtSort: state.poolCreatedAtSort,
         breakdownCreatedAtSort: state.breakdownCreatedAtSort,
+        lastSelectedScratchId: state.lastSelectedScratchId,
       }),
       merge: (persistedState, currentState) => ({
         ...currentState,

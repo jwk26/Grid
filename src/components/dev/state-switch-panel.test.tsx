@@ -155,7 +155,7 @@ describe("StateSwitchPanel", () => {
     expect(optionsOf(forcedItemKeys.add("scratch-1"))).not.toContain("integrity");
     expect(optionsOf(forcedItemKeys.add("scratch-1"))).not.toContain("editor-offline");
     expect(optionsOf(forcedItemKeys.breakdownEditor("row-1"))).toEqual([
-      "", "delayed-pending", "reconciling", "not-applied", "editor-offline",
+      "", "delayed-pending", "reconciling", "unknown", "not-applied", "editor-offline",
     ]);
     expect(optionsOf(forcedItemKeys.candidate("cand-1"))).toContain("integrity");
   });

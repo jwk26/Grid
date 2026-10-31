@@ -11,8 +11,9 @@ const spaceMono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], varia
 
 const noFlashScript = buildNoFlashScript();
 
+// No `title` here: every page sets its own tab title (`useDocumentTitle`), and a root
+// metadata title is re-applied after hydration, over the title a Node page has just set.
 export const metadata: Metadata = {
-  title: "GridDO",
   description: "Local-first task management with a 2D grid",
 };
 

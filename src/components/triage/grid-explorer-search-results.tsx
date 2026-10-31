@@ -3,7 +3,6 @@
 import { X } from "lucide-react";
 import {
   useEffect,
-  useId,
   useLayoutEffect,
   useRef,
   type ChangeEvent,
@@ -16,6 +15,12 @@ import type {
   GridExplorerSearchFocusTarget,
   GridExplorerSearchStatus,
 } from "@/hooks/use-grid-explorer-search";
+import {
+  statusEmphasisProps,
+  useStatusPresentation,
+} from "@/components/feedback/status-icon";
+import { NewlyUndoSlot } from "@/components/grid/newly-undo-slot";
+import type { ItemStatus } from "@/lib/feedback/item-status";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import { NODE_ICON_MAP } from "@/lib/constants/node-icons";
 import type { GridExplorerSearchResult } from "@/lib/utils/grid-explorer-search";
@@ -41,11 +46,15 @@ export interface GridExplorerSearchResultsProps {
 }
 
 export type GridExplorerSearchResultUndo = Readonly<{
-  actionLabel: string;
   copy: string;
   disabled: boolean;
+  label: string;
   onActivate: () => void;
+  phaseKey: string;
+  reason: string;
+  sentence: string;
   state: string;
+  status: ItemStatus | null;
 }>;
 
 function fill(
@@ -82,68 +91,64 @@ function stateCopy({
   return "";
 }
 
-function SearchResultUndo({
-  result,
+// The result row and its Undo slot share one status presentation (feedback F06, F07): the slot
+// shows the glyph and the row takes the emphasis. The hidden live region announces the sentence.
+function SearchResultItem({
+  children,
   undo,
 }: {
-  result: GridExplorerSearchResult;
-  undo: GridExplorerSearchResultUndo;
+  children: ReactNode;
+  undo: GridExplorerSearchResultUndo | null;
 }) {
+  const presentation = useStatusPresentation(
+    undo?.status ?? null,
+    undo?.phaseKey,
+  );
   const actionRef = useRef<HTMLButtonElement>(null);
-  const statusId = useId();
-  const previousStateRef = useRef(undo.state);
+  const previousStateRef = useRef(undo?.state);
 
   useEffect(() => {
+    const state = undo?.state;
     const enteredRecoveryState =
-      previousStateRef.current !== undo.state &&
-      (undo.state === "unknown" ||
-        undo.state === "not-applied" ||
-        undo.state === "conflict");
-    previousStateRef.current = undo.state;
+      previousStateRef.current !== state &&
+      (state === "unknown" || state === "not-applied" || state === "conflict");
+    previousStateRef.current = state;
     if (enteredRecoveryState) actionRef.current?.focus({ preventScroll: true });
-  }, [undo.state]);
-
-  const actionName =
-    undo.actionLabel === INBOX_TRIAGE_COPY.newlyPlacedUndo.actions.undo
-      ? `Undo placement of ${result.title}`
-      : undo.actionLabel;
+  }, [undo?.state]);
 
   return (
-    <>
-      <button
-        ref={actionRef}
-        aria-describedby={statusId}
-        aria-disabled={undo.disabled ? "true" : undefined}
-        aria-label={actionName}
-        className="explorer-search-undo newly-undo-action shrink-0"
-        data-triage-role="explorer-search-undo"
-        data-undo-action={undo.actionLabel}
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          if (!undo.disabled) undo.onActivate();
-        }}
-      >
-        {undo.actionLabel}
-      </button>
-      <div
-        aria-atomic="true"
-        aria-live="polite"
-        className="newly-status-rail col-span-2"
-        data-triage-role="explorer-search-undo-status"
-        data-undo-state={undo.state}
-        role="status"
-      >
-        <span
-          aria-hidden="true"
-          className="newly-status-mark"
-          data-undo-status-mark={undo.state}
-        />
-        <p className="newly-status-reason" id={statusId}>
-          {undo.copy}
-        </p>
-      </div>
-    </>
+    <li
+      className={
+        undo === null
+          ? "explorer-search-result-item"
+          : "explorer-search-result-item grid grid-cols-[minmax(0,1fr)_auto] gap-2"
+      }
+      data-undo-state={undo?.state}
+      data-triage-role="explorer-search-result-shell"
+      {...statusEmphasisProps(presentation)}
+    >
+      {children}
+      {undo === null ? null : (
+        <>
+          <NewlyUndoSlot
+            buttonRef={actionRef}
+            className="explorer-search-undo newly-undo-action shrink-0"
+            model={undo}
+            presentation={presentation}
+            role="explorer-search-undo"
+          />
+          <div
+            aria-atomic="true"
+            aria-live="polite"
+            className="sr-only"
+            data-triage-role="explorer-search-undo-status"
+            role="status"
+          >
+            <p>{undo.copy}</p>
+          </div>
+        </>
+      )}
+    </li>
   );
 }
 
@@ -289,16 +294,7 @@ export function GridExplorerSearchResults({
           const Icon = NODE_ICON_MAP[result.icon] ?? NODE_ICON_MAP.Box;
           const resultUndo = getResultUndo(result);
           return (
-            <li
-              className={
-                resultUndo === null
-                  ? "explorer-search-result-item"
-                  : "explorer-search-result-item grid grid-cols-[minmax(0,1fr)_auto] gap-2"
-              }
-              data-undo-state={resultUndo?.state}
-              data-triage-role="explorer-search-result-shell"
-              key={result.key}
-            >
+            <SearchResultItem key={result.key} undo={resultUndo}>
               <button
                 ref={(node) => {
                   if (node === null) resultRefs.current.delete(result.key);
@@ -356,10 +352,7 @@ export function GridExplorerSearchResults({
                 )}
               </span>
               </button>
-              {resultUndo === null ? null : (
-                <SearchResultUndo result={result} undo={resultUndo} />
-              )}
-            </li>
+            </SearchResultItem>
           );
         })}
       </ul>

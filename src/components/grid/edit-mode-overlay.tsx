@@ -1,30 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
 import { useEditModeStore } from "@/stores/edit-mode-store";
 
 export function EditModeOverlay() {
   const isEditMode = useEditModeStore((state) => state.isEditMode);
-  const disable = useEditModeStore((state) => state.disable);
 
-  useEffect(() => {
-    if (!isEditMode) {
-      return;
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        disable();
-      }
-    }
-
-    document.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [disable, isEditMode]);
-
+  // `Esc` is owned by `useEscapeOrder` (grid-runtime): edit mode exits only after the
+  // dialog layer, the deadline picker and the breadcrumb.
   if (!isEditMode) {
     return null;
   }

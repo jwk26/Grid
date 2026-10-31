@@ -6,9 +6,11 @@ import { useMemo } from "react";
 import { CalendarViewHeader } from "@/components/calendar/calendar-view-header";
 import { DayColumn } from "@/components/calendar/day-column";
 import { useCalendarData } from "@/hooks/use-calendar-data";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useCalendarStore } from "@/stores/calendar-store";
 
 export default function WeeklyCalendarPage() {
+  useDocumentTitle("Calendar");
   const currentWeekStart = useCalendarStore((state) => state.currentWeekStart);
   const expandedDay = useCalendarStore((state) => state.expandedDay);
   const goToToday = useCalendarStore((state) => state.goToToday);

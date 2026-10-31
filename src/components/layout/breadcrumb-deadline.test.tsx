@@ -262,6 +262,39 @@ describe("BreadcrumbDeadline", () => {
     expect(screen.getByTestId("deadline-picker")).toBeInTheDocument();
   });
 
+  it("holds the breadcrumb while the picker or the conflict dialog is open", async () => {
+    useNodeMock.mockReturnValue(createNode());
+    getChildDeadlineConflictsMock.mockResolvedValue([{ id: "bit-1" }]);
+    const onHeldChange = vi.fn();
+
+    const { unmount } = render(<BreadcrumbDeadline nodeId="node-1" onHeldChange={onHeldChange} />);
+    expect(onHeldChange).toHaveBeenLastCalledWith(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Due Apr 15, 3:00 PM" }));
+    expect(onHeldChange).toHaveBeenLastCalledWith(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Set all-day deadline" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("deadline-conflict-modal")).toBeInTheDocument();
+      expect(onHeldChange).toHaveBeenLastCalledWith(true);
+    });
+
+    unmount();
+    expect(onHeldChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("puts the chip in the reveal row with its own surface", () => {
+    useNodeMock.mockReturnValue(createNode());
+
+    render(<BreadcrumbDeadline nodeId="node-1" />);
+
+    expect(screen.getByRole("button", { name: "Due Apr 15, 3:00 PM" })).toHaveClass(
+      "breadcrumb-reveal__surface",
+      "breadcrumb-reveal__chip",
+      "pointer-events-auto",
+    );
+  });
+
   it("updates the node deadline immediately when there is no child conflict", async () => {
     useNodeMock.mockReturnValue(createNode());
 

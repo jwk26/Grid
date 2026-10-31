@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, MoreHorizontal, Undo2, X } from "lucide-react";
+import { ChevronRight, MoreHorizontal, X } from "lucide-react";
 import { motion, type HTMLMotionProps } from "motion/react";
 import type { Ref } from "react";
 import { NODE_ICON_MAP } from "@/lib/constants/node-icons";
@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useArchiveActions } from "@/hooks/use-archive";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { statusEmphasisProps, useStatusPresentation } from "@/components/feedback/status-icon";
 import { ExplorerTitle, useExplorerCardTooltips } from "./explorer-title-tooltip";
+import { NewlyUndoSlot, type NewlyUndoSlotModel } from "./newly-undo-slot";
 import type { Node } from "@/types";
 
 type NodeCardProps = {
@@ -31,14 +32,7 @@ type NodeCardProps = {
   isDragging?: boolean;
   isNewlyPlaced?: boolean;
   undoActionRef?: Ref<HTMLButtonElement>;
-  undo?: Readonly<{
-    disabled: boolean;
-    describedBy?: string;
-    label?: string;
-    onActivate: () => void;
-    reason: string;
-    tooltip?: string;
-  }>;
+  undo?: NewlyUndoSlotModel;
   ref?: Ref<HTMLButtonElement>;
 } & Omit<
   HTMLMotionProps<"button">,
@@ -78,40 +72,13 @@ export function NodeCard({
   const isExplorer = presentation === "inbox-explorer";
   const hasOptions = !isExplorer && !isEditMode && node.systemRole === null;
 
-  const undoButton = undo !== undefined ? (
-<button
-          data-triage-role="explorer-card-undo"
-          type="button"
-          aria-describedby={undo.describedBy}
-          aria-disabled={undo.disabled}
-          aria-label={
-            undo.label === undefined ||
-            undo.label === INBOX_TRIAGE_COPY.newlyPlacedUndo.actions.undo
-              ? `Undo placement of ${node.title}`
-              : undo.label
-          }
-          className="newly-undo-action absolute bottom-0 right-0 z-20 rounded px-1 text-[10px] font-semibold"
-          data-undo-reason={undo.reason}
-          ref={undoActionRef}
-          onKeyDown={isExplorer ? (event) => event.stopPropagation() : undefined}
-          onClick={(event) => {
-            event.stopPropagation();
-            if (undo.disabled) return;
-            undo.onActivate();
-          }}
-        >
-          {isExplorer && (undo.label === undefined || undo.label === INBOX_TRIAGE_COPY.newlyPlacedUndo.actions.undo)
-            ? <Undo2 aria-hidden="true" className="size-3" />
-            : undo.label ?? INBOX_TRIAGE_COPY.newlyPlacedUndo.actions.undo}
-        </button>
-  ) : null;
+  const undoPresentation = useStatusPresentation(undo?.status ?? null, undo?.phaseKey);
 
   return (
     <div
       className="group/card relative flex h-full items-center justify-center"
       data-card-presentation={presentation}
       data-triage-role="explorer-card-node-shell"
-      data-newly-action-kind={isExplorer && undo !== undefined && undo.label !== undefined && undo.label !== INBOX_TRIAGE_COPY.newlyPlacedUndo.actions.undo ? "recovery" : undefined}
       data-card-has-actions={undo !== undefined || isEditMode || hasOptions ? "true" : undefined}
       data-newly-placed={isNewlyPlaced ? "true" : undefined}
     >
@@ -131,6 +98,7 @@ export function NodeCard({
           className,
         )}
         data-newly-placed={isNewlyPlaced ? "true" : undefined}
+        {...statusEmphasisProps(undoPresentation)}
         initial={false}
         onBlur={(event) => {
           onBlur?.(event);
@@ -176,18 +144,18 @@ export function NodeCard({
         <ChevronRight aria-hidden="true" data-triage-role="explorer-card-chevron" className="hidden pointer-events-none shrink-0" />
       </motion.button>
 
-      {undo !== undefined && isExplorer ? (
-        <TooltipProvider><Tooltip
-          open={undo.tooltip === undefined ? false : tooltips.undoOpen}
-          onOpenChange={undo.tooltip === undefined ? undefined : tooltips.onUndoOpenChange}
-        >
-          <TooltipTrigger asChild>{undoButton}</TooltipTrigger>
-          {undo.tooltip !== undefined ? <TooltipContent side="top" sideOffset={4} avoidCollisions={false}
-            className="newly-undo-tooltip" data-triage-role="explorer-undo-tooltip">
-            {undo.tooltip}
-          </TooltipContent> : null}
-        </Tooltip></TooltipProvider>
-      ) : undoButton}
+      {undo !== undefined ? (
+        <NewlyUndoSlot
+          buttonRef={undoActionRef}
+          className="newly-undo-action absolute bottom-0 right-0 z-20 rounded px-1 text-[10px] font-semibold"
+          model={undo}
+          onKeyDown={isExplorer ? (event) => event.stopPropagation() : undefined}
+          open={isExplorer ? tooltips.undoOpen : undefined}
+          onOpenChange={isExplorer ? tooltips.onUndoOpenChange : undefined}
+          presentation={undoPresentation}
+          role="explorer-card-undo"
+        />
+      ) : null}
 
       {isEditMode ? (
         <button
