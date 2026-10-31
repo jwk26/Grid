@@ -27,7 +27,7 @@ const BLOCK = [
   { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 },
   { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 },
 ];
-const COUNTS = { nodes: 32, bits: 116, chunks: 10, rows: 11, candidates: 2 };
+const COUNTS = { nodes: 87, bits: 262, chunks: 10, rows: 11, candidates: 2 };
 
 let guest: TestUser;
 beforeAll(async () => {
@@ -258,9 +258,19 @@ describe("demo seed: the copied rows", () => {
       // A level-2 Node holds Bits only.
       const level2 = new Set(s.nodes.filter((n) => n.level === 2).map((n) => n.id));
       expect(s.nodes.filter((n) => n.parent_id !== null && level2.has(n.parent_id))).toEqual([]);
-      // About four Bits per Grid, and the shape of the rework.
-      expect(s.nodes.filter((n) => n.parent_id === null && n.system_role === null)).toHaveLength(10);
-      expect(s.nodes.filter((n) => n.level === 2)).toHaveLength(5);
+      // The shape of the seed.
+      expect(s.nodes.filter((n) => n.parent_id === null && n.system_role === null)).toHaveLength(30);
+      expect(s.nodes.filter((n) => n.level === 1)).toHaveLength(42);
+      expect(s.nodes.filter((n) => n.level === 2)).toHaveLength(13);
+      // At most 16 Bits and 8 sub-Nodes per Grid, and room left under the guest limits to create.
+      const perGrid = new Map<string, number>();
+      for (const b of seedBits) perGrid.set(b.parent_id, (perGrid.get(b.parent_id) ?? 0) + 1);
+      expect(Math.max(...perGrid.values())).toBeLessThanOrEqual(16);
+      const subPerGrid = new Map<string, number>();
+      for (const n of subNodes) subPerGrid.set(n.parent_id!, (subPerGrid.get(n.parent_id!) ?? 0) + 1);
+      expect(Math.max(...subPerGrid.values())).toBeLessThanOrEqual(8);
+      expect(s.nodes.length).toBeLessThanOrEqual(90);
+      expect(s.bits.length).toBeLessThanOrEqual(270);
     });
   });
 
