@@ -1,4 +1,4 @@
-# GridDO — Design Tokens
+# griddo — Design Tokens
 
 > **Scope:** Exact visual values where explicitly listed, plus canonical shared
 > semantic visual roles and approved theme mappings. Architecture and product
@@ -119,7 +119,7 @@ Values that differ from `docs/design-system-preview.html` **on purpose**:
 >
 > **Format:** Raw HSL channels without `hsl()` wrapper. The `@theme inline` block applies `hsl()` when mapping to utility classes.
 
-Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens first, then GridDO extensions.
+Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens first, then griddo extensions.
 
 ```css
 :root {
@@ -154,7 +154,7 @@ Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens fi
 
     --radius: 0.625rem;                    /* 10px — base border-radius */
 
-    /* ── GridDO Extension Tokens ── */
+    /* ── griddo Extension Tokens ── */
 
     /* Priority Colors */
     --priority-high: 0 84% 60%;            /* #ef4444 — red */
@@ -253,7 +253,7 @@ Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens fi
     --input: 240 4% 16%;
     --ring: 217 91% 60%;
 
-    /* ── GridDO Extension Overrides (Dark Mode) ── */
+    /* ── griddo Extension Overrides (Dark Mode) ── */
 
     /* Priority backgrounds darken for dark mode */
     --priority-high-bg: 0 84% 10%;        /* dark red tint */
@@ -1967,7 +1967,7 @@ Components consume `--grid-node-*` vars unchanged. No component edits are needed
   --color-ring: hsl(var(--ring));
   --color-page-bg: var(--page-bg);         /* body background surface */
 
-  /* ── Colors (GridDO priority) ── */
+  /* ── Colors (griddo priority) ── */
   --color-priority-high: hsl(var(--priority-high));
   --color-priority-high-bg: hsl(var(--priority-high-bg));
   --color-priority-mid: hsl(var(--priority-mid));
@@ -1975,7 +1975,7 @@ Components consume `--grid-node-*` vars unchanged. No component edits are needed
   --color-priority-low: hsl(var(--priority-low));
   --color-priority-low-bg: hsl(var(--priority-low-bg));
 
-  /* ── Colors (GridDO urgency) ── */
+  /* ── Colors (griddo urgency) ── */
   --color-urgency-1: hsl(var(--urgency-1));
   --color-urgency-2: hsl(var(--urgency-2));
   --color-urgency-3: hsl(var(--urgency-3));
@@ -1999,7 +1999,7 @@ Components consume `--grid-node-*` vars unchanged. No component edits are needed
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  /* ── GridDO Custom Animations (not from tw-animate-css) ── */
+  /* ── griddo Custom Animations (not from tw-animate-css) ── */
   --animate-jiggle: jiggle 0.3s ease-in-out infinite;
   --animate-urgency-blink-1: urgency-blink 3s ease-in-out infinite;
   --animate-urgency-blink-2: urgency-blink 2s ease-in-out infinite;
@@ -2048,7 +2048,7 @@ The following CSS variables are consumed via `var()` in component styles or Java
 - `@layer base` contains only reset styles (`border-border`, `bg-background text-foreground`, `prefers-reduced-motion`)
 - No ordering constraint between `@theme inline` and `:root`/`.dark`
 
-**Note on animations:** GridDO custom keyframes (jiggle, blink, float) are defined inside `@theme inline` above. `tw-animate-css` is a separate package that provides animation utilities used by shadcn components (accordion, collapsible, etc.). The two sources are independent. Complex interaction-driven animations are handled by Motion in `src/lib/animations/`:
+**Note on animations:** griddo custom keyframes (jiggle, blink, float) are defined inside `@theme inline` above. `tw-animate-css` is a separate package that provides animation utilities used by shadcn components (accordion, collapsible, etc.). The two sources are independent. Complex interaction-driven animations are handled by Motion in `src/lib/animations/`:
 
 | Animation | Method | File |
 |-----------|--------|------|
@@ -2068,9 +2068,9 @@ The following CSS variables are consumed via `var()` in component styles or Java
 
 ## Motion Language
 
-GridDO source extraction targets:
+griddo source extraction targets:
 
-| Interaction | Source behavior | GridDO2 token |
+| Interaction | Source behavior | griddo2 token |
 |-------------|-----------------|---------------|
 | Node hover | `whileHover={{ scale: 1.05, zIndex: 40 }}` | `motionScale.nodeHover = 1.05`, `motionZIndex.nodeHover = 40` |
 | Node drag lift | `whileDrag={{ scale: 1.1, zIndex: 50 }}` | `motionScale.nodeDrag = 1.1`, `motionZIndex.nodeDrag = 50` |
@@ -2459,7 +2459,7 @@ Active-Scratch count badge on the Inbox system Node. Three-level pressure model 
 
 ### Compact Drag Token (Inbox/Triage)
 
-Inbox/Triage drag previews (Breakdown row, staged Node, staged Bit) use a **compact token**, not the full row/card (SPEC Decision 16; pointer-centered targeting; valid / invalid / pending-confirmation target states). The existing calendar `compact-bit-item.tsx` "full drag surface" is the **anti-pattern** to avoid. Batch 1 uses existing GridDO baseline tokens; exact drag-token classes are an implementation detail within the Inbox/Triage phase (no dedicated theme tokens in Batch 1).
+Inbox/Triage drag previews (Breakdown row, staged Node, staged Bit) use a **compact token**, not the full row/card (SPEC Decision 16; pointer-centered targeting; valid / invalid / pending-confirmation target states). The existing calendar `compact-bit-item.tsx` "full drag surface" is the **anti-pattern** to avoid. Batch 1 uses existing griddo baseline tokens; exact drag-token classes are an implementation detail within the Inbox/Triage phase (no dedicated theme tokens in Batch 1).
 
 ---
 

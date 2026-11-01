@@ -1,4 +1,4 @@
-# GridDO Inbox/Triage Implementation Execution Plan
+# griddo Inbox/Triage Implementation Execution Plan
 
 Execution plan mode: scaled
 
@@ -458,6 +458,7 @@ element/state to Q02.
 | `D-LENS` | Neumorphism ASC/DESC water-lens polish. | Future user visual decision. |
 | `D-KEYBOARD` | Keyboard or other drag-alternative placement entry. | Future accessibility brainstorming; no placeholder now. |
 | `D-TEXT` | Cross-surface wrapping, line count, expansion, and IME visual design. | Named separate topic. |
+| `D-ACCOUNT-BACKUP` | Automatic account backup and restore for signed-in accounts, and the first production dump with its restore test. | `2026-11-01-account-backup`; first candidate after the launch. |
 
 Responsive/mobile redesign remains excluded; active implementation targets the declared desktop surface with 1024px minimum and stable 1920×1080 evidence. Staging failures never toast (feedback F08).
 
@@ -862,36 +863,45 @@ across the widths; the user judges the look at 1280, 1366 and 1440px.
 
 **Commit message:** `fix(grid): fit the Node card content at every supported width`.
 
-### Task 239: [ ] Name the product and add the backup job
+### Task 239: [ ] Name the product
 
-**Files and actions:** "grid" in `src/app/layout.tsx` metadata, the `sr-only`
-heading of `src/app/(grid)/page.tsx` and the account modal (S24);
-`APP_NAME` in `src/lib/constants.ts` becomes "grid", so Node pages keep the
-feedback F25 title format (Task 248) whichever task lands first; `scripts/backup/weekly-dump.sh` and its `launchd` file
-(weekly `supabase db dump` as three files: roles, schema, and data including
-the `auth` schema rows; latest 8 kept outside Git; a Docker check and a
-failure notice; the connection secret read from outside Git); the user
-installs it and forces one run with `launchctl kickstart`; one restore test
-into local Supabase that brings back the account rows with their auth users.
+User, 2026-11-01: the name is "Grid", and the backup job leaves this task
+(SPEC §Environments And Hosting, S35; `D-ACCOUNT-BACKUP`).
+
+**Files and actions:** `APP_NAME` in `src/lib/constants.ts` becomes "Grid", so
+the tab titles follow the feedback F25 format; "Grid" in the `sr-only` heading
+of `src/app/(grid)/page.tsx` and in the copy that uses the product name
+(`src/lib/copy/feedback.ts`, the account modal; SPEC §Feedback copy; S24);
+the `src/app/layout.tsx` metadata keeps no `title`, and its description becomes
+`Task management on a 2D grid`. The common noun in `your grid` stays lowercase,
+and the theme picker's `GridDO` label stays (S24). The internal name becomes
+`griddo` (S06): the comments in `src/app/globals.css` and
+`scripts/dev-fixtures/`, and the test title in
+`src/lib/animations/motion-language.test.ts`. Archived records and the
+`GRIDDO_*` environment variables stay.
 
 **Dependencies:** Task 238A.
 
-**Authority:** S06, S24, S35; user answer Q2 (2026-10-22).
+**Authority:** S06, S24.
 
-**Observable acceptance:** the tab title and the L0 heading read "grid"; the
-forced run writes its three files; the restore test passes; a run with
-Docker stopped reports failure.
+**Observable acceptance:** the tab title and the L0 heading read "Grid"; no
+user-visible copy uses "grid" as the product name; the metadata description no
+longer says "Local-first"; outside that label, live code and tests no longer
+say `GridDO`.
 
-**Verification:** full gate; the user confirms the scheduled job.
+**Verification:** full gate; browser check of the tab title, the L0 heading and
+the account modal.
 
-**Commit message:** `chore(ops): name the product grid and add the backup job`.
+**Commit message:** `chore: name the product Grid`.
 
 ### Task 240: [ ] Prepare the launch
 
 **Files and actions:** production auth settings final (anonymous sign-in with
 Turnstile, both providers, rate limits), confirmed by the user in the
 dashboard; the Google OAuth consent screen published out of Testing, so any
-Google account can sign in, confirmed by the user in Google Cloud; the Security Advisor on production shows no warning other than the
+Google account can sign in, confirmed by the user in Google Cloud; the
+production GitHub OAuth app and the Google consent screen show the name "Grid",
+renamed by the user; the Security Advisor on production shows no warning other than the
 accepted lint 0012 and one `authenticated_security_definer_function_executable`
 warning for each client write function in the SCHEMA function table (accepted
 by design, S14; user, 2026-10-24); such a warning for any other function, or
@@ -902,10 +912,11 @@ the cold call judged with the warm ones (limit-sized 3 s or less, one-tenth
 1 s or less); if it fails, a migration lowers the limits (SCHEMA §Account
 limits) before the Phase 48 close; a written production smoke checklist in the
 ledger (guest entry, a write, OAuth sign-in with both providers, sign-out, account deletion,
-guest cleanup scheduled). The Phase 48 close then follows the CLAUDE.md
-Production order (dump, migrations, merge) and runs that smoke right after the
-merge, before the URL is announced; if it fails, the URL stays unannounced and
-the fix goes through a new phase.
+guest cleanup scheduled). The Phase 48 close then applies the migrations and
+merges, with no dump, since production holds nothing to keep (user,
+2026-11-01), and runs that smoke right after the merge, before the URL is
+announced; if it fails, the URL stays unannounced and the fix goes through a
+new phase.
 
 **Dependencies:** Task 239.
 

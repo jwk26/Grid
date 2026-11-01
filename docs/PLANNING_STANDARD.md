@@ -66,7 +66,7 @@
 - **Parent receipts:** promotion map `90022e7`, recipe package `7a15451`,
   SCHEMA `250a1b5`, SPEC `53c3fe9`, DESIGN_TOKENS `39ad25b`, and
   EXECUTION_PLAN `92c6d4a`.
-- **Preserved project rules:** the core GridDO architecture checklist, active
+- **Preserved project rules:** the core griddo architecture checklist, active
   lifecycle filters, system-field guards, Phase 8 verification history, and
   omission-audit origin remain in force.
 - **Fresh reusable additions:** typed Decision-prerequisite edges, separate
@@ -685,6 +685,6 @@ Phase 8 is a pilot for surface recipe-based implementation fidelity. At closing:
 
 ## Origin
 
-This standard was developed from a comprehensive omission audit of the GridDO project (2026-03-26). The audit identified 20 items across five tiers, including plan omissions, false completions, and implementation deviations. See `docs/OMISSION_AUDIT.md` for the full remediation record.
+This standard was developed from a comprehensive omission audit of the griddo project (2026-03-26). The audit identified 20 items across five tiers, including plan omissions, false completions, and implementation deviations. See `docs/OMISSION_AUDIT.md` for the full remediation record.
 
 The key lesson: the biggest risk in document-driven development is not missing implementation — it is that behaviors promised in PRD/SPEC often do not get strong enough ownership in EXECUTION_PLAN.md, especially around interaction details that look inferable but are not safe to leave implicit.

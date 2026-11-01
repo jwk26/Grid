@@ -1,4 +1,4 @@
-# GridDO — Data Schema
+# griddo — Data Schema
 
 > **Scope:** This document specifies the data model. Architecture decisions live in SPEC.md.
 > **Storage:** Supabase Postgres, one dataset per account, isolated by RLS

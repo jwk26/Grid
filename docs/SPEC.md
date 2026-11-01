@@ -1,4 +1,4 @@
-# GridDO — Technical Specification
+# griddo — Technical Specification
 
 > **Scope:** Architecture, routing, file organization, and page layouts. Data model lives in SCHEMA.md. Design values live in DESIGN_TOKENS.md.
 > **Inbox/Triage amendment status:** **User-approved 2026-07-28.**
@@ -38,13 +38,13 @@ From [`DECISION.md`](brainstorming/2026-10-21-saas-conversion/DECISION.md)
 S01–S43 (promotion ①, [`PROMOTION_MAP.md`](brainstorming/2026-10-21-saas-conversion/PROMOTION_MAP.md))
 and, within its S41 boundary, the feedback topic's
 [`DECISION.md`](brainstorming/2026-10-18-staging-item-status-feedback/DECISION.md)
-F02, F11, F13, F14, F16 (copy alignment) and F17–F20. GridDO becomes a SaaS
+F02, F11, F13, F14, F16 (copy alignment) and F17–F20. griddo becomes a SaaS
 with Supabase as the per-account source of truth. Amends Architecture
 Decisions 1–3, 7, 9, 11 and 15 and adds 19–21; replaces the "No auth" routing
 rule; adds [Account Entry And App States](#account-entry-and-app-states),
 [Feedback And Network States](#feedback-and-network-states) and
 [Environments And Hosting](#environments-and-hosting). The user-facing product
-name is "grid"; inside the project the name stays GridDO (S06). Multi-device
+name is "Grid"; inside the project the name stays griddo (S06). Multi-device
 use gets no extra work (S03). The rest of the feedback topic (Inbox item
 status, toast position and colour, the breadcrumb reveal) is promotion ②
 ([Feedback Lane Amendment](#feedback-lane-amendment--2026-10-22)).
@@ -139,7 +139,7 @@ follows Phase 45. Until a task lands, the code keeps today's behavior.
 
 ## Architecture Decisions
 
-1. **Client Components by default** — GridDO runs entirely in the browser, with no Next.js server code (S21). The account's data lives in Supabase Postgres and is read and written from the client (S02, S08). Server Components are used only for static layout shells (root layout, page skeletons). Any component that reads data or handles interaction is a Client Component.
+1. **Client Components by default** — griddo runs entirely in the browser, with no Next.js server code (S21). The account's data lives in Supabase Postgres and is read and written from the client (S02, S08). Server Components are used only for static layout shells (root layout, page skeletons). Any component that reads data or handles interaction is a Client Component.
 
 2. **DataStore abstraction (two-layer)** — Data access has two independent abstraction boundaries. **Command/repository layer:** All writes, including the approved Inbox/Triage CAS and atomic commands, go through `DataStore` (`src/lib/db/datastore.ts`). From Phase 45 its implementation is the Supabase store (`src/lib/db/supabase-store.ts`), which sends every write as one database function call (SCHEMA §Database Functions) and answers reads from the account snapshot; Phase 46 removed the Dexie implementation. Components never sequence repository writes. **Reactive layer:** All read subscriptions go through custom hooks (`src/hooks/use-*.ts`). They subscribe to the account snapshot store, and their return shapes stayed the same as under Dexie `liveQuery` (S07). Components import hooks rather than the store. The Supabase store preserves the approved conditional-write, version, postcondition, and reconciliation semantics in SCHEMA.
 
@@ -163,7 +163,7 @@ follows Phase 45. Until a task lands, the code keeps today's behavior.
 
 12. **@dnd-kit with domain-specific input contracts** — Grid, calendar, timeline, and Inbox/Triage use the shared library while preserving domain-specific rules. General Grid DnD retains its existing keyboard support. Inbox placement entry is deliberately Mouse/Touch pointer DnD only in this promotion: Mouse starts after 8px; Touch uses 250ms delay with 5px tolerance. Breakdown rows remain grip-only, while a staged candidate's whole card/row is the activator and uses the pointer-centered `TriageDragToken`. No placement button, keyboard drag mode, destination picker, hidden shortcut, or unfinished alternative is added; keyboard/drag-alternative placement remains deferred.
 
-13. **Motion for all animations** — The PRD specifies jiggle mode, sinking effects, floating animation, vignette transitions, magnet snap, and task-tossing. Motion (Framer Motion) handles all of these declaratively. CSS-only would be insufficient for the interaction-driven animations GridDO requires. Animation variants defined per domain in `src/lib/animations/`.
+13. **Motion for all animations** — The PRD specifies jiggle mode, sinking effects, floating animation, vignette transitions, magnet snap, and task-tossing. Motion (Framer Motion) handles all of these declaratively. CSS-only would be insufficient for the interaction-driven animations griddo requires. Animation variants defined per domain in `src/lib/animations/`.
 
 14. **Pure utility functions for algorithms** — BFS auto-placement, aging state computation, urgency level computation, and Node completion check are pure functions in `src/lib/utils/`. No side effects, independently testable.
 
@@ -1249,7 +1249,7 @@ A **portal, not a container** — archived items keep their original `parentId`;
 - **Grouping:** by original parent Node (archived L0 Nodes form their own top-level group). **Sort:** `archivedAt` descending within each group. **Search:** filters by title.
 - **Restore:** single-item (↩) clears `archivedAt`; BFS auto-placement if the original cell is occupied; restoring a Bit whose parent is archived restores the parent chain (±5s window, Hook 11). Bulk restore is not in v1.
 - **Tone:** warm/dignified (distinct from Trash's destructive tone); completed items show ✓.
-- **Visual:** existing GridDO baseline UI/tokens in Batch 1 (no dedicated Archive View theme source; future global theme system may affect it via global tokens).
+- **Visual:** existing griddo baseline UI/tokens in Batch 1 (no dedicated Archive View theme source; future global theme system may affect it via global tokens).
 
 ### Direct Archive (context menu)
 
@@ -1574,7 +1574,7 @@ writes shows one counted toast (S28).
 | Node edit dialog, save refused by the server (inline error, typed values kept, no toast; an unknown outcome whose change is kept closes the dialog; user, 2026-10-30) | `Couldn't save the changes to “{title}”. Try again.` (`{title}` is the saved title) |
 | Home button (label and tooltip) | `Home` |
 | Account icon (accessible name, guest and account alike; no tooltip in the normal state, the connection sentence as tooltip and description while unstable or offline; user, 2026-10-30) | `Account` |
-| Tab title | A Node's Grid: `{title} – {app name}`. Inbox, Archive, Calendar (weekly and monthly) and Trash: `Inbox – {app name}`, `Archive – {app name}`, `Calendar – {app name}`, `Trash – {app name}`. L0: `{app name}` alone. `{app name}` is `APP_NAME`: `GridDO` until Task 239 names the product `grid`. Each page sets its title, so client navigation never leaves a stale one (user, 2026-10-22) |
+| Tab title | A Node's Grid: `{title} – {app name}`. Inbox, Archive, Calendar (weekly and monthly) and Trash: `Inbox – {app name}`, `Archive – {app name}`, `Calendar – {app name}`, `Trash – {app name}`. L0: `{app name}` alone. `{app name}` is `APP_NAME`: `Grid`. Each page sets its title, so client navigation never leaves a stale one (user, 2026-10-22) |
 
 **Connection** (tooltip, and the polite announcement on entering the state)
 
@@ -1596,7 +1596,7 @@ writes shows one counted toast (S28).
 | Session expired, guest | `Your guest session ended.` | `Guest data may have been deleted. You can start a new guest session or sign in.` | same |
 | Account being deleted | `This account is being deleted.` | `Deletion finishes within 24 hours. After that you can sign up again with the same account.` | `Continue as guest` |
 | Account deleted | `This account was deleted.` | `Its data is gone. You can continue as a guest.` | `Continue as guest` |
-| Narrow window | `Please use a larger window.` | `grid needs a window at least 1024 pixels wide, such as a desktop browser.` | — |
+| Narrow window | `Please use a larger window.` | `Grid needs a window at least 1024 pixels wide, such as a desktop browser.` | — |
 
 **Account modal**
 
@@ -1607,7 +1607,7 @@ writes shows one counted toast (S28).
 | Guest sign-in note | `Signing in opens a new, empty account. Guest data isn't moved to it.` |
 | Sign-in did not complete (inline, in the modal) | `Sign-in didn't complete. You're still browsing as a guest.` |
 | Sign-in buttons | `Sign in with GitHub`, `Sign in with Google` |
-| Privacy note | `grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.` |
+| Privacy note | `Grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives Grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.` |
 | Account actions | `Sign out`, `Delete account` |
 | Delete confirmation | `Delete your account?` / `Your tasks and all other data are deleted permanently. This can't be undone.` / `Delete account`, `Cancel` |
 | Deletion did not complete (inline, in the confirmation) | `Couldn't delete your account. Try again.` (a failure or an unknown outcome; a request the server did record shows the account-being-deleted screen after the next read) |
@@ -1664,12 +1664,15 @@ enabled.
 - **Free plan** (S22): no keep-alive job; the owner's daily use keeps the
   project active, and a paused project is resumed from the dashboard. While it
   is paused the app shows the load-failure or guest-creation-failure screen.
-- **Backup** (S35; user, 2026-10-22): a weekly `supabase db dump` of the
-  production database runs on the owner's Mac as a scheduled local job and
-  keeps the latest 8 dumps in a local folder outside Git; the connection secret
-  stays outside Git. The job checks that Docker is running and reports a failed
-  run. Phase 48 runs one restore test into local Supabase. The manual dump
-  before each production migration stays (S22, S34).
+- **Backup** (S35; user, 2026-11-01): no scheduled backup job. The Phase 48
+  close takes no dump, since production holds no data to keep until the launch.
+  From the launch on, a manual `supabase db dump` runs before each production
+  migration (S22, S34). It stays outside Git, and is deleted within 7 days once
+  the migration proves sound; the connection secret stays outside Git. The
+  first one comes with one restore test into local Supabase. Until that first
+  dump, production data has no backup; the user accepted this risk. Automatic
+  account backups follow the launch
+  (`docs/brainstorming/2026-11-01-account-backup/`).
 - **Development switch** (S36): the Phase 42 end-to-end slice was a
   development-only page behind `NEXT_PUBLIC_GRIDDO_SUPABASE_SLICE`. Phase 46
   removed the page and the switch. Since Phase 45 the Supabase store is the
@@ -1811,7 +1814,7 @@ rules above are unchanged.
 
 ## Responsive Breakpoints
 
-> GridDO is **web-first, desktop-focused** for v1. Responsive design is deferred (see PRD Section 26). Tailwind default breakpoints are configured but not actively designed for. Minimum supported width: 1024px.
+> griddo is **web-first, desktop-focused** for v1. Responsive design is deferred (see PRD Section 26). Tailwind default breakpoints are configured but not actively designed for. Minimum supported width: 1024px.
 
 | Token | Width | Behavior |
 |-------|-------|----------|
@@ -1883,7 +1886,6 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `vitest.db.config.ts` *(Phase 42)* | Vitest configuration for `pnpm test:db` (local Supabase), kept apart from `pnpm test` |
 | `scripts/verify/` *(Phase 42)* | Hosted Supabase checks run locally with `--local` and then on production: the write-role proof, `pg_cron`, the API surface and the D8 measurement; production values live outside Git (README) |
 | `.env.local.example` *(Phase 42)* | Names of the public env vars; values live in git-ignored `.env.local` |
-| `scripts/backup/` *(Phase 48)* | The weekly `supabase db dump` job and its scheduler file, with no secret |
 | `src/lib/db/schema.ts` | Zod validation schemas and TypeScript types (from SCHEMA.md) |
 | `src/lib/copy/inbox-triage.ts` *(proposed; absent today)* | `InboxTriageCopy` core-English resource keys/values for visible copy, statuses, reasons, live regions, and accessible names; exact `VQ-*`-reserved wording stays blocked |
 | `src/lib/constants.ts` | Grid dimensions (18×9), aging thresholds (5/11 days), urgency thresholds (3/2/1 days), trash retention (30 days); `DISPLAY_DELAY_MS` (300, from Task 243), and from the SaaS phases `REQUEST_TIMEOUT_MS` (15000) and the 30-second connection probe interval |

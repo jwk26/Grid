@@ -1,6 +1,6 @@
-# GridDO (Task Management SaaS on Supabase)
+# griddo (Task Management SaaS on Supabase)
 
-18×9 Grid | Node(L0) → Bit(L1) → Chunk(L2) hierarchy. User-facing name "grid"; inside the project the name stays GridDO.
+18×9 Grid | Node(L0) → Bit(L1) → Chunk(L2) hierarchy. User-facing name "Grid"; inside the project the name stays griddo.
 
 **Always check docs/EXECUTION_PLAN.md first to see the current task before starting work.** When `Execution plan mode: scaled` is present, read `## Phase Index` to identify the active phase, then load the active phase detail before consulting archive files. Archive files are for historical detail, not the default starting context.
 
@@ -61,7 +61,7 @@
   - Injection order: a boundary injection is consumed by the next matching call, so it is armed last and the session never triggers it itself.
   - Ledger: with the window's first state and URL, record each forced state or armed injection and the action that triggers it.
 - **Production:** the secret key never enters Git or client code. Migrations reach production only after the user's approval. Before launch (Phase 48) they may be applied whenever a task needs them, since production holds no real data. From launch on, only at the close of a phase that changes SQL, in this order: manual dump, migrations, then the merge that deploys the new code. The production schema changes only through migrations, never in the dashboard. After the Phase 48 merge a production smoke runs before the URL is announced.
-- **Backup:** from launch, a weekly `supabase db dump` on the owner's Mac keeps the latest 8 dumps in a local folder outside Git.
+- **Backup:** no scheduled job. The Phase 48 close takes no dump, since production holds nothing to keep; the Production dump starts with the first SQL change after launch and stays until `docs/brainstorming/2026-11-01-account-backup/` retires it. A dump stays outside Git and is deleted within 7 days once its migration proves sound.
 - **Recovery:** restore state from documents, Git and rerun checks, not from chat memory.
 
 ## Planning Gate
