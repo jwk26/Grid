@@ -166,12 +166,12 @@ describe("add_breakdown", () => {
     });
   }, 60_000);
 
-  it("stops a real account at 5000 Breakdown rows", async () => {
+  it("stops a real account at 2500 Breakdown rows", async () => {
     await withActor(A(), async (db, owner) => {
       const t = await setup(db, owner);
       await owner(() => sql(db, `insert into app.scratch_breakdowns (id, user_id, scratch_bit_id, content, "order", created_at)
-        select gen_random_uuid(), $1, $2, 'f', g, 1 from generate_series(1, 5000) g`, [user.id, t.scratch]));
-      expect(await add(db, randomUUID(), t.scratch, 5)).toMatchObject({ status: "rejected", rejection: { code: "account_limit", limit: 5000 } });
+        select gen_random_uuid(), $1, $2, 'f', g, 1 from generate_series(1, 2500) g`, [user.id, t.scratch]));
+      expect(await add(db, randomUUID(), t.scratch, 5)).toMatchObject({ status: "rejected", rejection: { code: "account_limit", limit: 2500 } });
     });
   }, 60_000);
 

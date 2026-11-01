@@ -650,16 +650,19 @@ Nodes. A create that would pass a limit returns `rejected` with
 limit of their own (at most one per Breakdown row). The numbers live in one
 internal function. Phase 42 measured the initial load on production (Task
 218): the one-tenth account passed, the limit-sized one passed two of three
-runs (MI-8), so the numbers stay; Task 240 measures again on production
-before launch and lowers them by a migration if the target fails (user,
-2026-10-24).
+runs (MI-8). Task 240 measured again on production before launch (three runs,
+2026-11-01): the 100% account took 5.4 to 10.4 s against the 3 s target, the
+50% account stayed within 2.1 s in every run, so the real-account limits are
+half of the earlier numbers, the largest measured size that passes every run
+(user, 2026-11-01). An account already above a new limit keeps its rows; a
+create that would add to a full table is rejected.
 
 | Table | Real account | Guest |
 |---|---|---|
-| `nodes` | 1,000 | 100 |
-| `bits` | 5,000 | 300 |
-| `chunks` | 10,000 | 1,000 |
-| `scratch_breakdowns` | 5,000 | 300 |
+| `nodes` | 500 | 100 |
+| `bits` | 2,500 | 300 |
+| `chunks` | 5,000 | 1,000 |
+| `scratch_breakdowns` | 2,500 | 300 |
 
 The demo seed fits the guest limits.
 

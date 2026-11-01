@@ -205,7 +205,7 @@ describe("promote_bit_to_node", () => {
       select gen_random_uuid(), $1, 'f', 'i', 1, 1, $2, g % 18, (g / 18) % 9 from generate_series(1, $3::int) g`, [user.id, parent, n]);
 
   it.each([
-    [false, 1000],
+    [false, 500],
     [true, 100],
   ] as const)("stops a %s guest account at %i Nodes, counting the Node the promotion adds", async (guest, limit) => {
     await withActor(A(), async (db, owner) => {
