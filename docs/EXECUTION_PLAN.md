@@ -906,7 +906,12 @@ dashboard, with captcha turned on only after D8 passes, since
 `d8-measure.mjs` signs in without a token; `NEXT_PUBLIC_TURNSTILE_SITE_KEY` set
 for Production in Vercel before the merge, confirmed by the user; the Google
 OAuth consent screen published out of Testing, so any Google account can sign
-in, confirmed by the user in Google Cloud; the production GitHub OAuth app and
+in, confirmed by the user in Google Cloud; Google refuses to publish without a
+home page URL and a privacy policy URL (user, 2026-11-01), so
+`public/privacy.html` is added (SPEC §Environments And Hosting) and the
+Branding page takes the production `/` and `/privacy.html`; if Google needs the
+page reachable, publishing waits for the merge and comes before the smoke; the
+production GitHub OAuth app and
 the Google consent screen named "Grid", renamed by the user (without brand
 verification Google's sign-in screen keeps showing the Supabase host;
 verification needs an owned domain, a public home page and a privacy policy
@@ -922,9 +927,9 @@ with the warm ones, and is proven with `--local`; three runs from the same
 network, every run within the limits (limit-sized 3 s or less, one-tenth 1 s or
 less); if one fails, a migration lowers the limits (SCHEMA §Account limits)
 before the Phase 48 close; a written production smoke checklist in the ledger
-(guest entry, a write, OAuth sign-in with both providers, sign-out, guest
-cleanup scheduled, and account deletion last, since one verified email links
-both providers to one account). The Phase 48 close then applies any migration
+(guest entry, a write, the privacy page, OAuth sign-in with both providers,
+sign-out, guest cleanup scheduled, and account deletion last, since one verified
+email links both providers to one account). The Phase 48 close then applies any migration
 not yet on production and merges, with no dump, since production holds nothing
 to keep (user, 2026-11-01), and runs that smoke right after the merge, before
 the URL is announced; if it fails, the URL stays unannounced and the fix goes
@@ -936,9 +941,9 @@ through a new phase.
 
 **Observable acceptance:** the production settings and the Advisor result are
 recorded and confirmed by the user; the D8 result is recorded and passes, or
-the lowered limits are applied; the smoke checklist exists; no secret in
-Git; `supabase db diff` shows that the production schema equals the migrations
-in Git.
+the lowered limits are applied; the smoke checklist exists; `/privacy.html`
+opens as a plain document with no guest created; no secret in Git; `supabase db
+diff` shows that the production schema equals the migrations in Git.
 
 **Verification:** full gate; the user confirms the settings. The post-merge
 smoke result is recorded in the Phase 48 close.

@@ -1652,6 +1652,12 @@ enabled.
 - **Launch smoke:** Phase 48 is verified on local Supabase. The production smoke
   runs right after the Phase 48 merge, before the URL is announced; if it
   fails, the URL stays unannounced and the fix goes through a new phase.
+- **Privacy page** (user, 2026-11-01): `public/privacy.html`, a static English
+  document served outside the app, so reading it starts no guest, no Turnstile
+  check and no narrow-window notice. It expands the Privacy note (what is
+  collected, why, where it is kept, how to delete it), with GitHub Issues as the
+  contact. Google asks for its URL and a home page URL to publish the consent
+  screen.
 - **Migrations:** `supabase/migrations/` in Git. Before launch, production holds
   no real data and migrations apply there freely after the user's approval
   (S36). From launch on, a phase that changes SQL closes in this order: manual
