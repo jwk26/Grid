@@ -70,10 +70,10 @@ describe("AppFrame", () => {
         <Page />
       </AppFrame>,
     );
-    expect(document.title).toBe("GridDO");
+    expect(document.title).toBe("Grid");
 
     fake.set({ phase: "ready" });
-    expect(document.title).toBe("Trash – GridDO");
+    expect(document.title).toBe("Trash – Grid");
   });
 
   it("shows no Loading screen for a load under 300ms", () => {

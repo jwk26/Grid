@@ -14,7 +14,7 @@ const noFlashScript = buildNoFlashScript();
 // No `title` here: every page sets its own tab title (`useDocumentTitle`), and a root
 // metadata title is re-applied after hydration, over the title a Node page has just set.
 export const metadata: Metadata = {
-  description: "Local-first task management with a 2D grid",
+  description: "Task management on a 2D grid",
 };
 
 export default function RootLayout({

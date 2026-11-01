@@ -6,6 +6,7 @@ import { GridView } from "@/components/grid/grid-view";
 import { OnboardingHints } from "@/components/grid/onboarding-hints";
 import { useAddFlow } from "@/components/layout/add-flow-context";
 import { useDeleteFlow } from "@/components/layout/grid-runtime";
+import { APP_NAME } from "@/lib/constants";
 import type { Node } from "@/types";
 
 export default function HomePage() {
@@ -15,7 +16,7 @@ export default function HomePage() {
 
   return (
     <>
-      <h1 className="sr-only">GridDO</h1>
+      <h1 className="sr-only">{APP_NAME}</h1>
       <GridView
         level={0}
         onAddAtCell={openAddAtCell}

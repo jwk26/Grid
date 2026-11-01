@@ -104,7 +104,7 @@ export const ACCOUNT_BEING_DELETED = {
 // The narrow-window notice (SPEC §Account entry step 1, §Feedback copy; S42 (4)).
 export const NARROW_WINDOW = {
   title: "Please use a larger window.",
-  reason: "grid needs a window at least 1024 pixels wide, such as a desktop browser.",
+  reason: "Grid needs a window at least 1024 pixels wide, such as a desktop browser.",
 } as const;
 
 export const ACCOUNT_DELETED = {
@@ -125,7 +125,7 @@ export const ACCOUNT_MODAL = {
     signInGoogle: "Sign in with Google",
   },
   privacy:
-    "grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.",
+    "Grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives Grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.",
   account: { signOut: "Sign out", deleteAccount: "Delete account" },
   confirm: {
     title: "Delete your account?",

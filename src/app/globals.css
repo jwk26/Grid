@@ -28,7 +28,7 @@
   /* ── Page background (distinct from card surface) ── */
   --color-page-bg: hsl(var(--page-bg));
 
-  /* ── Colors (GridDO priority) ── */
+  /* ── Colors (griddo priority) ── */
   --color-priority-high: hsl(var(--priority-high));
   --color-priority-high-bg: hsl(var(--priority-high-bg));
   --color-priority-mid: hsl(var(--priority-mid));
@@ -36,7 +36,7 @@
   --color-priority-low: hsl(var(--priority-low));
   --color-priority-low-bg: hsl(var(--priority-low-bg));
 
-  /* ── Colors (GridDO urgency) ── */
+  /* ── Colors (griddo urgency) ── */
   --color-urgency-1: hsl(var(--urgency-1));
   --color-urgency-2: hsl(var(--urgency-2));
   --color-urgency-3: hsl(var(--urgency-3));
@@ -60,7 +60,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  /* ── GridDO Custom Animations ── */
+  /* ── griddo Custom Animations ── */
   --animate-jiggle: jiggle 0.3s ease-in-out infinite;
   --animate-urgency-blink-1: urgency-blink 3s ease-in-out infinite;
   --animate-urgency-blink-2: urgency-blink 2s ease-in-out infinite;
@@ -128,7 +128,7 @@
 
   --radius: 0.625rem;
 
-  /* ── GridDO Extension Tokens ── */
+  /* ── griddo Extension Tokens ── */
 
   /* Priority Colors */
   --priority-high: 0 84% 60%;
@@ -272,7 +272,7 @@
   --input: 240 4% 16%;
   --ring: 217 91% 60%;
 
-  /* ── GridDO Extension Overrides (Dark Mode) ── */
+  /* ── griddo Extension Overrides (Dark Mode) ── */
 
   --priority-high-bg: 0 84% 10%;
   --priority-mid-bg: 45 93% 10%;

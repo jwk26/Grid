@@ -9,7 +9,7 @@ import {
 } from "./motion-language";
 
 describe("motion language", () => {
-  it("captures the extracted GridDO node and sidebar affordance values", () => {
+  it("captures the extracted griddo node and sidebar affordance values", () => {
     expect(motionScale.nodeHover).toBe(1.05);
     expect(motionScale.nodeDrag).toBe(1.1);
     expect(motionScale.sidebarDragTarget).toBe(1.2);

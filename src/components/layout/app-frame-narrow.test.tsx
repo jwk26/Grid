@@ -65,7 +65,7 @@ describe("the narrow-window notice", () => {
     expect(notice()).toHaveTextContent(NARROW_WINDOW.title);
     expect(notice()).toHaveTextContent(NARROW_WINDOW.reason);
     expect(NARROW_WINDOW.title).toBe("Please use a larger window.");
-    expect(NARROW_WINDOW.reason).toBe("grid needs a window at least 1024 pixels wide, such as a desktop browser.");
+    expect(NARROW_WINDOW.reason).toBe("Grid needs a window at least 1024 pixels wide, such as a desktop browser.");
     expect(screen.getByLabelText("draft")).toBeInTheDocument();
     widen(1024);
     expect(notice()).toBeNull();
