@@ -287,8 +287,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 ## Task 238A — Fit the Node card content at every supported width
 
 ### Current state
-- Status: Awaiting User Decision
-- Next: Stage 2 look check by the user in the prepared window (do not resize it)
+- Status: Implemented, awaiting acceptance
+- Next: Task 238A acceptance
 - Open: none
 
 ### Log
@@ -305,6 +305,7 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Stage 1 note: the advisory's `12.5cqmin` showed as `.75rem` in the served dev stylesheet (cause unconfirmed: `lightningcss` 1.32.0 run alone keeps it), so the token is `min(0.75rem, 12.5cqw, 12.5cqh)`, which is the same value and survives. Icon floor 16px, title floor 13px, the padding and lift floors removed (ratios only), as decided.
 - Review (advisory, 2026-11-01, Stage 1 checkpoint): approve with changes. Checked: the diff touches only `--grid-inset` and the floors, the static values are unchanged, the recorded figures match the calculation from the code (no advisory browser run), the dev server serves `min(.75rem, 12.5cqw, 12.5cqh)`. Apply: (1) No production build has the new value yet: the only production CSS in `.next/static` dates from 01:00 and still holds `--grid-inset:.75rem`, while `globals.css` changed at 09:22. If production folds the token, the 1024 card returns to 34.7px and the icon meets the title again (calculated gap -0.1 in `griddo`, -1.1 in `retro-mac`), and `pnpm build` still passes. Before preparing the Stage 2 window, run `pnpm build`, confirm `--grid-inset:min(` in the built CSS and record it; if it is folded, stop and report. (2) Correct the Stage 1 note: `lightningcss` 1.32.0 run alone keeps `12.5cqmin`, so the folding is an observation of the served stylesheet with its cause unconfirmed. Keep the `cqw, cqh` form; `DESIGN_TOKENS.md` gets one line saying why. (3) Correct the Stage 1 Unresolved: cards are larger up to about 1912px, where the cell reaches 96px, not 1600; add what the look check turns on, the icon falling from 24 to 19.9px and the title row from 18 to 14px at 1440. (4) Set Status to Awaiting User Decision while a stage acceptance is pending, and state that the Explorer cards pass the acceptance, not only that they are unchanged. A summary of minimums stands in for the full measurement table. Not applied: none.
 - Decision: Stage 1 accepted on the advisory review, to go on to Stage 2 once its changes are applied (user, 2026-11-01).
+- Decision: the Stage 2 look check passed in the prepared window; the Stage 1 values stay as the final values (inset `min(0.75rem, 12.5cqw, 12.5cqh)`, icon floor 16px, title floor 13px, no padding or lift floors) (user, 2026-11-01). The window may be released; next `DESIGN_TOKENS.md` follows these values and the task-finish gate runs.
 
 ### Checkpoint — Stage 1 (measure, first values)
 - Changed: `src/app/globals.css` (`--grid-inset`, the `.grid-cell-container > *` floors). `DESIGN_TOKENS.md` follows in Stage 2.
@@ -313,3 +314,9 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Unresolved: cards are now a little larger than before up to about 1912px, where the cell reaches 96px (for example 61 against 57.8 at 1440), because the inset shrinks with the cell; this follows the plan. The look check turns on this and on the icon falling from 24 to 19.9px and the title row from 18 to 14px at 1440. Below a content height of about 484px the cell is smaller than at 1024 (known limit, outside the acceptance).
 - Stage 1 review applied: `pnpm build` passes and the built CSS holds `--grid-inset:min(.75rem, 12.5cqw, 12.5cqh)` (not folded), checked 2026-11-01. `DESIGN_TOKENS.md` gets one line on the `cqw, cqh` form in Stage 2.
 - Stage 2 window (2026-11-01): dev server on http://localhost:3000, fixture seeded (`griddo`, then the user switches themes with the picker); the real window set to the screen (1920×1055 at 0,25) with `Browser.setWindowBounds`; three tabs, each set by `browser_resize`-equivalent viewport: tab 1 `/` at 1280×800, tab 2 `/` at 1366×768, tab 3 `/` at 1440×900. The user switches tabs and does not resize. No forced state or injection.
+
+### Checkpoint — Task finish
+- Changed: `src/app/globals.css` (`--grid-inset`, the cell-scoped floors; commit of Stage 1), `docs/DESIGN_TOKENS.md` (§Responsive Grid Node Tokens: the `--grid-inset` row and its `cqw, cqh` note, the rule, the floor table, the `:root` block).
+- Verified: `git diff --check`; `pnpm test` 2496; `pnpm lint` 0 errors (10 warnings as before); `pnpm typecheck`; `pnpm build` (built CSS holds the unfolded `--grid-inset`); `pnpm test:db` 987, run before any window or seed is prepared again. Stage 1 measurements and the user's Stage 2 look check passed. No `expert` review: styling only.
+- Please check: nothing more; accept the task if the Stage 2 result stands for the whole range.
+- Unresolved: none. Known limit: below a content height of about 484px the cell is smaller than at 1024px, outside the acceptance. The Playwright window is still open and the dev server is stopped.

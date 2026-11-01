@@ -185,7 +185,7 @@ Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens fi
     --grid-rows: 9;
     --grid-gap: 0.5rem;                    /* 8px — gap between cells */
     --grid-cell-min: 5rem;                 /* 80px — minimum cell dimension */
-    --grid-inset: 0.75rem;                 /* 12px — spacing within cell; used in node sizing formula */
+    --grid-inset: min(0.75rem, 12.5cqw, 12.5cqh); /* 12px at a cell of 96px or more, 12.5% of the cell below; used in node sizing formula */
     --grid-node-max-size: 96px;            /* cap — node squares do not exceed this on large displays */
     --grid-line-color: 240 6% 90%;         /* same as --border */
     --grid-line-opacity-l0: 0.15;          /* Level 0 — standard density */
@@ -1874,7 +1874,7 @@ Defined in `globals.css` `:root` and documented here. Tunable by design.
 
 | Token | Value | Role |
 |-------|-------|------|
-| `--grid-inset` | `0.75rem` | Spacing subtracted from cell dimension to get node size |
+| `--grid-inset` | `min(0.75rem, 12.5cqw, 12.5cqh)` | Spacing subtracted from cell dimension to get node size: 12px once the cell reaches 96px (about 1912px window), 12.5% of the cell below, so a small cell keeps more of its width for the node. Written with `cqw`/`cqh`, not `cqmin`: the served dev stylesheet showed `cqmin` as `.75rem`, cause unconfirmed |
 | `--grid-node-max-size` | `96px` | Cap — nodes do not exceed this on large displays |
 | `--grid-cols` | `18` | Grid column count |
 | `--grid-rows` | `9` | Grid row count |
@@ -1898,12 +1898,12 @@ Set on children of each `.grid-cell-container` div via CSS container queries. `c
       calc(min(100cqw, 100cqh) - var(--grid-inset)),
       var(--grid-node-max-size, 96px)
     );
-    --grid-node-icon-size:      max(calc(var(--grid-node-size) * 0.325), 1.5rem);
-    --grid-node-title-height:   max(calc(var(--grid-node-size) * 0.23),  1.125rem);
-    --grid-node-padding-x:      max(calc(var(--grid-node-size) * 0.11),  0.5rem);
-    --grid-node-padding-top:    max(calc(var(--grid-node-size) * 0.11),  0.5rem);
-    --grid-node-padding-bottom: max(calc(var(--grid-node-size) * 0.1),   0.4375rem);
-    --grid-node-icon-lift:      max(calc(var(--grid-node-size) * 0.1),   0.375rem);
+    --grid-node-icon-size:      max(calc(var(--grid-node-size) * 0.325), 1rem);
+    --grid-node-title-height:   max(calc(var(--grid-node-size) * 0.23),  0.8125rem);
+    --grid-node-padding-x:      calc(var(--grid-node-size) * 0.11);
+    --grid-node-padding-top:    calc(var(--grid-node-size) * 0.11);
+    --grid-node-padding-bottom: calc(var(--grid-node-size) * 0.1);
+    --grid-node-icon-lift:      calc(var(--grid-node-size) * 0.1);
   }
 }
 ```
@@ -1912,12 +1912,14 @@ Set on children of each `.grid-cell-container` div via CSS container queries. `c
 
 | Token | Ratio | Floor |
 |-------|-------|-------|
-| `--grid-node-icon-size` | `nodeSz × 0.325` | `1.5rem` (24px) |
-| `--grid-node-title-height` | `nodeSz × 0.23` | `1.125rem` (18px) |
-| `--grid-node-padding-x` | `nodeSz × 0.11` | `0.5rem` (8px) |
-| `--grid-node-padding-top` | `nodeSz × 0.11` | `0.5rem` (8px) |
-| `--grid-node-padding-bottom` | `nodeSz × 0.10` | `0.4375rem` (7px) |
-| `--grid-node-icon-lift` | `nodeSz × 0.10` | `0.375rem` (6px) |
+| `--grid-node-icon-size` | `nodeSz × 0.325` | `1rem` (16px) |
+| `--grid-node-title-height` | `nodeSz × 0.23` | `0.8125rem` (13px) |
+| `--grid-node-padding-x` | `nodeSz × 0.11` | none |
+| `--grid-node-padding-top` | `nodeSz × 0.11` | none |
+| `--grid-node-padding-bottom` | `nodeSz × 0.10` | none |
+| `--grid-node-icon-lift` | `nodeSz × 0.10` | none |
+
+The floors are set so the content fits the card at the 1024px minimum window (Task 238A): the ratios sum to 0.865 of the card, and only the icon and title keep a floor (the title font stays 11px, so a title shows about four or five characters before the ellipsis at 1024px). Above about 1912px the look is unchanged. Below a content height of about 484px the cell is smaller than at 1024px; that is outside the supported range.
 
 **CSS scope note:** An element with `container-type: size` cannot use `cqw`/`cqh` to query its own dimensions — those units resolve against the nearest *ancestor* container. The derived token vars are therefore set on `.grid-cell-container > *` (children), not on the container element itself.
 
