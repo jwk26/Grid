@@ -34,7 +34,7 @@ Run order on production: `hosted-roles`, `pg-cron-check`, then with anonymous si
 node scripts/verify/hosted-roles.mjs [--local]
 node scripts/verify/pg-cron-check.mjs [--local]
 node scripts/verify/api-check.mjs [--local]
-node --no-warnings scripts/verify/d8-measure.mjs [--local] [--wait=<seconds>]
+node --no-warnings scripts/verify/d8-measure.mjs [--local] [--wait=<seconds>] [--wait=<seconds>]
 ```
 
 Migrations reach production with `pnpm exec supabase db push --db-url "$GRIDDO_PROD_DB_URL" --dry-run`
