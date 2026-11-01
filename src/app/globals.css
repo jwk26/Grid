@@ -159,7 +159,7 @@
   --grid-rows: 9;
   --grid-gap: 0.5rem;
   --grid-cell-min: 5rem;
-  --grid-inset: 0.75rem;
+  --grid-inset: min(0.75rem, 12.5cqw, 12.5cqh);
   --grid-node-max-size: 96px;
   /* Static fallbacks — overridden by cell-scoped container query rules below */
   --grid-node-size: 6.15rem;
@@ -393,12 +393,12 @@
       calc(min(100cqw, 100cqh) - var(--grid-inset)),
       var(--grid-node-max-size, 96px)
     );
-    --grid-node-icon-size:      max(calc(var(--grid-node-size) * 0.325), 1.5rem);
-    --grid-node-title-height:   max(calc(var(--grid-node-size) * 0.23),  1.125rem);
-    --grid-node-padding-x:      max(calc(var(--grid-node-size) * 0.11),  0.5rem);
-    --grid-node-padding-top:    max(calc(var(--grid-node-size) * 0.11),  0.5rem);
-    --grid-node-padding-bottom: max(calc(var(--grid-node-size) * 0.1),   0.4375rem);
-    --grid-node-icon-lift:      max(calc(var(--grid-node-size) * 0.1),   0.375rem);
+    --grid-node-icon-size:      max(calc(var(--grid-node-size) * 0.325), 1rem);
+    --grid-node-title-height:   max(calc(var(--grid-node-size) * 0.23),  0.8125rem);
+    --grid-node-padding-x:      calc(var(--grid-node-size) * 0.11);
+    --grid-node-padding-top:    calc(var(--grid-node-size) * 0.11);
+    --grid-node-padding-bottom: calc(var(--grid-node-size) * 0.1);
+    --grid-node-icon-lift:      calc(var(--grid-node-size) * 0.1);
   }
 }
 
