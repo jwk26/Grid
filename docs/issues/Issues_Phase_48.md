@@ -287,8 +287,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 ## Task 238A — Fit the Node card content at every supported width
 
 ### Current state
-- Status: In Progress
-- Next: Stage 1 acceptance
+- Status: Awaiting User Decision
+- Next: Stage 2 look check by the user in the prepared window (do not resize it)
 - Open: none
 
 ### Log
@@ -312,3 +312,4 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Please check: nothing yet; the look is judged in Stage 2.
 - Unresolved: cards are now a little larger than before up to about 1912px, where the cell reaches 96px (for example 61 against 57.8 at 1440), because the inset shrinks with the cell; this follows the plan. The look check turns on this and on the icon falling from 24 to 19.9px and the title row from 18 to 14px at 1440. Below a content height of about 484px the cell is smaller than at 1024 (known limit, outside the acceptance).
 - Stage 1 review applied: `pnpm build` passes and the built CSS holds `--grid-inset:min(.75rem, 12.5cqw, 12.5cqh)` (not folded), checked 2026-11-01. `DESIGN_TOKENS.md` gets one line on the `cqw, cqh` form in Stage 2.
+- Stage 2 window (2026-11-01): dev server on http://localhost:3000, fixture seeded (`griddo`, then the user switches themes with the picker); the real window set to the screen (1920×1055 at 0,25) with `Browser.setWindowBounds`; three tabs, each set by `browser_resize`-equivalent viewport: tab 1 `/` at 1280×800, tab 2 `/` at 1366×768, tab 3 `/` at 1440×900. The user switches tabs and does not resize. No forced state or injection.
