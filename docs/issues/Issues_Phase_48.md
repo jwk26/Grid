@@ -287,8 +287,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 ## Task 238A — Fit the Node card content at every supported width
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 238A acceptance
+- Status: Accepted
+- Next: Task 239
 - Open: none
 
 ### Log
@@ -306,6 +306,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Review (advisory, 2026-11-01, Stage 1 checkpoint): approve with changes. Checked: the diff touches only `--grid-inset` and the floors, the static values are unchanged, the recorded figures match the calculation from the code (no advisory browser run), the dev server serves `min(.75rem, 12.5cqw, 12.5cqh)`. Apply: (1) No production build has the new value yet: the only production CSS in `.next/static` dates from 01:00 and still holds `--grid-inset:.75rem`, while `globals.css` changed at 09:22. If production folds the token, the 1024 card returns to 34.7px and the icon meets the title again (calculated gap -0.1 in `griddo`, -1.1 in `retro-mac`), and `pnpm build` still passes. Before preparing the Stage 2 window, run `pnpm build`, confirm `--grid-inset:min(` in the built CSS and record it; if it is folded, stop and report. (2) Correct the Stage 1 note: `lightningcss` 1.32.0 run alone keeps `12.5cqmin`, so the folding is an observation of the served stylesheet with its cause unconfirmed. Keep the `cqw, cqh` form; `DESIGN_TOKENS.md` gets one line saying why. (3) Correct the Stage 1 Unresolved: cards are larger up to about 1912px, where the cell reaches 96px, not 1600; add what the look check turns on, the icon falling from 24 to 19.9px and the title row from 18 to 14px at 1440. (4) Set Status to Awaiting User Decision while a stage acceptance is pending, and state that the Explorer cards pass the acceptance, not only that they are unchanged. A summary of minimums stands in for the full measurement table. Not applied: none.
 - Decision: Stage 1 accepted on the advisory review, to go on to Stage 2 once its changes are applied (user, 2026-11-01).
 - Decision: the Stage 2 look check passed in the prepared window; the Stage 1 values stay as the final values (inset `min(0.75rem, 12.5cqw, 12.5cqh)`, icon floor 16px, title floor 13px, no padding or lift floors) (user, 2026-11-01). The window may be released; next `DESIGN_TOKENS.md` follows these values and the task-finish gate runs.
+- Review (advisory, 2026-11-01, Task finish): approve. Checked: the code and `DESIGN_TOKENS.md` agree, including line 188 and the `cqw, cqh` note; the built CSS holds the unfolded `--grid-inset`; the working tree is clean and the ledger state matches; the recorded gate was not rerun by the advisory. The known limit stands: a content height below about 484px gives a cell smaller than at 1024, and by calculation the icon reaches the title at about 445px in `retro-mac`, 422px in `griddo` and 399px in `neumorphism` and `claymorphism`; this is visual only, and SPEC sets a minimum width but no minimum height. `--grid-cell-min` is defined but used by nothing, which predates this task and is left as it is. Task 239 needs nothing from this task, so no Task 239 note. Apply: none. Not applied: none.
+- Decision: Task 238A accepted, with the advisory Task finish review (user, 2026-11-01).
 
 ### Checkpoint — Stage 1 (measure, first values)
 - Changed: `src/app/globals.css` (`--grid-inset`, the `.grid-cell-container > *` floors). `DESIGN_TOKENS.md` follows in Stage 2.

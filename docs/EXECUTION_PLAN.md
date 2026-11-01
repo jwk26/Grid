@@ -832,7 +832,7 @@ checkpoint.
 
 **Commit message:** `feat(account): add guest cleanup and the narrow-window notice`.
 
-### Task 238A: [ ] Fit the Node card content at every supported width
+### Task 238A: [x] Fit the Node card content at every supported width
 
 User, 2026-11-01, from the Task 238 visual check. The Node card shrinks with
 its cell, but its content has fixed floors that sum to 63px (icon 24, lift 6,
