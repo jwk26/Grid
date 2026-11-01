@@ -921,12 +921,17 @@ production shows no warning other than the accepted lint 0012 and one
 write function in the SCHEMA function table (accepted by design, S14; user,
 2026-10-24); such a warning for any other function, or any other warning, is a
 finding; the D8 measurement again on production (MI-8):
-`scripts/verify/d8-measure.mjs` gains an `analyze` of the built accounts before
-the calls, the server time beside each call, and a verdict on the cold call
-with the warm ones, and is proven with `--local`; three runs from the same
+`scripts/verify/d8-measure.mjs` gains a `vacuum analyze` of the built accounts,
+a two-minute wait before the calls, since a real account is not read right
+after a bulk insert, the server time beside each call, and a verdict on the
+cold call with the warm ones, and is proven with `--local`; the limit-sized
+account also runs at 50% and 25% of the limits; three runs from the same
 network, every run within the limits (limit-sized 3 s or less, one-tenth 1 s or
-less); if one fails, a migration lowers the limits (SCHEMA §Account limits)
-before the Phase 48 close; a written production smoke checklist in the ledger
+less; the one-tenth cold call is judged on its server time, since lowering the
+limits cannot shorten connection setup; user, 2026-11-01); if the limit-sized
+account fails, a migration lowers the limits (SCHEMA §Account limits) to the
+largest measured size that passes every run, before the Phase 48 close; a
+written production smoke checklist in the ledger
 (guest entry, a write, the privacy page, OAuth sign-in with both providers,
 sign-out, guest cleanup scheduled, and account deletion last, since one verified
 email links both providers to one account). The Phase 48 close then applies any migration
