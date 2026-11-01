@@ -326,8 +326,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 ## Task 239 — Name the product
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 239 acceptance
+- Status: Accepted
+- Next: Task 240
 - Open: none
 
 ### Log
@@ -342,6 +342,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Decision: automatic backup and restore for signed-in accounts on Cloudflare R2 is the first candidate after the launch (`D-ACCOUNT-BACKUP`, `2026-11-01-account-backup`), and it retires the manual dump once its conditions hold (user, 2026-11-01). Plan, canonical documents and the topic: 7a2bc4b.
 - Review (advisory, 2026-11-01, work plan): stop on Stages 2 and 3, which the decisions above remove; approve Stage 1 with changes. Checked: Phase 50 closed on 2026-10-31 and this branch holds `main`; the three test files named in Stage 1 are the ones that assert the tab title; keeping `title` out of the metadata stands. Apply: (1) replace the work plan with Task 239 as amended in 7a2bc4b, name only. (2) Change the `layout.tsx` description to `Task management on a 2D grid`, since "Local-first" is no longer true. (3) The `GridDO` theme label stays because of S24, not because it is a theme id; the label is user-visible. (4) Add the internal-name cleanup: comments in `src/app/globals.css` and `scripts/dev-fixtures/`, and the test title in `motion-language.test.ts`. (5) Run the full gate with `pnpm test:db`: CLAUDE.md requires it for every SaaS-lane task, so the "not needed" line goes. (6) Fix the ledger: this task's heading becomes `Name the product`, the header's "Open beside it" says Phase 50 closed, and the backup folder question closes. Not applied: the Stage 2 and 3 review findings, moved to `2026-11-01-account-backup` for the first dump and its restore test.
 - Decision: go-ahead on the amended work plan (user, 2026-11-01).
+- Review (advisory, 2026-11-01, Task finish): approve. Checked: `16017f0` changes only the planned name, copy, comments and tests; both SPEC copy rows match `feedback.ts`; no product-name use of lowercase "grid" remains, and `GridDO` stays only in the theme label and its tests; the four focused test files pass (34 tests); the full gate as recorded was not rerun by the advisory, since `pnpm test:db` resets the database. The recorded browser check leaves out the Inbox tab title, which `grid-runtime.test.tsx` covers, so no change. Task 240 needs nothing new: the OAuth app names and the close without a dump are in the plan, so no Task 240 note. Apply: none. Not applied: none.
+- Decision: Task 239 accepted (user, 2026-11-01).
 
 ### Checkpoint
 - Changed: `APP_NAME` "Grid" (`src/lib/constants.ts`); the `sr-only` heading of `src/app/(grid)/page.tsx` reads it; `src/lib/copy/feedback.ts` (narrow-window reason, privacy note); `src/app/layout.tsx` description `Task management on a 2D grid`; `griddo` in comments of `globals.css`, `scripts/dev-fixtures/` and the `motion-language.test.ts` title; the tab-title and narrow-window tests. The `GridDO` theme label stays (S24). The account modal and SPEC §Feedback copy needed no change beyond `feedback.ts` (SPEC already said "Grid").

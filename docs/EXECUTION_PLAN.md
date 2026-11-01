@@ -863,7 +863,7 @@ across the widths; the user judges the look at 1280, 1366 and 1440px.
 
 **Commit message:** `fix(grid): fit the Node card content at every supported width`.
 
-### Task 239: [ ] Name the product
+### Task 239: [x] Name the product
 
 User, 2026-11-01: the name is "Grid", and the backup job leaves this task
 (SPEC §Environments And Hosting, S35; `D-ACCOUNT-BACKUP`).
