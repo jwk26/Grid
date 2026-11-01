@@ -83,6 +83,13 @@ const mb = (n) => (n / 1024 / 1024).toFixed(2);
 const db = await connectDb(t);
 const ids = [];
 let fails = 0;
+let cleaned = false;
+// A killed run (Ctrl-C, SIGTERM) still deletes the accounts it built; SIGKILL cannot be caught.
+for (const sig of ["SIGINT", "SIGTERM"]) {
+  process.on(sig, () => {
+    cleanup().finally(() => process.exit(130));
+  });
+}
 try {
   console.log(`start ${new Date().toISOString()}`);
   // Build every account first, vacuum analyze, wait, then measure: a real account is not read
@@ -132,6 +139,12 @@ try {
   console.log(`FAIL ${error.message}`);
   fails++;
 } finally {
+  await cleanup();
+}
+
+async function cleanup() {
+  if (cleaned) return;
+  cleaned = true;
   if (ids.length) {
     await db.query("delete from auth.users where id = any($1::uuid[])", [ids]).catch((e) => console.log(`FAIL cleanup: ${e.message}`));
     const left = await db.query(
