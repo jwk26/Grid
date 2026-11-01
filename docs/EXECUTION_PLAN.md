@@ -896,36 +896,49 @@ the account modal.
 
 ### Task 240: [ ] Prepare the launch
 
-**Files and actions:** production auth settings final (anonymous sign-in with
-Turnstile, both providers, rate limits), confirmed by the user in the
-dashboard; the Google OAuth consent screen published out of Testing, so any
-Google account can sign in, confirmed by the user in Google Cloud; the
-production GitHub OAuth app and the Google consent screen show the name "Grid",
-renamed by the user; the Security Advisor on production shows no warning other than the
-accepted lint 0012 and one `authenticated_security_definer_function_executable`
-warning for each client write function in the SCHEMA function table (accepted
-by design, S14; user, 2026-10-24); such a warning for any other function, or
-any other warning, is a finding; the D8 measurement again on production
-(MI-8): `scripts/verify/d8-measure.mjs` after an `analyze` of the built
-accounts, with the server time and the network time recorded separately and
-the cold call judged with the warm ones (limit-sized 3 s or less, one-tenth
-1 s or less); if it fails, a migration lowers the limits (SCHEMA §Account
-limits) before the Phase 48 close; a written production smoke checklist in the
-ledger (guest entry, a write, OAuth sign-in with both providers, sign-out, account deletion,
-guest cleanup scheduled). The Phase 48 close then applies the migrations and
-merges, with no dump, since production holds nothing to keep (user,
-2026-11-01), and runs that smoke right after the merge, before the URL is
-announced; if it fails, the URL stays unannounced and the fix goes through a
-new phase.
+**Files and actions:** first, with the project confirmed active (S22), the
+migrations not yet on production applied after a dry run and the user's
+approval, and `scripts/verify/hosted-roles.mjs` run again, so every check below
+reads the schema that ships (user, 2026-11-01); production auth settings final
+(anonymous sign-in with Turnstile, both providers, rate limits, their values
+read from the dashboard and decided by the user), confirmed by the user in the
+dashboard, with captcha turned on only after D8 passes, since
+`d8-measure.mjs` signs in without a token; `NEXT_PUBLIC_TURNSTILE_SITE_KEY` set
+for Production in Vercel before the merge, confirmed by the user; the Google
+OAuth consent screen published out of Testing, so any Google account can sign
+in, confirmed by the user in Google Cloud; the production GitHub OAuth app and
+the Google consent screen named "Grid", renamed by the user (without brand
+verification Google's sign-in screen keeps showing the Supabase host;
+verification needs an owned domain, a public home page and a privacy policy
+page, and is not a launch condition; user, 2026-11-01); the Security Advisor on
+production shows no warning other than the accepted lint 0012 and one
+`authenticated_security_definer_function_executable` warning for each client
+write function in the SCHEMA function table (accepted by design, S14; user,
+2026-10-24); such a warning for any other function, or any other warning, is a
+finding; the D8 measurement again on production (MI-8):
+`scripts/verify/d8-measure.mjs` gains an `analyze` of the built accounts before
+the calls, the server time beside each call, and a verdict on the cold call
+with the warm ones, and is proven with `--local`; three runs from the same
+network, every run within the limits (limit-sized 3 s or less, one-tenth 1 s or
+less); if one fails, a migration lowers the limits (SCHEMA §Account limits)
+before the Phase 48 close; a written production smoke checklist in the ledger
+(guest entry, a write, OAuth sign-in with both providers, sign-out, guest
+cleanup scheduled, and account deletion last, since one verified email links
+both providers to one account). The Phase 48 close then applies any migration
+not yet on production and merges, with no dump, since production holds nothing
+to keep (user, 2026-11-01), and runs that smoke right after the merge, before
+the URL is announced; if it fails, the URL stays unannounced and the fix goes
+through a new phase.
 
 **Dependencies:** Task 239.
 
-**Authority:** S21, S34, S36, S37; D8; SPEC §Environments And Hosting.
+**Authority:** S21, S22, S34, S36, S37; D8; SPEC §Environments And Hosting.
 
 **Observable acceptance:** the production settings and the Advisor result are
 recorded and confirmed by the user; the D8 result is recorded and passes, or
 the lowered limits are applied; the smoke checklist exists; no secret in
-Git; the production schema equals the migrations applied so far.
+Git; `supabase db diff` shows that the production schema equals the migrations
+in Git.
 
 **Verification:** full gate; the user confirms the settings. The post-merge
 smoke result is recorded in the Phase 48 close.

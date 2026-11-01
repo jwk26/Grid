@@ -1661,9 +1661,11 @@ enabled.
 - **Early production** (S36, D1): production Supabase and the Vercel project are
   set up in Phase 42, unannounced and with no real data. Production sign-in and
   the public launch come in Phase 48.
-- **Free plan** (S22): no keep-alive job; the owner's daily use keeps the
-  project active, and a paused project is resumed from the dashboard. While it
-  is paused the app shows the load-failure or guest-creation-failure screen.
+- **Free plan** (S22; user, 2026-11-01): no keep-alive job. From the launch on,
+  the owner's real use of production keeps the project active; Supabase warns
+  by email before it pauses a project with low activity, and the owner answers
+  that warning. A paused project is resumed from the dashboard. While it is
+  paused the app shows the load-failure or guest-creation-failure screen.
 - **Backup** (S35; user, 2026-11-01): no scheduled backup job. The Phase 48
   close takes no dump, since production holds no data to keep until the launch.
   From the launch on, a manual `supabase db dump` runs before each production
