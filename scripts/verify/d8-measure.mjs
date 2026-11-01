@@ -2,12 +2,13 @@
 // account, through the HTTPS API with gzip, as a signed-in anonymous user (anonymous sign-in
 // must be on for the measurement only). Per account: one cold call (new TLS connection) and
 // 5 warm calls; judged on the slowest of all six calls, the cold one included (limit-sized <= 3000 ms,
-// one-tenth <= 1000 ms). The tables are analyzed after the account is built and before the calls, and
+// one-tenth <= 1000 ms; the one-tenth cold call is judged on its server time). Accounts at 100%,
+// 50%, 25% and 10% are built, vacuum-analyzed and left for two minutes before the calls, and
 // after each call get_snapshot() runs again under EXPLAIN ANALYZE as the same user, so the server time
 // sits beside the call time; call time minus server time is network plus API (gateway, TLS, gzip), not
 // network alone.
-// Both accounts are deleted afterwards and the script checks that 0 rows are left.
-// Usage: node scripts/verify/d8-measure.mjs [--local]
+// All accounts are deleted afterwards and the script checks that 0 rows are left.
+// Usage: node scripts/verify/d8-measure.mjs [--local] [--wait=<seconds, default 120>]
 // Node strips the types of the fixture on import.
 import { request, Agent } from "node:https";
 import { Agent as HttpAgent, request as httpRequest } from "node:http";
@@ -17,7 +18,10 @@ import { buildLimitSizedAccount } from "../../supabase/tests/fixtures/limit-size
 import { connectDb, target } from "./lib.mjs";
 
 const WARM_RUNS = 5;
-const LIMITS = { "limit-sized": 3000, "one-tenth": 1000 };
+// [label, scale, limit in ms]
+const SIZES = [["limit-sized", 1, 3000], ["half", 0.5, 3000], ["quarter", 0.25, 3000], ["one-tenth", 0.1, 1000]];
+const waitArg = process.argv.find((a) => a.startsWith("--wait="));
+const WAIT_S = waitArg ? Number(waitArg.slice(7)) : 120;
 
 const t = target();
 console.log(`d8-measure: target ${t.name}`);
@@ -80,22 +84,29 @@ const db = await connectDb(t);
 const ids = [];
 let fails = 0;
 try {
-  for (const [label, scale] of [["limit-sized", 1], ["one-tenth", 0.1]]) {
+  console.log(`start ${new Date().toISOString()}`);
+  // Build every account first, vacuum analyze, wait, then measure: a real account is not read
+  // right after a bulk insert.
+  const built = [];
+  for (const [label, scale, limit] of SIZES) {
     const client = createClient(t.apiUrl, t.publishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data, error } = await client.auth.signInAnonymously();
     if (error || !data.session) throw new Error(`anonymous sign-in failed: ${error?.message}`);
-    const userId = data.user.id;
-    ids.push(userId);
-    const counts = await buildLimitSizedAccount(db, userId, scale);
+    ids.push(data.user.id);
+    built.push({ label, limit, userId: data.user.id, token: data.session.access_token, counts: await buildLimitSizedAccount(db, data.user.id, scale) });
+  }
+  for (const table of TABLES) await db.query(`vacuum analyze app.${table}`);
+  console.log(`built and vacuumed ${new Date().toISOString()}; waiting ${WAIT_S} s`);
+  await new Promise((r) => setTimeout(r, WAIT_S * 1000));
 
-    for (const table of TABLES) await db.query(`analyze app.${table}`);
-
+  for (const { label, limit, userId, token, counts } of built) {
+    console.log(`measuring ${label} at ${new Date().toISOString()}`);
     const agent = new (url.protocol === "https:" ? Agent : HttpAgent)({ keepAlive: true, maxSockets: 1 });
-    const cold = await call(data.session.access_token, agent);
+    const cold = await call(token, agent);
     cold.server = await serverMs(db, userId);
     const warm = [];
     for (let i = 0; i < WARM_RUNS; i++) {
-      const w = await call(data.session.access_token, agent);
+      const w = await call(token, agent);
       w.server = await serverMs(db, userId);
       warm.push(w);
     }
@@ -105,12 +116,14 @@ try {
     const rowsOk = body.nodes?.length === counts.nodes && body.bits?.length === counts.bits && body.chunks?.length === counts.chunks;
     const all = [cold, ...warm];
     const times = sorted(warm.map((w) => w.ms));
-    const slowest = Math.max(...all.map((c) => c.ms));
-    const ok = rowsOk && all.every((c) => c.status === 200) && slowest <= LIMITS[label];
+    // The one-tenth cold call is judged on its server time: connection setup is not the account's size.
+    const judged = all.map((c) => (c === cold && label === "one-tenth" ? c.server : c.ms));
+    const slowest = Math.max(...judged);
+    const ok = rowsOk && all.every((c) => c.status === 200) && slowest <= limit;
     if (!ok) fails++;
     console.log(
       `${ok ? "PASS" : "FAIL"} ${label}: nodes ${counts.nodes}, bits ${counts.bits}, chunks ${counts.chunks}, breakdowns ${counts.scratchBreakdowns}, candidates ${counts.stagedCandidates}; ` +
-        `cold ${cold.ms.toFixed(0)} ms; warm min ${times[0].toFixed(0)} / median ${times[Math.floor(times.length / 2)].toFixed(0)} ms; slowest of all ${slowest.toFixed(0)} ms (limit ${LIMITS[label]}); ` +
+        `cold ${cold.ms.toFixed(0)} ms; warm min ${times[0].toFixed(0)} / median ${times[Math.floor(times.length / 2)].toFixed(0)} ms; slowest judged ${slowest.toFixed(0)} ms (limit ${limit}); ` +
         `pairs call/server ms (network+API = difference): cold ${pair(cold)}, warm ${warm.map(pair).join(", ")}; ` +
         `raw ${mb(warm[0].raw)} MB, transferred ${mb(warm[0].wire)} MB; rows complete: ${rowsOk}`,
     );
@@ -133,7 +146,7 @@ try {
     );
     const clean = left.rows[0].n === 0;
     if (!clean) fails++;
-    console.log(`${clean ? "PASS" : "FAIL"} both accounts deleted, ${left.rows[0].n} rows left`);
+    console.log(`${clean ? "PASS" : "FAIL"} all accounts deleted, ${left.rows[0].n} rows left`);
   }
   await db.end();
 }

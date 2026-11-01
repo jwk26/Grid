@@ -25,7 +25,7 @@ dashboard, download the certificate). The scripts never print these values.
 | `hosted-roles.mjs` (+ `hosted-roles.sql`) | write role (S14), internal-function grants (S29 (1)), account-deletion role (S42 (1)) | Nothing: the SQL ends in `ROLLBACK`; the runner checks for leftovers |
 | `pg-cron-check.mjs` | `pg_cron` runs a job that deletes an anonymous auth user, cascade included (S22) | Nothing: the job is unscheduled and `pg_cron` dropped again if the script enabled it |
 | `api-check.mjs` | schema `app` is not exposed: `PGRST106`, no table in OpenAPI or GraphQL, as `anon` and as `authenticated` | Nothing: its anonymous user is deleted. The authenticated part needs anonymous sign-in on |
-| `d8-measure.mjs` | snapshot load time and size, limit-sized and one-tenth account (D8): `analyze` before the calls, server time (`explain analyze` as `authenticated`) beside each call, the cold call in the verdict | Nothing: both accounts are deleted and the script checks 0 rows are left. Needs anonymous sign-in on, for the measurement only |
+| `d8-measure.mjs` | snapshot load time and size, limit-sized and one-tenth account (D8): accounts at 100/50/25/10% built, `vacuum analyze`, a two-minute wait (`--wait=<s>`), then the calls; server time (`explain analyze` as `authenticated`) beside each call, the cold call in the verdict | Nothing: all accounts are deleted and the script checks 0 rows are left. Needs anonymous sign-in on, for the measurement only |
 
 Run order on production: `hosted-roles`, `pg-cron-check`, then with anonymous sign-in on
 `d8-measure` and `api-check`, then anonymous sign-in off.
@@ -34,7 +34,7 @@ Run order on production: `hosted-roles`, `pg-cron-check`, then with anonymous si
 node scripts/verify/hosted-roles.mjs [--local]
 node scripts/verify/pg-cron-check.mjs [--local]
 node scripts/verify/api-check.mjs [--local]
-node --no-warnings scripts/verify/d8-measure.mjs [--local]
+node --no-warnings scripts/verify/d8-measure.mjs [--local] [--wait=<seconds>]
 ```
 
 Migrations reach production with `pnpm exec supabase db push --db-url "$GRIDDO_PROD_DB_URL" --dry-run`
