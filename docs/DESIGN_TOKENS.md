@@ -1,4 +1,4 @@
-# GridDO — Design Tokens
+# griddo — Design Tokens
 
 > **Scope:** Exact visual values where explicitly listed, plus canonical shared
 > semantic visual roles and approved theme mappings. Architecture and product
@@ -119,7 +119,7 @@ Values that differ from `docs/design-system-preview.html` **on purpose**:
 >
 > **Format:** Raw HSL channels without `hsl()` wrapper. The `@theme inline` block applies `hsl()` when mapping to utility classes.
 
-Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens first, then GridDO extensions.
+Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens first, then griddo extensions.
 
 ```css
 :root {
@@ -154,7 +154,7 @@ Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens fi
 
     --radius: 0.625rem;                    /* 10px — base border-radius */
 
-    /* ── GridDO Extension Tokens ── */
+    /* ── griddo Extension Tokens ── */
 
     /* Priority Colors */
     --priority-high: 0 84% 60%;            /* #ef4444 — red */
@@ -185,7 +185,7 @@ Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens fi
     --grid-rows: 9;
     --grid-gap: 0.5rem;                    /* 8px — gap between cells */
     --grid-cell-min: 5rem;                 /* 80px — minimum cell dimension */
-    --grid-inset: 0.75rem;                 /* 12px — spacing within cell; used in node sizing formula */
+    --grid-inset: min(0.75rem, 12.5cqw, 12.5cqh); /* 12px at a cell of 96px or more, 12.5% of the cell below; used in node sizing formula */
     --grid-node-max-size: 96px;            /* cap — node squares do not exceed this on large displays */
     --grid-line-color: 240 6% 90%;         /* same as --border */
     --grid-line-opacity-l0: 0.15;          /* Level 0 — standard density */
@@ -253,7 +253,7 @@ Colors in HSL without `hsl()` wrapper (shadcn convention). Shadcn core tokens fi
     --input: 240 4% 16%;
     --ring: 217 91% 60%;
 
-    /* ── GridDO Extension Overrides (Dark Mode) ── */
+    /* ── griddo Extension Overrides (Dark Mode) ── */
 
     /* Priority backgrounds darken for dark mode */
     --priority-high-bg: 0 84% 10%;        /* dark red tint */
@@ -1635,8 +1635,8 @@ were placeholders; implementation uses the providers' official marks.
 | Account icon (SA-1) | `data-app-role="account-button"` is a sidebar icon button with exactly the classes of its neighbour `Add item` (`flex h-10 w-10 items-center justify-center rounded-lg border border-transparent p-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 text-muted-foreground hover:bg-accent hover:text-foreground`). Lucide `user-round` for a guest and `user-round-check` for an OAuth account at `h-5 w-5`. No ring, tint or background distinguishes the account state; the glyph does. It is the top-most sidebar icon until the Home button lands (Phase 50), then sits right below Home and above `+`: the order is Home, account icon, `+` (SPEC §Sidebar, F21, F33). |
 | Connection badge (SA-2) | `data-app-role="account-badge"` has the shape of the existing Inbox count badge: `absolute -top-1 -right-1 z-10 flex h-4 min-w-4 translate-x-[25%] -translate-y-[25%] items-center justify-center rounded-full px-1 font-mono text-[10px] font-bold leading-none ring-2 ring-background`. Unstable (`data-connection-state="unstable"`): the glyph `!`, `background: hsl(var(--status-warning-surface))`, `color: hsl(var(--status-warning))`, plus an inner 1px `hsl(var(--status-warning-border))` edge (an inset `box-shadow` kept beside the ring). Offline (`"offline"`): Lucide `wifi-off` at 10px with the same treatment in `--status-error-*`. No badge in the normal state. The sentence is a tooltip in the FB-4 look, to the right of the icon, 8px away. |
 | Loading screen (SA-3) | The frame (below) holds no card: on the shell background, centred, the title `Loading your grid…` at `text-xl font-semibold` with the app loader (`--status-icon-size: 28px`) 12px below it. The loader is named by that title (`aria-labelledby`) and the frame is exposed as busy. It covers the sidebar and appears after `DISPLAY_DELAY_MS`. |
-| App-level frame (SA-4) | Adjusted to option C, "text block on the background" (user, 2026-10-26, Task 225; Task 242 had chosen the confirmation-dialog card). The frame is the shell background (`data-triage-role="shell-background"`, so each theme's desktop or page surface shows) over the whole window, sidebar included, with no card, no overlay and no `!` mark: one centred block `grid gap-3 text-center` with `max-width: 440px` and `justify-items: center`, holding the title (`text-xl font-semibold`), the reason line (`text-sm text-muted-foreground`) and the actions (`flex flex-wrap justify-center gap-2 pt-1`) of the SPEC screen. It needs no per-theme surface work: each theme shows only its own shell background behind the text. Buttons use the existing button variants: `Retry` and `Continue as guest` are `default`; `Sign in with GitHub` and `Sign in with Google` are `outline`. The security-check screen holds the Turnstile widget, 300×65, centred below the title. The narrow-window notice (SA-5) and the guest and account modal (SA-6) keep the Scratch Trash dialog card; only this frame does not. |
-| Narrow-window notice (SA-5) | Laid over the mounted, `inert` app: the dialog overlay (`fixed inset-0 z-50 bg-black/50`) and, centred, the Scratch Trash dialog card with the title and the SPEC sentence, no actions. The app stays visible, dimmed, behind it. |
+| App-level frame (SA-4) | Adjusted to option C, "text block on the background" (user, 2026-10-26, Task 225; Task 242 had chosen the confirmation-dialog card). The frame is the shell background (`data-triage-role="shell-background"`, so each theme's desktop or page surface shows) over the whole window, sidebar included, with no card, no overlay and no `!` mark: one centred block `grid gap-3 text-center` with `max-width: 440px` and `justify-items: center`, holding the title (`text-xl font-semibold`), the reason line (`text-sm text-muted-foreground`) and the actions (`flex flex-wrap justify-center gap-2 pt-1`) of the SPEC screen. It needs no per-theme surface work: each theme shows only its own shell background behind the text. Buttons use the existing button variants: `Retry` and `Continue as guest` are `default`; `Sign in with GitHub` and `Sign in with Google` are `outline`. The security-check screen holds the Turnstile widget, 300×65, centred below the title. The narrow-window notice (SA-5) takes this look, laid over the app; the guest and account modal (SA-6) keeps the Scratch Trash dialog card. |
+| Narrow-window notice (SA-5) | Laid over the mounted, `inert` app, above every app layer (the highest is the Scratch modal, `z-[400]`): the SA-4 frame as an opaque full-window surface, with the title and the SPEC sentence and no actions (user, 2026-11-01). `inert` covers every child of `body` except the notice, portalled dialogs and popovers and the Turnstile host included. The app stays mounted behind it and is not visible. |
 | Guest and account modal (SA-6) | The Scratch Trash dialog (`AlertDialogContent` with the app's confirmation classes and its overlay) as the frame. Guest: the title `You're browsing as a guest`; the two sentences as description paragraphs; then a `border-t pt-4` block with `Sign in with GitHub` and `Sign in with Google` as `outline` buttons side by side (`gap-2`, wrapping) and the privacy note below them in `text-xs text-muted-foreground` with line-height 1.5. The inline sign-in error is the dialog's existing state line (`role="status"`, `min-h-5 text-sm font-medium`). Account: the account name as the title; a `border-t pt-4` row with `Delete account` on the left (`outline` plus `border-destructive/50 text-destructive`) and `Sign out` on the right (`outline`). `Delete account` opens the existing confirmation pattern: `Cancel` (`outline`) and `Delete account` (`destructive`). |
 
 ### Decision prerequisite — `DP-SAAS-01`
@@ -1874,7 +1874,7 @@ Defined in `globals.css` `:root` and documented here. Tunable by design.
 
 | Token | Value | Role |
 |-------|-------|------|
-| `--grid-inset` | `0.75rem` | Spacing subtracted from cell dimension to get node size |
+| `--grid-inset` | `min(0.75rem, 12.5cqw, 12.5cqh)` | Spacing subtracted from cell dimension to get node size: 12px once the cell reaches 96px (about 1912px window), 12.5% of the cell below, so a small cell keeps more of its width for the node. Written with `cqw`/`cqh`, not `cqmin`: the served dev stylesheet showed `cqmin` as `.75rem`, cause unconfirmed |
 | `--grid-node-max-size` | `96px` | Cap — nodes do not exceed this on large displays |
 | `--grid-cols` | `18` | Grid column count |
 | `--grid-rows` | `9` | Grid row count |
@@ -1898,12 +1898,12 @@ Set on children of each `.grid-cell-container` div via CSS container queries. `c
       calc(min(100cqw, 100cqh) - var(--grid-inset)),
       var(--grid-node-max-size, 96px)
     );
-    --grid-node-icon-size:      max(calc(var(--grid-node-size) * 0.325), 1.5rem);
-    --grid-node-title-height:   max(calc(var(--grid-node-size) * 0.23),  1.125rem);
-    --grid-node-padding-x:      max(calc(var(--grid-node-size) * 0.11),  0.5rem);
-    --grid-node-padding-top:    max(calc(var(--grid-node-size) * 0.11),  0.5rem);
-    --grid-node-padding-bottom: max(calc(var(--grid-node-size) * 0.1),   0.4375rem);
-    --grid-node-icon-lift:      max(calc(var(--grid-node-size) * 0.1),   0.375rem);
+    --grid-node-icon-size:      max(calc(var(--grid-node-size) * 0.325), 1rem);
+    --grid-node-title-height:   max(calc(var(--grid-node-size) * 0.23),  0.8125rem);
+    --grid-node-padding-x:      calc(var(--grid-node-size) * 0.11);
+    --grid-node-padding-top:    calc(var(--grid-node-size) * 0.11);
+    --grid-node-padding-bottom: calc(var(--grid-node-size) * 0.1);
+    --grid-node-icon-lift:      calc(var(--grid-node-size) * 0.1);
   }
 }
 ```
@@ -1912,12 +1912,14 @@ Set on children of each `.grid-cell-container` div via CSS container queries. `c
 
 | Token | Ratio | Floor |
 |-------|-------|-------|
-| `--grid-node-icon-size` | `nodeSz × 0.325` | `1.5rem` (24px) |
-| `--grid-node-title-height` | `nodeSz × 0.23` | `1.125rem` (18px) |
-| `--grid-node-padding-x` | `nodeSz × 0.11` | `0.5rem` (8px) |
-| `--grid-node-padding-top` | `nodeSz × 0.11` | `0.5rem` (8px) |
-| `--grid-node-padding-bottom` | `nodeSz × 0.10` | `0.4375rem` (7px) |
-| `--grid-node-icon-lift` | `nodeSz × 0.10` | `0.375rem` (6px) |
+| `--grid-node-icon-size` | `nodeSz × 0.325` | `1rem` (16px) |
+| `--grid-node-title-height` | `nodeSz × 0.23` | `0.8125rem` (13px) |
+| `--grid-node-padding-x` | `nodeSz × 0.11` | none |
+| `--grid-node-padding-top` | `nodeSz × 0.11` | none |
+| `--grid-node-padding-bottom` | `nodeSz × 0.10` | none |
+| `--grid-node-icon-lift` | `nodeSz × 0.10` | none |
+
+The floors are set so the content fits the card at the 1024px minimum window (Task 238A): the ratios sum to 0.865 of the card, and only the icon and title keep a floor (the title font stays 11px, so a title shows about four or five characters before the ellipsis at 1024px). Above about 1912px the look is unchanged. Below a content height of about 484px the cell is smaller than at 1024px; that is outside the supported range.
 
 **CSS scope note:** An element with `container-type: size` cannot use `cqw`/`cqh` to query its own dimensions — those units resolve against the nearest *ancestor* container. The derived token vars are therefore set on `.grid-cell-container > *` (children), not on the container element itself.
 
@@ -1965,7 +1967,7 @@ Components consume `--grid-node-*` vars unchanged. No component edits are needed
   --color-ring: hsl(var(--ring));
   --color-page-bg: var(--page-bg);         /* body background surface */
 
-  /* ── Colors (GridDO priority) ── */
+  /* ── Colors (griddo priority) ── */
   --color-priority-high: hsl(var(--priority-high));
   --color-priority-high-bg: hsl(var(--priority-high-bg));
   --color-priority-mid: hsl(var(--priority-mid));
@@ -1973,7 +1975,7 @@ Components consume `--grid-node-*` vars unchanged. No component edits are needed
   --color-priority-low: hsl(var(--priority-low));
   --color-priority-low-bg: hsl(var(--priority-low-bg));
 
-  /* ── Colors (GridDO urgency) ── */
+  /* ── Colors (griddo urgency) ── */
   --color-urgency-1: hsl(var(--urgency-1));
   --color-urgency-2: hsl(var(--urgency-2));
   --color-urgency-3: hsl(var(--urgency-3));
@@ -1997,7 +1999,7 @@ Components consume `--grid-node-*` vars unchanged. No component edits are needed
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  /* ── GridDO Custom Animations (not from tw-animate-css) ── */
+  /* ── griddo Custom Animations (not from tw-animate-css) ── */
   --animate-jiggle: jiggle 0.3s ease-in-out infinite;
   --animate-urgency-blink-1: urgency-blink 3s ease-in-out infinite;
   --animate-urgency-blink-2: urgency-blink 2s ease-in-out infinite;
@@ -2046,7 +2048,7 @@ The following CSS variables are consumed via `var()` in component styles or Java
 - `@layer base` contains only reset styles (`border-border`, `bg-background text-foreground`, `prefers-reduced-motion`)
 - No ordering constraint between `@theme inline` and `:root`/`.dark`
 
-**Note on animations:** GridDO custom keyframes (jiggle, blink, float) are defined inside `@theme inline` above. `tw-animate-css` is a separate package that provides animation utilities used by shadcn components (accordion, collapsible, etc.). The two sources are independent. Complex interaction-driven animations are handled by Motion in `src/lib/animations/`:
+**Note on animations:** griddo custom keyframes (jiggle, blink, float) are defined inside `@theme inline` above. `tw-animate-css` is a separate package that provides animation utilities used by shadcn components (accordion, collapsible, etc.). The two sources are independent. Complex interaction-driven animations are handled by Motion in `src/lib/animations/`:
 
 | Animation | Method | File |
 |-----------|--------|------|
@@ -2066,9 +2068,9 @@ The following CSS variables are consumed via `var()` in component styles or Java
 
 ## Motion Language
 
-GridDO source extraction targets:
+griddo source extraction targets:
 
-| Interaction | Source behavior | GridDO2 token |
+| Interaction | Source behavior | griddo2 token |
 |-------------|-----------------|---------------|
 | Node hover | `whileHover={{ scale: 1.05, zIndex: 40 }}` | `motionScale.nodeHover = 1.05`, `motionZIndex.nodeHover = 40` |
 | Node drag lift | `whileDrag={{ scale: 1.1, zIndex: 50 }}` | `motionScale.nodeDrag = 1.1`, `motionZIndex.nodeDrag = 50` |
@@ -2457,7 +2459,7 @@ Active-Scratch count badge on the Inbox system Node. Three-level pressure model 
 
 ### Compact Drag Token (Inbox/Triage)
 
-Inbox/Triage drag previews (Breakdown row, staged Node, staged Bit) use a **compact token**, not the full row/card (SPEC Decision 16; pointer-centered targeting; valid / invalid / pending-confirmation target states). The existing calendar `compact-bit-item.tsx` "full drag surface" is the **anti-pattern** to avoid. Batch 1 uses existing GridDO baseline tokens; exact drag-token classes are an implementation detail within the Inbox/Triage phase (no dedicated theme tokens in Batch 1).
+Inbox/Triage drag previews (Breakdown row, staged Node, staged Bit) use a **compact token**, not the full row/card (SPEC Decision 16; pointer-centered targeting; valid / invalid / pending-confirmation target states). The existing calendar `compact-bit-item.tsx` "full drag surface" is the **anti-pattern** to avoid. Batch 1 uses existing griddo baseline tokens; exact drag-token classes are an implementation detail within the Inbox/Triage phase (no dedicated theme tokens in Batch 1).
 
 ---
 

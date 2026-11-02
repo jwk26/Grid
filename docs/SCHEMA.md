@@ -1,4 +1,4 @@
-# GridDO — Data Schema
+# griddo — Data Schema
 
 > **Scope:** This document specifies the data model. Architecture decisions live in SPEC.md.
 > **Storage:** Supabase Postgres, one dataset per account, isolated by RLS
@@ -507,10 +507,14 @@ states the database rules. The exact SQL lives in `supabase/migrations/`.
   JWT claims as the `auth` functions do; a claim format they do not know gives
   null, so every policy is unmatched and the write is refused (user,
   2026-10-23).
-- `delete_my_account()` is owned by its own role, which holds only the right to
-  delete the caller's auth user. It is the only exception to S29 (1) and S14
-  (S42 (1)). If hosted Supabase refuses that role or grant, the fallback in
-  [Account deletion](#account-deletion) applies (user, 2026-10-22).
+- `delete_my_account()` was to be owned by its own role, holding only the
+  right to delete the caller's auth user, as the only exception to S29 (1) and
+  S14 (S42 (1)). Hosted Supabase refuses that grant (Task 218, 2026-10-24:
+  `postgres` has no grant option on `auth.users`), so the fallback in
+  [Account deletion](#account-deletion) applies: `delete_my_account()` is an
+  ordinary write function owned by `griddo_writer`, and the auth user is
+  deleted by `internal.cleanup_guests()`, owned by `postgres` and run by
+  `pg_cron` ([Guest cleanup](#guest-cleanup)).
 - Read functions (`get_snapshot()` and the reconcile functions) are
   `security invoker`: they run as the caller, under RLS.
 - Every function sets `search_path` to an empty value and schema-qualifies
@@ -646,16 +650,19 @@ Nodes. A create that would pass a limit returns `rejected` with
 limit of their own (at most one per Breakdown row). The numbers live in one
 internal function. Phase 42 measured the initial load on production (Task
 218): the one-tenth account passed, the limit-sized one passed two of three
-runs (MI-8), so the numbers stay; Task 240 measures again on production
-before launch and lowers them by a migration if the target fails (user,
-2026-10-24).
+runs (MI-8). Task 240 measured again on production before launch (three runs,
+2026-11-01): the 100% account took 5.4 to 10.4 s against the 3 s target, the
+50% account stayed within 2.1 s in every run, so the real-account limits are
+half of the earlier numbers, the largest measured size that passes every run
+(user, 2026-11-01). An account already above a new limit keeps its rows; a
+create that would add to a full table is rejected.
 
 | Table | Real account | Guest |
 |---|---|---|
-| `nodes` | 1,000 | 100 |
-| `bits` | 5,000 | 300 |
-| `chunks` | 10,000 | 1,000 |
-| `scratch_breakdowns` | 5,000 | 300 |
+| `nodes` | 500 | 100 |
+| `bits` | 2,500 | 300 |
+| `chunks` | 5,000 | 1,000 |
+| `scratch_breakdowns` | 2,500 | 300 |
 
 The demo seed fits the guest limits.
 
@@ -1138,7 +1145,7 @@ free cell in row-major order for a system Node and for a new item without an
 original cell (a Bit made from a Chunk at promotion), otherwise the nearest
 free cell from the item's original cell (BFS, as `findNearestEmptyCell` does). It treats
 each reserved cell as taken, so an item whose original cell is reserved is
-relocated as if that cell were occupied. The callers are `ensure_account()`,
+relocated as if that cell were occupied. The callers are `ensure_account()` (the system Nodes and the demo seed copy, which places each active seed row at its original cell through `internal.copy_demo_seed()`),
 `update_node()` when it shows a hidden system Node, `restore_node()`,
 `restore_bit()`, `unarchive_node()`, `unarchive_bit()` and
 `promote_bit_to_node()`. Each takes `p_reserved_cells jsonb default '[]'`: an
@@ -1236,7 +1243,15 @@ checks the locked rows again after it holds them (S30; user, 2026-10-22):
   where there is no parent row to lock, it alone keeps two creates out of one
   cell.
 - **Inbox.** Inbox commands lock their Scratch Bit row `for update`.
-- **Account.** `ensure_account()` locks the account row.
+- **Account.** `ensure_account()` locks the account row. Its demo seed step (Task 237) takes
+  the Inbox Grid advisory lock after that row lock, and only for a guest that
+  looks empty, so a capture into an Inbox committed by an earlier call cannot
+  land in a seed cell. This is the one place an advisory lock follows a row
+  lock. A new guest creates its Inbox and its seed in one uncommitted
+  transaction, so no other tab can contend; only a guest made before the seed
+  existed, with its Inbox committed, can meet `restore_node()` of its Inbox in
+  the opposite hash order, and Postgres then aborts one call, whose retry
+  succeeds (`expert` review, 2026-10-31).
 - **Order.** A function that needs several locks takes the advisory lock first,
   then row locks in a fixed order (Nodes ordered by id, then Bits, then
   Chunks), so two functions cannot deadlock.
@@ -1295,14 +1310,20 @@ reject a caller that has no `accounts` row with `account_missing` (user,
 of an empty Grid.
 
 Fallback, if hosted Supabase refuses the dedicated role or its grant (user,
-2026-10-22): `delete_my_account()` runs as a write function, records
+2026-10-22). Task 218 recorded the refusal on hosted Supabase (2026-10-24), so
+this fallback is the implemented branch (Task 235), and the paragraphs above
+describe the outcome once the cleanup has run: `delete_my_account()` runs as a write function, records
 `accounts.deletion_requested_at` for the caller only, and the client signs out
 at once. The daily cleanup job ([Guest cleanup](#guest-cleanup)) deletes the
 auth user, and the cascade every row, within 24 hours. A deletion request is
 final (user, 2026-10-22): until the cleanup runs, `ensure_account()`,
 `get_snapshot()`, the reconcile functions and every write function reject that
 account with `account_deleting`, so the data never reappears, not even in
-another tab that refetches. The client then shows the load-failure screen with
+another tab that refetches. A write that passed its account check just before
+the request committed can still commit after it, since the check is an
+unlocked read taken before the Grid locks; its rows are never read back,
+because every read and `ensure_account()` reject the account, and the cleanup
+deletes them with the rest (user, 2026-10-30). The client then shows the load-failure screen with
 the deletion-in-progress reason and `Continue as guest` (SPEC), and signs out
 to a new guest only from there.
 
@@ -1311,9 +1332,18 @@ to a new guest only from there.
 `internal.cleanup_guests()` runs daily through `pg_cron` and deletes anonymous
 auth users whose `last_visit_at` is more than 7 days old; the cascade removes
 their rows (S10, S22, S42 (5)). A guest with an open tab stays: the hourly
-`cleanup_expired_trash()` call records its visit. Under the account-deletion
-fallback the same job also deletes every account with a deletion request. If `pg_cron` is unavailable on the free plan,
-the recorded fallback is a scheduled GitHub Actions call (S22). Real accounts
+`cleanup_expired_trash()` call records its visit. An anonymous auth user with
+no `accounts` row (sign-in finished, `ensure_account()` never ran) has no
+`last_visit_at`; the job deletes it 7 days after `auth.users.created_at`. This
+covers the extra guest of two first-visit tabs (SPEC §Several tabs). Under the
+account-deletion fallback the same job also deletes every account with a
+deletion request. The job deletes one account at a time; an account that
+deadlocks with a client write in flight is skipped and taken by the next run,
+so one busy account never stops the others. The
+job is owned by `postgres`, the one role that can delete from `auth.users`.
+Task 218 proved `pg_cron` on the free plan (off by default; the Task 238
+migration enables it), so the S22 fallback, a scheduled GitHub Actions call,
+is not used. Real accounts
 are never deleted automatically (S23).
 
 ### Database tests
@@ -1336,6 +1366,13 @@ malformed list with `invalid_input`, and behaves as before with the default;
 the demo seed and the fixture occupy no cell with `x` < 3 and `y` < 2. At the
 close of a phase that changes SQL, the
 Supabase database linter (Security Advisor) shows no new warning (S29).
+Accepted warnings, recorded so that they do not read as new: one
+`authenticated_security_definer_function_executable` for each client write
+function (S14; user, 2026-10-24); lint 0012 on the six `app` tables, whose
+policies apply to guests by design, and on `cron.job` and
+`cron.job_run_details`, which no client role can reach without USAGE on `cron`;
+and `auth_leaked_password_protection`, since Email sign-in is off and no
+password exists (user, 2026-11-02).
 
 ---
 

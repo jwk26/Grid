@@ -1,4 +1,4 @@
-// GridDO Inbox/Triage test data for browser checks, seeded through local Supabase.
+// griddo Inbox/Triage test data for browser checks, seeded through local Supabase.
 //
 // Run only in the Playwright MCP browser against a local dev server and local Supabase.
 // Install: browser_run_code_unsafe with

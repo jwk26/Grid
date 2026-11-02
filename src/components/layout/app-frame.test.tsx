@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { AppFrame } from "@/components/layout/app-frame";
 import type { EntryState, SessionController } from "@/lib/auth/session";
+import { resetAppForUserChange, takeHomeReturn } from "@/lib/auth/user-change";
+
+const replace = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
 
 function fakeController(initial: EntryState) {
   let state = initial;
@@ -17,6 +21,7 @@ function fakeController(initial: EntryState) {
     start: vi.fn(async () => undefined),
     retry: vi.fn(async () => undefined),
     continueAsGuest: vi.fn(async () => undefined),
+    signInWithOAuth: vi.fn(async () => "started"),
   };
   return {
     controller: controller as unknown as SessionController,
@@ -28,7 +33,12 @@ function fakeController(initial: EntryState) {
   };
 }
 
-beforeEach(() => vi.useFakeTimers());
+beforeEach(() => {
+  vi.useFakeTimers();
+  replace.mockClear();
+  takeHomeReturn();
+  window.history.replaceState(null, "", "/");
+});
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
@@ -60,10 +70,10 @@ describe("AppFrame", () => {
         <Page />
       </AppFrame>,
     );
-    expect(document.title).toBe("GridDO");
+    expect(document.title).toBe("Grid");
 
     fake.set({ phase: "ready" });
-    expect(document.title).toBe("Trash – GridDO");
+    expect(document.title).toBe("Trash – Grid");
   });
 
   it("shows no Loading screen for a load under 300ms", () => {
@@ -166,6 +176,35 @@ describe("AppFrame", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toHaveFocus();
   });
 
+  it("shows the security-check screen with the widget's gap and no action", () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "site");
+    const fake = fakeController({ phase: "entering" });
+    render(
+      <AppFrame controller={fake.controller}>
+        <App />
+      </AppFrame>,
+    );
+    const host = document.querySelector<HTMLElement>('[data-app-role="turnstile-host"]');
+    expect(host).toHaveAttribute("aria-hidden", "true");
+    fake.set({ phase: "security-check" });
+    expect(screen.getByRole("heading", { name: "Confirm you're human to continue." })).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
+    // The same element is shown, not replaced: moving an iframe would reload the widget.
+    expect(document.querySelector('[data-app-role="turnstile-host"]')).toBe(host);
+    expect(host).not.toHaveAttribute("aria-hidden");
+    vi.unstubAllEnvs();
+  });
+
+  it("mounts no widget host without a site key", () => {
+    const { controller } = fakeController({ phase: "load-failure", reason: "other" });
+    render(
+      <AppFrame controller={controller}>
+        <App />
+      </AppFrame>,
+    );
+    expect(document.querySelector('[data-app-role="turnstile-host"]')).toBeNull();
+  });
+
   it("moves focus to the first action when the screen changes", () => {
     const fake = fakeController({ phase: "load-failure", reason: "other" });
     render(
@@ -177,7 +216,7 @@ describe("AppFrame", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toHaveFocus();
   });
 
-  it("shows the session-expired variants with Continue as guest only", () => {
+  it("shows the session-expired variants with both sign-in buttons and Continue as guest", () => {
     const fake = fakeController({ phase: "session-expired", variant: "account" });
     render(
       <AppFrame controller={fake.controller}>
@@ -186,10 +225,82 @@ describe("AppFrame", () => {
     );
     expect(screen.getByRole("heading", { name: "Your sign-in expired." })).toBeInTheDocument();
     expect(screen.getByText("Your saved data is safe. The last change may not have been saved.")).toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Sign in with GitHub",
+      "Sign in with Google",
+      "Continue as guest",
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "Sign in with GitHub" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign in with Google" }));
+    expect(fake.spies.signInWithOAuth.mock.calls).toEqual([["github"], ["google"]]);
     fake.set({ phase: "session-expired", variant: "guest" });
     expect(screen.getByRole("heading", { name: "Your guest session ended." })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Continue as guest" }));
     expect(fake.spies.continueAsGuest).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AppFrame account-state screens (Task 235)", () => {
+  it.each([
+    [{ phase: "account-deleting" } as const, "This account is being deleted.", "Deletion finishes within 24 hours. After that you can sign up again with the same account."],
+    [{ phase: "account-deleted" } as const, "This account was deleted.", "Its data is gone. You can continue as a guest."],
+  ])("shows the %o screen with Continue as guest only, and never the app", (phase, title, reason) => {
+    const { controller, spies } = fakeController(phase);
+    render(
+      <AppFrame controller={controller}>
+        <App />
+      </AppFrame>,
+    );
+    expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
+    expect(screen.getByText(reason)).toBeInTheDocument();
+    expect(screen.queryByTestId("app")).toBeNull();
+    const buttons = screen.getAllByRole("button");
+    expect(buttons.map((b) => b.textContent)).toEqual(["Continue as guest"]);
+    expect(buttons[0]).toHaveFocus();
+    fireEvent.click(buttons[0]);
+    expect(spies.continueAsGuest).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces a ready app when a write answers with an account rejection", () => {
+    const fake = fakeController({ phase: "ready" });
+    render(
+      <AppFrame controller={fake.controller}>
+        <App />
+      </AppFrame>,
+    );
+    expect(screen.getByTestId("app")).toBeInTheDocument();
+    fake.set({ phase: "account-deleting" });
+    expect(screen.queryByTestId("app")).toBeNull();
+    expect(screen.getByTestId("app-frame-screen")).toBeInTheDocument();
+  });
+});
+
+describe("AppFrame returns to Home after a user change (Task 235)", () => {
+  it("moves the router to Home while the screen shows, once, when the address named the old user's data", () => {
+    window.history.replaceState(null, "", "/grid/old-node?bit=old-bit");
+    const fake = fakeController({ phase: "ready" });
+    render(
+      <AppFrame controller={fake.controller}>
+        <App />
+      </AppFrame>,
+    );
+    expect(replace).not.toHaveBeenCalled();
+    resetAppForUserChange();
+    fake.set({ phase: "entering" });
+    expect(replace).toHaveBeenCalledExactlyOnceWith("/");
+    fake.set({ phase: "ready" });
+    expect(replace).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not navigate when the address is already Home", () => {
+    const fake = fakeController({ phase: "ready" });
+    render(
+      <AppFrame controller={fake.controller}>
+        <App />
+      </AppFrame>,
+    );
+    resetAppForUserChange();
+    fake.set({ phase: "entering" });
+    expect(replace).not.toHaveBeenCalled();
   });
 });

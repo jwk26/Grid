@@ -4,7 +4,7 @@ import { WriteOfflineError } from "@/lib/db/write-errors";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getDataStore } from "@/lib/db/datastore";
 import { toastCopy } from "@/lib/copy/feedback";
-import { dropReportedFailure } from "@/lib/db/write-failure";
+import { dropReportedFailure, isReportedFailure } from "@/lib/db/write-failure";
 import { showToast } from "@/lib/feedback/toast";
 import type { Bit, Node } from "@/types";
 
@@ -201,7 +201,7 @@ export function useArchive(): {
       }
       setRefreshVersion((v) => v + 1);
     } catch (error) {
-      if (error instanceof WriteOfflineError) return;
+      if (error instanceof WriteOfflineError || isReportedFailure(error)) return;
       const item = [...snapshot.nodes, ...snapshot.bits].find((candidate) => candidate.id === id);
       showToast(toastCopy.archiveRestoreFailed, item?.title ?? "");
     } finally {

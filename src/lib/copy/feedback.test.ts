@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDialogNoEmptyCell, toastCopy } from "./feedback";
+import { ACCOUNT_BEING_DELETED, ACCOUNT_DELETED, createDialogNoEmptyCell, toastCopy } from "./feedback";
 
 describe("createDialogNoEmptyCell", () => {
   it("names the target Node in the SPEC create-dialog sentence", () => {
@@ -87,5 +87,20 @@ describe("toastCopy", () => {
     expect(toastCopy.restoreSucceeded.tone).toBe("success");
     expect(toastCopy.offlineWrite.tone).toBe("warning");
     expect(toastCopy.rolledBackMove.tone).toBe("failure");
+  });
+});
+
+describe("account-state screens", () => {
+  it("state the SPEC titles and bodies", () => {
+    expect(ACCOUNT_BEING_DELETED.title).toBe("This account is being deleted.");
+    expect(ACCOUNT_BEING_DELETED.reason).toBe(
+      "Deletion finishes within 24 hours. After that you can sign up again with the same account.",
+    );
+    expect(ACCOUNT_DELETED.title).toBe("This account was deleted.");
+    expect(ACCOUNT_DELETED.reason).toBe("Its data is gone. You can continue as a guest.");
+  });
+
+  it("states the fallback deletion toast", () => {
+    expect(toastCopy.accountDeletionScheduled.single()).toBe("Your account will be deleted within 24 hours.");
   });
 });

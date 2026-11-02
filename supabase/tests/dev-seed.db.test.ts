@@ -318,6 +318,20 @@ describe("dev.seed_fixture: reruns and isolation", () => {
     }
   });
 
+  it("clears a deletion request, so a fixture account marked for deletion is usable again", async () => {
+    const marked = await fixtureUser("marked");
+    await seedAsService(marked.id);
+    const db = await connect();
+    try {
+      await db.query("update app.accounts set deletion_requested_at = 5 where user_id = $1", [marked.id]);
+    } finally {
+      await db.end();
+    }
+    await seedAsService(marked.id);
+    const [row] = await rows("select deletion_requested_at from app.accounts where user_id = $1", [marked.id]);
+    expect(row.deletion_requested_at).toBeNull();
+  });
+
   it("leaves another account's rows untouched", async () => {
     const other = await fixtureUser("other");
     await seedAsService(other.id);

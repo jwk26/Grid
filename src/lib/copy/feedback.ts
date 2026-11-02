@@ -78,6 +78,10 @@ export const GUEST_CREATION_FAILURE = {
   retry: "Retry",
 } as const;
 
+export const SECURITY_CHECK = {
+  title: "Confirm you're human to continue.",
+} as const;
+
 export const SESSION_EXPIRED = {
   account: {
     title: "Your sign-in expired.",
@@ -88,6 +92,49 @@ export const SESSION_EXPIRED = {
     reason: "Guest data may have been deleted. You can start a new guest session or sign in.",
   },
   continueAsGuest: "Continue as guest",
+} as const;
+
+// Account-state screens (SPEC §App-level screens, §Feedback copy).
+export const ACCOUNT_BEING_DELETED = {
+  title: "This account is being deleted.",
+  reason: "Deletion finishes within 24 hours. After that you can sign up again with the same account.",
+  continueAsGuest: "Continue as guest",
+} as const;
+
+// The narrow-window notice (SPEC §Account entry step 1, §Feedback copy; S42 (4)).
+export const NARROW_WINDOW = {
+  title: "Please use a larger window.",
+  reason: "Grid needs a window at least 1024 pixels wide, such as a desktop browser.",
+} as const;
+
+export const ACCOUNT_DELETED = {
+  title: "This account was deleted.",
+  reason: "Its data is gone. You can continue as a guest.",
+  continueAsGuest: "Continue as guest",
+} as const;
+
+// The account modal (SPEC §Feedback copy, Account modal). `deleteFailed` is the confirmation's inline
+// line when the request failed or its outcome is not known; `close` is the modal's Close button.
+export const ACCOUNT_MODAL = {
+  guest: {
+    heading: "You're browsing as a guest",
+    retention: "Guest data is deleted 7 days after your last visit.",
+    signInNote: "Signing in opens a new, empty account. Guest data isn't moved to it.",
+    signInError: "Sign-in didn't complete. You're still browsing as a guest.",
+    signInGithub: "Sign in with GitHub",
+    signInGoogle: "Sign in with Google",
+  },
+  privacy:
+    "Grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives Grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.",
+  account: { signOut: "Sign out", deleteAccount: "Delete account" },
+  confirm: {
+    title: "Delete your account?",
+    body: "Your tasks and all other data are deleted permanently. This can't be undone.",
+    delete: "Delete account",
+    cancel: "Cancel",
+    deleteFailed: "Couldn't delete your account. Try again.",
+  },
+  close: "Close",
 } as const;
 
 // Toasts (SPEC §Feedback copy, Toasts). A row is one kind of toast: `key` is what the toast helper

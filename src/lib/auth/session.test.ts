@@ -1,6 +1,7 @@
 import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createSessionController, SESSION_EXPIRED_KEY } from "@/lib/auth/session";
+import { createSessionController, SESSION_EXPIRED_KEY, SIGN_IN_STARTED_KEY } from "@/lib/auth/session";
+import { CaptchaError, type CaptchaProvider } from "@/lib/auth/turnstile";
 
 type AuthEvent = "SIGNED_IN" | "SIGNED_OUT" | "TOKEN_REFRESHED" | "INITIAL_SESSION";
 type Listener = (event: AuthEvent, session: { user: { id: string; is_anonymous?: boolean } } | null) => void;
@@ -27,8 +28,21 @@ function memoryStorage(): Storage {
   };
 }
 
-function setup(options: { session?: { id: string; anon?: boolean } | null } = {}) {
-  let session = options.session ? { user: { id: options.session.id, is_anonymous: options.session.anon ?? true } } : null;
+type TestUser = { id: string; is_anonymous?: boolean; email?: string; user_metadata?: Record<string, unknown> };
+
+function setup(
+  options: { session?: { id: string; anon?: boolean; email?: string; meta?: Record<string, unknown> } | null } = {},
+) {
+  let session: { user: TestUser } | null = options.session
+    ? {
+        user: {
+          id: options.session.id,
+          is_anonymous: options.session.anon ?? true,
+          email: options.session.email,
+          user_metadata: options.session.meta,
+        },
+      }
+    : null;
   let listener: Listener | null = null;
   const auth = {
     getSession: vi.fn(async () => ({ data: { session }, error: null as unknown })),
@@ -47,16 +61,18 @@ function setup(options: { session?: { id: string; anon?: boolean } | null } = {}
   };
   type RpcAnswer = { data: unknown; error: { message: string } | null; status: number };
   const rpc = vi.fn(async (name: string): Promise<RpcAnswer> => {
-    if (name === "ensure_account") {
+    if (name === "ensure_account" || name === "delete_my_account") {
       return { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 };
     }
     return { data: emptySnapshot, error: null, status: 200 };
   });
   const client = { auth, rpc } as never;
   const storage = memoryStorage();
+  const onUserChange = vi.fn();
   const controller = createSessionController({
     getClient: () => client,
     storage,
+    onUserChange,
     runExclusive: (_name, task) => task(),
     // Tests drive auth events directly, so the handler runs in the same tick.
     defer: (task) => task(),
@@ -64,6 +80,7 @@ function setup(options: { session?: { id: string; anon?: boolean } | null } = {}
   return {
     auth,
     rpc,
+    onUserChange,
     storage,
     store: controller.store,
     controller,
@@ -171,17 +188,6 @@ describe("session controller failures", () => {
       name === "ensure_account"
         ? { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 }
         : { data: null, error: { message: "boom" }, status: 500 },
-    );
-    await t.controller.start();
-    expect(t.controller.getState()).toEqual({ phase: "load-failure", reason: "other" });
-  });
-
-  it("a rejected snapshot (account deleted) is a load failure with the other reason", async () => {
-    const t = setup({ session: { id: "g" } });
-    t.rpc.mockImplementation(async (name: string) =>
-      name === "ensure_account"
-        ? { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 }
-        : { data: { rejection: { code: "account_missing" } }, error: null, status: 200 },
     );
     await t.controller.start();
     expect(t.controller.getState()).toEqual({ phase: "load-failure", reason: "other" });
@@ -464,5 +470,671 @@ describe("a snapshot read that never answers (Task 233)", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+const OK = { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 };
+const rejection = (code: string) => ({ data: { rejection: { code } }, error: null, status: 200 });
+
+describe("account-state screens (Task 235)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("a snapshot rejected with account_missing is the account-deleted screen, with no data", async () => {
+    const t = setup({ session: { id: "g" } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_missing")));
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+  });
+
+  it("a snapshot rejected with account_deleting is the account-being-deleted screen", async () => {
+    const t = setup({ session: { id: "g" } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_deleting")));
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleting" });
+  });
+
+  it("ensure_account rejected with either code shows the matching screen and reads no snapshot", async () => {
+    for (const [code, phase] of [
+      ["account_missing", "account-deleted"],
+      ["account_deleting", "account-deleting"],
+    ] as const) {
+      const t = setup({ session: { id: "oauth", anon: false } });
+      t.rpc.mockImplementation(async (name: string) => ({
+        data: name === "ensure_account" ? { status: "rejected", result: null, changes: {}, rejection: { code } } : emptySnapshot,
+        error: null,
+        status: 200,
+      }));
+      await t.controller.start();
+      expect(t.controller.getState(), code).toEqual({ phase });
+      expect(t.rpc.mock.calls.map(([name]) => name), code).toEqual(["ensure_account"]);
+    }
+  });
+
+  it("a write answered with account_deleting moves a ready tab to the screen and drops the snapshot", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    await t.controller.store.command({
+      key: "k",
+      send: async () => ({ status: "rejected", result: null, changes: {}, rejection: { code: "account_deleting" } }),
+    });
+    expect(t.controller.getState()).toEqual({ phase: "account-deleting" });
+    expect(t.controller.store.getState().status.phase).toBe("empty");
+  });
+
+  it("Continue as guest on the screen signs out and starts a new guest", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_deleting")));
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : { data: emptySnapshot, error: null, status: 200 }));
+    await t.controller.continueAsGuest();
+    expect(t.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.controller.getVariant()).toBe("guest");
+    expect(t.onUserChange).toHaveBeenCalled();
+  });
+
+  it("a tab on the screen follows the new guest another tab started by signing out", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_deleting")));
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : { data: emptySnapshot, error: null, status: 200 }));
+    // The other tab's deliberate sign-out, then the guest it created.
+    t.storage.setItem("griddo.deliberate-sign-out", String(Date.now()));
+    t.setSession(null);
+    t.emit("SIGNED_OUT", null);
+    await settle();
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+  });
+});
+
+describe("sign-out and account deletion (Task 235)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("signOut drops the snapshot, starts a new guest and resets the app-session state", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    await t.controller.signOut();
+    expect(t.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(t.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+    expect(t.controller.getVariant()).toBe("guest");
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.onUserChange).toHaveBeenCalled();
+  });
+
+  it("an app-session reset happens on every user change: expiry, another tab's other user, another tab's sign-out", async () => {
+    const expiry = setup({ session: { id: "g" } });
+    await expiry.controller.start();
+    expiry.onUserChange.mockClear();
+    expiry.emit("SIGNED_OUT", null);
+    expect(expiry.onUserChange).toHaveBeenCalledTimes(1);
+
+    const other = setup({ session: { id: "g1" } });
+    await other.controller.start();
+    other.onUserChange.mockClear();
+    other.emit("SIGNED_IN", { id: "g2", is_anonymous: false });
+    await settle();
+    expect(other.onUserChange).toHaveBeenCalled();
+
+    const same = setup({ session: { id: "g1" } });
+    await same.controller.start();
+    same.onUserChange.mockClear();
+    same.emit("SIGNED_IN", { id: "g1", is_anonymous: true });
+    await settle();
+    expect(same.onUserChange).not.toHaveBeenCalled();
+  });
+
+  it("requestAccountDeletion calls delete_my_account, then signs out to a new guest", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    const result = await t.controller.requestAccountDeletion();
+    expect(result).toBe("requested");
+    expect(t.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+    const names = t.rpc.mock.calls.map(([name]) => name);
+    expect(names).toContain("delete_my_account");
+    expect(names.indexOf("delete_my_account")).toBeLessThan(names.lastIndexOf("ensure_account"));
+    expect(t.auth.signOut).toHaveBeenCalledTimes(1);
+    expect(t.controller.getVariant()).toBe("guest");
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("a deletion that already was requested counts as requested", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "delete_my_account"
+        ? { data: { status: "already_applied", result: null, changes: {} }, error: null, status: 200 }
+        : name === "ensure_account"
+          ? OK
+          : { data: emptySnapshot, error: null, status: 200 },
+    );
+    expect(await t.controller.requestAccountDeletion()).toBe("requested");
+  });
+
+  it("a failed request keeps the session: nothing is signed out and the result is failed", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "delete_my_account"
+        ? { data: null, error: { message: "boom" }, status: 500 }
+        : { data: emptySnapshot, error: null, status: 200 },
+    );
+    expect(await t.controller.requestAccountDeletion()).toBe("failed");
+    expect(t.auth.signOut).not.toHaveBeenCalled();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("a request with no answer is unknown: nothing is signed out and the request is not sent again", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "delete_my_account"
+        ? { data: null, error: { message: "network" }, status: 0 }
+        : { data: emptySnapshot, error: null, status: 200 },
+    );
+    expect(await t.controller.requestAccountDeletion()).toBe("unknown");
+    expect(t.auth.signOut).not.toHaveBeenCalled();
+    expect(t.rpc.mock.calls.filter(([name]) => name === "delete_my_account")).toHaveLength(1);
+  });
+
+  it("an account deleted in the meantime shows the account-deleted screen", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "delete_my_account"
+        ? { data: { status: "rejected", result: null, changes: {}, rejection: { code: "account_missing" } }, error: null, status: 200 }
+        : { data: emptySnapshot, error: null, status: 200 },
+    );
+    expect(await t.controller.requestAccountDeletion()).toBe("failed");
+    expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+  });
+});
+
+describe("the account name (Task 235)", () => {
+  it("is the provider's full name, then name, user name, email; null for a guest", async () => {
+    const cases: Array<[Parameters<typeof setup>[0], string | null]> = [
+      [{ session: { id: "a", anon: false, email: "e@x.test", meta: { full_name: "Ada L", name: "n", user_name: "u" } } }, "Ada L"],
+      [{ session: { id: "a", anon: false, email: "e@x.test", meta: { name: "n", user_name: "u" } } }, "n"],
+      [{ session: { id: "a", anon: false, email: "e@x.test", meta: { user_name: "u" } } }, "u"],
+      [{ session: { id: "a", anon: false, email: "e@x.test" } }, "e@x.test"],
+      [{ session: { id: "a", anon: false } }, null],
+      [{ session: { id: "g", email: "ignored@x.test", meta: { full_name: "Ignored" } } }, null],
+    ];
+    for (const [options, expected] of cases) {
+      const t = setup(options);
+      await t.controller.start();
+      expect(t.controller.getAccountName(), JSON.stringify(options)).toBe(expected);
+    }
+  });
+});
+
+describe("expert review of Task 235", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("shows the Loading state at once on a sign-out, so no empty snapshot is rendered while signOut() runs", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    let release: () => void = () => undefined;
+    t.auth.signOut.mockImplementation(
+      () => new Promise((resolve) => { release = () => { t.setSession(null); resolve({ error: null }); }; }),
+    );
+    const pending = t.controller.signOut();
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "entering" });
+    release();
+    await pending;
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("a deletion request that gets no answer ends as unknown after the request timeout, and reads again", async () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup({ session: { id: "oauth", anon: false } });
+      await t.controller.start();
+      t.rpc.mockImplementation((name: string) =>
+        name === "delete_my_account"
+          ? new Promise(() => undefined)
+          : Promise.resolve({ data: emptySnapshot, error: null, status: 200 }),
+      );
+      const result = t.controller.requestAccountDeletion();
+      await vi.advanceTimersByTimeAsync(15_001);
+      expect(await result).toBe("unknown");
+      expect(t.auth.signOut).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("an unknown outcome reads the snapshot again, so a recorded request shows the account screen", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "delete_my_account"
+        ? { data: null, error: { message: "network" }, status: 0 }
+        : name === "get_snapshot"
+          ? rejection("account_deleting")
+          : OK,
+    );
+    expect(await t.controller.requestAccountDeletion()).toBe("unknown");
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleting" });
+  });
+
+  it("an expiry event keeps an account-state screen instead of replacing it with the session-expired one", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_missing")));
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+    t.emit("SIGNED_OUT", null);
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+  });
+});
+
+describe("session controller Turnstile", () => {
+  function withCaptcha(solve: CaptchaProvider["solve"]) {
+    const t = setup();
+    const captcha: CaptchaProvider = { solve: vi.fn(solve) };
+    const controller = createSessionController({
+      getClient: () => ({ auth: t.auth, rpc: t.rpc }) as never,
+      storage: t.storage,
+      runExclusive: (_name, task) => task(),
+      defer: (task) => task(),
+      captcha,
+    });
+    return { ...t, controller, captcha };
+  }
+
+  it("passes the token to the anonymous sign-in", async () => {
+    const t = withCaptcha(async () => "token-1");
+    await t.controller.start();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledWith({ options: { captchaToken: "token-1" } });
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("asks for no token when a session already exists", async () => {
+    const t = setup({ session: { id: "guest-a" } });
+    const solve = vi.fn(async () => "unused");
+    const controller = createSessionController({
+      getClient: () => ({ auth: t.auth, rpc: t.rpc }) as never,
+      storage: t.storage,
+      runExclusive: (_name, task) => task(),
+      defer: (task) => task(),
+      captcha: { solve },
+    });
+    await controller.start();
+    expect(solve).not.toHaveBeenCalled();
+  });
+
+  it("shows the security-check screen while an interactive check runs, then enters", async () => {
+    let release: (token: string) => void = () => undefined;
+    const t = withCaptcha(
+      (handlers) =>
+        new Promise<string>((resolve) => {
+          handlers.onInteractive();
+          release = (token) => {
+            handlers.onInteractiveEnd();
+            resolve(token);
+          };
+        }),
+    );
+    const started = t.controller.start();
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "security-check" });
+    release("token-2");
+    await started;
+    expect(t.auth.signInAnonymously).toHaveBeenCalledWith({ options: { captchaToken: "token-2" } });
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("a failed or unloadable widget is the turnstile failure, and Retry asks for a new token", async () => {
+    const t = withCaptcha(async () => {
+      throw new CaptchaError("widget", "failed");
+    });
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "guest-failure", reason: "turnstile" });
+    t.captcha.solve = vi.fn(async () => "token-3");
+    await t.controller.retry();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.auth.signInAnonymously).toHaveBeenCalledWith({ options: { captchaToken: "token-3" } });
+  });
+
+  it("a script that cannot load while offline is the unreachable failure", async () => {
+    const online = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    const t = withCaptcha(async () => {
+      throw new CaptchaError("load", "script");
+    });
+    await t.controller.start();
+    online.mockRestore();
+    expect(t.controller.getState()).toEqual({ phase: "guest-failure", reason: "unreachable" });
+  });
+
+  it("without a captcha the anonymous sign-in is called as before", async () => {
+    const t = setup();
+    await t.controller.start();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledWith();
+  });
+});
+
+describe("session controller OAuth", () => {
+  function oauth(url: string, options: { session?: { id: string; anon?: boolean } | null } = {}) {
+    const t = setup(options);
+    const tab = memoryStorage();
+    let current = new URL(url, "http://localhost:3000");
+    const replaceUrl = vi.fn((next: string) => {
+      current = new URL(next, "http://localhost:3000");
+    });
+    const exchangeCodeForSession = vi.fn(async (...args: [string]) => {
+      void args;
+      t.setSession({ user: { id: "oauth-1", is_anonymous: false } });
+      return { data: { session: { user: { id: "oauth-1", is_anonymous: false } } }, error: null as unknown };
+    });
+    const signInWithOAuth = vi.fn(async (...args: [unknown]) => ({ data: { args }, error: null as unknown }));
+    const auth = { ...t.auth, exchangeCodeForSession, signInWithOAuth };
+    const controller = createSessionController({
+      getClient: () => ({ auth, rpc: t.rpc }) as never,
+      storage: t.storage,
+      runExclusive: (_name, task) => task(),
+      defer: (task) => task(),
+      location: { get: () => current, replace: replaceUrl },
+      tabStorage: tab,
+    });
+    return { ...t, tab, auth, controller, exchangeCodeForSession, signInWithOAuth, replaceUrl, url: () => current };
+  }
+
+  it("exchanges the returned code, cleans the URL and enters as the new account", async () => {
+    const t = oauth("/?code=abc&keep=1", { session: { id: "guest-a" } });
+    await t.controller.start();
+    expect(t.exchangeCodeForSession).toHaveBeenCalledWith("abc");
+    expect(t.url().search).toBe("?keep=1");
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+    expect(t.controller.getVariant()).toBe("account");
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.controller.takeSignInError()).toBe(false);
+  });
+
+  it("a finished sign-in clears the session-expired marker", async () => {
+    const t = oauth("/?code=abc");
+    t.storage.setItem(SESSION_EXPIRED_KEY, "guest");
+    await t.controller.start();
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("a provider error keeps the guest, cleans the URL and flags the inline error once", async () => {
+    const t = oauth("/?error=access_denied&error_code=access_denied&error_description=denied", {
+      session: { id: "guest-a" },
+    });
+    await t.controller.start();
+    expect(t.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(t.url().search).toBe("");
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.controller.getVariant()).toBe("guest");
+    expect(t.controller.takeSignInError()).toBe(true);
+    expect(t.controller.takeSignInError()).toBe(false);
+  });
+
+  it("reads a provider error from the hash too", async () => {
+    const t = oauth("/#error=access_denied&error_description=x", { session: { id: "guest-a" } });
+    await t.controller.start();
+    expect(t.url().hash).toBe("");
+    expect(t.controller.takeSignInError()).toBe(true);
+  });
+
+  it("a cancel from the session-expired screen returns to that screen", async () => {
+    const t = oauth("/?error=access_denied");
+    t.storage.setItem(SESSION_EXPIRED_KEY, "account");
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "session-expired", variant: "account" });
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBe("account");
+    expect(t.url().search).toBe("");
+    // The screen returned, so no modal is owed once the visitor continues as a guest.
+    expect(t.controller.takeSignInError()).toBe(false);
+  });
+
+  it("a failed exchange is a cancelled sign-in: guest kept, URL cleaned", async () => {
+    const t = oauth("/?code=bad", { session: { id: "guest-a" } });
+    t.exchangeCodeForSession.mockResolvedValueOnce({ data: { session: null }, error: new AuthApiError("bad", 400, "bad_code") } as never);
+    await t.controller.start();
+    expect(t.url().search).toBe("");
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.controller.takeSignInError()).toBe(true);
+  });
+
+  it("signInWithOAuth starts the provider flow back to the origin", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    await t.controller.start();
+    await expect(t.controller.signInWithOAuth("github")).resolves.toBe("started");
+    expect(t.signInWithOAuth).toHaveBeenCalledWith({
+      provider: "github",
+      options: { redirectTo: "http://localhost:3000/", queryParams: { prompt: "select_account" } },
+    });
+    t.signInWithOAuth.mockResolvedValueOnce({ data: {}, error: new Error("x") } as never);
+    await expect(t.controller.signInWithOAuth("google")).resolves.toBe("failed");
+    t.signInWithOAuth.mockRejectedValueOnce(new Error("verifier"));
+    await expect(t.controller.signInWithOAuth("github")).resolves.toBe("failed");
+  });
+
+  it("keeps the sign-in-started marker in this tab before leaving, and takes it back when the start fails", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    await t.controller.start();
+    let during: string | null = null;
+    t.signInWithOAuth.mockImplementationOnce(async () => {
+      during = t.tab.getItem(SIGN_IN_STARTED_KEY);
+      return { data: {}, error: null as unknown } as never;
+    });
+    await t.controller.signInWithOAuth("github");
+    expect(during).not.toBeNull();
+    expect(t.storage.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+    t.signInWithOAuth.mockRejectedValueOnce(new Error("verifier"));
+    await t.controller.signInWithOAuth("google");
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+
+  it.each([
+    ["a code", "/?code=abc"],
+    ["an error", "/?error=access_denied"],
+  ])("every return with %s clears the marker", async (_label, url) => {
+    const t = oauth(url, { session: { id: "guest-a" } });
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+    await t.controller.start();
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+
+  it("a return with neither code nor error while the marker is present is a cancelled sign-in", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+    await t.controller.start();
+    expect(t.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+    expect(t.controller.getVariant()).toBe("guest");
+    expect(t.controller.takeSignInError()).toBe(true);
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+
+  it("a plain visit without the marker raises no error", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    await t.controller.start();
+    expect(t.controller.takeSignInError()).toBe(false);
+  });
+
+  it("a bare return to the session-expired screen keeps the screen and owes no modal", async () => {
+    const t = oauth("/");
+    t.storage.setItem(SESSION_EXPIRED_KEY, "guest");
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "session-expired", variant: "guest" });
+    expect(t.controller.takeSignInError()).toBe(false);
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+
+  describe("back-forward-cache restore", () => {
+    const restore = (persisted: boolean) =>
+      window.dispatchEvent(Object.assign(new Event("pageshow"), { persisted }));
+
+    it("reopens over a ready app once, and tells the listener", async () => {
+      const t = oauth("/", { session: { id: "guest-a" } });
+      await t.controller.start();
+      const listener = vi.fn();
+      t.controller.subscribeSignInError(listener);
+      t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+      restore(true);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(t.controller.takeSignInError()).toBe(true);
+      expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+      restore(true);
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores a plain page show and a restore without the marker", async () => {
+      const t = oauth("/", { session: { id: "guest-a" } });
+      await t.controller.start();
+      const listener = vi.fn();
+      t.controller.subscribeSignInError(listener);
+      restore(false);
+      restore(true);
+      t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+      restore(false);
+      expect(listener).not.toHaveBeenCalled();
+      expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).not.toBeNull();
+    });
+
+    it("on the session-expired screen clears the marker and leaves the screen", async () => {
+      const t = oauth("/");
+      t.storage.setItem(SESSION_EXPIRED_KEY, "account");
+      await t.controller.start();
+      t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+      restore(true);
+      expect(t.controller.getState()).toEqual({ phase: "session-expired", variant: "account" });
+      expect(t.controller.takeSignInError()).toBe(false);
+      expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+    });
+  });
+
+  it("a marker older than the window is not a return", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now() - 16 * 60_000));
+    await t.controller.start();
+    expect(t.controller.takeSignInError()).toBe(false);
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+
+  it("a return that finds an account session owes no guest error", async () => {
+    const t = oauth("/", { session: { id: "oauth-a", anon: false } });
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+    await t.controller.start();
+    expect(t.controller.takeSignInError()).toBe(false);
+  });
+
+  it("a restore after another tab signed an account in raises no guest error", async () => {
+    const t = oauth("/", { session: { id: "guest-a" } });
+    await t.controller.start();
+    t.storage.setItem("griddo.session-kind", "account");
+    t.tab.setItem(SIGN_IN_STARTED_KEY, String(Date.now()));
+    window.dispatchEvent(Object.assign(new Event("pageshow"), { persisted: true }));
+    expect(t.controller.takeSignInError()).toBe(false);
+    expect(t.tab.getItem(SIGN_IN_STARTED_KEY)).toBeNull();
+  });
+});
+
+describe("no guest while the window is narrow (Task 238, S42 (4))", () => {
+  function narrowSetup(session: Parameters<typeof setup>[0] = {}) {
+    const t = setup(session);
+    let narrow = true;
+    const listeners = new Set<() => void>();
+    const exclusive = vi.fn(async (_name: string, task: () => Promise<unknown>) => task());
+    const controller = createSessionController({
+      getClient: () => ({ auth: t.auth, rpc: t.rpc }) as never,
+      storage: t.storage,
+      runExclusive: exclusive as never,
+      defer: (task) => task(),
+      viewport: {
+        isNarrow: () => narrow,
+        subscribe: (listener) => {
+          listeners.add(listener);
+          return () => listeners.delete(listener);
+        },
+      },
+    });
+    return {
+      ...t,
+      controller,
+      exclusive,
+      listeners,
+      setNarrow(next: boolean) {
+        narrow = next;
+        for (const listener of [...listeners]) listener();
+      },
+    };
+  }
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it("creates no guest and takes no lock while narrow, and enters once the window is wide", async () => {
+    const t = narrowSetup();
+    void t.controller.start();
+    await settle();
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+    expect(t.exclusive).not.toHaveBeenCalled();
+    expect(t.controller.getState()).toEqual({ phase: "entering" });
+    t.setNarrow(false);
+    await settle();
+    await settle();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("keeps waiting when the width changes but is still narrow", async () => {
+    const t = narrowSetup();
+    void t.controller.start();
+    await settle();
+    t.setNarrow(true);
+    await settle();
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+    t.setNarrow(false);
+    await settle();
+    await settle();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets a restored session through while narrow (only guest creation waits)", async () => {
+    const t = narrowSetup({ session: { id: "guest-a" } });
+    await t.controller.start();
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("lets the session-expired marker through while narrow", async () => {
+    const t = narrowSetup();
+    t.storage.setItem(SESSION_EXPIRED_KEY, "guest");
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "session-expired", variant: "guest" });
+    expect(t.auth.signInAnonymously).not.toHaveBeenCalled();
+  });
+
+  it("stops a superseded entry from waiting on: after a retry, widening creates one guest", async () => {
+    const t = narrowSetup();
+    void t.controller.start();
+    await settle();
+    void t.controller.retry();
+    await settle();
+    expect(t.listeners.size).toBe(2);
+    t.setNarrow(false);
+    await settle();
+    await settle();
+    await settle();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+    expect(t.listeners.size).toBe(0);
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  it("with no viewport option the window counts as wide", async () => {
+    const t = setup();
+    await t.controller.start();
+    expect(t.auth.signInAnonymously).toHaveBeenCalledTimes(1);
   });
 });

@@ -1743,10 +1743,10 @@ describe("GridRuntime", () => {
 
     it("sets the tab title: app name on L0, the Node's name, Inbox and Archive", () => {
       const cases: Array<[Record<string, unknown>, string | null, string]> = [
-        [{}, null, "GridDO"],
-        [{ nodeId: "n1" }, createNode({ id: "n1", title: "Plans" }) as never, "Plans – GridDO"],
-        [{ nodeId: "i1" }, createNode({ id: "i1", title: "Inbox", systemRole: "inbox" }) as never, "Inbox – GridDO"],
-        [{ nodeId: "a1" }, createNode({ id: "a1", title: "x", systemRole: "archive_view" }) as never, "Archive – GridDO"],
+        [{}, null, "Grid"],
+        [{ nodeId: "n1" }, createNode({ id: "n1", title: "Plans" }) as never, "Plans – Grid"],
+        [{ nodeId: "i1" }, createNode({ id: "i1", title: "Inbox", systemRole: "inbox" }) as never, "Inbox – Grid"],
+        [{ nodeId: "a1" }, createNode({ id: "a1", title: "x", systemRole: "archive_view" }) as never, "Archive – Grid"],
       ];
       for (const [params, node, title] of cases) {
         useParamsMock.mockReturnValue(params);
@@ -1769,7 +1769,7 @@ describe("GridRuntime", () => {
           <RuntimeProbe />
         </GridRuntime>,
       );
-      expect(document.title).toBe("GridDO");
+      expect(document.title).toBe("Grid");
     });
 
     it("measures the breadcrumb when it appears after a stale Inbox node on client navigation", () => {

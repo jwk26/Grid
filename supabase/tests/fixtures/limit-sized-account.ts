@@ -3,10 +3,10 @@ import type { Client } from "pg";
 // SCHEMA §Account limits, real account. Staged candidates have no limit of their own: one
 // per four Breakdown rows here.
 export const REAL_ACCOUNT_LIMITS = {
-  nodes: 1000,
-  bits: 5000,
-  chunks: 10000,
-  scratchBreakdowns: 5000,
+  nodes: 500,
+  bits: 2500,
+  chunks: 5000,
+  scratchBreakdowns: 2500,
 } as const;
 
 export type AccountCounts = {

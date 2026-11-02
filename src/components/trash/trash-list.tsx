@@ -1,6 +1,7 @@
 "use client";
 
 import { WriteOfflineError } from "@/lib/db/write-errors";
+import { isReportedFailure } from "@/lib/db/write-failure";
 import { PendingLoader } from "@/components/feedback/pending-loader";
 import { usePendingAction } from "@/hooks/use-pending-action";
 import { PENDING_SENTENCE, toastCopy } from "@/lib/copy/feedback";
@@ -69,7 +70,7 @@ export function TrashList({ items }: { items: TrashItems }) {
       await emptyTrash();
       showToast(toastCopy.emptyTrashSucceeded);
     } catch (error) {
-      if (error instanceof WriteOfflineError) return;
+      if (error instanceof WriteOfflineError || isReportedFailure(error)) return;
       showToast(toastCopy.emptyTrashFailed);
     }
   }

@@ -27,13 +27,68 @@ function force(state: "normal" | "unstable" | "offline" | null) {
 
 const live = () => document.querySelector('[data-feedback-role="status-announcement"]');
 
+const noError = {
+  hasSignInError: () => false,
+  takeSignInError: () => false,
+  subscribeSignInError: () => () => undefined,
+};
+
+describe("AccountButton sign-in return", () => {
+  it("reopens the modal once with the inline error after a sign-in that did not complete", () => {
+    let flagged = true;
+    const takeSignInError = vi.fn(() => {
+      const was = flagged;
+      flagged = false;
+      return was;
+    });
+    render(<AccountButton variant="guest" controller={{ hasSignInError: () => flagged, takeSignInError, subscribeSignInError: () => () => undefined }}
+      />,
+    );
+    expect(takeSignInError).toHaveBeenCalled();
+    expect(screen.getByText("Sign-in didn't complete. You're still browsing as a guest.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Account" }));
+    expect(screen.queryByText("Sign-in didn't complete. You're still browsing as a guest.")).toBeNull();
+  });
+
+  it("reopens the modal when a back-forward-cache restore raises the error while the app shows", () => {
+    let flagged = false;
+    let notify: () => void = () => undefined;
+    const controller = {
+      hasSignInError: () => flagged,
+      takeSignInError: () => {
+        const was = flagged;
+        flagged = false;
+        return was;
+      },
+      subscribeSignInError: (listener: () => void) => {
+        notify = listener;
+        return () => undefined;
+      },
+    };
+    render(<AccountButton variant="guest" controller={controller} />);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    flagged = true;
+    act(() => notify());
+    expect(screen.getByText("Sign-in didn't complete. You're still browsing as a guest.")).toBeInTheDocument();
+  });
+
+  it("stays closed when nothing failed", () => {
+    render(<AccountButton variant="guest" controller={noError} />);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+});
+
 describe("AccountButton", () => {
-  it("is a focusable status element named Account, with no action and no tooltip when normal", () => {
+  it("is a button named Account that opens the account modal, with no tooltip when normal", () => {
     render(<AccountButton variant="guest" />);
     const icon = screen.getByLabelText("Account");
     expect(icon).toHaveAttribute("data-app-role", "account-button");
-    expect(icon).toHaveAttribute("tabindex", "0");
-    expect(icon.tagName).not.toBe("BUTTON");
+    expect(icon.tagName).toBe("BUTTON");
+    expect(icon).toHaveAttribute("type", "button");
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    fireEvent.click(icon);
+    expect(screen.getByRole("alertdialog")).toHaveAccessibleName("You're browsing as a guest");
     expect(icon).not.toHaveAccessibleDescription(expect.stringMatching(/./));
     expect(document.querySelector('[data-app-role="account-badge"]')).toBeNull();
     fireEvent.focus(icon);

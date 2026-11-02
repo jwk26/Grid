@@ -180,6 +180,9 @@ isOneToOne: false
 "delete_chunk":
 { Args: { "p_id": string }; Returns: Json
                            },
+"delete_my_account":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "empty_trash":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },

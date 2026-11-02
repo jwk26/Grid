@@ -1,4 +1,4 @@
-// GridDO drag helper for browser checks in the Playwright MCP browser.
+// griddo drag helper for browser checks in the Playwright MCP browser.
 //
 // dnd-kit starts a drag only after the pointer moves 8px with the button held,
 // and it reads drop targets between frames, so a one-jump drag (`dragTo`,

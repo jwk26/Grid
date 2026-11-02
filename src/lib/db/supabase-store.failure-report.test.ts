@@ -111,6 +111,18 @@ describe("a rolled-back write is reported once, with its kind and title", () => 
     });
   });
 
+  it.each(["account_deleting", "account_missing"])(
+    "a write answered with %s is rolled back but raises no toast over the account screen",
+    async (code) => {
+      const s = setup(refuse(code));
+      await s.snapshot.load();
+      const failed = s.store.updateBit(BIT, { title: "Other" });
+      await expect(failed).rejects.toBeInstanceOf(WriteRejectedError);
+      expect(s.reportFailure).not.toHaveBeenCalled();
+      await expect(s.store.updateBit(BIT, { title: "Other" }).catch(dropReportedFailure)).resolves.toBeUndefined();
+    },
+  );
+
   it("a thrown error rolls back and reports", async () => {
     const s = setup(() => ({ data: null, error: { message: "boom" }, status: 400 }));
     await s.snapshot.load();

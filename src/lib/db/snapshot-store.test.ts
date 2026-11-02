@@ -7,6 +7,7 @@ import {
   parseSnapshotValue,
   type Envelope,
   type PendingEffect,
+  type SnapshotStoreOptions,
 } from "@/lib/db/snapshot-store";
 import type { Node } from "@/lib/db/schema";
 
@@ -50,9 +51,12 @@ function nodeX(store: SnapshotStore, id = NODE_ID): number | undefined {
   return store.getState().view.nodes.get(id)?.x;
 }
 
-async function loaded(rows = [nodeRow(NODE_ID, { x: 0, y: 0 }), nodeRow(OTHER_ID, { x: 5, y: 5 })]) {
+async function loaded(
+  rows = [nodeRow(NODE_ID, { x: 0, y: 0 }), nodeRow(OTHER_ID, { x: 5, y: 5 })],
+  options: Partial<SnapshotStoreOptions> = {},
+) {
   const fetchSnapshot = vi.fn(async () => snapshotOf(rows));
-  const store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000 });
+  const store = new SnapshotStore({ fetchSnapshot, requestTimeoutMs: 15_000, ...options });
   await store.load();
   return { store, fetchSnapshot };
 }
@@ -761,5 +765,50 @@ describe("SnapshotStore: a write that waits in the chain has its own timeout (Ta
     first.resolve(applied([]));
     expect((await second).outcome).toBe("applied");
     expect(sendSecond).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("SnapshotStore: account rejections (Task 235)", () => {
+  const rejecting = (code: string) => async (): Promise<Envelope> => ({
+    status: "rejected",
+    result: null,
+    changes: {},
+    rejection: { code },
+  });
+
+  it("reports account_missing and account_deleting from a snapshot read", async () => {
+    for (const code of ["account_missing", "account_deleting"]) {
+      const onAccountRejection = vi.fn();
+      const store = new SnapshotStore({
+        fetchSnapshot: async () => ({ rejection: { code } }),
+        requestTimeoutMs: 15_000,
+        onAccountRejection,
+      });
+      await store.load();
+      expect(onAccountRejection, code).toHaveBeenCalledExactlyOnceWith(code);
+    }
+  });
+
+  it("reports them from a write, which is also rolled back", async () => {
+    for (const code of ["account_missing", "account_deleting"]) {
+      const onAccountRejection = vi.fn();
+      const { store } = await loaded(undefined, { onAccountRejection });
+      const outcome = await store.write({ effect: move(NODE_ID, 9), send: rejecting(code) });
+      expect(outcome.outcome, code).toBe("rejected");
+      expect(onAccountRejection, code).toHaveBeenCalledExactlyOnceWith(code);
+      expect(nodeX(store), code).toBe(0);
+    }
+  });
+
+  it("does not report other rejections, and not after a reset", async () => {
+    const onAccountRejection = vi.fn();
+    const { store } = await loaded(undefined, { onAccountRejection });
+    await store.write({ effect: move(NODE_ID, 9), send: rejecting("account_limit") });
+    const d = deferred<Envelope>();
+    const write = store.write({ effect: move(NODE_ID, 8), send: () => d.promise });
+    store.reset();
+    d.resolve({ status: "rejected", result: null, changes: {}, rejection: { code: "account_deleting" } });
+    await write;
+    expect(onAccountRejection).not.toHaveBeenCalled();
   });
 });

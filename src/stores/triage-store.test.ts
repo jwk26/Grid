@@ -112,6 +112,7 @@ describe("useTriageStore app-session ownership", () => {
       "removeExplorerRemoteArrival",
       "requestScratchSelection",
       "requestedScratchSelectionId",
+      "resetAppSession",
       "scratchPoolActiveIds",
       "scratchPoolExpanded",
       "scratchPoolManualExpandedForId",
@@ -816,5 +817,61 @@ describe("useTriageStore app-session ownership", () => {
       anchorId: "home-b",
       offset: -9,
     });
+  });
+});
+
+describe("resetAppSession", () => {
+  it("returns the app-session state to the first-visit state, so a new user enters through the fallback", () => {
+    const store = useTriageStore.getState();
+    store.selectScratch("scratch-a");
+    store.setScratchPoolExpanded(false);
+    store.setScratchPoolManualExpandedForId("scratch-a");
+    store.setScratchPoolQuery("milk");
+    store.setScratchPoolResultIds(["scratch-a"]);
+    store.setScratchPoolScroll({ anchorId: "scratch-a", offset: 40 });
+    store.setExplorerPathIds(["n1", "n2"]);
+    store.setExplorerOpenColumnIds(["root", "n1"]);
+    store.setExplorerColumnScroll("root", { anchorId: "n1", offset: 8 });
+    store.registerOwnTrash("scratch-a", 3);
+
+    useTriageStore.getState().resetAppSession();
+
+    const after = useTriageStore.getState();
+    expect(after.selectedScratchId).toBeNull();
+    expect(after.scratchPoolExpanded).toBe(true);
+    expect(after.scratchPoolManualExpandedForId).toBeNull();
+    expect(after.scratchPoolQuery).toBe("");
+    expect(after.scratchPoolResultIds).toEqual([]);
+    expect(after.scratchPoolActiveIds).toEqual([]);
+    expect(after.scratchPoolScroll).toEqual({ anchorId: null, offset: 0 });
+    expect(after.explorerPathIds).toEqual([]);
+    expect(after.explorerOpenColumnIds).toEqual([]);
+    expect(after.explorerColumnScroll).toEqual({});
+    expect(after.externalScratchRemoval).toBeNull();
+    expect(after.ownTrashMarkers).toEqual({});
+  });
+
+  it("returns every data field to its initial value except the explicit keep list", async () => {
+    // A field added later fails here until `resetAppSession()` resets it or it joins the list.
+    const KEPT = new Set(["triageWorkspaceMounted"]);
+    vi.resetModules();
+    const fresh = (await import("@/stores/triage-store")).useTriageStore.getState();
+    const dataKeys = Object.keys(fresh).filter((key) => typeof (fresh as unknown as Record<string, unknown>)[key] !== "function");
+    expect(dataKeys.length).toBeGreaterThan(10);
+
+    useTriageStore.setState(Object.fromEntries(dataKeys.map((key) => [key, `dirty-${key}`])));
+    useTriageStore.getState().resetAppSession();
+
+    const after = useTriageStore.getState() as unknown as Record<string, unknown>;
+    for (const key of dataKeys.filter((k) => !KEPT.has(k))) {
+      expect(after[key], key).toStrictEqual((fresh as unknown as Record<string, unknown>)[key]);
+    }
+    for (const key of KEPT) expect(after[key], key).toBe(`dirty-${key}`);
+  });
+
+  it("leaves the mounted flag to the workspace that sets it", () => {
+    useTriageStore.getState().setTriageWorkspaceMounted(true);
+    useTriageStore.getState().resetAppSession();
+    expect(useTriageStore.getState().triageWorkspaceMounted).toBe(true);
   });
 });

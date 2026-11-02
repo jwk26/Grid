@@ -510,9 +510,9 @@ describe("account limits (S37)", () => {
     ]);
 
   it.each([
-    ["nodes", false, 1000],
+    ["nodes", false, 500],
     ["nodes", true, 100],
-    ["bits", false, 5000],
+    ["bits", false, 2500],
     ["bits", true, 300],
   ] as const)("%s: a %s account is stopped at %i, counting trashed rows", async (table, guest, limit) => {
     await withActor(authed(), async (db, owner) => {

@@ -59,8 +59,8 @@ Use compact drag tokens for non-square or row-like draggable items.
 
 Recommended token behavior:
 
-- Node: may keep square object treatment or use a compact Node token for
-  consistency
+- Node: compact icon token using the Node icon (user, 2026-10-31: on the Grid,
+  a Node and a Bit both become the icon token while dragging)
 - Bit: compact icon token using the Bit icon, not the full horizontal Bit card
 - Breakdown row: compact idea token, not the full row
 - Staged Node candidate: compact Node token

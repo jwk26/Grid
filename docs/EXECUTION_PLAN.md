@@ -1,4 +1,4 @@
-# GridDO Inbox/Triage Implementation Execution Plan
+# griddo Inbox/Triage Implementation Execution Plan
 
 Execution plan mode: scaled
 
@@ -148,8 +148,8 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phases 47 and 50 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30); Phase 47 (SaaS lane, part 6) closed through `/end-phase 47` (2026-10-30); Phase 50 (feedback lane, part 2) closed through `/end-phase 50` (2026-10-31). The SaaS lane continues with Phase 48; the feedback lane is finished. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 closed in Task 248, MI-14 in Task 250 and MI-21 in Tasks 245–246; MI-19 closed in Task 229 and MI-23 in Task 234; Phase 45 MI-24 goes to the theme stage; its mi-1 closed in Task 245, mi-2 in Task 246 and mi-3 in Task 249. |
-| SaaS conversion | `IN PROGRESS` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26, Phase 45 (Tasks 225–229) on 2026-10-29, Phase 46 (Task 230) and Phase 47 (Tasks 231–234) on 2026-10-30; the migrations of Phases 42–44 are on production, and Phases 45–47 changed none. The app runs on local Supabase; Dexie is removed. MI-8 is bound to Task 240. Phase 48 waits for nothing more; later phases follow [the phase waits](#lanes-and-phase-waits). |
+| Execution lifecycle | Phases 48 and 50 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30); Phase 47 (SaaS lane, part 6) closed through `/end-phase 47` (2026-10-30); Phase 50 (feedback lane, part 2) closed through `/end-phase 50` (2026-10-31); Phase 48 (SaaS lane, part 7) closed through `/end-phase 48` (2026-11-02). The SaaS and feedback lanes are finished. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 closed in Task 248, MI-14 in Task 250 and MI-21 in Tasks 245–246; MI-19 closed in Task 229 and MI-23 in Task 234; Phase 45 MI-24 goes to the theme stage; its mi-1 closed in Task 245, mi-2 in Task 246 and mi-3 in Task 249. |
+| SaaS conversion | `COMPLETED` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26, Phase 45 (Tasks 225–229) on 2026-10-29, Phase 46 (Task 230) and Phase 47 (Tasks 231–234) on 2026-10-30, Phase 48 (Tasks 235–240 and 238A) on 2026-11-02; every migration is on production; Dexie is removed; MI-8 is closed. The URL is announced after the production smoke (Phase 48 ledger). |
 | Feedback lane | `COMPLETED` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); Phase 50 (Tasks 245–250 and 245A) closed and archived (2026-10-31). What it left is in `Issues_Deferred.md`. The theme stage follows. |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
@@ -218,7 +218,7 @@ SaaS lane:
   →[Phase 49 Final Close]→225→226→227→228→229  Phase 45 (S43 (4): zone migration no-op)
   →230  Phase 46
   →[Phase 49 Final Close]→231→232→233→234  Phase 47
-  →235→236→237→238→239→240  Phase 48
+  →235→236→237→238→238A→239→240  Phase 48
 
 Feedback lane:
   241→242→243→244  Phase 49 (waits for none; beside Phases 42–44)
@@ -253,7 +253,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 45 | Completed | [Client switch](execution-plan/archive/phase-45.md) | 225–229 | Accepted and archived (2026-10-29); no migration; MI-19 closed; MI-24, mi-1, mi-2, mi-3 and Phase 35 MI-23 carried in `Issues_Deferred.md`. Phases 46 and 50 may start. |
 | Phase 46 | Completed | [Dexie removal](execution-plan/archive/phase-46.md) | 230 | Accepted and archived (2026-10-30); no migration; nothing carried over. Phase 47 may start. |
 | Phase 47 | Completed | [Feel and resilience](execution-plan/archive/phase-47.md) | 231–234 | Accepted and archived (2026-10-30); no migration; Phase 35 MI-23 closed; nothing carried over. Phase 48 may start. |
-| Phase 48 | Planned / unstarted | [Accounts and launch](#phase-48--accounts-and-launch) | 235–240 | Phase 47 close/main sync. |
+| Phase 48 | Completed | [Accounts and launch](execution-plan/archive/phase-48.md) | 235–240 + 238A | Accepted and archived (2026-11-02); four migrations on production, the close applied none; MI-8 and Phase 50 mi-1 closed; mi-1 to mi-6 carried in `Issues_Deferred.md`. The URL is announced after the production smoke. |
 | Phase 49 | Completed | [Feedback lane, part 1: theme set, status primitives, toasts](execution-plan/archive/phase-49.md) | 241–244 | Accepted and archived (2026-10-24); ISSUE-20-01 and MI-13 resolved in Task 241; mi-1, mi-2 and mi-3 bound to Task 248 in `Issues_Deferred.md`. Phases 45 and 47 no longer wait for it. |
 | Phase 50 | Completed | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](execution-plan/archive/phase-50.md) | 245–250 + 245A | Accepted and archived (2026-10-31); no migration; Phase 35 MI-14 and MI-21, Phase 45 mi-1–mi-3 and Phase 49 mi-1–mi-3 closed; follow-ups in `Issues_Deferred.md`. The theme stage no longer waits for it. |
 | Phases 36–40 | Retired (feedback F28, 2026-10-22) | [Terminal, Claymorphism + Origami, GridDO + Tiny Desk, Graphite, and the Task 208 campaign gate](execution-plan/archive/phases-36-40-retired.md) | 180–208 | Retired as superseded; never runnable. Numbers are not reused. |
@@ -458,6 +458,7 @@ element/state to Q02.
 | `D-LENS` | Neumorphism ASC/DESC water-lens polish. | Future user visual decision. |
 | `D-KEYBOARD` | Keyboard or other drag-alternative placement entry. | Future accessibility brainstorming; no placeholder now. |
 | `D-TEXT` | Cross-surface wrapping, line count, expansion, and IME visual design. | Named separate topic. |
+| `D-ACCOUNT-BACKUP` | Automatic account backup and restore for signed-in accounts, and the first production dump with its restore test. | `2026-11-01-account-backup`; first candidate after the launch. |
 
 Responsive/mobile redesign remains excluded; active implementation targets the declared desktop surface with 1024px minimum and stable 1920×1080 evidence. Staging failures never toast (feedback F08).
 
@@ -677,190 +678,19 @@ offline, and the sidebar account icon carries the connection badge. No
 migration changed, so nothing went to production. Phase 35 MI-23 closed in
 Task 234. Nothing is carried over.
 
-## Phase 48 — Accounts And Launch
+## Phase 48 — Completed / Archived
 
-### Task 235: [ ] Add the account modal, sign-out and account deletion
-
-**Files and actions:** `src/components/layout/account-modal.tsx` and test (the
-guest and account variants, copy and privacy note from SPEC §Feedback copy, the
-deletion confirmation); the account icon becomes its button; sign-out drops the
-snapshot and starts a new guest; migration for `delete_my_account()` under its
-own role, with its tests (S42 (1), S29), or the SCHEMA fallback if Task 218
-recorded it (the deletion request, `account_deleting` in `ensure_account()`,
-`get_snapshot()`, the reconcile and write functions, and the
-account-being-deleted screen); in either branch `account_missing` in
-`get_snapshot()`, the reconcile and write functions, and the account-deleted
-screen; sign-out from one tab followed by the other tabs.
-- Reserved cells (feedback F34): every `ensure_account()` call site added here
-  passes the top-left 3×2 block until Task 249 is on `main`, and none after.
-
-**Dependencies:** Phase 47 Final Close and `main` sync; this phase's lifecycle
-gate.
-
-**Authority:** S23, S29, S42 (1); SCHEMA §Account deletion; SPEC §Account icon
-and modal, §App-level screens.
-
-**Observable acceptance:** the modal shows the right variant; sign-out lands on
-a new guest; deletion removes every row of the account and shows the
-account-deleted toast; a second browser profile still signed in to the
-deleted account shows the account-deleted screen on its next read or write,
-never an empty Grid, while another tab in the same browser follows the new
-guest;
-signing out in one tab moves every tab to the same new guest; under the
-fallback, a sign-in before cleanup shows the account-being-deleted screen and
-the data never appears.
-
-**Verification:** full gate; `expert` review with the SQL checklist; browser
-checkpoint in the three themes.
-
-**Commit message:** `feat(account): add the account modal and deletion`.
-
-### Task 236: [ ] Add OAuth and Turnstile
-
-**Files and actions:**
-- Local: the user creates development GitHub and Google OAuth apps with the
-  local Supabase callback URL; their client secrets go only into the
-  git-ignored `.env.local`, which `supabase/config.toml` reads, and
-  `.env.local.example` lists the names. Local Turnstile uses Cloudflare's
-  public test keys (SPEC §Environments And Hosting).
-- Production: the user creates the production OAuth apps and Turnstile keys and
-  sets the provider secrets, the Turnstile secret, the Site URL and the
-  redirect URLs in the dashboard; nothing secret enters Git.
-- `session.ts`: OAuth sign-in returning to `/`; a cancel or provider error
-  keeps the guest session, cleans the URL and reopens the account modal with
-  its inline error; Turnstile on anonymous sign-in with the widget in the
-  security-check screen (S42 (3)); the guest-creation failure reasons; the
-  session-expired screen gains the two sign-in buttons (F20).
-- Reserved cells (feedback F34): every `ensure_account()` call site added here
-  passes the top-left 3×2 block until Task 249 is on `main`, and none after.
-
-**Dependencies:** Task 235.
-
-**Authority:** S10, S21, S23, S42 (3); F20; SPEC §Account entry.
-
-**Observable acceptance:** on local Supabase, GitHub and Google sign-in open an
-own empty account with its system Nodes; cancelling at the provider returns to
-the same guest with the modal and its inline error; a guest's anonymous
-sign-in passes the Turnstile test key; the test key that forces an
-interactive challenge shows the widget in the security-check screen; the test
-key that always fails shows the reason and `Retry`; `git grep` finds no OAuth secret.
-
-**Verification:** full gate; browser checkpoint with both providers on local
-Supabase.
-
-**Commit message:** `feat(auth): add OAuth and Turnstile`.
-
-### Task 237: [ ] Record the demo seed `DP-SAAS-02` and copy it into new guests
-
-**Decision prerequisite `DP-SAAS-02`:** owner the user; missing decision the
-demo seed content (S10); the task drafts it from the
-`scripts/dev-fixtures/inbox-triage.js` scenarios, within the guest limits, as a
-reviewable list and a rendered L0, and the user approves it; the code slice
-below waits for that approval, recorded in this task.
-
-**Files and actions:** migration: the seed as data in `internal` and
-`ensure_account()` step 3 (new ids, remapped references, deadlines and
-modification times relative to the copy time, references to Inbox and
-Archive mapped to the account's existing system Nodes and no seed item in their
-cells, `seeded_at`), with the copy-once
-concurrency test (S30, S42 (2)); the seed uses no cell with `x` < 3 and `y` < 2
-at any level (feedback F34), checked by a database test.
-
-**Dependencies:** Task 236.
-
-**Authority:** S10, S13, S30, S42 (2).
-
-**Observable acceptance:** a new guest opens on the approved demo with live
-urgency and aging; two concurrent first calls copy it once; a real account gets
-no seed.
-
-**Verification:** full gate; `expert` review with the SQL checklist; browser
-checkpoint.
-
-**Commit message:** `feat(db): copy the demo seed into new guests`.
-
-### Task 238: [ ] Add guest cleanup and the narrow-window notice
-
-**Files and actions:** migration: `internal.cleanup_guests()` scheduled daily
-with `pg_cron` (or the recorded fallback from Task 218: a scheduled GitHub
-Actions workflow that calls it over a database connection string kept in
-GitHub Actions secrets, never in Git),
-deleting guests 7 days after `last_visit_at`, and deletion requests under the
-account-deletion fallback; `app-frame.tsx`: the narrow-window notice over the
-mounted, `inert` app below 1024px, and no guest creation while narrow
-(S42 (4)).
-
-**Dependencies:** Task 237.
-
-**Authority:** S10, S22, S42 (4)(5); SCHEMA §Guest cleanup; SPEC §Account
-entry step 1.
-
-**Observable acceptance:** a guest idle for more than 7 days is deleted with
-all its rows, and one with an open tab is kept; narrowing the window shows the
-notice, and widening it returns to the same screen with drafts intact.
-
-**Verification:** full gate; `expert` review with the SQL checklist; browser
-checkpoint.
-
-**Commit message:** `feat(account): add guest cleanup and the narrow-window notice`.
-
-### Task 239: [ ] Name the product and add the backup job
-
-**Files and actions:** "grid" in `src/app/layout.tsx` metadata, the `sr-only`
-heading of `src/app/(grid)/page.tsx` and the account modal (S24);
-`APP_NAME` in `src/lib/constants.ts` becomes "grid", so Node pages keep the
-feedback F25 title format (Task 248) whichever task lands first; `scripts/backup/weekly-dump.sh` and its `launchd` file
-(weekly `supabase db dump` as three files: roles, schema, and data including
-the `auth` schema rows; latest 8 kept outside Git; a Docker check and a
-failure notice; the connection secret read from outside Git); the user
-installs it and forces one run with `launchctl kickstart`; one restore test
-into local Supabase that brings back the account rows with their auth users.
-
-**Dependencies:** Task 238.
-
-**Authority:** S06, S24, S35; user answer Q2 (2026-10-22).
-
-**Observable acceptance:** the tab title and the L0 heading read "grid"; the
-forced run writes its three files; the restore test passes; a run with
-Docker stopped reports failure.
-
-**Verification:** full gate; the user confirms the scheduled job.
-
-**Commit message:** `chore(ops): name the product grid and add the backup job`.
-
-### Task 240: [ ] Prepare the launch
-
-**Files and actions:** production auth settings final (anonymous sign-in with
-Turnstile, both providers, rate limits), confirmed by the user in the
-dashboard; the Security Advisor on production shows no warning other than the
-accepted lint 0012 and one `authenticated_security_definer_function_executable`
-warning for each client write function in the SCHEMA function table (accepted
-by design, S14; user, 2026-10-24); such a warning for any other function, or
-any other warning, is a finding; the D8 measurement again on production
-(MI-8): `scripts/verify/d8-measure.mjs` after an `analyze` of the built
-accounts, with the server time and the network time recorded separately and
-the cold call judged with the warm ones (limit-sized 3 s or less, one-tenth
-1 s or less); if it fails, a migration lowers the limits (SCHEMA §Account
-limits) before the Phase 48 close; a written production smoke checklist in the
-ledger (guest entry, a write, OAuth sign-in with both providers, sign-out, account deletion,
-guest cleanup scheduled). The Phase 48 close then follows the CLAUDE.md
-Production order (dump, migrations, merge) and runs that smoke right after the
-merge, before the URL is announced; if it fails, the URL stays unannounced and
-the fix goes through a new phase.
-
-**Dependencies:** Task 239.
-
-**Authority:** S21, S34, S36, S37; D8; SPEC §Environments And Hosting.
-
-**Observable acceptance:** the production settings and the Advisor result are
-recorded and confirmed by the user; the D8 result is recorded and passes, or
-the lowered limits are applied; the smoke checklist exists; no secret in
-Git; the production schema equals the migrations applied so far.
-
-**Verification:** full gate; the user confirms the settings. The post-merge
-smoke result is recorded in the Phase 48 close.
-
-**Commit message:** `docs: prepare the grid launch`.
+SaaS-lane Tasks 235–240 and 238A are accepted. Their task contracts and
+completion-time scope are in
+[the Phase 48 archive](execution-plan/archive/phase-48.md). The app has guests
+on a demo seed, GitHub and Google sign-in behind the account modal, account
+deletion, the daily guest cleanup and the narrow-window notice, and it is named
+Grid. Migrations `20261037000000` to `20261040000000` are on production, the
+real-account limits are halved (MI-8 closed) and Phase 50 mi-1 closed in Task
+235. Phase 48 mi-1 to mi-6 are in
+[Issues_Deferred.md](issues/Issues_Deferred.md). The URL is announced after the
+production smoke, whose result is in
+[the Phase 48 ledger](issues/Issues_Phase_48.md).
 
 ## Feedback Lane — Phases 49–50
 
@@ -1026,15 +856,14 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** the SaaS lane continues with Phase 48 / Task 235; the feedback lane is finished (Phase 50 closed). Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** none; the SaaS and feedback lanes are finished (Phases 48 and 50 closed). The next work comes through `/craft-docs`: the theme stage (`2026-10-17-theme-scope-replan`) and the first candidate after the launch (`2026-11-01-account-backup`). Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers:** Phase 51 / Task 251. Planned Phases 42–50 and
   Tasks 213–250 are allocated; retired Phases 36–40 and Tasks 180–208 keep
   their numbers; none may be reused for another meaning.
-- Graph reconciliation: 118 accepted tasks (101–163 plus 105A, 166–172, 171A,
-  173–179 plus 176A and 179A, 209–212, 213–234, 241–244, and 245–250 plus
-  245A), twenty completed archives (Phases 23–31, 34, 35, 41–47, 49 and 50), two
-  historical unaccepted transfer records (164/165), 29 retired tasks (180–208)
-  in retired Phases 36–40, 6 unaccepted tasks (235–240) in Phase 48, and two
-  reserved phases (32–33).
+- Graph reconciliation: 125 accepted tasks (101–163 plus 105A, 166–172, 171A,
+  173–179 plus 176A and 179A, 209–212, 213–240 plus 238A, 241–244, and 245–250
+  plus 245A), twenty-one completed archives (Phases 23–31, 34, 35 and 41–50),
+  two historical unaccepted transfer records (164/165), 29 retired tasks
+  (180–208) in retired Phases 36–40, and two reserved phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

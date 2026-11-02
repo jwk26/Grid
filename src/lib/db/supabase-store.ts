@@ -58,6 +58,7 @@ import type {
   RefetchResult,
   SnapshotStore,
 } from "@/lib/db/snapshot-store";
+import { isAccountRejectionCode } from "@/lib/db/snapshot-store";
 import * as commandCalls from "@/lib/db/supabase-command-calls";
 import {
   chunkSchema,
@@ -581,6 +582,8 @@ export function createSupabaseStore(
         // A deadline conflict is reported like any refused write unless the caller shows its own dialog.
         if (error instanceof DeadlineConflictError && failure?.conflictDialog) throw error;
         const rejection = envelope.rejection;
+        // The account screen replaces the app (SPEC §App-level screens): no failure toast over it.
+        if (isAccountRejectionCode(rejection?.code)) throw markReported(error);
         const items = limitItemsOf(rejection?.table);
         throw report(
           error,

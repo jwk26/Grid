@@ -183,7 +183,7 @@ describe("create_chunk", () => {
   });
 
   it.each([
-    [false, 10_000],
+    [false, 5_000],
     [true, 1_000],
   ] as const)("stops a %s guest account at %i Chunks, counting all rows", async (guest, limit) => {
     await withActor(authed(), async (db, owner) => {

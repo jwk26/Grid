@@ -28,7 +28,7 @@
   /* ── Page background (distinct from card surface) ── */
   --color-page-bg: hsl(var(--page-bg));
 
-  /* ── Colors (GridDO priority) ── */
+  /* ── Colors (griddo priority) ── */
   --color-priority-high: hsl(var(--priority-high));
   --color-priority-high-bg: hsl(var(--priority-high-bg));
   --color-priority-mid: hsl(var(--priority-mid));
@@ -36,7 +36,7 @@
   --color-priority-low: hsl(var(--priority-low));
   --color-priority-low-bg: hsl(var(--priority-low-bg));
 
-  /* ── Colors (GridDO urgency) ── */
+  /* ── Colors (griddo urgency) ── */
   --color-urgency-1: hsl(var(--urgency-1));
   --color-urgency-2: hsl(var(--urgency-2));
   --color-urgency-3: hsl(var(--urgency-3));
@@ -60,7 +60,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  /* ── GridDO Custom Animations ── */
+  /* ── griddo Custom Animations ── */
   --animate-jiggle: jiggle 0.3s ease-in-out infinite;
   --animate-urgency-blink-1: urgency-blink 3s ease-in-out infinite;
   --animate-urgency-blink-2: urgency-blink 2s ease-in-out infinite;
@@ -128,7 +128,7 @@
 
   --radius: 0.625rem;
 
-  /* ── GridDO Extension Tokens ── */
+  /* ── griddo Extension Tokens ── */
 
   /* Priority Colors */
   --priority-high: 0 84% 60%;
@@ -159,7 +159,7 @@
   --grid-rows: 9;
   --grid-gap: 0.5rem;
   --grid-cell-min: 5rem;
-  --grid-inset: 0.75rem;
+  --grid-inset: min(0.75rem, 12.5cqw, 12.5cqh);
   --grid-node-max-size: 96px;
   /* Static fallbacks — overridden by cell-scoped container query rules below */
   --grid-node-size: 6.15rem;
@@ -272,7 +272,7 @@
   --input: 240 4% 16%;
   --ring: 217 91% 60%;
 
-  /* ── GridDO Extension Overrides (Dark Mode) ── */
+  /* ── griddo Extension Overrides (Dark Mode) ── */
 
   --priority-high-bg: 0 84% 10%;
   --priority-mid-bg: 45 93% 10%;
@@ -393,12 +393,12 @@
       calc(min(100cqw, 100cqh) - var(--grid-inset)),
       var(--grid-node-max-size, 96px)
     );
-    --grid-node-icon-size:      max(calc(var(--grid-node-size) * 0.325), 1.5rem);
-    --grid-node-title-height:   max(calc(var(--grid-node-size) * 0.23),  1.125rem);
-    --grid-node-padding-x:      max(calc(var(--grid-node-size) * 0.11),  0.5rem);
-    --grid-node-padding-top:    max(calc(var(--grid-node-size) * 0.11),  0.5rem);
-    --grid-node-padding-bottom: max(calc(var(--grid-node-size) * 0.1),   0.4375rem);
-    --grid-node-icon-lift:      max(calc(var(--grid-node-size) * 0.1),   0.375rem);
+    --grid-node-icon-size:      max(calc(var(--grid-node-size) * 0.325), 1rem);
+    --grid-node-title-height:   max(calc(var(--grid-node-size) * 0.23),  0.8125rem);
+    --grid-node-padding-x:      calc(var(--grid-node-size) * 0.11);
+    --grid-node-padding-top:    calc(var(--grid-node-size) * 0.11);
+    --grid-node-padding-bottom: calc(var(--grid-node-size) * 0.1);
+    --grid-node-icon-lift:      calc(var(--grid-node-size) * 0.1);
   }
 }
 

@@ -153,7 +153,9 @@ describe("function privileges", () => {
       for (const row of rows) {
         expect(row.anon, row.fn).toBe(false);
         expect(row.authenticated, row.fn).toBe(false);
-        expect(row.writer, row.fn).toBe(true);
+        // cleanup_guests() is the one internal function griddo_writer cannot run: it deletes from
+        // auth.users, is owned by postgres and is run by pg_cron (Task 238).
+        expect(row.writer, row.fn).toBe(row.fn !== "internal.cleanup_guests()");
       }
     } finally {
       await db.end();
