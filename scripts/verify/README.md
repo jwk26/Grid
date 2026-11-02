@@ -28,7 +28,9 @@ dashboard, download the certificate). The scripts never print these values.
 | `d8-measure.mjs` | snapshot load time and size, limit-sized and one-tenth account (D8): accounts at 100/50/25/10% built, `vacuum analyze`, a two-minute wait (`--wait=<s>`), then the calls; server time (`explain analyze` as `authenticated`) beside each call, the cold call in the verdict | Nothing: all accounts are deleted and the script checks 0 rows are left. Needs anonymous sign-in on, for the measurement only |
 
 Run order on production: `hosted-roles`, `pg-cron-check`, then with anonymous sign-in on
-`d8-measure` and `api-check`, then anonymous sign-in off.
+**and captcha off** `d8-measure` and `api-check` (both sign in without a captcha token), then
+captcha back on and anonymous sign-in off. While captcha is off, guest sign-in has no bot
+check, so keep that window as short as the measurement.
 
 ```
 node scripts/verify/hosted-roles.mjs [--local]
