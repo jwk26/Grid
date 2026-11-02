@@ -355,8 +355,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 
 ### Current state
 - Status: Accepted
-- Next: Phase 48 close (`/end-phase`): apply nothing more to production (all migrations are on it), merge, run the smoke, move mi-6 to `Issues_Deferred.md`
-- Open: mi-6 [Deferred]
+- Next: none; the Phase close below follows this task
+- Open: none (mi-6 Deferred, in `Issues_Deferred.md`)
 
 ### Log
 - Work plan (revised after the advisory review of 2026-11-01 and 13be7df):
@@ -447,3 +447,12 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Please check: this task changes no screen. Confirm that the production settings recorded in Stage 4 and the D8 outcome (real-account limits halved) stand, and that the smoke checklist above is the one to run right after the Phase 48 merge.
 - Unresolved: the Google sign-in screen shows the Supabase host until brand verification (not a launch condition); the post-merge smoke, the Vercel redeploy that picks up `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, and Google reaching `/privacy.html` happen at the Phase 48 close; mi-6 moves to `Issues_Deferred.md` there; a worst-case full account may load slower than the measured 2.1 s (accepted by the user, 2026-11-01).
 - Review: expert review of the limits migration, no finding (see Log); no other logic changed.
+
+## Phase close — 2026-11-02
+
+- Audit: Tasks 235–240 and 238A `[x]` (user-accepted); no Open, In Progress or Awaiting User Decision item; `origin/main` is an ancestor of the branch, so no merge was needed. Every changed file belongs to a task log, checkpoint or commit of this phase, the brainstorming topics included.
+- Close review against `PLANNING_STANDARD.md` §6: no Blocking finding. Only `session.ts` and `supabase-client.ts` import `@supabase/supabase-js`; `sonner` only in `app-toaster.tsx` and `toast.ts`; no added theme-id branch; no table, policy or `alter table` in the four migrations; the new `sessionStorage` key is the sign-in-started marker of CLAUDE.md Architecture 1; no secret key in Git (`sb_secret_test` is a test value). The new Security Advisor kinds were accepted by the user in Task 240 and are now in SCHEMA, so they do not read as new at a later close.
+- Advisory: (1) Task 238 Low, not changed: a modal opened while the notice shows makes `aria-hidden` land on the notice, and a Turnstile check left open while narrowing can end in the guest-creation failure screen, which Retry recovers. (2) `src/lib/viewport-test-utils.ts` is a test helper beside production code. (3) Accepted limits, recorded: a worst-case full account may load slower than the measured 2.1 s; the Google sign-in screen shows the Supabase host until brand verification; a content height below about 484px gives a cell smaller than at 1024.
+- Documents reconciled at close: SPEC §Key File Paths gains `turnstile.ts`, `user-change.ts` and `viewport.ts`, and the `session.ts` row drops "later Turnstile"; SCHEMA §Database tests lists the accepted Advisor warnings.
+- Production: nothing to apply; `20261037000000` to `20261040000000` went on during Task 240 and no file under `supabase/` changed since `5b2eda8`. No dump (user, 2026-11-01).
+- Carried over: mi-1, mi-2, mi-3, mi-4, mi-5 and mi-6 in `Issues_Deferred.md`. Phase 42 MI-8 and Phase 50 mi-1 moved to its resolved table, and their source ledgers say so.

@@ -1366,6 +1366,13 @@ malformed list with `invalid_input`, and behaves as before with the default;
 the demo seed and the fixture occupy no cell with `x` < 3 and `y` < 2. At the
 close of a phase that changes SQL, the
 Supabase database linter (Security Advisor) shows no new warning (S29).
+Accepted warnings, recorded so that they do not read as new: one
+`authenticated_security_definer_function_executable` for each client write
+function (S14; user, 2026-10-24); lint 0012 on the six `app` tables, whose
+policies apply to guests by design, and on `cron.job` and
+`cron.job_run_details`, which no client role can reach without USAGE on `cron`;
+and `auth_leaked_password_protection`, since Email sign-in is off and no
+password exists (user, 2026-11-02).
 
 ---
 

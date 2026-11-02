@@ -1865,7 +1865,10 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/db/connection-monitor.ts` *(Phase 47)* | Connection state from request results: normal, unstable, offline; recovery probe |
 | `src/lib/db/connection.ts` *(Phase 47)* | The app's one connection monitor, the `/auth/v1/health` probe, the session controller's refetch binding and `useConnectionState()` for components |
 | `src/lib/db/write-failure.ts` *(Phase 47)* | What the store reports once about a rolled-back ordinary write, and `dropReportedFailure` for callers that have nothing to add |
-| `src/lib/auth/session.ts` *(Phase 45)* | Guest entry (anonymous sign-in, later Turnstile), OAuth, sign-out, refresh-failure detection, `ensure_account()` call |
+| `src/lib/auth/session.ts` *(Phase 45)* | Guest entry (anonymous sign-in with Turnstile), OAuth, sign-out, account deletion request, refresh-failure detection, `ensure_account()` call |
+| `src/lib/auth/turnstile.ts` *(Phase 48)* | Loads the Turnstile script and answers a token per attempt; its widget host is shown by the security-check screen |
+| `src/lib/auth/user-change.ts` *(Phase 48)* | What starts over when the user changes: the `triage-store` app session and the return to Home |
+| `src/lib/viewport.ts` *(Phase 48)* | The narrow-window rule from `MIN_WINDOW_WIDTH`, read when asked |
 | `src/components/layout/app-frame.tsx` *(Phase 45)* | The app-level frame: loading, failure, session-expired, account-being-deleted, security-check and narrow-window screens |
 | `src/components/layout/account-button.tsx` *(Phase 47)*, `account-modal.tsx` *(Phase 48)* | Sidebar account icon with the connection badge; the guest and account modal |
 | `src/lib/feedback/toast.ts` *(Phase 47)* | Shared toast helper: kinds, counted bursts, timing (F13, F14) |

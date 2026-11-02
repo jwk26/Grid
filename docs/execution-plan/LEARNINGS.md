@@ -184,3 +184,15 @@
 **A `disabled` droppable is not a refusal, it is a hole.** Home was `disabled` for Bits, so `pointerWithin` skipped it and the card under the revealed bar took the drop (mi-9). A target that must refuse stays droppable and refuses in `endDrag`; the same holds for any overlay that sits above live targets.
 
 **Fix a theme's override where the theme makes it.** Task 246 capped the Nodes card with a global selector because one theme's `max-inline-size: none` stretched it; the selector out-specified every theme and silently shrank `retro-mac`'s full-width realization. Removing that one theme rule was the fix (mi-13).
+
+**Prove a security setting with a refused request.** `/auth/v1/settings` does not show whether captcha is on, and the guest entry passes either way, since the new client always sends a token. One token-less sign-up answered `captcha_failed` was the only proof. A check that reads the same with the setting on and off proves nothing. *(Phase 48, Task 240)*
+
+**Regenerate SQL functions from the live definition, and keep a shared check readable by their caller.** Adding `account_deleting` to every function could not go through one `internal` helper: `get_snapshot()` and the reconcile functions are `security invoker`, so they cannot execute a helper closed to client roles. The generator started from `pg_get_functiondef()` after a reset, not from migration text, because later migrations had redefined some functions. *(Phase 48, Task 235)*
+
+**plpgsql resolves names at run time, so a local pass does not prove a function runs on production.** A seed function that referenced `dev.*` would pass every local suite and fail every new guest on production, where `dev` does not exist. A catalog test now rejects such a reference. *(Phase 48, Task 237)*
+
+**A script that creates rows on production cleans up on a signal too.** A stopped `d8-measure` run never reached its `finally` and left four accounts (9,250 Bits) on production, found only by the advisory's read of the tables. The script now cleans up on SIGINT and SIGTERM, proven with `--local` by a TERM during its wait. *(Phase 48, Task 240)*
+
+**Check a CSS value that uses container units in the built stylesheet.** `12.5cqmin` was folded away in the served dev stylesheet, with the cause unconfirmed, while `pnpm build` passed either way; only the emitted `--grid-inset` shows the value that ships. *(Phase 48, Task 238A)*
+
+**For content judged by feel, settle the intent before the numbers.** The demo seed went through four rounds of counts per Grid, and each passed its tests and failed the look. The round that passed named the feel first ("peeking at a real user's account") and tested properties, not fixed counts. *(Phase 48, Task 237)*
