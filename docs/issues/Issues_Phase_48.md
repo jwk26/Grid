@@ -460,5 +460,6 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Production smoke (user, 2026-11-02, against the checklist in Task 240):
   - Steps 1–5: pass.
   - Step 6: pass. The cleanup of 2026-11-02 12:17 KST (03:17 UTC) `succeeded` (line 419 of this ledger).
-  - Step 7: Delete account signs out at once, pass. The account's rows are deleted by the next 03:17 UTC cleanup, which has not run yet, so that part is not checked.
-  - URL: not announced yet; announcing waits for the check of the Back bug.
+  - Step 7: Delete account signs out at once, pass. The account's rows are deleted by the next 03:17 UTC cleanup, which has not run yet. After that run, 2026-11-03 12:17 KST, the user signs in with the same email to check it; until then that part is not checked.
+  - URL: the Back bug has its cause found and does not block launch (mi-7), so the URL can be announced.
+- mi-7 [Deferred]: `/grid/<id>` for a Node the current account does not have shows an unnamed L1 Grid and `Home > ...`; it happens on Back or reopening that address after sign-out, and with a permanently deleted Node, a deleted guest or another person's link. The user reproduced it on production; no data impact — cause: there is no not-found handling — fix: the next fix phase (user, 2026-11-02).
