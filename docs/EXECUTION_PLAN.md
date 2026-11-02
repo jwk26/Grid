@@ -894,7 +894,7 @@ the account modal.
 
 **Commit message:** `chore: name the product Grid`.
 
-### Task 240: [ ] Prepare the launch
+### Task 240: [x] Prepare the launch
 
 **Files and actions:** first, with the project confirmed active (S22), the
 migrations not yet on production applied after a dry run and the user's
