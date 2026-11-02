@@ -457,3 +457,8 @@ Plan fixes at start: Task 235 implements only the SCHEMA account-deletion fallba
 - Documents reconciled at close: SPEC §Key File Paths gains `turnstile.ts`, `user-change.ts` and `viewport.ts`, and the `session.ts` row drops "later Turnstile"; SCHEMA §Database tests lists the accepted Advisor warnings.
 - Production: nothing to apply; `20261037000000` to `20261040000000` went on during Task 240 and no file under `supabase/` changed since `5b2eda8`. No dump (user, 2026-11-01).
 - Carried over: mi-1, mi-2, mi-3, mi-4, mi-5 and mi-6 in `Issues_Deferred.md`. Phase 42 MI-8 and Phase 50 mi-1 moved to its resolved table, and their source ledgers say so.
+- Production smoke (user, 2026-11-02, against the checklist in Task 240):
+  - Steps 1–5: pass.
+  - Step 6: pass. The cleanup of 2026-11-02 12:17 KST (03:17 UTC) `succeeded` (line 419 of this ledger).
+  - Step 7: Delete account signs out at once, pass. The account's rows are deleted by the next 03:17 UTC cleanup, which has not run yet, so that part is not checked.
+  - URL: not announced yet; announcing waits for the check of the Back bug.
