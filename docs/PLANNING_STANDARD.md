@@ -22,6 +22,10 @@
 > F01–F33. §5.1 points to the archived binding contracts; §5.2 retires the
 > Phase 40 / Task 208 matrix and adds Phases 49–50; §6 adds the item status,
 > toast, breadcrumb and state-switch checks and the F03 loader exception.
+> **Lanes and lessons amendment:** 2026-11-04, from the LEARNINGS review
+> (user-approved). §5.3 drops the Phase 45 start; §6 defines the test-gate
+> lanes by role instead of by phase number and takes the SQL, snapshot and
+> unknown-outcome lessons from LEARNINGS, each with its provenance.
 > **Workflow update — 2026-10-15:** §2 Enforcement, §3, §5.2–5.3 and §6 now name
 > the 3rd-generation skills and `CLAUDE.md` instead of the Codex adapter and
 > receipts. See [WORKFLOW](WORKFLOW.md#workflow-lineage).
@@ -413,8 +417,8 @@ invariants. The approved execution plan's transfer register moves unaccepted
 | Supported-theme completion, plan L7 | Assigned theme(s) × supported light/dark × 1024px and 1920×1080 desktop viewports; all nine recipes, applicable DP/editor/reliability/recovery states, contrast/focus/non-color cues, reachability, touch targets, motion and theme-state preservation. Earlier themes/unrelated surfaces receive scope-appropriate regression checks. | Each assigned theme needs its own disposition. Light-only work is not a finished theme; a structural/behavior repair returns to its named owner rather than hiding in CSS conformance. |
 | Phase 41 hotfix (Tasks 209–212) | Shared behavior in every theme; Retro Mac light/dark realization plus GridDO base. The Pool row restructure (Task 210) is a shared change: check Pool rows in all eight themes at 1920×1080 light, Retro Mac also dark. | The user's Retro Mac visual disposition plus technical gates; other themes' full realization stays with Phases 35–39. |
 | Phase 40 / Task 208 (retired) | Retired with Phases 36–40 (feedback F28, 2026-10-22). Its data and command matrices pass to the SaaS database suites (Tasks 216, 219–224); its visual matrices to the theme stage, which sets its own gate. | No retained full-gate promise remains in this plan. |
-| Phase 49 (Tasks 241–244) | `griddo`, `retro-mac` and `neumorphism` for correct rendering and `claymorphism` only for not breaking (F29), light and dark, 1920×1080 and 1024px; the four themes after Task 241. | The user's per-task disposition plus technical gates; per-theme finishing belongs to the theme stage. |
-| Phase 50 (Tasks 245–250) | As Phase 49, on local Supabase, with every status state forced by the development state switch, and the Inbox at 1024px with the Pool open (MI-21). | As Phase 49. |
+| Phase 49 (Tasks 241–244, completed) | `griddo`, `retro-mac` and `neumorphism` for correct rendering and `claymorphism` only for not breaking (F29), light and dark, 1920×1080 and 1024px; the four themes after Task 241. | The user's per-task disposition plus technical gates; per-theme finishing belongs to the theme stage. |
+| Phase 50 (Tasks 245–250, completed) | As Phase 49, on local Supabase, with every status state forced by the development state switch, and the Inbox at 1024px with the Pool open (MI-21). | As Phase 49. |
 
 Use the full gate declared in `CLAUDE.md`, with the approved task's direct test
 targets. This section changes the applicable visual matrix, not the gate
@@ -425,7 +429,7 @@ capture do not establish it.
 ### 5.3 Visual checks and independent dispositions
 
 Check visual work in the running app with test data, never the user's own data
-or the production database. From Phase 45 the app runs on local Supabase,
+or the production database. The app runs on local Supabase,
 signed in as a local test user seeded by the fixture script (`CLAUDE.md` Test
 data).
 Screenshots and browser output are shown to the user in the conversation and
@@ -472,7 +476,11 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   mutation authority. Source truth remains visible until an authoritative
   result or complete postcondition is known. `pending` and `reconciling` are
   used only for genuine unresolved outcomes, preserve the operation identity
-  and required locks, and do not imply a generic visual treatment.
+  and required locks, and do not imply a generic visual treatment. A lock held
+  on an unknown outcome has a way out on every path: list each way the surface
+  that could end it can disappear (no `reconcile` call, the row or candidate
+  leaves the list, the panel remounts) and give each one a read-only check, at
+  most once and never a resend (Phase 50, Tasks 245, 245A and 246).
 - [ ] **Monotonic CAS / ABA protection:** Node, Bit, ScratchBreakdown, and
   StagedCandidate records use the revisions approved by SCHEMA. Every create
   starts at `version = 1`; every successful logical direct mutation advances
@@ -553,7 +561,24 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   its checks and in the fixed order; (6) the result envelope with complete
   `changes`; (7) the account limits on every create path; (8) three tests:
   cross-account, concurrency and change-set match. Every task that changes SQL
-  gets an `expert` review before acceptance.
+  gets an `expert` review before acceptance. Lessons that refine these points:
+  - (1) plpgsql resolves names at run time, so a local pass does not prove a
+    function runs on production; a catalog test rejects a `dev.*` reference
+    outside local fixture code (Phase 48, Task 237).
+  - (5) a function that takes a parent id from the client checks the parent's
+    role right after locking it and before locking any child row (Phase 44,
+    Tasks 222–223).
+  - A guard built from arguments is wrapped in `coalesce(…, false)`, since a
+    null guard skips its `when` branch; test each null argument on a record
+    where the other rules would pass (Phase 44, Task 224).
+  - (8) a change-set test resets the `mtime` values before each call, since
+    every write in one test transaction shares `now()`, and is proven once by
+    dropping a row from the function's `changes`, which must fail it (Phase 43,
+    Task 219).
+  - A change applied to many functions is generated from
+    `pg_get_functiondef()` after a reset, not from migration text, which later
+    migrations may have redefined; a shared check stays executable by its
+    `security invoker` callers (Phase 48, Task 235).
 - [ ] **Account isolation (S14, S29):** RLS on every table with
   `(select auth.uid())` for client roles and `(select internal.uid())` for
   `griddo_writer`; composite foreign keys inside an account; no table
@@ -565,16 +590,23 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
 - [ ] **Snapshot discipline (S07, S31, S32):** the snapshot base changes only
   from envelopes and refetches; a refetch sent before a write settled is
   discarded; a pending write is never persisted or resent; an unknown outcome
-  refetches and keeps or rolls back.
+  refetches and keeps or rolls back, judged only from a refetch sent after the
+  request ended (Phase 47 MI-1); a live read never sends a request whose answer
+  changes the snapshot, and judges from the snapshot rows with a pure function
+  instead (Phase 45, Task 228).
 - [ ] **Migrations and production (S21, S34):** the schema changes only
   through `supabase/migrations/`; a phase that changes SQL closes with no new
-  Security Advisor warning and follows the CLAUDE.md Production order; no
-  secret key in Git or client code.
-- [ ] **Test gate and lanes (S20, F33):** every SaaS-lane task runs
-  `pnpm test:db`; the feedback lane (Phases 49–50) runs it only at a phase
-  close, when the SaaS lane is not doing database work, never edits
-  `supabase/` (except the one test block Task 249 deletes), and in Phase 50 never resets the database or adds a migration
-  during the phase.
+  Security Advisor warning in the dashboard list, which `supabase db advisors`
+  does not reproduce (Phase 43 close), and follows the CLAUDE.md Production
+  order; no secret key in Git or client code. A security setting is proven by
+  a request it refuses, since a check that reads the same with the setting on
+  and off proves nothing (Phase 48, Task 240). A script that creates rows on
+  production also cleans up on SIGINT and SIGTERM (Phase 48, Task 240).
+- [ ] **Test gate and lanes (S20, F33):** every DB-lane task runs
+  `pnpm test:db`; an app-lane phase never edits `supabase/`, never resets the
+  database or adds a migration during the phase, and runs `pnpm test:db` only
+  at its close, while the DB lane is not doing database work (CLAUDE.md Local
+  Supabase).
 - [ ] **Feedback rules (F02, F11, F13, F14):** toasts go through the shared
   helper and only for SPEC's four uses; toast, app-state and blocking copy
   lives in `src/lib/copy/feedback.ts`; `DISPLAY_DELAY_MS` postpones
@@ -590,9 +622,9 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   sits at the top-left of the work area in the status tokens and lets the
   pointer through during a drag; no Grid cell is reserved for the breadcrumb,
   only its segments and chip take the pointer, and its Tab order comes from DOM
-  placement; until Task 249 every server-side cell choice goes through
-  `internal.pick_free_cell` with the reserved cells the client passes, and
-  after it the client passes none (F34); the development state switch is
+  placement; every server-side cell choice goes through
+  `internal.pick_free_cell` and the client passes no reserved cells (F34,
+  Task 249); the development state switch is
   absent from production builds.
 
 #### Theme, Decision-Prerequisite, And Evidence Conformance

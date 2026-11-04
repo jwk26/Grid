@@ -23,7 +23,7 @@
 
 | ID | Category | Description | Status |
 |----|----------|-------------|--------|
-| ISSUE-21-01 | Process/Low | Sequential Codex A→B execution: B's scope verification relied on `git status` alone after A left uncommitted changes — cannot distinguish B's writes from A's. Future batches: save `git diff --name-only` baseline before B launches, or commit A before B. | Deferred — process improvement for B2 onwards |
+| ISSUE-21-01 | Process/Low | Sequential Codex A→B execution: B's scope verification relied on `git status` alone after A left uncommitted changes — cannot distinguish B's writes from A's. Future batches: save `git diff --name-only` baseline before B launches, or commit A before B. | Closed (user, 2026-11-04) — Codex A→B execution retired with the Codex workflow |
 | ISSUE-21-02 | Test/Low | Monthly Today button test verifies `goToToday` is called but does not assert `setSelectedDate(null)` side-effect (open popover should close). | Closed — T96 added regression guard in `calendar-navigation.test.tsx` |
 | ISSUE-21-03 | UX/Low | Weekly header now shows `"June 2026"` instead of date range. Recipe canonical, intentional tradeoff. Cross-month weeks lose date-range information. T96 smoke: no severe usability finding. | Deferred — post-Phase 21 UX review |
 | ISSUE-21-04 | A11y/Medium | DayColumn internal draggable card buttons (CompactNodeItem open/unschedule, PlacedNodeCard open/unschedule, PlacedBitCard open/unschedule) missing `focus-visible` ring. | Closed — fixed in T96 follow-up commit; regression assertions added to `day-column.test.tsx` |

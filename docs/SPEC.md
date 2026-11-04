@@ -1408,7 +1408,11 @@ Everyday interactions feel as they do today (S09). Writes fall into four groups
   (15 seconds), or one that ends without an answer, is never resent, because a
   resent write that did commit would increment `version` twice. The client
   refetches the snapshot and keeps or rolls back the change to match the
-  server; a rollback shows the failure toast. The Inbox commands keep their own
+  server; a rollback shows the failure toast. The verdict comes only from a
+  refetch sent after the request itself ended: a read sent at the timeout,
+  while the request is still open, can show a slow commit as rolled back, so
+  the outcome stays unsettled (no toast, no retry) until then (Phase 47 MI-1).
+  The Inbox commands keep their own
   reconcile contract (S16, S26). An answer with HTTP status 408, 502, 503 or
   504 counts as no answer, since the request may have reached the database.
   A write that waits behind an earlier write to the same record (for an Inbox
