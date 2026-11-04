@@ -28,8 +28,9 @@
 > unknown-outcome lessons from LEARNINGS, each with its provenance.
 > **Stabilization amendment (Phase 51):** 2026-11-04, from the
 > [stabilization DECISION](brainstorming/2026-11-04-stabilization-pass/DECISION.md)
-> ST19 and ST26. §5.2 adds Phase 51; §6 "Authoritative operation state" adds
-> one read-only check per return to normal connection.
+> ST19, ST26, ST33, ST34 and ST37. §5.2 adds Phase 51; §6 "Authoritative operation
+> state" adds one read-only check per return to normal connection after outage
+> evidence.
 > **Workflow update — 2026-10-15:** §2 Enforcement, §3, §5.2–5.3 and §6 now name
 > the 3rd-generation skills and `CLAUDE.md` instead of the Codex adapter and
 > receipts. See [WORKFLOW](WORKFLOW.md#workflow-lineage).
@@ -485,9 +486,12 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   on an unknown outcome has a way out on every path: list each way the surface
   that could end it can disappear (no `reconcile` call, the row or candidate
   leaves the list, the panel remounts) and give each one a read-only check:
-  at most once per path, and once more each time the connection returns to
-  normal while that surface is gone; never a resend and never a timed retry
-  loop (Phase 50, Tasks 245, 245A and 246; stabilization ST26, Phase 51).
+  at most once per path, and once more on a return to normal connection
+  while that surface is gone, only after outage evidence (a failed probe or
+  the browser's `offline` event) arrived since its last check or when that
+  check started while the real connection was not normal; never a resend and
+  never a timed retry loop (Phase 50, Tasks 245, 245A and 246; stabilization
+  ST26, ST33, ST34, ST37, Phase 51).
 - [ ] **Monotonic CAS / ABA protection:** Node, Bit, ScratchBreakdown, and
   StagedCandidate records use the revisions approved by SCHEMA. Every create
   starts at `version = 1`; every successful logical direct mutation advances
