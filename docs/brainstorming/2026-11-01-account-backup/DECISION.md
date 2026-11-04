@@ -73,7 +73,10 @@ interim dump and the phase split. Discarded alternatives are in `NOTES.md`.
    from the previous version ([Format versions](#format-versions)).
 7. **Retention:** file-based slots instead of calendar days, so an unchanged
    account never loses its backups ([Retention](#retention)).
-8. **Modal:** a `Backup` section in the Account modal, server-side rate limits,
+8. **Backup button:** a sidebar button below Home and the account icon that
+   opens a dialog (guest: why to sign in; account: status, `Back Up Now`,
+   `Restore…`), replacing the first Account-modal section; a blocking screen
+   while a restore runs; server-side rate limits,
    and no storage cap ([Backup status](#backup-status),
    [Modal and copy](#modal-and-copy), [Limits](#limits)).
 9. **Acceptance:** the largest account the app still opens is the pass case,
@@ -260,10 +263,12 @@ The browser cannot reach R2, so a restore always runs on the server.
   residual: a row changed once after the backup and then permanently deleted,
   held at exactly that version by a stale tab. Chunks have no version and keep
   last-write-wins, as today.
-- **Tabs:** the restoring tab drops its snapshot and repeats entry behind the
-  loading frame; it tells the other tabs of the browser through
-  `BroadcastChannel`, and they do the same. Other devices get no push: their
-  first write conflicts, and a reload shows the restored account.
+- **Tabs:** while the restore runs, the restoring tab and the other tabs of the
+  browser are blocked ([Restoring screen](#restoring-screen)); afterwards the
+  restoring tab drops its snapshot and repeats entry behind the loading frame,
+  and tells the other tabs through `BroadcastChannel` to do the same. Other
+  devices get no push: their first write conflicts, and a reload shows the
+  restored account.
 
 ### Format versions
 
@@ -427,13 +432,31 @@ to delete (decided with the deletion grace period, user, 2026-11-04).
 ### Modal and copy
 
 Draft copy in English; SPEC owns the final text, kept in
-`src/lib/copy/feedback.ts`.
+`src/lib/copy/feedback.ts`. Replaces the 2026-11-04 Account-modal section
+(user, 2026-11-04, after the option sheet; discarded forms in `NOTES.md`).
 
-- A `Backup` section in the Account modal, between the account name and
-  `Sign out`. The guest modal gets nothing. No sidebar button: it would add a
-  control to review in every theme, risk the app lane's sidebar work, and mix
-  a second badge into the connection badge.
-- Opening the modal calls the function's status endpoint once, for the status
+- **Sidebar button:** a new sidebar button right below Home and the account
+  icon, Lucide `cloud-upload`, labelled `Backup`, on every route.
+- **Status on the button:** a dot only when something needs attention, in the
+  slot the Calendar urgency dot uses: yellow (no successful check in over 7
+  days), red (the last run failed). No dot when backed up or not yet backed
+  up. While a run is in progress the button shows the running motion
+  ([Running motion](#running-motion)).
+- **Dialog:** the button opens a dialog in the Account modal's frame (the
+  shared `scratch-trash-dialog` classes, which Retro Mac and Neumorphism
+  already restyle), so no theme needs a new dialog shape. Not a popover: the
+  restore list and its confirmation need the room, and popovers have no
+  realized theme shapes.
+- **Guest variant:** `Keep your Grid safe`, a short note that signed-in
+  accounts are backed up every day outside the main database and can be
+  restored, `Sign in with GitHub` and `Sign in with Google`, and the existing
+  line that signing in opens a new, empty account and does not move guest
+  data. Not called "Sync": a backup is a one-way copy (2026-11-01).
+- **Account variant:** the status line, `Back Up Now`, `Restore…` (Phase 53),
+  the privacy note and `Close`.
+- The Account modal itself stays as it is (name, `Sign out`,
+  `Delete account`).
+- Opening the dialog calls the function's status endpoint once, for the status
   fields and the backup list; `Checking…` until it answers. No new client SQL
   function.
 - Times show the real timestamp in the user's time zone and locale
@@ -443,7 +466,7 @@ Draft copy in English; SPEC owns the final text, kept in
 | Status | When | Copy |
 |---|---|---|
 | Green | A successful check within 7 days | `Backed up. Latest backup: <time>` |
-| Yellow | Running | `Backing up…` |
+| Running | A run in progress | `Backing up…`, with a lamp in the primary colour that slowly fades in and out (no spinner) |
 | Yellow | Last successful check older than 7 days | `No backup check in over 7 days. Latest backup: <time>` |
 | Gray | No backup yet | `Not backed up yet. The first backup runs within a day.` |
 | Red | The last run failed | `The last backup failed.` and the reason, for example `This account is too large to back up.` |
@@ -452,18 +475,56 @@ Draft copy in English; SPEC owns the final text, kept in
   in the section, no toast (F11). When nothing changed:
   `No changes since the latest backup (<time>).` An unknown outcome is never
   resent; a status read sent after the request ended decides it.
-- `Restore…` opens the backup list in the modal, each entry in the user's time
-  zone, pre-restore entries as `Before restore, <time>`. Confirmation in the
-  modal: `This replaces everything in this account with the backup from
+- `Restore…` opens the backup list in the dialog, each entry in the user's
+  time zone, pre-restore entries as `Before restore, <time>`. Confirmation in
+  the dialog: `This replaces everything in this account with the backup from
   <time>. The current state is saved first, so you can undo this.` On
   `account_changed`: `This account changed while restoring. Try again.` An
   unknown outcome is never resent; a status read decides it.
-- Privacy note in the section: `Backups are stored with Cloudflare, outside the
+- Privacy note in the dialog: `Backups are stored with Cloudflare, outside the
   main database. We keep your 7 latest backups and one a week for 4 weeks
   before them. Deleting your account deletes them.` Whether the guest modal's
   privacy note must name Cloudflare too is left to `/craft-docs`.
-- The modal file may also change in the app lane, so the UI task comes late in
-  the phase and merges `main` when it starts.
+- The sidebar may also change in the app lane, so the UI task comes late in the
+  phase and merges `main` when it starts.
+
+### Running motion
+
+Chosen by the user from seven candidates on the option sheet (R3,
+2026-11-04).
+
+- While a run is in progress, the cloud of the `cloud-upload` icon stays still
+  and only its arrow moves: it rises about 4px from below while fading in, then
+  fades out at the top, in a 1.5 s ease-in-out loop. The arrow's two paths are
+  drawn as one group so that only they move.
+- The button keeps its size and place; nothing rotates.
+- With `prefers-reduced-motion` the loop stops and a still dot in the primary
+  colour shows in the status-dot slot instead.
+- A yellow or red dot wins over the motion: a run that ends in a failure shows
+  the red dot.
+- The status line in the dialog shows `Backing up…` with a primary-colour lamp
+  that fades slowly in and out; the restoring steps use the same lamp.
+
+### Restoring screen
+
+Added 2026-11-04 (user): the app cannot be used while a restore runs.
+
+- The restoring tab shows a blocking dialog over the blurred app:
+  `Restoring a backup`, `Don't close this tab. Grid opens again when it's
+  done.`, and three steps that change only when the function reaches them:
+  `Saving the current state`, `Getting the backup`, `Applying the backup`. No
+  percentage: one transaction shows no progress from outside, and a timed bar
+  would infer progress from elapsed time (Architecture Rule 6).
+- Other tabs of the browser get `restore-started` through `BroadcastChannel`
+  and show the same blocking dialog: `A backup is being restored in another
+  tab`, `Grid opens again with the restored data when it's done.` On
+  `restore-ended` they drop the snapshot and repeat entry.
+- A way out (PLANNING_STANDARD §6): if no end message arrives within the
+  restore's longest time (2 minutes), the dialog reads the status once,
+  read-only, and offers `Check again`; it never resends.
+- Other devices are not blocked, since nothing pushes to them; their first
+  write conflicts and the CAS resolver shows the restored value
+  ([Concurrent writes and other tabs](#concurrent-writes-and-other-tabs)).
 
 ### Limits
 
@@ -585,6 +646,19 @@ Task 239 work-plan review, checked on local Supabase on 2026-11-01 (CLI
   files `600`, no contents in logs or the ledger, counts only. The Mac has no
   `psql`, so the steps go through `docker exec`.
 - Delete the dump within 7 days once the migration proves sound.
+- `app.nodes` references itself (`parent_id`), so `pg_dump` warns about a
+  circular foreign key and a data-only dump cannot order parents first
+  (seen in the interim dump, 2026-11-04). The restore runs `SET
+  session_replication_role = replica` before `data.sql`, as Supabase's own
+  restore does: `psql --single-transaction --variable ON_ERROR_STOP=1 --file
+  roles.sql --file schema.sql --command 'SET session_replication_role =
+  replica' --file data.sql`.
+- That setting also skips foreign-key checks during the load, so the restore
+  test counts orphan rows afterwards for every composite foreign key (`nodes`
+  to itself, `bits`, `chunks`, `scratch_breakdowns`, `staged_candidates`) and
+  for `user_id` to `auth.users`; each count must be 0, and only counts are
+  recorded. The setting needs superuser-level rights; the role that runs it on
+  the local stack is recorded in the ledger.
 
 ### Interim dump (user, 2026-11-04)
 
@@ -657,8 +731,10 @@ another; the app lane (Phase 51) may run beside any of them.
   the REST 30 s test.
 - **52-3** Edge Function: scheduled backup, `Back Up Now`, status, summary with
   Healthchecks.io, pruning, `identity.json`, the deletion list.
-- **52-4** UI: the `Backup` section with status, `Back Up Now` and the privacy
-  note; no `Restore…` yet. Last task of the phase; merges `main` when it starts.
+- **52-4** UI: the sidebar `Backup` button with its status dot and running
+  motion, and its dialog (guest and account variants) with status,
+  `Back Up Now` and the privacy note; no `Restore…` yet. Last task of the
+  phase; merges `main` when it starts.
 - **52 close:** the first manual dump and its restore test (it resets the
   local stack, so at a time the app lane runs no browser check; the app lane
   seeds again after it), function deploy, migrations, merge, the production
@@ -667,7 +743,8 @@ another; the app lane (Phase 51) may run beside any of them.
 - R2 deletion ships in 52 because the modal promises from the first backup that
   deleting the account deletes its backups.
 - **53:** `restore_staging`, `restore_account`, the restore flow and
-  `Restore…`, `BroadcastChannel`, the monthly check script, the recovery drill.
+  `Restore…`, the restoring screen and `BroadcastChannel`, the monthly check
+  script, the recovery drill.
   Close: dump, function, migrations, merge, the production restore
   measurement. Kept apart from 52 because its locks, review and concurrency
   tests are the heaviest part and would delay the first backups; until it
