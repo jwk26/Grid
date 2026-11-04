@@ -41,6 +41,10 @@
 > leave ([Not ported](#not-ported)). No table, column, function or migration
 > changes; the last selected Scratch (F27) is a device preference in browser
 > storage, not schema data.
+> **Stabilization amendment (Phase 51):** 2026-11-04, from
+> [`DECISION.md`](brainstorming/2026-11-04-stabilization-pass/DECISION.md)
+> ST09. System Nodes have no aging state. No table, column, function or
+> migration changes.
 > **Promotion provenance:** selected topic
 > [`DECISION.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/DECISION.md),
 > approved [`PROMOTION_MAP.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/PROMOTION_MAP.md),
@@ -1727,7 +1731,7 @@ functions.
 | Global urgency | Calendar icon notification dot | `bits`, `nodes` | Scan all active items (`deletedAt = null` AND `archivedAt = null`) with deadlines across all stores. Find the most urgent item. Return its urgency level |
 | Text search | Search overlay | `nodes`, `bits`, `chunks` | Client-side filter: iterate all active items (`deletedAt = null` AND `archivedAt = null`; Chunks via non-deleted, non-archived parents), match `title` against search term (case-insensitive substring). Return with type, parent path, deadline |
 | Grid occupancy | BFS auto-placement | `nodes`, `bits` | Filter both stores by `parentId = X` AND `deletedAt = null` AND `archivedAt = null`. Collect all `(x, y)` pairs into an occupied-cells set |
-| Aging state | Grid rendering | `nodes`, `bits` | Operates on grid-visible items only (`deletedAt = null` AND `archivedAt = null`; L0 also `hiddenFromGrid = false`). Compute `daysSinceMtime = (Date.now() - item.mtime) / 86400000`. Apply: 0–5 = Fresh, 6–11 = Stagnant, 12+ = Neglected |
+| Aging state | Grid rendering | `nodes`, `bits` | Operates on grid-visible items only (`deletedAt = null` AND `archivedAt = null`; L0 also `hiddenFromGrid = false`). System Nodes (`systemRole !== null`, the Inbox and the Archive) have no aging state (stabilization ST09). Compute `daysSinceMtime = (Date.now() - item.mtime) / 86400000`. Apply: 0–5 = Fresh, 6–11 = Stagnant, 12+ = Neglected |
 | Trash auto-cleanup | App startup / periodic | `nodes`, `bits` | Filter `deletedAt != null` AND `deletedAt < Date.now() - (30 * 86400000)`. Permanently delete matches (Hook 6); in the target, inside `cleanup_expired_trash()` |
 | Breakdown rows for Scratch | Breakdown, CAS, placement, Archive | `scratchBreakdowns` | Filter `scratchBitId = X`. Display sort: `createdAt` DESC/ASC, then `order`, then stable `id`; lifecycle projections filter/derive active, staged, or consumed. Use `[scratchBitId, createdAt]` or `scratchBitId` |
 | Staged candidates for Scratch/type | Staging and remote reconciliation | `stagedCandidates`, `scratchBreakdowns` | Filter `scratchBitId = X`, `lifecycle = "staged"`, optionally `resultType`; sort `createdAt` DESC then `id`; join `sourceBreakdownId` to the authoritative row and never use candidate-local display text |

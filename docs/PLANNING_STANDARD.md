@@ -26,6 +26,10 @@
 > (user-approved). §5.3 drops the Phase 45 start; §6 defines the test-gate
 > lanes by role instead of by phase number and takes the SQL, snapshot and
 > unknown-outcome lessons from LEARNINGS, each with its provenance.
+> **Stabilization amendment (Phase 51):** 2026-11-04, from the
+> [stabilization DECISION](brainstorming/2026-11-04-stabilization-pass/DECISION.md)
+> ST19 and ST26. §5.2 adds Phase 51; §6 "Authoritative operation state" adds
+> one read-only check per return to normal connection.
 > **Workflow update — 2026-10-15:** §2 Enforcement, §3, §5.2–5.3 and §6 now name
 > the 3rd-generation skills and `CLAUDE.md` instead of the Codex adapter and
 > receipts. See [WORKFLOW](WORKFLOW.md#workflow-lineage).
@@ -419,6 +423,7 @@ invariants. The approved execution plan's transfer register moves unaccepted
 | Phase 40 / Task 208 (retired) | Retired with Phases 36–40 (feedback F28, 2026-10-22). Its data and command matrices pass to the SaaS database suites (Tasks 216, 219–224); its visual matrices to the theme stage, which sets its own gate. | No retained full-gate promise remains in this plan. |
 | Phase 49 (Tasks 241–244, completed) | `griddo`, `retro-mac` and `neumorphism` for correct rendering and `claymorphism` only for not breaking (F29), light and dark, 1920×1080 and 1024px; the four themes after Task 241. | The user's per-task disposition plus technical gates; per-theme finishing belongs to the theme stage. |
 | Phase 50 (Tasks 245–250, completed) | As Phase 49, on local Supabase, with every status state forced by the development state switch, and the Inbox at 1024px with the Pool open (MI-21). | As Phase 49. |
+| Phase 51 (Tasks 251–254, stabilization) | Task 252 only: the user sees two scenes, the unavailable Grid in `griddo` light and dark; the agent checks `retro-mac`, `neumorphism` and `claymorphism`, light and dark, for the same app-frame parts and theme classes (ST19). Tasks 251, 253 and 254 change no look: tests and the agent's isolated-browser checks. | The user's per-task disposition plus technical gates; text on the `retro-mac` dither stays theme-stage debt (Phase 48 mi-2). |
 
 Use the full gate declared in `CLAUDE.md`, with the approved task's direct test
 targets. This section changes the applicable visual matrix, not the gate
@@ -479,8 +484,10 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   and required locks, and do not imply a generic visual treatment. A lock held
   on an unknown outcome has a way out on every path: list each way the surface
   that could end it can disappear (no `reconcile` call, the row or candidate
-  leaves the list, the panel remounts) and give each one a read-only check, at
-  most once and never a resend (Phase 50, Tasks 245, 245A and 246).
+  leaves the list, the panel remounts) and give each one a read-only check:
+  at most once per path, and once more each time the connection returns to
+  normal while that surface is gone; never a resend and never a timed retry
+  loop (Phase 50, Tasks 245, 245A and 246; stabilization ST26, Phase 51).
 - [ ] **Monotonic CAS / ABA protection:** Node, Bit, ScratchBreakdown, and
   StagedCandidate records use the revisions approved by SCHEMA. Every create
   starts at `version = 1`; every successful logical direct mutation advances
