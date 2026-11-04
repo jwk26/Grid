@@ -56,6 +56,11 @@
 > [SaaS App-State Surfaces](#saas-app-state-surfaces); the status token values
 > and every surface choice are exact there, so the implementation tasks need
 > no option sheet.
+> **Stabilization amendment (Phase 51):** 2026-11-04, from
+> [`DECISION.md`](brainstorming/2026-11-04-stabilization-pass/DECISION.md)
+> ST17. Adds the `grid-unavailable` role to
+> [SaaS App-State Surfaces](#saas-app-state-surfaces), built from the existing
+> app-frame parts. No value changes.
 
 ---
 
@@ -1604,6 +1609,7 @@ Shared elements carry `data-app-role`:
 | `app-frame-loading` | Loading indicator | Exposed as busy; appears only after `DISPLAY_DELAY_MS` (300ms, F02); reduced motion shows a static indicator |
 | `app-frame-security-check` | Turnstile widget slot (S42 (3)) | The widget's own rendering inside the frame |
 | `narrow-notice` | Narrow-window notice (S42 (4)) | Laid over the mounted, `inert` app |
+| `grid-unavailable` | Unavailable Grid screen (stabilization ST17, Phase 51) | Sits in the Grid content area beside the sidebar, not in the whole-window `app-frame`. Its title, reason line and action reuse the `app-frame-title`, `app-frame-reason` and `app-frame-action` parts and their realized look in each theme; no new value |
 | `account-modal` | Guest and account modal (Phase 48) | Contents per SPEC |
 | (reused) server-confirmed pending loader | The loader on a control or row of a SPEC write-feel group 3 action | The feedback F03 loader role ([Feedback Status Surfaces](#feedback-status-surfaces), Task 243), one loader app-wide; shown after `DISPLAY_DELAY_MS`; static under reduced motion. Not part of `DP-SAAS-01` (user, 2026-10-22) |
 

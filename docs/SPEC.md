@@ -68,6 +68,19 @@ toasts and the create dialogs) closes before Phase 45; Phase 50 (the Inbox
 surfaces, the breadcrumb reveal with the zone removal, the last Scratch)
 follows Phase 45. Until a task lands, the code keeps today's behavior.
 
+## Stabilization Amendment — 2026-11-04
+
+From [`DECISION.md`](brainstorming/2026-11-04-stabilization-pass/DECISION.md)
+ST09–ST36 (Phase 51, Tasks 251–254). A Node's address that the account cannot
+use shows one [unavailable Grid](#route-gridnodeid-level-1-3-grid) screen with
+the sidebar `+` disabled; the Bit popup closes itself for a Bit the account
+cannot use; the Scratch modal's auto-close waits for a pointer already over
+it; on the Inbox every surface that handles `Esc` is an `Esc` layer; a
+not-applied Undo whose block clears takes no focus; a held Inbox command
+whose surface is gone is checked once when it goes and again, read-only, on a
+return to normal after outage evidence. System Nodes have no aging (SCHEMA). Until a task lands,
+the code keeps today's behavior.
+
 ## Inbox/Triage SPEC Approval Receipt
 
 - **Gate:** the complete production-adapted Inbox/Triage amendment in this
@@ -266,6 +279,35 @@ follows Phase 45. Until a task lands, the code keeps today's behavior.
 - **Structure:** Full-bleed 18x9 grid. The breadcrumb is revealed over the grid's top-left from the sidebar Home button and reserves no cell ([Breadcrumb reveal and Home button](#breadcrumb-reveal-and-home-button); until Phase 50 a fixed breadcrumb sits at the top-left and the cells under it are blocked). Fixed icon-rail sidebar (same as Level 0, no remount on navigation).
 - **Level 1-2 content:** Nodes (left zone, ~5-6 columns) + Bits (right zone, ~6-7 columns). 2-way split is a soft guide — items can be placed anywhere.
 - **Level 3 content:** Bits only, full-width grid. No Node creation allowed.
+- **Unavailable Grid** (stabilization ST13–ST19, Phase 48 mi-7). When the
+  account's data has no Node with this id, or the Node has `deletedAt` or
+  `archivedAt` set, the route shows one unavailable screen instead of the Grid:
+  a permanently deleted Node, another account's link, Back or reopening the
+  address after sign-out, a deleted guest, and a Node in Trash or Archive
+  (Back or Forward after moving it there). The Node's own fields decide, since
+  Trash and Archive mark the whole subtree; `hiddenFromGrid` never makes a
+  Node unavailable, and a system Node is unavailable only when missing. The
+  screen is judged only after the account data has been read and the Node
+  value belongs to the routed id, so a valid Grid never shows it during
+  navigation; a Grid whose Node becomes unavailable while open (another tab,
+  then a refetch) turns into the screen, and back when the Node is restored.
+  It sits inside the Grid shell beside the sidebar, with no breadcrumb, and
+  uses the app-level screen parts (title as the page's `h1`, one reason line,
+  one button, as on [App-level screens](#app-level-screens); copy in
+  [Feedback copy](#feedback-copy), Dialogs and shell); focus moves to
+  `Go to Home` when it appears (ST36), which navigates to `/`. No write starts
+  from it: the sidebar `+` is disabled as the Calendar's edit-mode pencil is
+  (a real `disabled` button, dimmed, the reason as its wrapper's `title`), and
+  when the screen appears every create and confirm surface of the Grid shell
+  closes (the `+` menu, the cell-opened chooser, the Node and Bit create
+  dialogs however opened, the delete confirmation and the move
+  confirmations); the Scratch capture modal stays (ST30). Focus moves to
+  `Go to Home` only after those close (and after a Bit popup that closes on
+  the same read) and only when no dialog layer is open;
+  an open layer, such as the Scratch modal, keeps its focus. Edit mode and
+  drops need no change, since nothing on the screen can be acted on (ST32). The write functions already refuse a
+  parent in Trash or Archive (`parent_inactive`); the screen replaces a Grid
+  that looked writable and rolled each write back.
 - **Onboarding (Level 1, first visit):** Ghost hints for 2-way split ("Nodes here" on left, "Bits here" on right). Disappear after first item creation.
 - **Sidebar:** Trash icon visible on all levels. "+" context-aware: Level 1-2 shows Node/Bit chooser, Level 3 creates Bit directly.
 - **Depth visual effects:**
@@ -296,7 +338,13 @@ Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
   first: the dialog layer (a dialog, the Bit popup, the palette, the Search
   overlay, the `+` entry surface, the Scratch modal), then the deadline picker,
   then the breadcrumb, then edit mode (user, 2026-10-22). During a drag `Esc`
-  only cancels the drag. After `Esc` hides it,
+  only cancels the drag. On the Inbox the Triage drag is such a drag, and the
+  explorer search, an open Breakdown editor, the Breakdown Add field, the
+  Placement affordance and the Archive completion area are layers below the
+  dialog layer and above edit mode, so one press closes only that layer. An
+  open Inbox layer that refuses `Esc` while locked still counts as the top
+  layer: the press does nothing and edit mode stays (stabilization ST20,
+  ST35, Phase 50 mi-8). After `Esc` hides it,
   the hover and focus triggers stay suppressed until the pointer or focus
   leaves Home and the breadcrumb and comes back; `Esc` pressed on a segment
   moves focus to Home, so a focused element is never hidden.
@@ -341,6 +389,11 @@ Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
 ### Bit Detail Popup (Modal — not a route)
 
 - **Trigger:** `?bit=[bitId]` query parameter. Opens from grid or calendar.
+- **Unavailable Bit** (stabilization ST31): after the read, a Bit the account
+  does not have, or one with `deletedAt` or `archivedAt` set, removes `?bit=`
+  with `router.replace` and the popup closes, on every route. The popup never
+  closes before its read. A Bit the popup itself moved to Trash that comes
+  back on a failed write does not reopen it.
 - **Structure:** Centered modal over blurred background.
   - **Header:** Editable title, icon selector, deadline picker, priority toggle (high/mid/low cycle).
   - **Description:** Editable text area.
@@ -435,7 +488,7 @@ the Explorer search navigate to the general Grid route.
 
 - **Trigger:** Sidebar `+` button. Anchored popover that slides/fades in next to the `+` (not a centered modal). Visual realization: `docs/recipes/quick-capture-entry-surface-visual-recipe.md`.
 - **Structure:** Two intent groups — **Ideas** (Scratch) and **Create** (Node, Bit). Scratch is the primary action by position. The surface may show an optional surface-level `Cmd+K` palette hint; the Scratch row itself carries no per-row shortcut.
-- **Scratch:** Opens a centered one-line capture modal ("Capture your ideas..."). Captured Scratch is a Bit parented to the Inbox Node (icon `"sparkles"`, `x=0,y=0` sentinel); routed to Inbox regardless of current location; no parent/cell selection in fast capture. Capture never navigates. If the Inbox workspace is mounted, the new Scratch becomes selected after the capture surface closes; see [Scratch Pool](#scratch-pool) New capture.
+- **Scratch:** Opens a centered one-line capture modal ("Capture your ideas..."). Captured Scratch is a Bit parented to the Inbox Node (icon `"sparkles"`, `x=0,y=0` sentinel); routed to Inbox regardless of current location; no parent/cell selection in fast capture. Capture never navigates. After a capture succeeds the modal closes by itself after a short delay; the delay waits while the pointer is over the panel and starts when it leaves, also when the pointer was already over the panel as the success state began (stabilization ST10, ISSUE-16-03). If the Inbox workspace is mounted, the new Scratch becomes selected after the capture surface closes; see [Scratch Pool](#scratch-pool) New capture.
 - **Create (Node/Bit):** Open the **existing** create dialogs (`create-node-dialog.tsx` / `create-bit-dialog.tsx`; create-modal redesign is out of scope). Context rules: L0/global `Bit` opens a parent selector (no direct L0 Bit); inside a Node, `Bit` uses the current Node; Level 3 is Bit-only.
 
 ### Command Palette (Cmd+K) (Modal — not a route)
@@ -760,7 +813,9 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   the recovery view at once and checks once, read-only, in the background; a
   terminal answer releases the lock and the view stays. If that check fails,
   the view offers `Check again` and Close stays unavailable until a terminal
-  answer; the check is never retried on its own (Phase 50 mi-3).
+  answer; the check is never retried on its own (Phase 50 mi-3), except by
+  the return-to-normal check of [Connection states](#connection-states) once
+  its surface is gone.
 - Editors capture `{record ID, base value, version, lifecycle}` in client memory
   and use SCHEMA CAS. A stale write never becomes last-write-wins. Text conflict
   offers inline use-mine/use-latest semantics against the acknowledged latest
@@ -852,7 +907,8 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   the held command's candidate leaves the list while its Scratch stays
   selected, one read-only check runs in the background and is never retried
   on its own; a held command gets at most one such automatic check (Phase 50
-  mi-11, mi-12, user 2026-10-30). No repeated pulse or
+  mi-11, mi-12, user 2026-10-30), plus the return-to-normal check of
+  [Connection states](#connection-states) while its surface is gone. No repeated pulse or
   layout-changing motion is permitted.
 - A transient drag-time Staging target and the whole Breakdown section drop-
   back invoke the same Unstage command; there is no permanent unstage button.
@@ -1144,8 +1200,10 @@ Surfaces (`DP-FB-01`). Sentences stay in `src/lib/copy/inbox-triage.ts`.
   Undo locks Scratch switch, other placement, Archive, route exit, and browser
   exit under the selected guards. In ordinary columns, post-success focus is
   next card, previous card, then column heading; in search it is next result,
-  then input. `VQ-10` owns unsupported overlap/ineligible/reliability
-  realization details.
+  then input. Focus moves to an Undo slot status only as the answer to that
+  item's own Undo; a not-applied Undo whose block by another operation clears
+  keeps focus where it is (stabilization ST21, Phase 50 mi-6). `VQ-10` owns
+  unsupported overlap/ineligible/reliability realization details.
 - **Undo slot status** (feedback F07, F09, Phase 50). On Explorer Newly rows the
   Undo slot is also the Undo operation's status slot: `↶` (available), the
   loader (pending, after the delay), `?` as a button that checks again
@@ -1459,6 +1517,29 @@ Judged from real request results, not from `navigator.onLine` alone (S27):
   only turns the state to unstable (S26). Realtime is deferred.
 - In-flight writes that end without an answer follow the unknown-outcome rule
   above.
+- **Held Inbox command whose surface is gone** (stabilization ST23–ST25,
+  ST33, ST34, ST37, ST38; Tasks 245A and 246 residual). An Inbox command whose outcome is
+  unknown (a Breakdown editor save, Add or Delete, a Stage or Unstage) holds
+  the operation lock; the lock owner keeps, with it, the read-only check for
+  that command, so the check does not depend on the editor, row, candidate or
+  panel that started it, and every check of that command, the holder's own
+  included, runs through the owner or reports its start to it. When that
+  surface goes, the command gets one read-only check (Add and Delete
+  included), unless a check of it already started after the surface began to
+  go (the editor's invalidation check, Staging's background check); a
+  `Check again` made while the surface was mounted does not count. After that, a return to normal gives it one more
+  check only when outage evidence (a failed probe or the browser's `offline`
+  event) arrived since its last check started, or that check started while
+  the connection was not normal (ST37); a failed request, the check's own
+  included, is not evidence. This rule reads the real connection state; a
+  [development state switch](#development-state-switch) forced state counts
+  as no outage. A terminal answer releases the lock as the command's own check
+  would. It is never a resend and never a timed retry, and it adds no
+  control. Leaving the Inbox drops the lock and its check, as a reload does.
+  Residuals: a check the server answers with an error while the state stays
+  normal, and a check that starts at normal and fails in a drop that ends
+  before any probe fails and without an `offline` event, keep the lock until
+  the next outage or a reload.
 - No offline editing in v1: while offline the app is view-only (S16).
 
 ### Session expiry
@@ -1578,7 +1659,9 @@ writes shows one counted toast (S28).
 | Node edit dialog, save refused by the server (inline error, typed values kept, no toast; an unknown outcome whose change is kept closes the dialog; user, 2026-10-30) | `Couldn't save the changes to “{title}”. Try again.` (`{title}` is the saved title) |
 | Home button (label and tooltip) | `Home` |
 | Account icon (accessible name, guest and account alike; no tooltip in the normal state, the connection sentence as tooltip and description while unstable or offline; user, 2026-10-30) | `Account` |
-| Tab title | A Node's Grid: `{title} – {app name}`. Inbox, Archive, Calendar (weekly and monthly) and Trash: `Inbox – {app name}`, `Archive – {app name}`, `Calendar – {app name}`, `Trash – {app name}`. L0: `{app name}` alone. `{app name}` is `APP_NAME`: `Grid`. Each page sets its title, so client navigation never leaves a stale one (user, 2026-10-22) |
+| Unavailable Grid (inside the Grid shell; stabilization ST18) | Title `Couldn't open this Grid.`; reason `It may have been deleted, moved to Trash or archived, or it may belong to another account.`; button `Go to Home` |
+| Sidebar `+` while the unavailable Grid shows (wrapper `title`; stabilization ST30) | `Adding restricted on this page` |
+| Tab title | A Node's Grid: `{title} – {app name}`; an unavailable Grid: `{app name}` alone. Inbox, Archive, Calendar (weekly and monthly) and Trash: `Inbox – {app name}`, `Archive – {app name}`, `Calendar – {app name}`, `Trash – {app name}`. L0: `{app name}` alone. `{app name}` is `APP_NAME`: `Grid`. Each page sets its title, so client navigation never leaves a stale one (user, 2026-10-22) |
 
 **Connection** (tooltip, and the polite announcement on entering the state)
 
