@@ -5,7 +5,7 @@
 - Created: 2026-11-01
 - Updated: 2026-11-04 (decision session: runner, export, restore, concurrency,
   format, retention, modal, alerts, recovery drill, restore check)
-- Readiness: draft
+- Readiness: code-ready
 - Category: feature idea
 - Source project: GridDO
 - Source topic: `2026-10-21-saas-conversion` (S22, S35); Task 239 advisory
@@ -25,7 +25,7 @@
 7. [Retiring the manual dump](#retiring-the-manual-dump)
 8. [First manual dump and restore test](#first-manual-dump-and-restore-test)
 9. [User tasks](#user-tasks)
-10. [Open questions](#open-questions)
+10. [Phase split](#phase-split)
 
 ## Summary
 
@@ -39,9 +39,8 @@ backup. The user accepted this risk (S35, 2026-11-01).
 
 The 2026-11-04 session settled the runner, the export and restore paths, the
 backup format, retention, the Account modal, failure alerts, the recovery
-drill, the periodic restore check and deleting R2 objects with the account.
-The phase split is still open ([Open questions](#open-questions)). Discarded
-alternatives are in `NOTES.md`.
+drill, the periodic restore check, deleting R2 objects with the account, an
+interim dump and the phase split. Discarded alternatives are in `NOTES.md`.
 
 ## Decisions (user, 2026-11-01)
 
@@ -587,6 +586,26 @@ Task 239 work-plan review, checked on local Supabase on 2026-11-01 (CLI
   `psql`, so the steps go through `docker exec`.
 - Delete the dump within 7 days once the migration proves sound.
 
+### Interim dump (user, 2026-11-04)
+
+Until Phase 52 closes, production has no backup at all, since a dump comes
+only at a DB-lane close. So the user takes one manual dump in the week of
+2026-11-04, outside any phase.
+
+- Not tied to a migration, so CLAUDE.md's seven-day rule does not apply: it is
+  kept until the Phase 52 close dump passes its restore test, then deleted
+  within 7 days.
+- Kept long, so it leaves out session and token data: `--exclude` (CLI 2.121.0,
+  data-only dumps) drops `auth.sessions`, `auth.refresh_tokens`,
+  `auth.mfa_amr_claims` (its rows reference sessions, so keeping them would
+  break the restore's foreign keys), `auth.one_time_tokens` and
+  `auth.flow_state`. A restore then signs everyone out; `auth.users` and
+  `auth.identities` stay, so the same provider accounts sign in again.
+- Not restore-tested on its own. The Phase 52 close dump uses the same
+  commands, so its restore test also proves this dump's form.
+- Folder `700`, files `600`, outside the repository and outside any synced
+  folder; checked by counts and table names only, never contents.
+
 ## User tasks
 
 Secrets go only to the user's password app and the runtime's secret store,
@@ -594,6 +613,8 @@ never to chat or Git (the repository is public).
 
 One-time:
 
+- This week: the interim dump
+  ([Interim dump](#interim-dump-user-2026-11-04)).
 - Enable Cloudflare R2 (the Turnstile account exists; R2 may ask for a payment
   method) and create the bucket.
 - R2 tokens: read-write for the Edge Function; read-only for the Mac's restore
@@ -615,6 +636,49 @@ Recurring:
   days without a run).
 - On a Healthchecks.io email: read the failure details in the database.
 
-## Open questions
+## Phase split
 
-- Phase split and lanes.
+Proposed to the control tower (user, 2026-11-04). The measure: how soon real
+data is protected. All three are DB-lane phases, so they run one after
+another; the app lane (Phase 51) may run beside any of them.
+
+| Phase | Scope | Leaves behind |
+|---|---|---|
+| 52 Backup | Automatic backup, `Back Up Now`, status, alerts, deleting R2 objects with the account | Automatic backups of real data |
+| 53 Restore | Restore, concurrency, recovery drill, monthly check | The manual dump's retirement |
+| 54 Deletion grace | The 24-hour grace period and cancel (`2026-10-31-account-deletion-grace-period`) | Protection from a mistaken deletion |
+
+- **52-1** local go/no-go measurement: CPU, memory, fingerprint cost, request
+  body limit ([Measurement and acceptance](#measurement-and-acceptance)).
+- **52-2** SQL: status columns, `export_account`, `account_fingerprint`, the
+  backup functions, `pg_net`, the backup and summary cron jobs,
+  `internal.r2_deletions`, and the cleanup's lock-then-recheck (an existing gap
+  in the same function, so it lands with the deletion list); refusal tests and
+  the REST 30 s test.
+- **52-3** Edge Function: scheduled backup, `Back Up Now`, status, summary with
+  Healthchecks.io, pruning, `identity.json`, the deletion list.
+- **52-4** UI: the `Backup` section with status, `Back Up Now` and the privacy
+  note; no `Restore…` yet. Last task of the phase; merges `main` when it starts.
+- **52 close:** the first manual dump and its restore test (it resets the
+  local stack, so at a time the app lane runs no browser check; the app lane
+  seeds again after it), function deploy, migrations, merge, the production
+  10 MB measurement, one scheduled run confirmed, an alert email forced and
+  received.
+- R2 deletion ships in 52 because the modal promises from the first backup that
+  deleting the account deletes its backups.
+- **53:** `restore_staging`, `restore_account`, the restore flow and
+  `Restore…`, `BroadcastChannel`, the monthly check script, the recovery drill.
+  Close: dump, function, migrations, merge, the production restore
+  measurement. Kept apart from 52 because its locks, review and concurrency
+  tests are the heaviest part and would delay the first backups; until it
+  closes, the manual dump stays the proven recovery path.
+- **54:** the cleanup's 24-hour condition, `cancel_account_deletion`, the added
+  rejection field, the copy and `Cancel deletion`. No dependency on 53, so the
+  control tower may swap their order.
+- Every close: dump, then functions, then migrations, then the merge (52 is the
+  first introduction, so the function comes before the migrations;
+  [Deploy order](#deploy-order)). Every SQL task: PLANNING_STANDARD §6, the
+  cross-account test and an `expert` review.
+- Discarded: everything in one phase (the latest start for backups); 52 backup
+  with restore and 53 drill with grace (52 grows, and the drill leaves the code
+  it tests).

@@ -4,7 +4,7 @@
 
 - Created: 2026-10-31
 - Updated: 2026-11-04 (decision session with the account backup topic)
-- Readiness: draft
+- Readiness: code-ready
 - Category: feature idea
 - Source project: GridDO
 - Source topic: n/a (user idea during Phase 48 Task 236, after a local
@@ -97,6 +97,9 @@ screen while the account still waits for its deletion.
 - **Deleting R2 keys that have no `accounts` row:** after a recovery into a new
   project every old key has no row (`2026-11-01-account-backup` NOTES).
 
-## Open questions
+## Phase placement
 
-- Phase placement (`2026-11-01-account-backup`, Open questions).
+Phase 54, a DB-lane phase after the backup (52) and restore (53) phases, with
+no dependency on 53 (`2026-11-01-account-backup`, Phase split). Phase 52
+already adds the cleanup's lock-then-recheck, so this phase changes only its
+24-hour condition.
