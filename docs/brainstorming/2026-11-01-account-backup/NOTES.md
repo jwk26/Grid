@@ -85,6 +85,23 @@ Discarded alternatives and reasoning from the 2026-11-04 decision session
   lose the file holding the state until the day before.
 - **R2 lifecycle by age:** no guarantee that one file stays.
 
+## Alerts, drill and restore check
+
+- **GitHub Actions as the watcher:** its own schedule stops after 60 days
+  without repository activity, so the watcher could go quiet unnoticed.
+- **Alerts sent from inside Supabase (email API from the function):** cannot
+  report a run that never happened, the case that matters most.
+- **A key from a hash of the provider id:** an account linked to two providers
+  has no single key.
+- **A drill through GitHub sign-in:** a GitHub OAuth App takes one callback URL.
+- **An automatic restore check on production:** cannot write into a real
+  account, and a dedicated test account would need a non-OAuth sign-in path.
+- **An integrity check right after upload only:** proves the file is intact,
+  not that it restores.
+- **Deleting R2 keys that have no `accounts` row:** after a recovery into a new
+  project every old key looks orphaned, so the sweep would delete every backup
+  before it is copied.
+
 ## Modal and limits
 
 - **A sidebar button** (the user's first idea): a new control to review in

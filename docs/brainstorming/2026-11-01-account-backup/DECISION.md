@@ -4,7 +4,7 @@
 
 - Created: 2026-11-01
 - Updated: 2026-11-04 (decision session: runner, export, restore, concurrency,
-  format, retention, modal)
+  format, retention, modal, alerts, recovery drill, restore check)
 - Readiness: draft
 - Category: feature idea
 - Source project: GridDO
@@ -24,7 +24,8 @@
 6. [Why R2](#why-r2)
 7. [Retiring the manual dump](#retiring-the-manual-dump)
 8. [First manual dump and restore test](#first-manual-dump-and-restore-test)
-9. [Open questions](#open-questions)
+9. [User tasks](#user-tasks)
+10. [Open questions](#open-questions)
 
 ## Summary
 
@@ -37,10 +38,10 @@ Between the launch and the first production dump, production data has no
 backup. The user accepted this risk (S35, 2026-11-01).
 
 The 2026-11-04 session settled the runner, the export and restore paths, the
-backup format, retention and the Account modal. Failure alerts, the dump
-retirement steps, deleting R2 objects with the account and the phase split
-are still open ([Open questions](#open-questions)). Discarded alternatives are
-in `NOTES.md`.
+backup format, retention, the Account modal, failure alerts, the recovery
+drill, the periodic restore check and deleting R2 objects with the account.
+The phase split is still open ([Open questions](#open-questions)). Discarded
+alternatives are in `NOTES.md`.
 
 ## Decisions (user, 2026-11-01)
 
@@ -82,6 +83,19 @@ in `NOTES.md`.
 10. **Deploy order:** Edge Functions deploy between the migrations and the
     merge; the rule text goes into `CLAUDE.md` §Production through this
     topic's `/craft-docs` ([Deploy order](#deploy-order)).
+11. **Alerts:** a daily summary pings Healthchecks.io, which emails the owner
+    on a new failure and when no ping arrives
+    ([Failure alerts](#failure-alerts)).
+12. **Object key and recovery drill:** keys use the internal user id with an
+    identity file; the drill runs once in a new Supabase project through the
+    ordinary restore ([Object key](#object-key),
+    [Recovery drill](#recovery-drill)).
+13. **Periodic restore check:** the owner runs a script every month that
+    restores the latest backup into a dedicated local test user, then deletes
+    it ([Periodic restore check](#periodic-restore-check)).
+14. **Deleting R2 objects:** an explicit deletion list written by the cleanup
+    job, processed by the daily summary
+    ([Deleting R2 objects](#deleting-r2-objects)).
 
 ## Facts checked on 2026-11-04
 
@@ -120,6 +134,15 @@ in `NOTES.md`.
   Bit's parent Node and then the Bit `for update` and do not update the Bit
   (except Bit auto-completion); `reorder_chunks` locks the Bit. `version`
   exists on Nodes, Bits, Scratch Breakdowns and Staged Candidates.
+- **Supabase free plan** (pricing page): two active projects per account;
+  paused projects do not count; a project pauses after a week without
+  activity.
+- **Healthchecks.io free plan** (pricing page): 20 checks, 100 log entries per
+  check, no SMS. Email alerts are not listed on the pricing page; confirm at
+  sign-up.
+- **GitHub OAuth Apps** take one callback URL; Google OAuth clients take
+  several, and Google's `sub` is the same for one Google account across
+  clients.
 - **R2 prices:** as checked on 2026-11-01 ([Why R2](#why-r2)); not checked
   again.
 
@@ -165,9 +188,19 @@ Account modal (user JWT): Back Up Now, Restore, status -------+
   active, trashed and archived) and the account fingerprint, so both describe
   one point in time and no API row limit cuts it.
 - EXECUTE goes to `service_role` alone; `service_role` gets `usage` on `app`
-  and `select` on its tables. This is the one documented exception to
-  revoking `service_role`'s default grants. `service_role` is not a client
-  role, because its key exists only on the server.
+  and `select` on its tables. `service_role` is not a client role, because
+  its key exists only on the server.
+- **The backup functions** are the documented exception to revoking
+  `service_role`'s default grants: a small set of `public` functions that only
+  `service_role` can execute, listed in SCHEMA by `/craft-docs`. Besides
+  `export_account`: recording a run's start and result (status fields, size,
+  fingerprint), reading the due R2 deletions and marking them done
+  ([Deleting R2 objects](#deleting-r2-objects)). `service_role`'s table rights
+  stay `select` for the export and `insert` on `app.restore_staging`.
+- `griddo_writer`'s policies need the caller's user id, which a `service_role`
+  call does not carry, so the functions that write status cannot be
+  `griddo_writer` functions. Their owning role and how RLS applies to them go
+  to the plan's `expert` review.
 - 30 s is about four times the 7.3 s worst read of the largest account the app
   opens, inside the API's 60 s cap, and leaves the function's wall-clock budget
   (37.5 s, a quarter of 150 s) room for gzip and upload.
@@ -293,7 +326,104 @@ Replaces the 2026-11-01 calendar draft (user, 2026-11-04).
 - An account that keeps failing, such as one above the app-openable size, is
   tried every day, and the owner is alerted only when its state or failure
   reason changes, not every day. Its modal keeps the red status and the
-  reason. The alert path is open ([Open questions](#open-questions)).
+  reason ([Failure alerts](#failure-alerts)).
+
+### Object key
+
+- Objects live under `accounts/<internal user id>/`. Each account also has
+  `accounts/<internal user id>/identity.json` with its providers and provider
+  user ids, written by the function.
+- After a recovery into a new project the internal id changes. The owner's
+  operations script finds the old key by provider user id and copies the
+  objects to the new key inside R2; the user then restores through the
+  ordinary modal.
+- Not a hash of the provider id: an account linked to GitHub and Google has two
+  provider ids and no single key.
+
+### Failure alerts
+
+A run that never happens cannot report itself (a paused project, a stopped
+`pg_cron`, a broken deploy), so a service outside Supabase watches for the
+daily report. GitHub Actions cannot be that watcher: its schedule stops after
+60 days without repository activity.
+
+- `pg_cron` calls the function's `summary` mode two hours after the backup
+  run. The summary records runs with a start and no result after 5 minutes as
+  `interrupted`; counts OAuth accounts whose last successful check is older
+  than 36 hours as `missing`; counts failures new since the previous summary (a
+  changed state or reason); and checks whether the stored size passes 8 GB.
+- No new problem: a success ping to a Healthchecks.io check. A new problem: a
+  `/fail` ping. The body holds counts and reason codes only, never an account
+  id or email; the owner reads details in the database.
+- The check has a one-day period and a three-hour grace; a missing ping makes
+  Healthchecks.io email the owner.
+- Healthchecks.io alerts only on a change of state, so an account that keeps
+  failing does not alert again and does not hide a new failure: the day after a
+  new failure, the check is up again unless another one appears.
+- The ping URL lives in the function's secrets and the owner's password app. A
+  leaked URL can fake a success ping and reach no data.
+
+### Recovery drill
+
+Run once to retire the manual dump, in a new Supabase project deleted
+afterwards.
+
+- Needs a free active-project slot: production uses one, so no other free
+  project may be active.
+- Steps: apply the migrations from Git, unschedule the project's cron jobs at
+  once (so no run of the drill project touches the production bucket), enter
+  the auth settings again, sign in
+  with Google (the development Google client gets the drill project's callback
+  for the drill and loses it after), copy the old objects to the new key
+  ([Object key](#object-key)), restore through the modal, compare counts and
+  hashes with the source, delete the project.
+- GitHub is not used for the drill, because a GitHub OAuth App takes one
+  callback URL.
+- The operations script's R2 key sits in a file outside Git on the Mac
+  (`chmod 600`), like the production connection settings; never in chat or
+  Git.
+
+### Periodic restore check
+
+A monthly task for the owner.
+
+- A script downloads the latest backup of the owner's account with a read-only
+  R2 token, restores it into a dedicated local test user through the same SQL
+  path (staging, then `restore_account`), exports that user again and compares:
+  every row equal except `version`, which is one higher.
+- The test user is not the fixture user the agent sessions seed.
+- When the comparison ends, and on SIGINT and SIGTERM too, the script deletes
+  the test user and its rows. Output and records hold counts and hashes only,
+  never row contents, because the local database is shared with agent
+  sessions.
+- No reset: an expand-only difference between the local migrations and
+  production still restores, so the check needs no lane coordination.
+- On success the script pings a second Healthchecks.io check with a 31-day
+  period, which emails a reminder when a month passes without a run.
+- A contract phase's close runs it once more, for the format conversion.
+
+### Deleting R2 objects
+
+A foreign key cannot reach R2, so the account deletion leaves a record of what
+to delete (decided with the deletion grace period, user, 2026-11-04).
+
+- Objects are deleted only from an explicit list, never because a key has no
+  `accounts` row: after a recovery into a new project every old key has no row,
+  and such a sweep would delete every backup before it is copied.
+- `internal.r2_deletions (user_id, requested_at, attempts)`: the cleanup job
+  inserts a row in the same transaction that deletes the auth user. No foreign
+  key; RLS enabled with no policy, so every client role is refused (Rule 10),
+  and the catalog test covers it.
+- The daily summary processes rows older than one hour: it deletes everything
+  under `accounts/<user id>/` and then the row; a failure is retried the next
+  day, and a row older than three days makes the summary send `/fail`.
+- The hour is longer than any backup call (150 s), and the function checks
+  right before an upload that the account exists and has no deletion request,
+  so an upload in flight cannot leave an orphan behind.
+- During the grace period the files stay, so a cancel brings the backups back
+  too. Writes are refused then, so the fingerprint does not change and no file
+  is written; the scheduled run skips the account and does not count it as
+  `missing`.
 
 ### Modal and copy
 
@@ -343,8 +473,8 @@ Draft copy in English; SPEC owns the final text, kept in
   Beyond that: `rejected` with `rate_limited`, inline `Try again in a few
   minutes.`
 - No storage cap: beyond the free 10 GB, R2 costs $0.015 per GB-month, while a
-  cap would fail backups. The function records each file's size, and the owner
-  is alerted when the total passes 8 GB.
+  cap would fail backups. The function records each file's size, and the daily
+  summary alerts the owner when the total passes 8 GB.
 - Invocations: one scheduled call per account a day leaves room for about
   16,000 accounts within 500,000 a month.
 
@@ -420,9 +550,15 @@ The dump runs before each production migration until all of these hold:
 2. A failed or missing backup alerts the owner.
 3. A periodic restore check exists.
 
-After that, a phase that changes SQL runs a backup of every account and
-confirms success before its migrations, and CLAUDE.md drops the manual dump. If
-the drill fails, the fallback is a server-side full dump sent to R2.
+How each is built: [Recovery drill](#recovery-drill),
+[Failure alerts](#failure-alerts) (proven by forcing a failure and receiving
+the email) and [Periodic restore check](#periodic-restore-check) (its first
+run).
+
+After all three first hold, the next phase that changes SQL runs a backup of
+every account and confirms success before its migrations instead of the dump,
+and its `/craft-docs` drops the manual dump from CLAUDE.md §Backup. If the
+drill fails, the fallback is a server-side full dump sent to R2.
 
 ## First manual dump and restore test
 
@@ -451,13 +587,34 @@ Task 239 work-plan review, checked on local Supabase on 2026-11-01 (CLI
   `psql`, so the steps go through `docker exec`.
 - Delete the dump within 7 days once the migration proves sound.
 
+## User tasks
+
+Secrets go only to the user's password app and the runtime's secret store,
+never to chat or Git (the repository is public).
+
+One-time:
+
+- Enable Cloudflare R2 (the Turnstile account exists; R2 may ask for a payment
+  method) and create the bucket.
+- R2 tokens: read-write for the Edge Function; read-only for the Mac's restore
+  check; the drill's copy step uses a token kept in a `chmod 600` file outside
+  Git.
+- Healthchecks.io sign-up and two checks (daily summary; 31-day restore
+  check); confirm email alerts; ping URLs into the function's secrets and the
+  password app.
+- The backup-only shared secret, in Vault and the function's secrets.
+- Approve the production migrations, the function deploy and the manual dump
+  at the phase close.
+- Recovery drill: confirm no other free project is active, create and later
+  delete the drill project, add and later remove its callback on the
+  development Google client.
+
+Recurring:
+
+- Monthly: run the periodic restore check (a reminder email comes after 31
+  days without a run).
+- On a Healthchecks.io email: read the failure details in the database.
+
 ## Open questions
 
-- Failure alerts: how the owner is reached, for failed, interrupted and
-  missing runs and the 8 GB storage mark; GitHub Actions as a watchdog is a
-  candidate.
-- Dump retirement: the recovery drill (free-plan project limit, cleanup after
-  it) and the periodic restore check.
-- Deleting an account must delete its R2 objects with a retry, since a foreign
-  key cannot reach them. Align with the deletion grace period.
 - Phase split and lanes.
