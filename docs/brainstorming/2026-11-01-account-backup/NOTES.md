@@ -104,9 +104,30 @@ Discarded alternatives and reasoning from the 2026-11-04 decision session
 
 ## Modal and limits
 
-- **A sidebar button** (the user's first idea): a new control to review in
-  every theme, a likely clash with the app lane's sidebar work, and a second
-  badge beside the connection badge.
+- **A `Backup` section inside the Account modal** (the first 2026-11-04
+  decision): replaced the same day by a sidebar button after the option sheet.
+  The sidebar shows a problem without opening anything and gives guests a
+  reason to sign in; its review cost is held down by reusing the realized
+  dialog frame. The earlier worries were a control to review in every theme, a
+  clash with the app lane's sidebar work, and a second badge beside the
+  connection badge (the backup dot sits on its own button, so the two no
+  longer mix).
+- **`refresh-cw` as the icon and "Sync" as the guest heading** (the user's
+  first idea): read as "reload" on the web, and "sync" promises a two-way
+  match, while a backup is a one-way copy (2026-11-01). `cloud-upload` chosen.
+- **A popover instead of a dialog:** light, but too small for the restore list
+  and its confirmation, and no theme has a realized popover shape yet.
+- **A dot while backed up:** noise on every page; dots only for problems.
+- **A spinning icon while running:** the user found rotation unpleasant. Of
+  seven candidates on the option sheet the user chose R3 (the arrow rises).
+  Not chosen: R1 bounce (lively, busy over time), R2 scale (too small a change
+  at 20px), R4 dot (reads as a warning beside the status dots), R5 ring ping
+  (reads as a notification), R6 fade (reads as disabled), R7 bar under the icon
+  (a new shape in the sidebar).
+- **A percentage while restoring:** one transaction shows no progress from
+  outside, and a timed bar would infer progress from elapsed time.
+- **Blocking other devices during a restore:** nothing pushes to them; polling
+  or Realtime costs more than it saves.
 - **Toasts for backup results:** outside the four toast uses (F11).
 - **Status from the last file time:** an unchanged account would turn yellow
   after 7 days.

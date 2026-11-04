@@ -3,7 +3,7 @@
 ## Metadata
 
 - Created: 2026-10-31
-- Updated: 2026-11-04 (decision session with the account backup topic)
+- Updated: 2026-11-04 (decision session with the account backup topic; flow and screen after the option sheet)
 - Readiness: code-ready
 - Category: feature idea
 - Source project: GridDO
@@ -75,12 +75,13 @@ screen while the account still waits for its deletion.
      backups are deleted.`
    - Toast: `Your account will be deleted after 24 hours. Sign in again to
      cancel.`
-   - Account-being-deleted screen: `This account will be deleted. You can
-     cancel until <request time + 24 h, in the user's time zone>.` Actions:
-     `Cancel deletion` (first, takes focus) and `Continue as guest`.
+   - Account-being-deleted dialog: title `This account will be deleted`, line
+     `You can cancel until <request time + 24 h, in the user's time zone>.`, a
+     countdown with `left to cancel`. Actions: `Cancel deletion` (first, takes
+     focus) and `Continue as guest`.
 7. **Request time on the screen:** the `account_deleting` rejection from
-   `ensure_account()` adds `deletion_requested_at`, an added field that the
-   deployed code ignores (expand).
+   `ensure_account()` adds `deletion_requested_at` and the server's current
+   time, added fields that the deployed code ignores (expand).
 8. **After a cancel:** the tab repeats entry; the other tabs of the browser
    follow through `BroadcastChannel`, as after a restore. Other browsers get no
    push: their screen also offers `Cancel deletion`, which succeeds on an
@@ -88,6 +89,24 @@ screen while the account still waits for its deletion.
 9. **Gates:** the SQL checklist (PLANNING_STANDARD §6), a cross-account test
    (a cancel never touches another account), concurrency tests for both orders
    of cancel and cleanup, and an `expert` review.
+10. **Flow and screen** (user, 2026-11-04, after the option sheet; replaces the
+    full-screen notice):
+    1. `Delete account` asks in the Account modal (as today).
+    2. Confirming signs out to a new guest, with the toast (as today).
+    3. Signing in again to the same account shows the app frame blurred and
+       inert, with the account-being-deleted dialog over it in the Account
+       modal's frame. The frame behind holds no data: the session is the
+       deleting account's, whose data every read refuses, and the earlier
+       guest's session was replaced at sign-in.
+    - The countdown runs to the guaranteed time (request + 24 hours), from the
+      server's time carried in the rejection, so a wrong device clock does not
+      move it. At zero it gives way to `The deletion can start at any time
+      now.`, and `Cancel deletion` stays: the cancel works until the cleanup
+      has run.
+    - The countdown is hidden from screen readers; they read the line with the
+      deadline, so nothing is announced every second.
+    - `Continue as guest` starts a new guest; the guest from step 2 is not
+      restored (as today; it is cleaned up after 7 days).
 
 ## Discarded (2026-11-04)
 
@@ -96,6 +115,10 @@ screen while the account still waits for its deletion.
 - **Seven days or more:** keeps the data and its backups that much longer.
 - **Deleting R2 keys that have no `accounts` row:** after a recovery into a new
   project every old key has no row (`2026-11-01-account-backup` NOTES).
+- **The full-screen notice** (the first 2026-11-04 decision): replaced by the
+  blurred app frame with a dialog and a countdown, the user's flow.
+- **Showing the guest's own data behind the dialog:** the guest's session is
+  gone after the sign-in, so the frame behind stays empty.
 
 ## Phase placement
 
