@@ -2036,6 +2036,66 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Restored “Source 1”.");
   });
 
+  it("leaves focus where another operation put it when a block on a not-applied Undo clears (ST21)", async () => {
+    const target = createNode({ id: "undo-target", title: "Undo target" });
+    const entry = newlyPlacedEntry(target, "node", 1);
+    setGrid(null, [target]);
+    let activeOperationId: string | null = null;
+    let foreignOperation = false;
+    const makeLock = (): TriageOperationLock => ({
+      activeOperation: null,
+      acquire: (_kind, operationId) => {
+        if (activeOperationId !== null || foreignOperation) return false;
+        activeOperationId = operationId;
+        return true;
+      },
+      isLocked: () => activeOperationId !== null || foreignOperation,
+      release: (operationId) => {
+        if (activeOperationId !== operationId) return false;
+        activeOperationId = null;
+        return true;
+      },
+    });
+    undoRepository.undoDirectPlacement.mockImplementationOnce(async (command) => ({
+      operationId: command.operationId,
+      status: "not_applied" as const,
+      result: command.resultSnapshot,
+      source: command.sourceSnapshot,
+      candidate: null,
+    }));
+    const ui = (lock: TriageOperationLock) => (
+      <TriageOperationLockContext.Provider value={lock}>
+        <HierarchyExplorer {...defaultProps} newlyPlacedEntries={[entry]} />
+      </TriageOperationLockContext.Provider>
+    );
+    const view = render(ui(makeLock()));
+    const undoButton = await screen.findByRole("button", { name: "Undo placement of Undo target" });
+    await waitFor(() => expect(undoButton).not.toHaveAttribute("aria-disabled", "true"));
+    fireEvent.click(undoButton);
+    // The item's own answer takes focus (unchanged).
+    const retry = await screen.findByRole("button", { name: "Retry" });
+    await waitFor(() => expect(retry).toHaveFocus());
+
+    // Another operation blocks the Undo; its own focus target is elsewhere.
+    foreignOperation = true;
+    view.rerender(ui(makeLock()));
+    await waitFor(() =>
+      expect(
+        document.querySelector("[data-undo-state='operation-locked']"),
+      ).not.toBeNull(),
+    );
+    const elsewhere = screen.getByRole("button", { name: "Search Explorer" });
+    elsewhere.focus();
+    expect(elsewhere).toHaveFocus();
+
+    // The block clears: the not-applied state returns, and focus stays where it is.
+    foreignOperation = false;
+    view.rerender(ui(makeLock()));
+    await screen.findByRole("button", { name: "Retry" });
+    expect(document.querySelector("[data-undo-state='not-applied']")).not.toBeNull();
+    expect(elsewhere).toHaveFocus();
+  });
+
   it("reserves one Undo width for ↶, ?, ! and the loader (no recovery-width rules)", () => {
     expect(globalsCss).not.toContain("data-newly-action-kind");
     expect(globalsCss).not.toMatch(/--newly-action-reserve:\s*(?:6\.25rem|112px)/);

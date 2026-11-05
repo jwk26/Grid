@@ -299,20 +299,23 @@ function getNewlyUndoCore(
   };
 }
 
+// Focus moves to the `?` or `!` only as the answer to this item's own Undo: its command was
+// running (pending, reconciling, unknown) and has now answered. A not-applied Undo that another
+// operation blocked and that is unblocked again goes blocked -> terminal and keeps focus where it
+// is (stabilization ST21, Phase 50 mi-6).
 function useNewlyUndoActionFocus(state: TriageNewlyPlacedUndoState) {
   const ref = useRef<HTMLButtonElement>(null);
   const previousPhaseRef = useRef(state.phase);
-  const previousTerminalStatusRef = useRef(state.terminalStatus);
   useEffect(() => {
-    const enteredFocusState =
-      (state.phase === "unknown" && previousPhaseRef.current !== "unknown") ||
-      (state.phase === "terminal" &&
-        (previousPhaseRef.current !== "terminal" ||
-          previousTerminalStatusRef.current !== state.terminalStatus));
+    const previous = previousPhaseRef.current;
     previousPhaseRef.current = state.phase;
-    previousTerminalStatusRef.current = state.terminalStatus;
-    if (enteredFocusState) ref.current?.focus({ preventScroll: true });
-  }, [state.phase, state.terminalStatus]);
+    const wasRunning =
+      previous === "pending" || previous === "reconciling" || previous === "unknown";
+    const answered =
+      (state.phase === "unknown" && previous !== "unknown") ||
+      state.phase === "terminal";
+    if (wasRunning && answered) ref.current?.focus({ preventScroll: true });
+  }, [state.phase]);
   return ref;
 }
 

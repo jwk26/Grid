@@ -245,6 +245,32 @@ describe("GridExplorerSearchResults", () => {
     expect(screen.getByRole("button", { name: "Check again" })).toHaveFocus();
   });
 
+  it("focuses a recovery action only as the answer to the item's own Undo, not when a block clears (ST21)", () => {
+    const item = result("node:alpha");
+    const ui = (state: string, label = "Retry") => (
+      <GridExplorerSearchResults
+        {...defaultProps}
+        query="alpha"
+        status="ready"
+        results={[item]}
+        getResultUndo={() => undoItem({ label, state, status: null })}
+      />
+    );
+    const view = render(ui("not-applied"));
+    const input = screen.getByRole("searchbox");
+    input.focus();
+
+    // not-applied -> blocked by another operation -> not-applied: focus stays on the input.
+    view.rerender(ui("operation-locked", "Undo placement of Alpha"));
+    view.rerender(ui("not-applied"));
+    expect(input).toHaveFocus();
+
+    // pending (its own command) -> not-applied still focuses the action.
+    view.rerender(ui("pending", "Undoing"));
+    view.rerender(ui("not-applied"));
+    expect(screen.getByRole("button", { name: "Retry" })).toHaveFocus();
+  });
+
   it("moves focus with arrows and activates the focused result with Enter", () => {
     const onFocusResult = vi.fn();
     const onSelectResult = vi.fn();
