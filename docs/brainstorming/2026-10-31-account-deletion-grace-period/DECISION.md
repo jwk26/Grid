@@ -5,6 +5,10 @@
 - Created: 2026-10-31
 - Updated: 2026-11-04 (decision session with the account backup topic; flow and screen after the option sheet)
 - Readiness: code-ready
+- Promoted: 2026-11-05 through the account-backup
+  [`PROMOTION_MAP.md`](../2026-11-01-account-backup/PROMOTION_MAP.md) into
+  Phase 54, which waits for Phase 53 (it reuses 53's other-tab follow and
+  dialog frame; B15)
 - Category: feature idea
 - Source project: GridDO
 - Source topic: n/a (user idea during Phase 48 Task 236, after a local
