@@ -723,7 +723,7 @@ begin
       select u.is_anonymous, u.created_at into v_anonymous, v_created
         from auth.users u where u.id = v_id for update;
       if not found then
-        continue;
+        raise exception 'target is gone' using errcode = 'GDSKP';
       end if;
 
       if not v_has_account then
@@ -743,7 +743,9 @@ begin
                  or (not v_has_account and v_created < transaction_timestamp() - interval '7 days')
                ))
          ) then
-        continue;
+        -- Not `continue`: that would commit the block and keep both row locks until the whole run
+        -- ends. The private SQLSTATE rolls the block back, which releases them at once.
+        raise exception 'target no longer qualifies' using errcode = 'GDSKP';
       end if;
 
       if not v_anonymous then
@@ -751,7 +753,7 @@ begin
           on conflict (user_id) do nothing;
       end if;
       delete from auth.users where id = v_id;
-    exception when deadlock_detected or lock_not_available then
+    exception when deadlock_detected or lock_not_available or sqlstate 'GDSKP' then
       null;
     end;
   end loop;

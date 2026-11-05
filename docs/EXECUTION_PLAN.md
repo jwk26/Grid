@@ -1171,8 +1171,12 @@ times and the fact that each secret was set):
    (`[edge_runtime.secrets]`, `[storage.buckets]` and any other), and that
    none carries a local value into production.
 3. Apply the migrations, outside the cron window. Before the push, confirm
-   that `config.toml` has no `[db.vault]` (Task 255 MI-2); after it, confirm
-   that both Vault entries kept the update time step 2 gave them.
+   that `config.toml` has no `[db.vault]` (Task 255 MI-2) and that `postgres`
+   holds `UPDATE` on `auth.users` (`select has_table_privilege('postgres',
+   'auth.users', 'UPDATE')`; Task 218 proved only `DELETE`, and the new
+   `cleanup_guests()` locks the auth user `for update`: Task 256 `expert`
+   review); after it, confirm that both Vault entries kept the update time
+   step 2 gave them.
 4. Measure on production with the limit-sized fixture (old 100% caps, about
    9.44 MB raw, built in SQL under a test account, with random text generated
    per row and its compressed-to-raw ratio recorded as the proof, since an

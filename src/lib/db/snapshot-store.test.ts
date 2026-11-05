@@ -73,6 +73,17 @@ describe("parseSnapshotValue", () => {
     expect(result.data.bits.get(OTHER_ID)).toMatchObject({ id: OTHER_ID, parentId: baseEntities.bit.parentId });
   });
 
+  it("accepts a value with the Phase 52 `backup` key and ignores it", () => {
+    const backup = { run_started_at: null, last_checked_at: 1, last_file_at: 1, last_result: "written", failure_reason: null, server_now: 2 };
+    const plain = parseSnapshotValue(snapshotOf([nodeRow(NODE_ID)]));
+    for (const value of [backup, null]) {
+      const result = parseSnapshotValue({ ...snapshotOf([nodeRow(NODE_ID)]), backup: value });
+      expect(result).toEqual(plain);
+      expect(result.kind).toBe("snapshot");
+      if (result.kind === "snapshot") expect(Object.keys(result.data)).not.toContain("backup");
+    }
+  });
+
   it("treats a value that holds a rejection as a rejection, never as an empty account", () => {
     expect(parseSnapshotValue({ rejection: { code: "account_missing" } })).toEqual({
       kind: "rejection",
