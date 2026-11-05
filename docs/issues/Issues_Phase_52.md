@@ -110,8 +110,8 @@ User preparation before Task 255 (plan §User preparation): R2 prices checked ag
 ## Task 257 — Build the backup Edge Function
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 257 acceptance
+- Status: Accepted
+- Next: Task 258 (`/run-task 258`)
 - Open: none
 
 ### Log
@@ -147,3 +147,4 @@ User preparation before Task 255 (plan §User preparation): R2 prices checked ag
 - Task 258 note: (1) the function's answers: `manual` 200 `{status: 'applied', result: {result, reason?}, backup?}` (`backup` is absent when the follow-up status read failed; `result` may be `abandoned`, the did-not-start line); 200 `{status: 'rejected', rejection: {code}}` with `rate_limited`, `already_running`, `account_deleting`, `account_missing` or `not_eligible`; 400/401/403/405 `{status: 'refused', code}`; 502 `{status: 'unconfirmed'}` is in the no-answer set (one verdict read); `status` 200 `{status: 'applied', result: {backup, verdict}}`. (2) The red line's reason copy: only `too_large` has its own line; every other code (`interrupted`, `export_failed`, `upload_failed`, …) shows `It runs again tomorrow.` (3) Browser checks need the function served (`pnpm exec supabase functions serve`, with `.env.local`); `pnpm test:db` serves it only during its own run.
 - Task 259 note: before the first scheduled run, the function secrets `BACKUP_SHARED_SECRET`, the five `BACKUP_S3_*` and `HEALTHCHECKS_DAILY_PING_URL` and the Vault entries `backup_function_url` and `backup_shared_secret` are set (the ledger records only that and when); step 6 now includes the owner's production `Back Up Now` and status read; step 4 measures the compressed-body join's memory on production.
 - Finish review applied (user go-ahead, 2026-11-06). (1) An unchanged run, after the pre-upload check, reads `identity.json` (`getText`; a 404 is null) and writes it only when the user id, providers or provider user ids differ or the file is missing (`sameIdentity`, order- and layout-independent); a failed refresh is `failed` with `upload_failed`, never `unchanged`. Fake tests (same content writes nothing; a linked provider or a missing file writes; a failing put) and an integration test (the same content in another layout is not rewritten, a linked Google identity and a deleted file are written on an unchanged run). (2) `57014` is recorded as `too_large` (`classifyExportFailure`, vitest). Gate: `git diff --check`, `pnpm lint` (0 errors, 10 warnings), `pnpm typecheck`, `pnpm check:edge`, `pnpm build` pass; `pnpm test` 2697 passed (153 files), both known flaky tests passed; `pnpm test:db` 44 files, 1072 passed. Checkpoint above: finding 4 is fixed by (1); `Unresolved: none`.
+- Accepted by the user, 2026-11-06.

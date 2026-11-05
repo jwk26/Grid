@@ -1035,7 +1035,7 @@ request and the summary's `missing` count leaves it out.
 
 **Commit message:** `feat(db): add backup status, export and daily dispatch`.
 
-### Task 257: [ ] Build the backup Edge Function
+### Task 257: [x] Build the backup Edge Function
 
 **Files and actions:**
 - `supabase/functions/backup/`: modes `scheduled` and `summary` (shared
