@@ -890,7 +890,7 @@ period (Phase 54).
 
 **Task order:** 255 → 256 → 257 → 258 → 259.
 
-### Task 255: [ ] Set up the Edge toolchain and measure the function locally (go/no-go)
+### Task 255: [x] Set up the Edge toolchain and measure the function locally (go/no-go)
 
 **Files and actions:**
 - `package.json`, `pnpm-lock.yaml`: Deno pinned as a devDependency if a
