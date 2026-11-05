@@ -966,7 +966,7 @@ only); a deliberately broken `_shared` import fails `tsc` and `deno check`.
 
 **Commit message:** `chore(backup): set up the Edge toolchain and record the local go/no-go`.
 
-### Task 256: [ ] Add backup status, export, fingerprint and the daily dispatch in SQL
+### Task 256: [x] Add backup status, export, fingerprint and the daily dispatch in SQL
 
 **Files and actions:**
 - A migration: `pg_net`; `app.backup_status` with RLS, its `authenticated`

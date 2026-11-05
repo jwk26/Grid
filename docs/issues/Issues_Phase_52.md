@@ -70,8 +70,8 @@ User preparation before Task 255 (plan §User preparation): R2 prices checked ag
 ## Task 256 — Add backup status, export, fingerprint and the daily dispatch in SQL
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 256 acceptance
+- Status: Accepted
+- Next: Task 257 (`/run-task 257`)
 - Open: none
 
 ### Log
@@ -102,3 +102,7 @@ User preparation before Task 255 (plan §User preparation): R2 prices checked ag
 - Finish review applied (2026-11-06). (1) `backup_finish()` takes `p_result = 'abandoned'` (with the run token): it clears `run_started_at` only and writes no result; `last_finished_at`, `last_result`, `last_checked_at` and the failure state stay; a manual run's `manual_result` becomes `abandoned` (the check constraint takes it) and its verdict reads `abandoned`. Two tests (scheduled: nothing but the start changes, a stale token is `not_applied`, no `interrupted` later; manual: verdict `abandoned`, no failure). A short `expert` check of that diff: SQL sound; two wording findings fixed: the SCHEMA `backup_finish` row no longer says `abandoned` sets `last_finished_at`, and the verdict `abandoned` is now in SCHEMA §Operation verdicts, §Deleting R2 objects and SPEC §Back Up Now unknown outcome, where I gave it the did-not-start line (my choice, for the advisory to confirm: the client has no line of its own for a run that ended because the account is under deletion). Full gate after it: `pnpm test:db` (reset, `backup-vault.mjs`, all suites) 40 files, 1036 passed; `git diff --check`, `pnpm typecheck`, `pnpm lint` (0 errors, 10 warnings), `pnpm check:edge` pass; `pnpm test` and `pnpm build` not rerun (no `src/` or build input changed since their pass). (2) Waiting for the user's production result (read-only query below); I do not touch production.
 - Task 257 note from the finish review is read; one addition from the `abandoned` change: the function ends a run that meets a deletion request with `backup_finish(…, 'abandoned')`, never with `failed`.
 - Decision: Production `select has_table_privilege('postgres', 'auth.users', 'UPDATE')` in the SQL Editor returned `true` (user, 2026-11-06), so `cleanup_guests()` keeps its `auth.users … for update` lock; Task 259 step 3 still repeats the check before the push.
+- Review (advisory, 2026-11-06, task finish round 2): approve. `abandoned` clears only the start under the run token, is tested for a scheduled and a manual run, and passed its short `expert` check; the production `UPDATE` result is recorded; the gate rerun covers the SQL-only change. Apply: none. Not applied: none.
+- Decision: SPEC §Back Up Now: the verdict `abandoned` shows the did-not-start line (the agent's choice in `c7d880b`) is approved (user, 2026-11-06).
+- Task 258 note: a `Back Up Now` verdict may also be `interrupted` (the red line) or `abandoned` (the did-not-start line) (SPEC §Back Up Now, SCHEMA §Operation verdicts); the hook and its tests cover both.
+- Accepted by the user, 2026-11-06.
