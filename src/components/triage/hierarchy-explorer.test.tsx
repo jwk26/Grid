@@ -1,9 +1,11 @@
 import "@testing-library/jest-dom/vitest";
+import { isEscapeLayerOpen, useEscapeLayer } from "@/hooks/use-escape-layers";
 import {
   act,
   cleanup,
   fireEvent,
   render,
+  renderHook,
   screen,
   waitFor,
   within,
@@ -1359,6 +1361,27 @@ describe("HierarchyExplorer Task 152 target-column placement", () => {
   });
 });
 
+describe("HierarchyExplorer Placement affordance during a Triage drag", () => {
+  it("leaves the Placement affordance to the next Esc while a Triage drag is active", () => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const onPlacementCancel = vi.fn();
+    render(
+      <HierarchyExplorer
+        {...defaultProps}
+        placementSnapshot={placementSnapshot()}
+        onPlacementCancel={onPlacementCancel}
+      />,
+    );
+    const drag = renderHook(() => useEscapeLayer(true, "triage-drag"));
+
+    fireEvent.keyDown(screen.getByRole("region", { name: "Placement" }), { key: "Escape" });
+    expect(onPlacementCancel).not.toHaveBeenCalled();
+    drag.unmount();
+    fireEvent.keyDown(screen.getByRole("region", { name: "Placement" }), { key: "Escape" });
+    expect(onPlacementCancel).toHaveBeenCalledOnce();
+  });
+});
+
 describe("HierarchyExplorer Task 155 actual-card Newly Placed projection", () => {
   it("renders actual cards and pins multiple local results newest-first within each type", () => {
     const ordinaryNode = createNode({ id: "ordinary-node", title: "Ordinary node", x: 1, y: 2 });
@@ -2011,6 +2034,66 @@ describe("HierarchyExplorer Task 157 DP-VQ10 Newly and Undo rail", () => {
       firstOperationId,
     );
     expect(screen.getByRole("status")).toHaveTextContent("Restored “Source 1”.");
+  });
+
+  it("leaves focus where another operation put it when a block on a not-applied Undo clears (ST21)", async () => {
+    const target = createNode({ id: "undo-target", title: "Undo target" });
+    const entry = newlyPlacedEntry(target, "node", 1);
+    setGrid(null, [target]);
+    let activeOperationId: string | null = null;
+    let foreignOperation = false;
+    const makeLock = (): TriageOperationLock => ({
+      activeOperation: null,
+      acquire: (_kind, operationId) => {
+        if (activeOperationId !== null || foreignOperation) return false;
+        activeOperationId = operationId;
+        return true;
+      },
+      isLocked: () => activeOperationId !== null || foreignOperation,
+      release: (operationId) => {
+        if (activeOperationId !== operationId) return false;
+        activeOperationId = null;
+        return true;
+      },
+    });
+    undoRepository.undoDirectPlacement.mockImplementationOnce(async (command) => ({
+      operationId: command.operationId,
+      status: "not_applied" as const,
+      result: command.resultSnapshot,
+      source: command.sourceSnapshot,
+      candidate: null,
+    }));
+    const ui = (lock: TriageOperationLock) => (
+      <TriageOperationLockContext.Provider value={lock}>
+        <HierarchyExplorer {...defaultProps} newlyPlacedEntries={[entry]} />
+      </TriageOperationLockContext.Provider>
+    );
+    const view = render(ui(makeLock()));
+    const undoButton = await screen.findByRole("button", { name: "Undo placement of Undo target" });
+    await waitFor(() => expect(undoButton).not.toHaveAttribute("aria-disabled", "true"));
+    fireEvent.click(undoButton);
+    // The item's own answer takes focus (unchanged).
+    const retry = await screen.findByRole("button", { name: "Retry" });
+    await waitFor(() => expect(retry).toHaveFocus());
+
+    // Another operation blocks the Undo; its own focus target is elsewhere.
+    foreignOperation = true;
+    view.rerender(ui(makeLock()));
+    await waitFor(() =>
+      expect(
+        document.querySelector("[data-undo-state='operation-locked']"),
+      ).not.toBeNull(),
+    );
+    const elsewhere = screen.getByRole("button", { name: "Search Explorer" });
+    elsewhere.focus();
+    expect(elsewhere).toHaveFocus();
+
+    // The block clears: the not-applied state returns, and focus stays where it is.
+    foreignOperation = false;
+    view.rerender(ui(makeLock()));
+    await screen.findByRole("button", { name: "Retry" });
+    expect(document.querySelector("[data-undo-state='not-applied']")).not.toBeNull();
+    expect(elsewhere).toHaveFocus();
   });
 
   it("reserves one Undo width for ↶, ?, ! and the loader (no recovery-width rules)", () => {
@@ -3054,6 +3137,80 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
       );
     },
   );
+
+  it("registers an open search and the Placement affordance as Esc layers, and nothing when both are closed", () => {
+    const view = render(<HierarchyExplorer {...defaultProps} />);
+    expect(isEscapeLayerOpen()).toBe(false);
+    view.unmount();
+
+    explorerSearchState.mode = "active";
+    explorerSearchState.activeQuery = "projects";
+    const searching = render(<HierarchyExplorer {...defaultProps} />);
+    expect(isEscapeLayerOpen()).toBe(true);
+    searching.unmount();
+    expect(isEscapeLayerOpen()).toBe(false);
+
+    explorerSearchState.mode = "closed";
+    explorerSearchState.activeQuery = null;
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const placing = render(
+      <HierarchyExplorer {...defaultProps} placementSnapshot={placementSnapshot({ phase: "pending", resultType: "node" })} />,
+    );
+    // A locked placement still counts, so a press does nothing and edit mode stays (ST35).
+    expect(isEscapeLayerOpen()).toBe(true);
+    placing.unmount();
+    expect(isEscapeLayerOpen()).toBe(false);
+  });
+
+  it("leaves an open search to the next Esc when focus is outside the Explorer and another layer is open", () => {
+    explorerSearchState.mode = "active";
+    explorerSearchState.activeQuery = "projects";
+    explorerSearchState.results = [searchResult("node:projects")];
+    render(
+      <>
+        <HierarchyExplorer {...defaultProps} />
+        <button type="button">outside</button>
+      </>,
+    );
+    const outside = screen.getByRole("button", { name: "outside" });
+    outside.focus();
+    const other = renderHook(() => useEscapeLayer(true));
+
+    fireEvent.keyDown(outside, { key: "Escape" });
+    expect(explorerSearchState.closeSearch).not.toHaveBeenCalled();
+
+    other.unmount();
+    fireEvent.keyDown(outside, { key: "Escape" });
+    expect(explorerSearchState.closeSearch).toHaveBeenCalledOnce();
+  });
+
+  it("closes an open search with Esc from inside the Explorer even while another layer is open", () => {
+    explorerSearchState.mode = "active";
+    explorerSearchState.activeQuery = "projects";
+    explorerSearchState.results = [searchResult("node:projects")];
+    render(<HierarchyExplorer {...defaultProps} />);
+    const other = renderHook(() => useEscapeLayer(true));
+
+    screen.getByRole("searchbox").focus();
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Escape" });
+    expect(explorerSearchState.closeSearch).toHaveBeenCalledOnce();
+    other.unmount();
+  });
+
+  it("leaves an open search to the next Esc while a Triage drag is active", () => {
+    explorerSearchState.mode = "active";
+    explorerSearchState.activeQuery = "projects";
+    explorerSearchState.results = [searchResult("node:projects")];
+    render(<HierarchyExplorer {...defaultProps} />);
+    const drag = renderHook(() => useEscapeLayer(true, "triage-drag"));
+
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Escape" });
+    expect(explorerSearchState.closeSearch).not.toHaveBeenCalled();
+
+    drag.unmount();
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Escape" });
+    expect(explorerSearchState.closeSearch).toHaveBeenCalledOnce();
+  });
 
   it("clears interrupted search with Escape from an ordinary column without changing DnD focus ownership", () => {
     setGrid(null, [createNode({ id: "projects", title: "Projects" })]);

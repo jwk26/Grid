@@ -341,3 +341,52 @@ describe("browser events", () => {
     expect(monitor.getState()).toBe("normal");
   });
 });
+
+describe("outage evidence and the real state (stabilization ST34, ST37)", () => {
+  it("counts a failed probe and the browser offline event, not a request's own failure", async () => {
+    const { monitor, probe } = make();
+    monitor.start();
+    expect(monitor.getOutageEvidenceCount()).toBe(0);
+
+    // A request failure reported by a command's own check is not evidence.
+    monitor.report("unreachable");
+    monitor.report("degraded");
+    expect(monitor.getOutageEvidenceCount()).toBe(0);
+
+    window.dispatchEvent(new Event("offline"));
+    expect(monitor.getOutageEvidenceCount()).toBe(1);
+
+    probe.mockResolvedValueOnce(false);
+    await vi.advanceTimersByTimeAsync(CONNECTION_PROBE_INTERVAL_MS);
+    expect(monitor.getOutageEvidenceCount()).toBe(2);
+    monitor.stop();
+  });
+
+  it("does not count an answered probe whose snapshot read then fails", async () => {
+    const { monitor, probe, refetch } = make();
+    monitor.start();
+    window.dispatchEvent(new Event("offline"));
+    const before = monitor.getOutageEvidenceCount();
+    probe.mockResolvedValue(true);
+    refetch.mockRejectedValue(new Error("read failed"));
+    await vi.advanceTimersByTimeAsync(CONNECTION_PROBE_INTERVAL_MS);
+    expect(monitor.getOutageEvidenceCount()).toBe(before);
+    monitor.stop();
+  });
+
+  it("a forced state changes getState but never getRealState or the count", () => {
+    const { monitor } = make();
+    monitor.setForced("offline");
+    expect(monitor.getState()).toBe("offline");
+    expect(monitor.getRealState()).toBe("normal");
+    monitor.setForced(null);
+    expect(monitor.getRealState()).toBe("normal");
+    expect(monitor.getOutageEvidenceCount()).toBe(0);
+  });
+
+  it("the real state follows the requests", () => {
+    const { monitor } = make();
+    monitor.report("unreachable");
+    expect(monitor.getRealState()).toBe("unstable");
+  });
+});

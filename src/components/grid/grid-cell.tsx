@@ -8,7 +8,6 @@ type GridCellProps = {
   isEditMode: boolean;
   isEmpty: boolean;
   isDragOver?: boolean;
-  borderOpacity?: string;
   onAddClick?: () => void;
   children?: ReactNode;
 };

@@ -112,6 +112,23 @@ describe("AppFrame", () => {
     expect(screen.getByTestId("app")).toBeInTheDocument();
   });
 
+  it("marks the load-failure screen's title, reason and actions as the app-frame parts and still focuses the first action", () => {
+    const fake = fakeController({ phase: "load-failure", reason: "other" });
+    render(
+      <AppFrame controller={fake.controller}>
+        <App />
+      </AppFrame>,
+    );
+    expect(screen.getByRole("heading", { level: 1 })).toHaveAttribute("data-app-role", "app-frame-title");
+    expect(screen.getByText("Something went wrong while loading.")).toHaveAttribute(
+      "data-app-role",
+      "app-frame-reason",
+    );
+    const retry = screen.getByRole("button", { name: "Retry" });
+    expect(retry.parentElement).toHaveAttribute("data-app-role", "app-frame-action");
+    expect(retry).toHaveFocus();
+  });
+
   it("restarts the delay when entry runs again after a user change", () => {
     const fake = fakeController({ phase: "ready" });
     render(

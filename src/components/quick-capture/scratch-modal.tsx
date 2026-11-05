@@ -11,6 +11,7 @@ import {
 } from "motion/react";
 import {
   type FormEvent,
+  type PointerEvent,
   useCallback,
   useEffect,
   useRef,
@@ -66,6 +67,8 @@ function ScratchModalContent({
   const shouldReduceMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
   const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // True while a mouse or pen pointer is over the panel; a touch tap never counts (ST10).
+  const pointerOverPanelRef = useRef(false);
   const capturedIdRef = useRef<string | undefined>(undefined);
   const capturedReportedRef = useRef(false);
   const onCapturedRef = useRef(onCaptured);
@@ -132,7 +135,9 @@ function ScratchModalContent({
       return;
     }
 
-    startAutoCloseTimer();
+    if (!pointerOverPanelRef.current) {
+      startAutoCloseTimer();
+    }
 
     return () => {
       clearAutoCloseTimer();
@@ -286,13 +291,23 @@ function ScratchModalContent({
     handleClose();
   }
 
-  function handlePanelMouseEnter() {
+  function handlePanelPointerEnter(event: PointerEvent<HTMLElement>) {
+    if (event.pointerType === "touch") {
+      return;
+    }
+
+    pointerOverPanelRef.current = true;
     if (isSuccess) {
       clearAutoCloseTimer();
     }
   }
 
-  function handlePanelMouseLeave() {
+  function handlePanelPointerLeave(event: PointerEvent<HTMLElement>) {
+    if (event.pointerType === "touch") {
+      return;
+    }
+
+    pointerOverPanelRef.current = false;
     if (isSuccess) {
       startAutoCloseTimer();
     }
@@ -320,8 +335,8 @@ function ScratchModalContent({
           )}
           exit="exit"
           initial="hidden"
-          onMouseEnter={handlePanelMouseEnter}
-          onMouseLeave={handlePanelMouseLeave}
+          onPointerEnter={handlePanelPointerEnter}
+          onPointerLeave={handlePanelPointerLeave}
           role="dialog"
           variants={panelVariants}
         >

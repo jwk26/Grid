@@ -46,6 +46,7 @@ import {
   type TriageDropData,
 } from "@/lib/grid-dnd";
 import type { ItemStatus } from "@/lib/feedback/item-status";
+import { escapeLayerCount, isTriageDragActive, useEscapeLayer } from "@/hooks/use-escape-layers";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import { cn } from "@/lib/utils";
 import {
@@ -298,20 +299,23 @@ function getNewlyUndoCore(
   };
 }
 
+// Focus moves to the `?` or `!` only as the answer to this item's own Undo: its command was
+// running (pending, reconciling, unknown) and has now answered. A not-applied Undo that another
+// operation blocked and that is unblocked again goes blocked -> terminal and keeps focus where it
+// is (stabilization ST21, Phase 50 mi-6).
 function useNewlyUndoActionFocus(state: TriageNewlyPlacedUndoState) {
   const ref = useRef<HTMLButtonElement>(null);
   const previousPhaseRef = useRef(state.phase);
-  const previousTerminalStatusRef = useRef(state.terminalStatus);
   useEffect(() => {
-    const enteredFocusState =
-      (state.phase === "unknown" && previousPhaseRef.current !== "unknown") ||
-      (state.phase === "terminal" &&
-        (previousPhaseRef.current !== "terminal" ||
-          previousTerminalStatusRef.current !== state.terminalStatus));
+    const previous = previousPhaseRef.current;
     previousPhaseRef.current = state.phase;
-    previousTerminalStatusRef.current = state.terminalStatus;
-    if (enteredFocusState) ref.current?.focus({ preventScroll: true });
-  }, [state.phase, state.terminalStatus]);
+    const wasRunning =
+      previous === "pending" || previous === "reconciling" || previous === "unknown";
+    const answered =
+      (state.phase === "unknown" && previous !== "unknown") ||
+      state.phase === "terminal";
+    if (wasRunning && answered) ref.current?.focus({ preventScroll: true });
+  }, [state.phase]);
   return ref;
 }
 
@@ -588,6 +592,8 @@ export function HierarchyExplorer({
   targetFeedback,
 }: HierarchyExplorerProps) {
   const search = useGridExplorerSearch();
+  // An open search is an `Esc` layer: one press closes only it (stabilization ST20).
+  useEscapeLayer(search.mode !== "closed");
   const explorerRef = useRef<HTMLDivElement>(null);
   const searchEntryRef = useRef<HTMLButtonElement>(null);
   const previousDragRef = useRef<TriageDragItem>(null);
@@ -982,6 +988,21 @@ export function HierarchyExplorer({
   useEffect(() => {
     const clearSearchOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || search.mode === "closed") return;
+      // During a Triage drag the press only cancels the drag; the search closes on the next one.
+      if (isTriageDragActive()) return;
+      // The search is not the top layer when focus is outside the Explorer and another layer is
+      // open (the Add field, an editor, the completion area, a dialog): that layer takes the press
+      // and the search stays for the next one (stabilization ST20).
+      const focusInExplorer = explorerRef.current?.contains(document.activeElement) ?? false;
+      if (
+        !focusInExplorer &&
+        (escapeLayerCount() > 1 ||
+          document.querySelector(
+            '[role="dialog"]:not([data-state="closed"]), [role="alertdialog"]:not([data-state="closed"])',
+          ) !== null)
+      ) {
+        return;
+      }
       event.preventDefault();
       search.closeSearch();
       if (activeDragItem === null) {
@@ -1738,6 +1759,8 @@ function PlacementAffordance({
   const reconcileRef = useRef<HTMLButtonElement>(null);
   const retryRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  // Mounted only while the affordance is open: an `Esc` layer, locked or not (stabilization ST35).
+  useEscapeLayer(true);
   const descriptionId = useId();
   const errorId = useId();
   const nodeReasonId = useId();
@@ -1961,6 +1984,7 @@ function PlacementAffordance({
       data-triage-role="placement-affordance"
       onKeyDown={(event) => {
         if (event.key !== "Escape") return;
+        if (isTriageDragActive()) return;
         if (locked) {
           event.preventDefault();
           return;

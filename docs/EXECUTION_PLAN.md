@@ -26,7 +26,8 @@ Execution plan mode: scaled
 > (2026-10-29); Task 230 is accepted `[x]` and Phase 46 is closed
 > (2026-10-30); Tasks 231–234 are accepted `[x]` and Phase 47 is closed
 > (2026-10-30); Tasks 245–250 and repair Task 245A are accepted `[x]` and
-> Phase 50 is closed (2026-10-31); Tasks 180–208 and Phases 36–40 are retired as
+> Phase 50 is closed (2026-10-31); Tasks 251–254 are accepted `[x]` and Phase
+> 51 is closed (2026-11-05); Tasks 180–208 and Phases 36–40 are retired as
 > superseded (feedback F28, promotion ②), their text in
 > [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
 > Phases 32–33 remain reserved.
@@ -40,8 +41,8 @@ Execution plan mode: scaled
 > [Feedback Lane — Phases 49–50](#feedback-lane--phases-4950).
 > **Stabilization (2026-11-04):** Phase 51, Tasks 251–254, app lane, from the
 > [stabilization DECISION](brainstorming/2026-11-04-stabilization-pass/DECISION.md)
-> ST01–ST29. It waits for no phase and may run beside the account-backup DB
-> lane. See [Stabilization — Phase 51](#stabilization--phase-51).
+> ST01–ST38. It ran beside the account-backup DB lane and closed on
+> 2026-11-05. See [Phase 51 — Completed / Archived](#phase-51--completed--archived).
 > **Account backup (2026-11-05):** Phases 52–54, Tasks 255–266, `db` lane,
 > from the [account-backup DECISION](brainstorming/2026-11-01-account-backup/DECISION.md)
 > and the [deletion-grace DECISION](brainstorming/2026-10-31-account-deletion-grace-period/DECISION.md)
@@ -158,9 +159,9 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phases 48 and 50 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30); Phase 47 (SaaS lane, part 6) closed through `/end-phase 47` (2026-10-30); Phase 50 (feedback lane, part 2) closed through `/end-phase 50` (2026-10-31); Phase 48 (SaaS lane, part 7) closed through `/end-phase 48` (2026-11-02). The SaaS and feedback lanes are finished. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 closed in Task 248, MI-14 in Task 250 and MI-21 in Tasks 245–246; MI-19 closed in Task 229 and MI-23 in Task 234; Phase 45 MI-24 goes to the theme stage; its mi-1 closed in Task 245, mi-2 in Task 246 and mi-3 in Task 249. |
+| Execution lifecycle | Phases 48, 50 and 51 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30); Phase 47 (SaaS lane, part 6) closed through `/end-phase 47` (2026-10-30); Phase 50 (feedback lane, part 2) closed through `/end-phase 50` (2026-10-31); Phase 48 (SaaS lane, part 7) closed through `/end-phase 48` (2026-11-02); Phase 51 (stabilization) closed through `/end-phase 51` (2026-11-05). The SaaS and feedback lanes are finished. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 closed in Task 248, MI-14 in Task 250 and MI-21 in Tasks 245–246; MI-19 closed in Task 229 and MI-23 in Task 234; Phase 45 MI-24 goes to the theme stage; its mi-1 closed in Task 245, mi-2 in Task 246 and mi-3 in Task 249. |
 | SaaS conversion | `COMPLETED` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26, Phase 45 (Tasks 225–229) on 2026-10-29, Phase 46 (Task 230) and Phase 47 (Tasks 231–234) on 2026-10-30, Phase 48 (Tasks 235–240 and 238A) on 2026-11-02; every migration is on production; Dexie is removed; MI-8 is closed. The URL is announced after the production smoke (Phase 48 ledger). |
-| Stabilization | `PLANNED` | Phase 51 (Tasks 251–254, app lane) waits for no phase; the [Phase 51 flow review](reviews/phase-51-flow-review.md) is OWNED (round 4), so `/run-phase 51` may start. |
+| Stabilization | `COMPLETED` | Phase 51 (Tasks 251–254, app lane) closed and archived (2026-11-05); no migration. What it left is in `Issues_Deferred.md`. |
 | Feedback lane | `COMPLETED` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); Phase 50 (Tasks 245–250 and 245A) closed and archived (2026-10-31). What it left is in `Issues_Deferred.md`. The theme stage follows. |
 | Data foundations | `COMPLETED` | Tasks 101–105A and authoritative command Tasks 120–126 are accepted and recorded in their phase archives. |
 | Decision prerequisites | `COMPLETED` | Tasks 106–119 and all fourteen DP receipts are accepted, reflected, and recorded in the Phase 24 archive. |
@@ -236,7 +237,7 @@ Feedback lane:
   [Phase 49 + Phase 45 Final Close]→245→245A→246→247→248→249; 250  Phase 50 (beside Phases 46–48)
 
 Stabilization (app lane):
-  251→252→253→254  Phase 51 (waits for none; beside the account-backup DB lane)
+  251→252→253→254  Phase 51 (completed 2026-11-05)
 
 Account backup (db lane):
   255→256→257→258→259  Phase 52 (waits for none; beside Phase 51)
@@ -280,7 +281,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 49 | — | Completed | [Feedback lane, part 1: theme set, status primitives, toasts](execution-plan/archive/phase-49.md) | 241–244 | Accepted and archived (2026-10-24); ISSUE-20-01 and MI-13 resolved in Task 241; mi-1, mi-2 and mi-3 bound to Task 248 in `Issues_Deferred.md`. Phases 45 and 47 no longer wait for it. |
 | Phase 50 | — | Completed | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](execution-plan/archive/phase-50.md) | 245–250 + 245A | Accepted and archived (2026-10-31); no migration; Phase 35 MI-14 and MI-21, Phase 45 mi-1–mi-3 and Phase 49 mi-1–mi-3 closed; follow-ups in `Issues_Deferred.md`. The theme stage no longer waits for it. |
 | Phases 36–40 | — | Retired (feedback F28, 2026-10-22) | [Terminal, Claymorphism + Origami, GridDO + Tiny Desk, Graphite, and the Task 208 campaign gate](execution-plan/archive/phases-36-40-retired.md) | 180–208 | Retired as superseded; never runnable. Numbers are not reused. |
-| Phase 51 | app | Planned | [Stabilization: small fixes, unavailable Grid, Inbox `Esc` and focus, Inbox lock recovery](#stabilization--phase-51) | 251–254 | Waits for none; may run beside the account-backup DB lane. Flow review: [Phase 51](reviews/phase-51-flow-review.md). |
+| Phase 51 | app | Completed | [Stabilization: small fixes, unavailable Grid, Inbox `Esc` and focus, Inbox lock recovery](execution-plan/archive/phase-51.md) | 251–254 | Accepted and archived (2026-11-05); no migration; ISSUE-16-03, ISSUE-20-03, ISSUE-20-04, Phase 48 mi-7, Phase 50 mi-6, mi-8 and the Tasks 245A/246 residual closed; mi-1, mi-3, mi-4 and mi-6 carried in `Issues_Deferred.md`. |
 | Phase 52 | db | Planned | [Account backup: toolchain, SQL, Edge Function, sidebar button, production close](#phase-52--account-backup) | 255–259 | Waits for none; may run beside Phase 51. Flow review: [Phases 52–54](reviews/phase-52-54-flow-review.md). |
 | Phase 53 | db | Planned | [Account restore: SQL, Edge restore, restoring screen, monthly check, recovery drill](#phase-53--account-restore) | 260–264 | Waits for Phase 52. Flow review: [Phases 52–54](reviews/phase-52-54-flow-review.md). |
 | Phase 54 | db | Planned | [Account deletion grace period and cancel](#phase-54--account-deletion-grace-period) | 265–266 | Waits for Phase 53 (reuses its other-tab follow and dialog frame). Flow review: [Phases 52–54](reviews/phase-52-54-flow-review.md). |
@@ -780,296 +781,17 @@ mi-3 and Phase 49 mi-1, mi-2 and mi-3 closed in these tasks. No migration
 changed, so nothing went to production. Carried items are in
 [Issues_Deferred.md](issues/Issues_Deferred.md).
 
-## Stabilization — Phase 51
+## Phase 51 — Completed / Archived
 
-Authority: [stabilization DECISION](brainstorming/2026-11-04-stabilization-pass/DECISION.md)
-ST01–ST38 (ST30–ST38 from the flow review, rounds 1–3); SCHEMA §Hooks aging row (ST09); SPEC
-[Stabilization Amendment](SPEC.md#stabilization-amendment--2026-11-04), its
-`/grid/[nodeId]` Unavailable Grid, Bit Detail Popup Unavailable Bit, `Esc` order, Quick Capture, Newly/Undo
-focus, unknown-recovery and Connection states statements, and §Feedback copy;
-DESIGN_TOKENS `grid-unavailable`; PLANNING_STANDARD §5.2 Phase 51 row and §6
-Authoritative operation state.
-
-Flow review: [Phase 51 flow review](reviews/phase-51-flow-review.md).
-
-**Lane and waits:** `app` lane; waits for no phase and may run beside the
-account-backup DB lane (ST02, ST03).
-
-**Task order:** 251 → 252 → 253 → 254 (ST08), each waiting for the one
-before: 252 and 253 share `grid-runtime.tsx`, and 253 and 254 share
-`use-dnd.ts`, `breakdown-panel.tsx` and `triage-workspace.tsx`.
-
-**Out of scope (ST07):** ISSUE-18-16 and ISSUE-19-01 go to the FE/Visual pass;
-Phase 50 mi-10 stays held until it is seen again.
-
-### Shared rules for every Phase 51 task
-
-- **Gates:** the CLAUDE.md gate without `pnpm test:db` on every task; the
-  phase close runs `pnpm test:db` once under the CLAUDE.md Local Supabase
-  rule (ST02).
-- **Database:** no task edits `supabase/`, adds a migration or resets the
-  local database; a task seeds again after a DB-lane reset. A task that finds
-  it needs SQL stops and reports to the user (ST02).
-- **Checks:** the agent runs every functional check (tests and the isolated
-  Playwright browser on local Supabase, seeded by
-  `scripts/dev-fixtures/inbox-triage.js`). Only Task 252 has a user visual
-  checkpoint (ST05, ST19, PLANNING_STANDARD §5.2).
-- **Review:** Tasks 253 and 254 get an `expert` review before acceptance
-  (ST22, ST27).
-- **Production:** no migration, so the merge is the deploy; no dump (ST04).
-- **Daily-use findings:** a bug the user finds in real use during the phase
-  goes into the Phase 51 ledger; the user decides by its size whether it joins
-  this phase or is deferred (ST06).
-- **Learnings flow (ST29):** the phase close records, per task, whether the
-  work plan carried a `Learnings:` line read from
-  `docs/execution-plan/LEARNINGS.md` and whether the checkpoint carried a
-  `Lesson:` line. It is a close-time observation, not a task acceptance
-  criterion.
-
-### Task 251: [ ] Small Grid and capture fixes
-
-**Files and actions:**
-- `src/components/grid/node-card.tsx` and test: no aging filter for a Node
-  with `systemRole !== null`; ordinary Nodes unchanged (ST09).
-- `src/components/quick-capture/scratch-modal.tsx` and test: when the success
-  state begins while the pointer is already over the panel, the auto-close
-  timer does not start; it starts when the pointer leaves (ST10). "Over the
-  panel" is read from the pointer itself (tracked from the modal's open, or
-  `:hover` at the success entry), so a keyboard capture with the pointer
-  outside the panel closes as before.
-- `src/components/grid/grid-view.tsx`, `src/components/grid/grid-cell.tsx`
-  and `grid-cell.test.tsx`: remove `levelOpacityMap` and the `borderOpacity`
-  prop (ST11); no visual change.
-
-**Dependencies:** this phase's lifecycle gate.
-
-**Authority:** ST09–ST11; SCHEMA §Hooks aging row; SPEC Quick Capture
-(Scratch); ISSUE-16-03, ISSUE-20-03, ISSUE-20-04.
-
-**Observable acceptance:** the Inbox and Archive Node cards carry no aging
-filter at any `mtime`, in the Grid and in the Inbox Explorer, while an
-ordinary Node of the same age does; a Scratch capture that succeeds with the
-pointer over the modal stays open until the pointer leaves, then closes after
-the usual delay; a keyboard capture with the pointer outside the panel closes
-after the usual delay; no reference to
-`borderOpacity` or `levelOpacityMap` remains and the Grid renders as before.
-
-**Verification:** gate; tests for the aging exclusion and for the timer with
-the pointer over and outside the panel at success (fake timers); a browser
-check by the agent of both behaviors.
-
-**Commit message:** `fix(grid): drop aging on system Nodes, wait for hover on capture success and remove dead opacity props`.
-
-### Task 252: [ ] Show an unavailable screen for a Grid the account cannot use
-
-**Files and actions:**
-- `src/hooks/use-node.ts` and test (or a routed-Node hook beside it): tell
-  apart not yet read, missing and found, and report whether the value belongs
-  to the routed id (ST15). The first emission of `liveRead` for the current
-  id is the read signal (it emits only once the snapshot is ready); a read
-  error keeps today's behavior. Existing callers keep their behavior.
-- `src/components/layout/grid-runtime.tsx`, `src/components/layout/node-grid-body.tsx`,
-  `src/app/(grid)/grid/[nodeId]/page.tsx` and tests: when the routed Node is
-  missing, or has `deletedAt` or `archivedAt` (ST13, ST14), render the
-  unavailable screen in place of the Grid and the system-Node surfaces, with
-  no breadcrumb and the tab title `APP_NAME` (ST17); judge only after the
-  read and for the routed id (ST15); `hiddenFromGrid` is not a condition.
-- `src/components/layout/app-frame.tsx` and test: extract the title, reason
-  and actions block of the private `Screen` (with the `app-frame-title`,
-  `app-frame-reason` and `app-frame-action` roles) into a shared component;
-  app-frame output and focus unchanged.
-- A new `src/components/layout/grid-unavailable.tsx` and test: the
-  `grid-unavailable` role, in a non-`main` container filling the content area
-  with the `triage-shell triage-shell--frame` classes, built from that shared
-  block; the title is the page's `h1`; focus moves to `Go to Home` when it
-  appears (ST36); `Go to Home` navigates to `/`.
-- `src/components/layout/sidebar.tsx` and `grid-runtime.tsx` (add flow): while
-  the screen shows, the `+` is a real `disabled` button, dimmed, with the
-  wrapper `title` `Adding restricted on this page`, as the Calendar pencil is
-  (never the `pointer-events-none`-only branch); when the screen appears every
-  create and confirm surface `GridRuntime` hosts closes: the `+` entry
-  surface, `CreateItemChooser`, both create dialogs however opened,
-  `DeleteConfirmDialog` and both move confirmations, but not through
-  `closeAll`, which would also close the Scratch capture modal; that modal
-  stays (ST30). Focus moves to `Go to Home` after those close and only when no
-  dialog layer is open (the `isDialogLayerOpen` set); an open layer keeps its
-  focus (ST36).
-- `src/hooks/use-bit-detail.ts` and `src/components/bit-detail/bit-detail-popup.tsx`
-  and tests: tell apart not yet read, missing and found; after the read, a
-  missing Bit or one with `deletedAt` or `archivedAt` removes `?bit=` with
-  `router.replace` and closes, on every route (ST31).
-- `src/lib/copy/feedback.ts`: the ST18 title, reason and button and the ST30
-  reason.
-- `src/components/layout/breadcrumbs.tsx` only if the breadcrumb needs a guard
-  to stay hidden on this screen.
-
-**Dependencies:** Task 251; this phase's lifecycle gate.
-
-**Authority:** ST13–ST19, ST30–ST32, ST36, ST38; SPEC `/grid/[nodeId]` Unavailable
-Grid, Bit Detail Popup Unavailable Bit, §Feedback copy (Dialogs and shell, Tab
-title); DESIGN_TOKENS `grid-unavailable`;
-Phase 48 mi-7; LEARNINGS React "Do not draw an empty state from a
-not-yet-read array".
-
-**Observable acceptance:** on the production build (ST19), each of a random
-id, another local test user's Node id, a Node moved to Trash and then reached
-by Forward, an archived Node, and Back after sign-out shows the screen with the
-ST18 copy, focus on `Go to Home`, no Grid or breadcrumb, and the sidebar `+`
-disabled with its reason (not reachable by Tab and Enter); an open `+` menu,
-cell-opened chooser, create dialog, delete confirmation or move confirmation
-closes when the screen appears; with the Scratch capture modal open in tab A,
-the screen appears behind it and focus stays in the modal input;
-client navigation between valid Grids, a cold load of a valid Grid and a slow
-snapshot read never show the screen, even for one frame; a Grid open in tab A
-whose Node is trashed or archived in tab B shows the screen when tab A is
-focused, and the Grid again after the Node is restored; a Node hidden from
-Home (`hiddenFromGrid`) still opens; the Inbox and Archive still open. A
-`?bit=` for a missing Bit or a Bit in Trash or Archive, on this screen or on a
-valid Grid or the Calendar, leaves the URL without `?bit=` and no popup
-remains, while a valid `?bit=` opens as before.
-
-**Verification:** gate; hook tests for the three read states, a stale
-previous Node and a read error (`use-node.ts`, `use-bit-detail.ts`); route
-tests for each ST13 case and the no-flash case; sidebar tests for the
-disabled `+`, the closing surfaces (the Scratch modal kept) and the focus
-rule with and without an open dialog layer and with a Bit popup closing on
-the same read; browser
-checks by the agent on the production build (`pnpm build && pnpm start`)
-against local Supabase; the agent checks `retro-mac`, `neumorphism` and
-`claymorphism`, light and dark, for the same app-frame parts and theme classes;
-**Please check** by the user: two scenes, `griddo` light and dark, in the
-prepared window (CLAUDE.md Test data). Text on the `retro-mac` dither is
-Phase 48 mi-2, not a finding.
-
-**Commit message:** `feat(grid): show an unavailable screen for a Grid the account cannot use`.
-
-### Task 253: [ ] Close one Inbox layer per `Esc` and keep focus on unblock
-
-**Files and actions:**
-- `src/hooks/use-breadcrumb-reveal.ts` (`useEscapeOrder`) and
-  `src/components/layout/grid-runtime.tsx` (its caller and the owner of
-  `isDialogLayerOpen`) and tests: accept Inbox layers, so the Triage drag
-  counts as a drag and the explorer search, an open Breakdown editor, the Add
-  field, the Placement affordance and the Archive completion area as layers
-  below the dialog layer and above edit mode (ST20, ST35). An open layer that
-  refuses `Esc` while locked still counts: the press does nothing and edit mode
-  stays. Grid and Calendar order unchanged.
-- `src/components/triage/hierarchy-explorer.tsx`,
-  `src/components/triage/breakdown-panel.tsx`, `src/hooks/use-dnd.ts`
-  (Triage drag) and tests: register those layers; their own `Escape`
-  handlers keep closing their element and no longer rely on a bubble-phase
-  `preventDefault` reaching the capture-phase owner.
-- `src/components/triage/hierarchy-explorer.tsx` (`useNewlyUndoActionFocus`
-  and the search focus effect) and tests: focus moves to an Undo slot status
-  only as the answer to that item's own Undo; a not-applied Undo whose block
-  by another operation clears does not take focus (ST21).
-- `src/components/triage/triage-workspace.tsx` and test only where the layer
-  registration or the focus owner needs it.
-
-**Dependencies:** Task 252; this phase's lifecycle gate.
-
-**Authority:** ST20–ST22, ST35; SPEC Breadcrumb reveal `Esc` order, Inbox Newly/Undo
-focus; Phase 50 mi-8, mi-6.
-
-**Observable acceptance:** in edit mode on the Inbox, one `Esc` closes only
-the open explorer search, Breakdown editor, Add field, Placement affordance or
-Archive completion area, and one `Esc` during a pointer Triage drag cancels
-only the drag; a second `Esc` then exits edit mode. With such a layer locked
-(a pending placement, an editor holding an unknown command, a recovery view
-whose Close is unavailable), `Esc` does nothing and edit mode stays. A
-not-applied Undo whose blocking operation finishes leaves focus where that
-operation put it. On the Grid and the Calendar, `Esc` behaves as before.
-
-**Verification:** gate; tests for each Inbox layer, each locked layer, and the
-unchanged Grid order (Grid keyboard drag with `Esc` included) and Calendar;
-a focus test for blocked → terminal with another operation's focus target;
-browser checks by the agent of the Inbox layers and the Grid order; `expert`
-review. The Triage drag has no keyboard sensor (SPEC Decision 12), so it has
-no keyboard case.
-
-**Commit message:** `fix(inbox): close one layer per Esc and keep focus when an Undo unblocks`.
-
-### Task 254: [ ] Recover an Inbox lock whose surface is gone
-
-**Files and actions:**
-- `src/hooks/use-triage-operation-lock.ts` and test: the lock owner keeps,
-  with a held command whose outcome is unknown, that command's read-only check
-  (operation and target identity and its `reconcile_*` call), so the check
-  outlives the surface that started it (ST24, ST33). The lock admits one
-  operation at a time, so at most one command is held.
-- `src/hooks/use-scratch-breakdowns.ts` (the Breakdown editor),
-  `src/components/triage/breakdown-panel.tsx` (Breakdown Add and Delete,
-  through `reconcile_add_breakdown` and `reconcile_delete_breakdown`) and
-  `src/hooks/use-dnd.ts` (Stage and Unstage) and their tests: hand the check
-  to the lock owner when they hold a command, and report "surface gone": the
-  editor and the panel on unmount (cleanup), Staging when the candidate
-  leaves the list or its Scratch changes (already tracked). Their own `?`,
-  `Check again` and background-check paths stay, but every check of a held
-  command runs through the owner or reports its start to it, so the owner
-  never sends a check the holder already sent; Add and Delete gain the one
-  per-path check through the owner (ST33).
-- `src/lib/db/connection-monitor.ts` and `src/lib/db/connection.ts` and
-  tests: count outage evidence (a failed probe, the browser's `offline`
-  event) and expose the count and the real state (ignoring a development
-  forced state) read-only (ST34, ST37); state behavior unchanged.
-- `src/components/triage/triage-workspace.tsx` and test: run the owner's
-  checks: once when a held command's surface goes, unless a check of it
-  already started after the surface began to go (a `Check again` or check
-  made while the surface was mounted does not count; ST38);
-  then, on a transition of the real state to `normal`, once more only if the
-  outage-evidence count grew since that command's last check started or that
-  check started while the real state was not `normal` (ST37). A development
-  forced state counts as no outage. A
-  terminal answer releases the lock as the command's own check would.
-  Unmounting the workspace (leaving the Inbox while locked) drops the lock
-  and its check, as a reload does; nothing outlives the workspace.
-
-**Dependencies:** Task 253; this phase's lifecycle gate.
-
-**Authority:** ST23–ST27, ST33, ST34, ST37, ST38; SPEC Connection states (Held Inbox
-command whose surface is gone), the editor and Staging unknown-recovery
-statements; PLANNING_STANDARD §6 Authoritative operation state; Tasks 245A
-and 246 residual.
-
-**Observable acceptance:** in the isolated browser, with window-only routes:
-1. An editor save, a Stage and a Breakdown Add whose outcome is unknown, each
-   in its own run, whose surface then disappears (the Scratch removed in
-   another context and the external-removal handoff finished, so the panel
-   remounts; for the Stage, the candidate leaves the list): with the
-   connection normal, exactly one `reconcile_*` is sent when the surface goes
-   and its terminal answer unlocks the Inbox; Add and Delete no longer stay
-   locked until reload.
-2. The same with that check failing offline, produced by real offline
-   emulation (Playwright `context.setOffline`, which fires `offline`), not
-   the state switch, and with the connection back before the first probe
-   (under 30 s) as well as after it: the Inbox stays locked while offline; on
-   the return to normal exactly one more `reconcile_*` is sent, no write is
-   resent, and Add, Stage, Placement, Archive and Scratch
-   switching work again without reload. A further offline–online cycle while
-   it still fails sends one more check, never a timed loop.
-3. A check that starts at `normal` and only its own path fails (window-only
-   route on that `reconcile_*` while the probe succeeds) is sent once and not
-   again on the following return to normal.
-4. A check answered with a server error while the state stays `normal` is run
-   and recorded: it stays the ST25 residual and nothing forces another check.
-5. With the editor's own invalidation check sent first and the panel then
-   remounting, the owner sends no second check: exactly one `reconcile_*`.
-
-Unstage and Delete are covered by unit tests.
-
-**Verification:** gate; tests for the hand-off of each command kind, the
-per-path check, a holder's own check followed by "surface gone" (one request
-for each holder), an Add whose `Check again` failed and whose panel then
-remounts (exactly one per-path `reconcile_add_breakdown`), the reconnect rule (a failed probe and an `offline` event
-count, the check's own failure does not; a check started while the real state
-was not `normal` earns the next return; a development forced state and its
-end earn nothing), no resend, the released lock and the workspace unmount; the browser runs above; `expert`
-review. Scope limit (ST27, ST33, ST34): a change beyond the lock hook, the two
-holders, `breakdown-panel.tsx`, the workspace, `connection-monitor.ts` and
-`connection.ts` stops the task for the user's decision against accepting the
-residual.
-
-**Commit message:** `fix(inbox): check a held command when its surface goes and after an outage`.
+Stabilization Tasks 251–254 are accepted. Their task contracts and
+completion-time scope are in
+[the Phase 51 archive](execution-plan/archive/phase-51.md). System Nodes no
+longer age, a Grid the account cannot use shows an unavailable screen, one
+`Esc` closes one Inbox layer, and a held Inbox command whose surface is gone
+is checked by the lock owner. ISSUE-16-03, ISSUE-20-03, ISSUE-20-04, Phase 48
+mi-7, Phase 50 mi-6 and mi-8 and the Tasks 245A/246 residual closed in these
+tasks. No migration changed, so nothing went to production. Carried items are
+in [Issues_Deferred.md](issues/Issues_Deferred.md).
 
 ## Account Backup — Phases 52–54
 
@@ -1863,16 +1585,15 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 51 / Task 251 (stabilization, app lane, waits for none) and Phase 52 / Task 255 (account backup, db lane, waits for none), which may run side by side. The theme stage (`2026-10-17-theme-scope-replan`) comes through `/craft-docs`. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** Phase 52 / Task 255 onward (account backup, db lane, open); Phase 51 is closed (2026-11-05). The theme stage (`2026-10-17-theme-scope-replan`) comes through `/craft-docs`. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers:** Phase 55 / Task 267. Planned Phases 42–54 and
   Tasks 213–266 are allocated; retired Phases 36–40 and Tasks 180–208 keep
   their numbers; none may be reused for another meaning.
-- Graph reconciliation: 125 accepted tasks (101–163 plus 105A, 166–172, 171A,
-  173–179 plus 176A and 179A, 209–212, 213–240 plus 238A, 241–244, and 245–250
-  plus 245A), twenty-one completed archives (Phases 23–31, 34, 35 and 41–50),
-  two historical unaccepted transfer records (164/165), 29 retired tasks
-  (180–208) in retired Phases 36–40, two reserved phases (32–33), four
-  planned tasks (251–254) in Phase 51, and twelve planned tasks (255–266) in
-  Phases 52–54.
+- Graph reconciliation: 129 accepted tasks (101–163 plus 105A, 166–172, 171A,
+  173–179 plus 176A and 179A, 209–212, 213–240 plus 238A, 241–244, 245–250
+  plus 245A, and 251–254), twenty-two completed archives (Phases 23–31, 34, 35
+  and 41–51), two historical unaccepted transfer records (164/165), 29 retired
+  tasks (180–208) in retired Phases 36–40, two reserved phases (32–33), and
+  twelve planned tasks (255–266) in Phases 52–54.
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

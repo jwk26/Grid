@@ -17,13 +17,6 @@ import type { Bit, Node } from "@/types";
 
 type GridItem = Node | Bit;
 
-const levelOpacityMap: Record<number, string> = {
-  0: "0.15",
-  1: "0.12",
-  2: "0.08",
-  3: "0.05",
-};
-
 function isNodeItem(item: GridItem): item is Node {
   return "level" in item;
 }
@@ -37,7 +30,6 @@ function toTranslateStyle(transform: { x: number; y: number } | null | undefined
 }
 
 function GridDropCell({
-  borderOpacity,
   children,
   isEditMode,
   isEmpty,
@@ -46,7 +38,6 @@ function GridDropCell({
   x,
   y,
 }: {
-  borderOpacity: string;
   children: ReactNode;
   isEditMode: boolean;
   isEmpty: boolean;
@@ -66,7 +57,6 @@ function GridDropCell({
       className="grid-cell-container h-full rounded-md"
     >
       <GridCell
-        borderOpacity={borderOpacity}
         isDragOver={isOver}
         isEditMode={isEditMode}
         isEmpty={isEmpty}
@@ -204,7 +194,6 @@ export function GridView({
     (over?.data?.current as { targetNodeId?: string | null } | undefined)?.targetNodeId === null;
   const isOverBreadcrumb = isGridBreadcrumbDropId(over?.id) && !bitOverHome;
   const itemsByPosition = new Map<string, GridItem>();
-  const borderOpacity = levelOpacityMap[level] ?? levelOpacityMap[3];
 
   for (const item of nodes) {
     itemsByPosition.set(`${item.x},${item.y}`, item);
@@ -283,7 +272,6 @@ export function GridView({
             return (
               <GridDropCell
                 key={positionKey}
-                borderOpacity={borderOpacity}
                 isEditMode={isEditMode}
                 isEmpty={item === undefined}
                 onAddClick={onAddAtCell ? () => onAddAtCell(x, y) : undefined}

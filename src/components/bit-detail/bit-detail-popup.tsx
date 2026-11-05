@@ -115,7 +115,7 @@ function ParentDeadlineRow({
 export function BitDetailPopup() {
   const { updateBit, softDeleteBit, promoteBitToNode } = useBitDetailActions();
   const promoteAction = usePendingAction();
-  const { bit, chunks, parentNode, isOpen, close } = useBitDetail();
+  const { bit, chunks, parentNode, isOpen, unavailable, close } = useBitDetail();
   const [localTitle, setLocalTitle] = useState("");
   const [localDescription, setLocalDescription] = useState("");
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
@@ -143,7 +143,8 @@ export function BitDetailPopup() {
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen, close, iconPickerOpen]);
 
-  if (!isOpen) return null;
+  // An unavailable Bit never shows: the hook is already taking `?bit=` out of the URL (ST31).
+  if (!isOpen || unavailable) return null;
 
   function isDeadlineConflictError(
     error: unknown,

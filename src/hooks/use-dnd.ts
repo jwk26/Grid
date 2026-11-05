@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useEscapeLayer } from "@/hooks/use-escape-layers";
 import {
   KeyboardSensor,
   MouseSensor,
@@ -434,6 +435,11 @@ export function useTriageDnd(
 } {
   const [activeDragItem, setActiveDragItem] =
     useState<TriageActiveDragItem>(null);
+  // A Triage drag is the top `Esc` layer: the press only cancels it (stabilization ST20). It is
+  // one from dnd-kit's own drag start, not from the snapshot: a drag that `handleDragStart` refuses
+  // (a lock held, Placement open) still runs in dnd-kit, so `Esc` must cancel only it (mi-5).
+  const [dragStarted, setDragStarted] = useState(false);
+  useEscapeLayer(dragStarted, "triage-drag");
   const [overTargetId, setOverTargetId] = useState<string | null>(null);
   const [targetFeedback, setTargetFeedback] =
     useState<TriageTargetFeedback>(null);
@@ -459,6 +465,7 @@ export function useTriageDnd(
       !isPlacementOpen() &&
       !operationLock.isLocked() &&
       snapshot?.scratchId === selectedScratchId;
+    setDragStarted(true);
     activationSnapshotRef.current = isCurrentScratch ? snapshot : null;
     dragCancelledRef.current = false;
     feedbackRequestRef.current += 1;
@@ -549,7 +556,7 @@ export function useTriageDnd(
         candidateId: string;
         checking: boolean;
         backgroundChecked: boolean;
-        run: () => Promise<boolean>;
+        run: () => Promise<RepositoryOperationStatus | null>;
       }
     >(),
   );
@@ -575,12 +582,17 @@ export function useTriageDnd(
       backgroundChecked: false,
       run: async () => {
         const outcome = await run();
-        if ("outcome" in outcome) return false;
+        if ("outcome" in outcome) return null;
         heldUnknownRef.current.delete(operationId);
         operationLock.release(operationId, outcome.status);
         onTerminal(outcome.status);
-        return true;
+        return outcome.status;
       },
+    });
+    // The lock owner keeps the same read-only check, so it outlives this surface (ST24, ST33).
+    operationLock.holdUnknown?.(operationId, () => {
+      const held = heldUnknownRef.current.get(operationId);
+      return held === undefined ? Promise.resolve(null) : held.run();
     });
     // Its Scratch was removed elsewhere while the command was out (the effect below already ran),
     // or its candidate had already left the list: the one background check happens now.
@@ -591,7 +603,7 @@ export function useTriageDnd(
       const held = heldUnknownRef.current.get(operationId);
       if (held !== undefined) {
         held.backgroundChecked = true;
-        void checkUnknownOperation(operationId);
+        checkAfterSurfaceGone(operationId);
       }
     }
   };
@@ -631,12 +643,29 @@ export function useTriageDnd(
   const checkUnknownOperation = async (operationId: string): Promise<void> => {
     const held = heldUnknownRef.current.get(operationId);
     if (held === undefined || held.checking) return;
+    // Nothing is sent while a check of this command is out (the owner's included).
+    const finishCheck = operationLock.noteCheckStart?.(operationId);
+    if (finishCheck === null) return;
     held.checking = true;
     try {
       await held.run();
     } finally {
       held.checking = false;
+      finishCheck?.();
     }
+  };
+
+  // The surface of a held command is gone (its Scratch changed, or its candidate left the list).
+  // A `?` check still out does not count (ST38), so the owner is told to check once after it ends;
+  // otherwise the surface is marked as going and our own check counts as made after it.
+  const checkAfterSurfaceGone = (operationId: string): void => {
+    const held = heldUnknownRef.current.get(operationId);
+    if (held?.checking === true) {
+      operationLock.surfaceGone?.(operationId);
+      return;
+    }
+    operationLock.markSurfaceGone?.(operationId);
+    void checkUnknownOperation(operationId);
   };
 
   // A held Unstage whose candidate left the list while its Scratch stays selected has no `?` left
@@ -645,7 +674,7 @@ export function useTriageDnd(
     for (const [operationId, held] of heldUnknownRef.current) {
       if (held.candidateId === candidateId && !held.backgroundChecked) {
         held.backgroundChecked = true;
-        void checkUnknownOperation(operationId);
+        checkAfterSurfaceGone(operationId);
       }
     }
   };
@@ -656,9 +685,11 @@ export function useTriageDnd(
     for (const [operationId, held] of heldUnknownRef.current) {
       if (held.scratchId !== selectedScratchId && !held.backgroundChecked) {
         held.backgroundChecked = true;
-        void checkUnknownOperation(operationId);
+        checkAfterSurfaceGone(operationId);
       }
     }
+    // The effect runs on a Scratch change only; the helpers read refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedScratchId]);
 
   useEffect(() => {
@@ -669,6 +700,7 @@ export function useTriageDnd(
 
       dragCancelledRef.current = true;
       activationSnapshotRef.current = null;
+      setDragStarted(false);
       setActiveDragItem(null);
       pointerRef.current = null;
       clearDragTarget();
@@ -795,6 +827,7 @@ export function useTriageDnd(
   };
 
   const handleDragCancel = () => {
+    setDragStarted(false);
     dragCancelledRef.current = true;
     activationSnapshotRef.current = null;
     pointerRef.current = null;
@@ -818,6 +851,7 @@ export function useTriageDnd(
         ? null
         : eventDropData);
 
+    setDragStarted(false);
     activationSnapshotRef.current = null;
     pointerRef.current = null;
     setActiveDragItem(null);

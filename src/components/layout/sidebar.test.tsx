@@ -519,6 +519,26 @@ describe("Sidebar", () => {
     expect(toggleEditModeMock).not.toHaveBeenCalled();
   });
 
+  it("disables the + with its reason on the wrapper while the unavailable Grid shows (ST30)", () => {
+    const onAddClick = vi.fn();
+    render(<Sidebar onAddClick={onAddClick} addDisabledReason="Adding restricted on this page" />);
+
+    const add = screen.getByRole("button", { name: "Add item" });
+
+    expect(add).toBeDisabled();
+    expect(add).toHaveClass("opacity-40");
+    expect(add).not.toHaveAttribute("title");
+    expect(add.parentElement).toHaveAttribute("title", "Adding restricted on this page");
+
+    fireEvent.click(add);
+    expect(onAddClick).not.toHaveBeenCalled();
+  });
+
+  it("keeps the + enabled without a reason", () => {
+    render(<Sidebar onAddClick={() => undefined} />);
+    expect(screen.getByRole("button", { name: "Add item" })).toBeEnabled();
+  });
+
   it("expands the pencil target while a grid item is being dragged", () => {
     render(
       <Sidebar

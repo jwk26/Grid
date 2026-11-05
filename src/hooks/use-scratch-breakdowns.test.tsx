@@ -1,5 +1,5 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getConnectionMonitor } from "@/lib/db/connection";
 import type {
   AddBreakdownCommand,
@@ -7,7 +7,10 @@ import type {
   DeleteBreakdownCommand,
 } from "@/lib/db/datastore";
 import type { ScratchBreakdown } from "@/lib/db/schema";
-import type { TriageOperationLock } from "@/hooks/use-triage-operation-lock";
+import {
+  useTriageOperationLock,
+  type TriageOperationLock,
+} from "@/hooks/use-triage-operation-lock";
 import type { Bit } from "@/types";
 import type { CreatedAtSortDirection } from "@/stores/triage-preferences-store";
 import { useScratchBreakdowns } from "./use-scratch-breakdowns";
@@ -1188,5 +1191,318 @@ describe("useScratchBreakdowns", () => {
     expect(blockerHandle.getSnapshot()).toBe("conflicted");
     act(() => expect(result.current.editor.cancel()).toBe(true));
     expect(blockerHandle.getSnapshot()).toBeNull();
+  });
+});
+
+// Hand-off to the real lock owner (stabilization ST24, ST33, ST37, ST38; Task 254). The owner is
+// the real hook, so a command that never registers its check cannot pass.
+describe("held commands handed to the lock owner (Task 254)", () => {
+  let dataStore: ReturnType<typeof createDataStore>;
+  const monitor = () => getConnectionMonitor();
+  const settle = () =>
+    act(async () => {
+      for (let tick = 0; tick < 10; tick++) await Promise.resolve();
+    });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    subscriptions.length = 0;
+    dataStore = createDataStore();
+    getDataStoreMock.mockResolvedValue(dataStore);
+    liveReadMock.mockImplementation((query: () => Promise<BreakdownQueryResult>) => ({
+      subscribe: (observer: LiveQueryObserver) => {
+        void query().then(observer.next).catch(observer.error);
+        return { unsubscribe: vi.fn() };
+      },
+    }));
+    monitor().setForced(null);
+    monitor().report("reachable");
+    monitor().start();
+  });
+  afterEach(() => {
+    // Unmount every owner so none of them keeps listening to the shared monitor.
+    cleanup();
+    monitor().stop();
+    monitor().report("reachable");
+  });
+
+  function render() {
+    const owner = renderHook(() => useTriageOperationLock());
+    const breakdowns = renderHook(() =>
+      useScratchBreakdowns("scratch-1", "DESC", { operationLock: owner.result.current }),
+    );
+    return { owner, breakdowns };
+  }
+
+  async function holdEditorSave() {
+    dataStore.saveScratchTitle.mockRejectedValue(new Error("request lost"));
+    dataStore.reconcileSaveScratchTitle.mockRejectedValue(new Error("offline"));
+    const ctx = render();
+    act(() => {
+      ctx.breakdowns.result.current.editor.openScratchTitle(
+        createScratch({ title: "A", version: 3 }),
+      );
+      ctx.breakdowns.result.current.editor.changeDraft("Mine");
+    });
+    await act(async () => void (await ctx.breakdowns.result.current.editor.save()));
+    expect(ctx.owner.result.current.activeOperation?.kind).toBe("edit");
+    return ctx;
+  }
+
+  it("an editor save whose panel remounts sends exactly one check, and a terminal answer unlocks", async () => {
+    const { owner, breakdowns } = await holdEditorSave();
+    dataStore.reconcileSaveScratchTitle.mockImplementationOnce(async (c) => ({
+      operationId: c.operationId,
+      status: "applied",
+      scratch: null,
+    }));
+    breakdowns.unmount();
+    await settle();
+    expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(1);
+    expect(dataStore.saveScratchTitle).toHaveBeenCalledTimes(1);
+    expect(owner.result.current.activeOperation).toBeNull();
+  });
+
+  it("the editor's invalidation check counts: the remount sends no second check", async () => {
+    const { owner, breakdowns } = await holdEditorSave();
+    await act(async () => {
+      breakdowns.result.current.editor.invalidate();
+    });
+    await settle();
+    expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(1);
+    breakdowns.unmount();
+    await settle();
+    expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(1);
+    expect(owner.result.current.activeOperation).not.toBeNull();
+  });
+
+  it("invalidated while saving, the request fails, the automatic check runs, then unmount: one check", async () => {
+    let failSave!: (error: Error) => void;
+    dataStore.saveScratchTitle.mockImplementation(
+      () => new Promise((_, reject) => (failSave = reject)),
+    );
+    dataStore.reconcileSaveScratchTitle.mockRejectedValue(new Error("offline"));
+    const { owner, breakdowns } = render();
+    act(() => {
+      breakdowns.result.current.editor.openScratchTitle(
+        createScratch({ title: "A", version: 3 }),
+      );
+      breakdowns.result.current.editor.changeDraft("Mine");
+    });
+    let saving!: Promise<boolean>;
+    act(() => {
+      saving = breakdowns.result.current.editor.save();
+    });
+    await settle();
+    act(() => breakdowns.result.current.editor.invalidate());
+    await act(async () => {
+      failSave(new Error("request lost"));
+      await saving;
+    });
+    await settle();
+    expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(1);
+    breakdowns.unmount();
+    await settle();
+    expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(1);
+    expect(owner.result.current.activeOperation).not.toBeNull();
+  });
+
+  it("a request that fails after the hook already unmounted still gets one check", async () => {
+    let failSave!: (error: Error) => void;
+    dataStore.saveScratchTitle.mockImplementation(
+      () => new Promise((_, reject) => (failSave = reject)),
+    );
+    dataStore.reconcileSaveScratchTitle.mockRejectedValue(new Error("offline"));
+    const { breakdowns } = render();
+    act(() => {
+      breakdowns.result.current.editor.openScratchTitle(
+        createScratch({ title: "A", version: 3 }),
+      );
+      breakdowns.result.current.editor.changeDraft("Mine");
+    });
+    let saving!: Promise<boolean>;
+    act(() => {
+      saving = breakdowns.result.current.editor.save();
+    });
+    await settle();
+    breakdowns.unmount();
+    await settle();
+    expect(dataStore.reconcileSaveScratchTitle).not.toHaveBeenCalled();
+    await act(async () => {
+      failSave(new Error("request lost"));
+      await saving;
+    });
+    await settle();
+    expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(1);
+  });
+
+  it("an invalidated editor that stays mounted drops its command on the owner's terminal answer: Close works", async () => {
+    const { owner, breakdowns } = await holdEditorSave();
+    await act(async () => {
+      breakdowns.result.current.editor.invalidate();
+    });
+    await settle();
+    expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(1);
+    act(() => {
+      expect(breakdowns.result.current.editor.cancel()).toBe(false);
+    });
+    dataStore.reconcileSaveScratchTitle.mockImplementationOnce(async (c) => ({
+      operationId: c.operationId,
+      status: "conflict",
+      scratch: null,
+    }));
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+    act(() => monitor().report("reachable"));
+    await settle();
+    expect(dataStore.reconcileSaveScratchTitle).toHaveBeenCalledTimes(2);
+    expect(owner.result.current.activeOperation).toBeNull();
+    expect(breakdowns.result.current.editor.snapshot).toMatchObject({
+      phase: "invalidated",
+      command: null,
+    });
+    act(() => {
+      expect(breakdowns.result.current.editor.cancel()).toBe(true);
+    });
+  });
+
+  async function holdAdd() {
+    const command = addCommand();
+    dataStore.addBreakdown.mockRejectedValue(new Error("request lost"));
+    dataStore.reconcileAddBreakdown.mockRejectedValue(new Error("offline"));
+    const ctx = render();
+    act(() => {
+      ctx.owner.result.current.acquire("add", command.operationId);
+    });
+    await act(async () => {
+      await ctx.breakdowns.result.current.addBreakdown(command);
+    });
+    return { ...ctx, command };
+  }
+
+  it("an Add whose panel remounts sends one per-path check; a terminal answer unlocks", async () => {
+    const { owner, breakdowns, command } = await holdAdd();
+    dataStore.reconcileAddBreakdown.mockImplementationOnce(async (c) => ({
+      operationId: c.operationId,
+      status: "not_applied",
+      breakdown: null,
+      scratch: null,
+    }));
+    breakdowns.unmount();
+    await settle();
+    expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledTimes(1);
+    expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledWith(command);
+    expect(dataStore.addBreakdown).toHaveBeenCalledTimes(1);
+    expect(owner.result.current.activeOperation).toBeNull();
+  });
+
+  it("an Add whose Check again failed while mounted still gets exactly one per-path check on remount", async () => {
+    const { breakdowns, command } = await holdAdd();
+    await act(async () => {
+      await breakdowns.result.current.reconcileAddBreakdown(command);
+    });
+    expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledTimes(1);
+    breakdowns.unmount();
+    await settle();
+    expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledTimes(2);
+  });
+
+  it("a Check again still out when the panel remounts and answers terminal adds no second check", async () => {
+    const { owner, breakdowns, command } = await holdAdd();
+    let answer!: (value: unknown) => void;
+    dataStore.reconcileAddBreakdown.mockImplementationOnce(
+      () => new Promise((resolve) => (answer = resolve)),
+    );
+    let checking!: Promise<unknown>;
+    act(() => {
+      checking = breakdowns.result.current.reconcileAddBreakdown(command);
+    });
+    await settle();
+    breakdowns.unmount();
+    await settle();
+    await act(async () => {
+      answer({ operationId: command.operationId, status: "applied", breakdown: null, scratch: null });
+      await checking;
+    });
+    await settle();
+    expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledTimes(1);
+    expect(owner.result.current.activeOperation).toBeNull();
+  });
+
+  it("a Check again pressed while the owner's check is out sends nothing", async () => {
+    const { owner, breakdowns, command } = await holdAdd();
+    let answer!: (value: unknown) => void;
+    dataStore.reconcileAddBreakdown.mockImplementationOnce(
+      () => new Promise((resolve) => (answer = resolve)),
+    );
+    breakdowns.unmount();
+    await settle();
+    expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledTimes(1);
+    const second = renderHook(() =>
+      useScratchBreakdowns("scratch-1", "DESC", { operationLock: owner.result.current }),
+    );
+    await act(async () => {
+      await second.result.current.reconcileAddBreakdown(command);
+    });
+    expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      answer({ operationId: command.operationId, status: "applied", breakdown: null, scratch: null });
+    });
+  });
+
+  it("a Delete whose panel remounts sends one per-path check", async () => {
+    const command = deleteCommand();
+    dataStore.deleteBreakdown.mockRejectedValue(new Error("request lost"));
+    dataStore.reconcileDeleteBreakdown.mockResolvedValue({
+      operationId: command.operationId,
+      status: "applied",
+      breakdown: null,
+      scratch: null,
+    });
+    const { owner, breakdowns } = render();
+    act(() => {
+      owner.result.current.acquire("delete", command.operationId);
+    });
+    await act(async () => {
+      await breakdowns.result.current.deleteBreakdown(command);
+    });
+    breakdowns.unmount();
+    await settle();
+    expect(dataStore.reconcileDeleteBreakdown).toHaveBeenCalledTimes(1);
+    expect(owner.result.current.activeOperation).toBeNull();
+  });
+
+  it("a failed gone-check earns exactly one more after outage evidence and a return to normal", async () => {
+    const { breakdowns } = await holdAdd();
+    breakdowns.unmount();
+    await settle();
+    expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledTimes(1);
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+    act(() => monitor().report("reachable"));
+    await settle();
+    expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledTimes(2);
+    act(() => monitor().report("unreachable"));
+    act(() => monitor().report("reachable"));
+    await settle();
+    expect(dataStore.reconcileAddBreakdown).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaving the Inbox (lock and hook unmount together) sends nothing", async () => {
+    dataStore.saveScratchTitle.mockRejectedValue(new Error("request lost"));
+    const both = renderHook(() => {
+      const lock = useTriageOperationLock();
+      return { lock, bd: useScratchBreakdowns("scratch-1", "DESC", { operationLock: lock }) };
+    });
+    act(() => {
+      both.result.current.bd.editor.openScratchTitle(createScratch({ title: "A", version: 3 }));
+      both.result.current.bd.editor.changeDraft("Mine");
+    });
+    await act(async () => void (await both.result.current.bd.editor.save()));
+    both.unmount();
+    await settle();
+    expect(dataStore.reconcileSaveScratchTitle).not.toHaveBeenCalled();
   });
 });
