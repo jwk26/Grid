@@ -1051,6 +1051,10 @@ request and the summary's `missing` count leaves it out.
   Healthchecks.io (success or `/fail`, counts and reason codes only).
 - `supabase/functions/_shared/`: retention and pruning, status judgement,
   object keys, response classification, each with vitest tests.
+- A migration (amended 2026-11-06, Task 257 work-plan review): the
+  pre-upload account check as a backup function (SCHEMA §Backup functions),
+  since `app` is not exposed to the API; its grants, the `service_role`
+  catalog test and the SQL function checklist follow Task 256.
 - `supabase/tests/backup-function.db.test.ts`: integration tests against the
   locally served function with local object storage and a Healthchecks.io
   stub.
@@ -1064,8 +1068,10 @@ B11, B12; DECISION §Runner, §Retention, §Object key, §Failure alerts,
 **Observable acceptance:** a `manual` call whose body names another account
 backs up only the caller; a guest JWT is refused and leaves no row and no
 object; `scheduled` and `summary` without the shared secret are refused; an unchanged account writes no file and records the check; after
-writes on 9 different days and across 5 ISO weeks the bucket holds the 7
-latest files and the latest of each of 4 earlier weeks, and an unchanged
+files on 14 different days across 8 ISO weeks the bucket holds the 7
+latest files and the latest file of each of the 4 ISO weeks before them, and
+every other dated file is deleted (amended 2026-11-06: 9 days could not reach
+4 earlier weeks), and an unchanged
 account keeps its old file; a run that dies after recording its start is
 `interrupted` after 5 minutes; an account deleted during a run, or given a deletion request, leaves no
 object and records nothing; the summary pings success with no new problem
