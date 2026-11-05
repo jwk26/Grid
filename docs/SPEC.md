@@ -81,6 +81,20 @@ whose surface is gone is checked once when it goes and again, read-only, on a
 return to normal after outage evidence. System Nodes have no aging (SCHEMA). Until a task lands,
 the code keeps today's behavior.
 
+## Account Backup Amendment — 2026-11-05
+
+From the account-backup [`DECISION.md`](brainstorming/2026-11-01-account-backup/DECISION.md)
+and the deletion-grace [`DECISION.md`](brainstorming/2026-10-31-account-deletion-grace-period/DECISION.md)
+under the backup [`PROMOTION_MAP.md`](brainstorming/2026-11-01-account-backup/PROMOTION_MAP.md)
+(B1–B18; Phases 52–54). The first server code outside the database, one
+backup Edge Function ([Architecture Decision 1](#architecture-decisions));
+the sidebar `Backup` button and dialog, the restoring screen and the
+deletion-grace dialog ([Account backup](#account-backup),
+[App-level screens](#app-level-screens)); the Edge request timeout and the
+restore's outcome rules; and the deploy order with functions and secrets
+([Environments And Hosting](#environments-and-hosting)). Until a task lands,
+the code keeps today's behavior.
+
 ## Inbox/Triage SPEC Approval Receipt
 
 - **Gate:** the complete production-adapted Inbox/Triage amendment in this
@@ -140,6 +154,10 @@ the code keeps today's behavior.
 | Backend | Supabase (Postgres, Auth) via `@supabase/supabase-js` | latest | Per-account source of truth; RLS; every write is a Postgres function called over RPC (SCHEMA §Database Functions) |
 | Local database tooling | Supabase CLI (pinned dev dependency) + Docker Desktop | pinned | `supabase start`, migrations, generated types, `pnpm test:db` |
 | Bot protection | Cloudflare Turnstile | — | Guards anonymous sign-in in production |
+| Server function | Supabase Edge Functions (Deno) | Supabase-hosted | Phase 52: the one backup function ([Architecture Decision 1](#architecture-decisions)); code in `supabase/functions/`, checked by `pnpm check:edge` |
+| Object storage | Cloudflare R2 (S3 API) | — | Phase 52: account backups, outside Supabase ([Account backup](#account-backup)) |
+| Scheduling | `pg_cron` + `pg_net` | Supabase extensions | Daily guest cleanup; from Phase 52 the daily backup and summary calls to the function |
+| Monitoring | Healthchecks.io | — | Phase 52: emails the owner on a failed or missing daily backup summary and a missed monthly restore check |
 | Hosting | Vercel Hobby | — | Static/client app from `main`; no Next.js server code |
 | Theming | next-themes | latest | Dark/Light mode with system preference detection |
 | Dates | date-fns | 4.x | Date arithmetic — aging, urgency, calendar rendering |
@@ -152,9 +170,9 @@ the code keeps today's behavior.
 
 ## Architecture Decisions
 
-1. **Client Components by default** — griddo runs entirely in the browser, with no Next.js server code (S21). The account's data lives in Supabase Postgres and is read and written from the client (S02, S08). Server Components are used only for static layout shells (root layout, page skeletons). Any component that reads data or handles interaction is a Client Component.
+1. **Client Components by default; server code only in Supabase** — the app runs in the browser, with no Next.js server code (S21). The account's data lives in Supabase Postgres and is read and written from the client (S02, S08). Server code lives only in Supabase: the database functions and, from Phase 52, one Edge Function for account backup and restore, which holds what the browser must never hold (the R2 keys and `service_role` access; backup B1). No other Edge Function or server runtime is added without a canonical decision. Server Components are used only for static layout shells (root layout, page skeletons). Any component that reads data or handles interaction is a Client Component.
 
-2. **DataStore abstraction (two-layer)** — Data access has two independent abstraction boundaries. **Command/repository layer:** All writes, including the approved Inbox/Triage CAS and atomic commands, go through `DataStore` (`src/lib/db/datastore.ts`). From Phase 45 its implementation is the Supabase store (`src/lib/db/supabase-store.ts`), which sends every write as one database function call (SCHEMA §Database Functions) and answers reads from the account snapshot; Phase 46 removed the Dexie implementation. Components never sequence repository writes. **Reactive layer:** All read subscriptions go through custom hooks (`src/hooks/use-*.ts`). They subscribe to the account snapshot store, and their return shapes stayed the same as under Dexie `liveQuery` (S07). Components import hooks rather than the store. The Supabase store preserves the approved conditional-write, version, postcondition, and reconciliation semantics in SCHEMA.
+2. **DataStore abstraction (two-layer)** — Data access has two independent abstraction boundaries. **Command/repository layer:** All writes, including the approved Inbox/Triage CAS and atomic commands, go through `DataStore` (`src/lib/db/datastore.ts`). From Phase 45 its implementation is the Supabase store (`src/lib/db/supabase-store.ts`), which sends every write as one database function call (SCHEMA §Database Functions) and answers reads from the account snapshot; Phase 46 removed the Dexie implementation. Components never sequence repository writes. **Reactive layer:** All read subscriptions go through custom hooks (`src/hooks/use-*.ts`). They subscribe to the account snapshot store, and their return shapes stayed the same as under Dexie `liveQuery` (S07). Components import hooks rather than the store. The Supabase store preserves the approved conditional-write, version, postcondition, and reconciliation semantics in SCHEMA. **Account-level requests** that are not domain writes stay outside `DataStore` in their own modules: sign-in, account preparation and the deletion request in `src/lib/auth/session.ts`, and from Phase 52 the backup function calls in `src/lib/backup/backup-client.ts`, reached by components only through `src/hooks/use-backup.ts` (backup B2). They follow the same never-resend rule after an unknown outcome.
 
 3. **Reactive data via custom hooks** — Components subscribe through custom hooks (`useGridData`, `useBitDetail`, `useCalendarData`, and the global `useSearch`). The Inbox target adds `useStagedCandidates` and `useGridExplorerSearch` under the exact target paths in [Key File Paths](#key-file-paths). Hooks read the in-memory account snapshot (Decision 19); a snapshot change re-renders its subscribers. Reactive delivery does not prove that a mutation committed, that a source is orphaned, or that a cached value is authoritative. Inbox commands converge only through the typed repository result and command-specific reconciliation contract in SCHEMA. The global `useSearch()` / `searchAll()` pair remains separate and is never extended or reused as Grid Explorer search.
 
@@ -235,6 +253,8 @@ the code keeps today's behavior.
 | DataStore Interface | `src/lib/db/datastore.ts` | — |
 | DataStore Implementation | `src/lib/db/supabase-store.ts` (from Phase 45) | — |
 | Database migrations and tests | `supabase/migrations/*.sql`; `supabase/tests/*.db.test.ts` | — |
+| Edge Function and its shared pure modules (Phase 52) | `supabase/functions/backup/`; `supabase/functions/_shared/{name}.ts` with `{name}.test.ts` beside it | `_shared/retention.ts` |
+| Account-level client modules outside `DataStore` | `src/lib/auth/session.ts`; `src/lib/backup/backup-client.ts` (Phase 52) | — |
 | Validation Schemas | `src/lib/db/schema.ts` | — |
 | Pure Utilities | `src/lib/utils/{name}.ts` | `src/lib/utils/bfs.ts` |
 | Pure Domain Queries / Ranking | `src/lib/utils/{domain}-{purpose}.ts` | proposed `src/lib/utils/grid-explorer-search.ts` |
@@ -269,7 +289,7 @@ the code keeps today's behavior.
 
 - **Structure:** Full-width 18x9 grid occupying the main content area. Fixed icon-rail sidebar (always visible, `w-12`). The breadcrumb is not revealed on L0; the sidebar Home button shows the current page ([Breadcrumb reveal and Home button](#breadcrumb-reveal-and-home-button); until Phase 50 a fixed breadcrumb shows the "Home" root-only state).
 - **Content:** Nodes only. No Bits at Level 0.
-- **Sidebar:** Permanent narrow icon rail, always visible, identical across all levels. Icons: Home (top-most, on every route; feedback F21, Phase 50), account icon (right below Home, S23; [Account icon and modal](#account-icon-and-modal-sidebar-not-a-route)), + (add), Pencil (edit toggle), Search, Calendar (top); Trash, dark/light Theme toggle, Color Theme toggle (bottom). Phase 47 adds the account icon and Phase 50 the every-route Home button; whichever lands second keeps the order Home, account icon, `+` (F33). Until Phase 50, Home shows only on Calendar and system-Node routes, as today. No fold/unfold mechanism.
+- **Sidebar:** Permanent narrow icon rail, always visible, identical across all levels. Icons: Home (top-most, on every route; feedback F21, Phase 50), account icon (right below Home, S23; [Account icon and modal](#account-icon-and-modal-sidebar-not-a-route)), from Phase 52 `Backup` (right below the account icon; [Account backup](#account-backup)), + (add), Pencil (edit toggle), Search, Calendar (top); Trash, dark/light Theme toggle, Color Theme toggle (bottom). Phase 47 adds the account icon and Phase 50 the every-route Home button; whichever lands second keeps the order Home, account icon, `+` (F33). Until Phase 50, Home shows only on Calendar and system-Node routes, as today. No fold/unfold mechanism.
 - **Onboarding:** On first visit (no Nodes exist), show ghost placeholder Nodes with dashed outlines and hint labels ("Try: Work, Personal, Hobbies"). Disappear after first Node creation.
 - **Interactions:** Click Node → navigate to `/grid/[nodeId]`. Dark/light Theme toggle, Color Theme toggle, search overlay, edit mode. DnD enabled (repositioning works outside edit mode).
 - **Visual:** Level 0 background color (`--grid-bg-l0`). Standard grid line density. No depth effects at Level 0.
@@ -1384,10 +1404,13 @@ is never shown again and is cleaned up 7 days later.
 - **Account modal:** the account name, `Sign out` and `Delete account`.
   Sign-out drops the snapshot and leaves the visitor as a new guest (S23).
   `Delete account` asks for confirmation in the modal, since it cannot be
-  undone; on success the visitor becomes a new guest and a success toast
+  undone (from Phase 54: since it can be cancelled only within 24 hours);
+  on success the visitor becomes a new guest and a success toast
   reports the deletion (F11 (3)). Profile settings are out of v1.
+- The account modal itself does not hold the backup; the sidebar `Backup`
+  button does ([Account backup](#account-backup)).
 - OAuth runs client-side: the provider returns to `/` and supabase-js
-  completes the sign-in in the browser; there is no server code (S21). Sign-up
+  completes the sign-in in the browser; OAuth needs no server code (S21). Sign-up
   is open to anyone, and a new real account starts with its system Nodes only
   (S10).
 - Each sign-in asks the provider for its account chooser
@@ -1426,7 +1449,7 @@ that shows an action moves focus to its first action (F19).
 | Guest creation failure | Anonymous sign-in failed: Turnstile, rate limit, a paused or unreachable project (S26) | A reason line | `Retry`; also retries by itself on reconnect |
 | Security check | Turnstile needs an interactive check (S42 (3)) | The Turnstile widget | The widget's own |
 | Session expired | The auth server rejected the session refresh (F20, S16) | Real-account or guest variant (S43 (2)) | `Sign in with GitHub`, `Sign in with Google`, `Continue as guest`; before Phase 48 only `Continue as guest` |
-| Account being deleted | A function returned `account_deleting` (SCHEMA account-deletion fallback) | That the account is being deleted, that deletion finishes within 24 hours, and that the same account can sign up again afterwards | `Continue as guest` |
+| Account being deleted | A function returned `account_deleting` (SCHEMA account-deletion fallback) | That the account is being deleted, that deletion finishes within 24 hours, and that the same account can sign up again afterwards. From Phase 54 the [deletion-grace dialog](#deletion-grace-dialog-phase-54) replaces this screen | `Continue as guest`; from Phase 54 `Cancel deletion` first |
 | Account deleted | A function returned `account_missing`: the account was deleted from another device or browser (user, 2026-10-22). Tabs of the same browser follow the new guest instead (Several tabs) | That the account was deleted and its data is gone | `Continue as guest` |
 | Narrow window | Viewport narrower than 1024px (S42 (4)) | The larger-window notice, laid over the mounted, `inert` app | — |
 
@@ -1439,10 +1462,166 @@ that shows an action moves focus to its first action (F19).
   session-expired screen, not the account-deleted screen (user, 2026-10-30,
   Task 235).
 - The narrow-window notice is the one screen laid over the app instead of
-  replacing it; the others replace the app until they are resolved.
+  replacing it; the others replace the app until they are resolved. From
+  Phases 53 and 54 the restoring screen and the deletion-grace dialog are also
+  laid over the app ([Account backup](#account-backup)).
 - A loading or failure screen never replaces a surface for an ordinary
   in-session request; those use [Write feel](#write-feel) and
   [Connection states](#connection-states).
+
+### Account backup
+
+Phases 52 (backup) and 53 (restore). Data, retention and the function's rules
+are in SCHEMA [Account backup](SCHEMA.md#account-backup); copy in
+[Feedback copy](#feedback-copy); looks in DESIGN_TOKENS `DP-BACKUP-01`.
+
+**Sidebar button.** A `Backup` button right below the account icon, on every
+route: the sidebar order becomes Home, account icon, `Backup`, `+`. Lucide
+`cloud-upload`; accessible name and tooltip `Backup`.
+
+- **Status dot**, only when something needs attention, in the slot of the
+  Calendar urgency dot: yellow when the last successful check is more than 7
+  days old, red when the last run failed. No dot when backed up, not yet
+  backed up, or for a guest. It is computed at render time from the
+  snapshot's `backup` value (SCHEMA §Snapshot), so it needs no request of its
+  own and no polling: a scheduled run's result reaches an open tab at its next
+  entry, focus or reconnect refetch (backup B7). The tab's own `Back Up Now`
+  result and the dialog's status read also replace that value, the one with
+  the later `server_now` winning, so the dot never contradicts the dialog
+  (flow review W4). Ages are judged from the `server_now` that came with the
+  value plus the time since it arrived, never from the device clock (flow
+  review G1).
+- **Running motion** while a run is in progress (`run_started_at` set and
+  younger than the `interrupted` threshold, or this tab's own `Back Up Now`
+  pending): the cloud
+  stays still and only the arrow rises about 4px while fading in, then fades
+  out at the top, in a 1.5 s ease-in-out loop (R3, user, 2026-11-04). Nothing
+  rotates and the button keeps its size. Under `prefers-reduced-motion` the
+  loop stops and a still primary-colour dot shows in the status-dot slot. A
+  yellow or red dot wins over the motion. A scheduled run shows the motion
+  only if a refetch happens during it.
+
+**Dialog.** The button opens a dialog in the account modal's frame.
+
+- **Guest:** `Keep your Grid safe`, a note that signed-in accounts are backed
+  up every day outside the main database and can be restored, `Sign in with
+  GitHub`, `Sign in with Google`, and the line that signing in opens a new,
+  empty account and does not move guest data. Not called "Sync": a backup is
+  a one-way copy.
+- **Account:** the status line, `Back Up Now`, `Restore…` (Phase 53), the
+  privacy note and `Close`.
+- Opening the account variant calls the function's status endpoint once, for
+  the status and, from Phase 53, the backup list; `Checking…` until it
+  answers. A failed status read shows its error with `Check again`.
+- Times show the real timestamp in the user's time zone and locale
+  (`Intl.DateTimeFormat`), never an object name's UTC date.
+- The status line, by colour from the semantic status tokens and always with
+  text: green (a successful check within 7 days), running, yellow (no
+  successful check in over 7 days), gray (no backup yet), red (the last run
+  failed, with its reason).
+
+**`Back Up Now`** is server-confirmed: pending while it runs (the running
+lamp in the status line, the button busy), the result inline in the dialog, no
+toast (F11). Its end is its own response; there is no status polling. Each
+press carries a run id the client generates and never reuses (flow review
+G1).
+
+- Nothing changed: `No changes since the latest backup (<time>).`
+- `rate_limited` (once per 5 minutes): `Try again in a few minutes.`
+- `already_running` (a scheduled run or another tab's press is in progress):
+  the running status line `Backing up…` with `Check again` (flow review W3).
+  That press has no recorded run id, so its `Check again` reads the status
+  without one and shows the status line: `Backing up…` while a run is in
+  progress, otherwise green, yellow, gray or red (flow review R2-W1).
+- **Unknown outcome** (no answer within `EDGE_REQUEST_TIMEOUT_MS`, a
+  no-answer status, or a dropped connection): never resent. One status read
+  for that run id, sent after the request ended, decides it with the server's
+  verdict (SCHEMA §Account backup, Operation verdicts): `running` shows
+  `Still finishing…` with `Check again`, never a failure; a result shows that
+  result; `interrupted` shows the red line; `not_started` shows the
+  did-not-start line. `Check again` is another single read.
+- Closing the dialog does not stop the run; the button's motion continues
+  until this tab sees the result.
+
+**Request timeouts** (backup B3). The function's calls for `Back Up Now` and
+restore wait `EDGE_REQUEST_TIMEOUT_MS` (160 s: the function's 150 s wall clock
+plus 10 s), because a shorter wait would call a slow success unknown. The
+status read keeps `REQUEST_TIMEOUT_MS`. Task 255 measures the status a
+function killed at its limit returns and adds it to the no-answer set. On a
+paid plan the value changes with the wall clock (SCHEMA §Account backup).
+
+**Restore** (Phase 53).
+
+- `Restore…` opens the backup list in the dialog, each entry in the user's
+  time zone, pre-restore entries as `Before restore, <time>`. Choosing one
+  asks for confirmation in the dialog.
+- **Restoring screen.** On confirmation the tab generates a restore id and
+  shows a blocking dialog over the blurred, `inert` app with three steps,
+  `Saving the current state`, `Getting the backup`, `Applying the backup`,
+  each marked when the function reports reaching it in the same response,
+  streamed as `text/event-stream` (supabase-js returns other types only once
+  complete); the client's own `EDGE_REQUEST_TIMEOUT_MS` deadline, counted from
+  the request start, also covers reading the stream (flow review W6). No
+  percentage: one
+  transaction shows no progress from outside, and a timed bar would infer
+  progress from elapsed time (Architecture Rule 6).
+- **Other tabs** of the browser get `restore-started` (with the restore id)
+  through `BroadcastChannel` and show the same blocking dialog with the
+  other-tab text. The restoring tab posts `restore-ended` with the outcome on
+  every terminal outcome: on `applied` the other tabs drop the snapshot and
+  repeat entry; otherwise they unblock with nothing changed (flow review W5).
+- **End.** On `applied` the restoring tab drops its snapshot, repeats entry
+  behind the loading frame and posts `restore-ended`. On `account_changed`,
+  `rate_limited`, `unsupported_format` or a not-applied verdict, the dialog
+  returns with the inline reason and
+  nothing changed.
+- **Way out** (backup B4, B5). With no end within `EDGE_REQUEST_TIMEOUT_MS`
+  (the restoring tab) or no `restore-ended` within it after `restore-started`
+  (another tab), the dialog reads the status once for that restore id,
+  read-only, and shows the server's verdict (SCHEMA §Account backup,
+  Operation verdicts): `finishing` shows `Still finishing…` with `Check
+  again`; `applied` repeats entry; a rejection or `not_applied` returns to the
+  dialog with nothing changed; `not_started` shows the not-applied line;
+  `expired` (the row is gone after an hour, for example after the laptop
+  slept) repeats entry to show the account as it is. It never resends.
+- Other devices are not blocked; nothing pushes to them. A revision-checked
+  Inbox/Triage command from a stale tab conflicts and shows the restored
+  value; an ordinary write stays last-write-wins (S15) and can overwrite the
+  fields it writes, as with any concurrent edit; the next focus refetch or
+  reload shows the restored account (flow review W9).
+
+#### Deletion-grace dialog (Phase 54)
+
+From the deletion-grace `DECISION.md` Decisions 6, 8 and 10.
+
+1. `Delete account` asks in the account modal, with the grace-period
+   confirmation copy.
+2. Confirming signs out to a new guest with the toast.
+3. Signing in again to the same account shows the app frame blurred and
+   `inert`, holding no data, with the deletion-grace dialog over it in the
+   account modal's frame: the title, the line with the deadline (request time
+   plus 24 hours, in the user's time zone), a countdown with `left to cancel`,
+   and `Cancel deletion` (first, takes focus) and `Continue as guest`.
+
+- The dialog takes `deletion_requested_at` and `server_now` from
+  `ensure_account()`'s rejection. When `get_snapshot()` or a write returns
+  `account_deleting` instead (another browser was already signed in), the
+  client reads them with one `ensure_account()` call first (flow review G4).
+- The countdown runs to the request plus 24 hours from that `server_now`, so
+  a wrong device clock does not move it. At zero it gives
+  way to the zero-state line, and `Cancel deletion` stays: a cancel works until
+  the cleanup has run.
+- The countdown is hidden from screen readers; they read the line with the
+  deadline, so nothing is announced every second.
+- `Cancel deletion` is server-confirmed. On success the tab repeats entry and
+  the other tabs of the browser follow through `BroadcastChannel`, as after a
+  restore. Another browser's dialog also offers `Cancel deletion`, which
+  succeeds on an account already cancelled and so enters it. A cancel that
+  meets a deleted account gets `account_missing` and shows the account-deleted
+  screen. An unknown outcome is never resent; one `ensure_account()` read
+  decides it.
+- `Continue as guest` starts a new guest; the guest from step 2 is not
+  restored (it is cleaned up after 7 days).
 
 ## Feedback And Network States
 
@@ -1471,7 +1650,9 @@ Everyday interactions feel as they do today (S09). Writes fall into four groups
   while the request is still open, can show a slow commit as rolled back, so
   the outcome stays unsettled (no toast, no retry) until then (Phase 47 MI-1).
   The Inbox commands keep their own
-  reconcile contract (S16, S26). An answer with HTTP status 408, 502, 503 or
+  reconcile contract (S16, S26). The backup function's calls keep theirs
+  ([Account backup](#account-backup)): a longer timeout, and a status read
+  instead of a snapshot refetch. An answer with HTTP status 408, 502, 503 or
   504 counts as no answer, since the request may have reached the database.
   A write that waits behind an earlier write to the same record (for an Inbox
   command the same Scratch; for Empty Trash, the Trash cleanup and account
@@ -1643,7 +1824,7 @@ title; `{target}` the target Node's title; `{count}` the counted number;
 | Promotion failed (Bit to Node; user, 2026-10-30) | `Couldn't promote “{title}”. It's still a Bit.` | — |
 | Step delete failed (user, 2026-10-30) | `Couldn't delete “{title}”. It's still there.` | — |
 | Archive restore failed (Node and Bit; user, 2026-10-30) | `Couldn't restore “{title}”. It's still in Archive.` | — |
-| Account deleted | `Your account and its data were deleted.` (fallback: `Your account will be deleted within 24 hours.`) | — |
+| Account deleted | `Your account and its data were deleted.` (fallback: `Your account will be deleted within 24 hours.`; from Phase 54: `Your account will be deleted after 24 hours. Sign in again to cancel.`) | — |
 
 A counted form reuses the kind's single form when the count is one. The
 rolled-back kinds share one kind for grouping, so a burst of different failed
@@ -1681,7 +1862,7 @@ writes shows one counted toast (S28).
 | Security check | `Confirm you're human to continue.` | — | Widget |
 | Session expired, real account | `Your sign-in expired.` | `Your saved data is safe. The last change may not have been saved.` | `Sign in with GitHub`, `Sign in with Google`, `Continue as guest` |
 | Session expired, guest | `Your guest session ended.` | `Guest data may have been deleted. You can start a new guest session or sign in.` | same |
-| Account being deleted | `This account is being deleted.` | `Deletion finishes within 24 hours. After that you can sign up again with the same account.` | `Continue as guest` |
+| Account being deleted | `This account is being deleted.` | `Deletion finishes within 24 hours. After that you can sign up again with the same account.` | `Continue as guest` (from Phase 54: the deletion-grace dialog below) |
 | Account deleted | `This account was deleted.` | `Its data is gone. You can continue as a guest.` | `Continue as guest` |
 | Narrow window | `Please use a larger window.` | `Grid needs a window at least 1024 pixels wide, such as a desktop browser.` | — |
 
@@ -1694,11 +1875,52 @@ writes shows one counted toast (S28).
 | Guest sign-in note | `Signing in opens a new, empty account. Guest data isn't moved to it.` |
 | Sign-in did not complete (inline, in the modal) | `Sign-in didn't complete. You're still browsing as a guest.` |
 | Sign-in buttons | `Sign in with GitHub`, `Sign in with Google` |
-| Privacy note | `Grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives Grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.` |
+| Privacy note | `Grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives Grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.` From Phase 52 the second sentence is followed by `Signed-in accounts are also backed up every day to Cloudflare, outside the main database.` and the last sentence reads `You can delete your account and all its data, backups included, at any time.` |
 | Account actions | `Sign out`, `Delete account` |
-| Delete confirmation | `Delete your account?` / `Your tasks and all other data are deleted permanently. This can't be undone.` / `Delete account`, `Cancel` |
+| Delete confirmation | `Delete your account?` / `Your tasks and all other data are deleted permanently. This can't be undone.` / `Delete account`, `Cancel`. From Phase 54 the second line reads `You can cancel within 24 hours by signing in again. After that, your account, its data and its backups are deleted.` |
 | Deletion did not complete (inline, in the confirmation) | `Couldn't delete your account. Try again.` (a failure or an unknown outcome; a request the server did record shows the account-being-deleted screen after the next read) |
 | Close (both variants) | `Close` (its place in the modal is a theme-stage item, Phase 48 mi-1) |
+
+**Backup** (Phases 52–53; draft copy from the account-backup `DECISION.md`;
+`<time>` is a timestamp in the user's time zone and locale)
+
+| Element | Copy |
+|---|---|
+| Sidebar button (accessible name and tooltip) | `Backup` |
+| Guest title | `Keep your Grid safe` |
+| Guest note | `Signed-in accounts are backed up every day, outside the main database, and can be restored.` followed by the account modal's guest sign-in note and the two sign-in buttons |
+| Status, checking | `Checking…` |
+| Status, green | `Backed up. Latest backup: <time>` |
+| Status, running | `Backing up…` |
+| Status, yellow | `No backup check in over 7 days. Latest backup: <time>` |
+| Status, gray | `Not backed up yet. The first backup runs within a day.` |
+| Status, red | `The last backup failed.` and the reason: `too_large` → `This account is too large to back up.`; any other → `It runs again tomorrow.` |
+| Status read failed (inline) | `Couldn't check the backup status.` with `Check again` |
+| Actions | `Back Up Now`, `Restore…` (Phase 53), `Close` |
+| Nothing changed | `No changes since the latest backup (<time>).` |
+| Rate limited (`Back Up Now`, restore) | `Try again in a few minutes.` |
+| Outcome still open | `Still finishing…` with `Check again` |
+| `Back Up Now` did not start (verdict `not_started`) | `The backup didn't start. Try again.` |
+| Privacy note | `Backups are stored with Cloudflare, outside the main database. We keep your 7 latest backups and one a week for 4 weeks before them. Deleting your account deletes them.` |
+| Backup list entry, pre-restore (Phase 53) | `Before restore, <time>` |
+| Restore confirmation (Phase 53) | `This replaces everything in this account with the backup from <time>. The current state is saved first, so you can undo this.` |
+| Restore refused, account changed (Phase 53) | `This account changed while restoring. Try again.` |
+| Restore refused, old format (Phase 53) | `This backup comes from an older version of Grid and can't be restored.` |
+| Restore not applied (Phase 53) | `The backup wasn't applied. Your data is unchanged.` |
+| Restoring screen title, this tab (Phase 53) | `Restoring a backup` / `Don't close this tab. Grid opens again when it's done.` |
+| Restoring screen, another tab (Phase 53) | `A backup is being restored in another tab` / `Grid opens again with the restored data when it's done.` |
+| Restoring steps (Phase 53) | `Saving the current state`, `Getting the backup`, `Applying the backup` |
+
+**Deletion grace** (Phase 54; draft copy from the deletion-grace `DECISION.md`)
+
+| Element | Copy |
+|---|---|
+| Dialog title | `This account will be deleted` |
+| Deadline line | `You can cancel until <request time + 24 h>.` |
+| Countdown | `<hh:mm:ss>` with `left to cancel` (hidden from screen readers) |
+| Countdown at zero | `The deletion can start at any time now.` |
+| Actions | `Cancel deletion` (first, takes focus), `Continue as guest` |
+| Cancel did not complete (inline) | `Couldn't cancel the deletion. Try again.` |
 
 ### Development state switch
 
@@ -1714,7 +1936,11 @@ paths (`Check again`, `Retry`, `Retry Add`) run end to end without stopping the
 shared local Supabase. It lets every state be judged without inserted markup,
 since a local command ends in about 50ms and these states do not appear on
 their own. It is compiled only into development builds and never ships
-enabled.
+enabled. From Phase 52 it also forces the backup status (each dot and status
+line, running, `Checking…`, a failed status read, `already_running`, `Still
+finishing…`, `not_started`), from Phase 53 the restoring screen at each
+step and its way-out, and from Phase 54 the deletion-grace dialog with its
+countdown near and at zero.
 
 ## Environments And Hosting
 
@@ -1722,7 +1948,8 @@ enabled.
   (Supabase, Seoul region, free plan). No preview environment; deploys from
   `main` only.
 - **Hosting:** Vercel Hobby, with no Next.js server code; auth runs
-  client-side.
+  client-side. From Phase 52 the one backup Edge Function runs on Supabase
+  ([Architecture Decision 1](#architecture-decisions)); R2 holds the backups.
 - **Keys:** the project URL, the publishable key and the Turnstile site key are
   public env vars (`NEXT_PUBLIC_SUPABASE_URL`,
   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`).
@@ -1730,6 +1957,18 @@ enabled.
   Production OAuth and Turnstile secrets live in the Supabase dashboard. Local
   values live in a git-ignored `.env.local`; `.env.local.example` lists the
   names.
+- **Backup secrets** (Phase 52; backup B12, B13): the R2 token (read-write,
+  scoped to one bucket), the two Healthchecks.io ping URLs and the backup-only
+  shared secret live in the function's secrets; the function URL and the
+  shared secret also live in Vault, where the cron functions read them.
+  Production values are set by the owner outside Git and never in chat; they
+  are configuration, not schema. Locally, `supabase/config.toml` reads them
+  from `.env.local` (`[db.vault]`, `[edge_runtime.secrets]`), so a reset
+  restores them; a development R2 bucket with its own scoped token serves the
+  one real-R2 check (Task 255), and the gates use local object storage
+  (below). `.env.local` never holds a production token or ping URL, since the
+  local cron runs daily too. The read-only token of the monthly restore check
+  and the drill's token stay in `chmod 600` files on the owner's Mac.
 - **Local auth** (amends S20; user, 2026-10-22): anonymous sign-in and
   email/password test users, and from Phase 48 OAuth through development GitHub
   and Google OAuth apps whose client secrets live only in the git-ignored
@@ -1749,8 +1988,18 @@ enabled.
   no real data and migrations apply there freely after the user's approval
   (S36). From launch on, a phase that changes SQL closes in this order: manual
   dump, migrations applied to production (compatible with the code still
-  deployed), then the merge that deploys the new code (S34). The production
-  schema changes only through migrations, never in the dashboard.
+  deployed), then the merge that deploys the new code (S34). From Phase 52 the
+  Edge Function deploys between the migrations and the merge; a function that
+  a new schedule or UI calls for the first time may deploy before the
+  migrations, and its secrets are set before the migrations that schedule it
+  (CLAUDE.md §Production). The production schema changes only through
+  migrations, never in the dashboard.
+- **Local object storage** (backup B11): the gates use the S3 endpoint of
+  local Supabase Storage (`[storage.s3_protocol]`), or a separate S3-compatible
+  container if Task 255 finds a call it lacks; the endpoint is an environment
+  variable, so the function code is the same as on R2. Tests write only under
+  random user ids, delete their keys, and recreate the bucket after a reset.
+  The local Healthchecks.io URLs point to a stub inside the tests.
 - **Early production** (S36, D1): production Supabase and the Vercel project are
   set up in Phase 42, unannounced and with no real data. Production sign-in and
   the public launch come in Phase 48.
@@ -1759,7 +2008,9 @@ enabled.
   by email before it pauses a project with low activity, and the owner answers
   that warning. A paused project is resumed from the dashboard. While it is
   paused the app shows the load-failure or guest-creation-failure screen.
-- **Backup** (S35; user, 2026-11-01): no scheduled backup job. The Phase 48
+- **Backup** (S35; user, 2026-11-01): no scheduled backup job until Phase 52,
+  which adds the daily account backup to R2 ([Account backup](#account-backup)).
+  The Phase 48
   close takes no dump, since production holds no data to keep until the launch.
   From the launch on, a manual `supabase db dump` runs before each production
   migration (S22, S34). It stays outside Git, and is deleted within 7 days once
@@ -1767,7 +2018,10 @@ enabled.
   first one comes with one restore test into local Supabase. Until that first
   dump, production data has no backup; the user accepted this risk. Automatic
   account backups follow the launch
-  (`docs/brainstorming/2026-11-01-account-backup/`).
+  (`docs/brainstorming/2026-11-01-account-backup/`). The manual dump stays
+  until the three conditions of that topic's "Retiring the manual dump" first
+  hold; the first SQL phase after Phase 54 then removes it through its
+  `/craft-docs` (Phase 54 keeps the dump and rehearses the replacement).
 - **Development switch** (S36): the Phase 42 end-to-end slice was a
   development-only page behind `NEXT_PUBLIC_GRIDDO_SUPABASE_SLICE`. Phase 46
   removed the page and the switch. Since Phase 45 the Supabase store is the
@@ -1952,12 +2206,17 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/lib/db/connection-monitor.ts` *(Phase 47)* | Connection state from request results: normal, unstable, offline; recovery probe |
 | `src/lib/db/connection.ts` *(Phase 47)* | The app's one connection monitor, the `/auth/v1/health` probe, the session controller's refetch binding and `useConnectionState()` for components |
 | `src/lib/db/write-failure.ts` *(Phase 47)* | What the store reports once about a rolled-back ordinary write, and `dropReportedFailure` for callers that have nothing to add |
-| `src/lib/auth/session.ts` *(Phase 45)* | Guest entry (anonymous sign-in with Turnstile), OAuth, sign-out, account deletion request, refresh-failure detection, `ensure_account()` call |
+| `src/lib/auth/session.ts` *(Phase 45)* | Guest entry (anonymous sign-in with Turnstile), OAuth, sign-out, account deletion request, refresh-failure detection, `ensure_account()` call; from Phase 54 `cancel_account_deletion()` |
+| `src/lib/backup/backup-client.ts` *(Phase 52)* | The only caller of the backup Edge Function (`functions.invoke` on the shared client, so the user's JWT is attached): status, `Back Up Now` and, from Phase 53, restore; applies `EDGE_REQUEST_TIMEOUT_MS` and the no-answer statuses ([Account backup](#account-backup)) |
+| `src/hooks/use-backup.ts` *(Phase 52)* | The hook components use for the backup button and dialog: status from the snapshot's `backup` value, the dialog's status read, `Back Up Now`, and from Phase 53 the restore flow and its `BroadcastChannel` messages |
+| `supabase/functions/backup/` *(Phase 52)* | The backup Edge Function (Deno): scheduled run, `Back Up Now`, status, summary, R2 deletion and, from Phase 53, restore. Excluded from the root `tsconfig` and ESLint; checked by `pnpm check:edge`; pinned by its `deno.json` and `deno.lock` |
+| `supabase/functions/_shared/` *(Phase 52)* | Pure modules shared by the function and the app (retention and pruning, status judgement, object keys, response classification): no Deno or Node globals, relative imports with `.ts`, imported from `src/` as `@edge-shared/*`; type-checked by `tsc` and `deno check`, tested by vitest. Only the DB lane edits them |
 | `src/lib/auth/turnstile.ts` *(Phase 48)* | Loads the Turnstile script and answers a token per attempt; its widget host is shown by the security-check screen |
 | `src/lib/auth/user-change.ts` *(Phase 48)* | What starts over when the user changes: the `triage-store` app session and the return to Home |
 | `src/lib/viewport.ts` *(Phase 48)* | The narrow-window rule from `MIN_WINDOW_WIDTH`, read when asked |
 | `src/components/layout/app-frame.tsx` *(Phase 45)* | The app-level frame: loading, failure, session-expired, account-being-deleted, security-check and narrow-window screens |
 | `src/components/layout/account-button.tsx` *(Phase 47)*, `account-modal.tsx` *(Phase 48)* | Sidebar account icon with the connection badge; the guest and account modal |
+| `src/components/layout/backup-button.tsx`, `backup-dialog.tsx` *(Phase 52)*; `restoring-screen.tsx` *(Phase 53)*; `deletion-grace-dialog.tsx` *(Phase 54)* | The sidebar `Backup` button with its status dot and running motion, its guest and account dialog, the restoring screen, and the deletion-grace dialog ([Account backup](#account-backup)) |
 | `src/lib/feedback/toast.ts` *(Phase 47)* | Shared toast helper: kinds, counted bursts, timing (F13, F14) |
 | `src/lib/feedback/write-failure-toast.ts`, `create-refusal.ts`, `offline-write.ts` *(Phase 47)* | The rolled-back write toast; a create or edit dialog's inline refusal line; the offline write-attempt toast and `blockedWhileOffline()` for write entries outside `send()` (F18) |
 | `src/hooks/use-pending-action.ts`, `src/components/feedback/pending-loader.tsx` *(Phase 47)* | Group 3 controls: busy at once, a second press ignored, the F03 loader after `DISPLAY_DELAY_MS` |
@@ -1986,7 +2245,7 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `.env.local.example` *(Phase 42)* | Names of the public env vars; values live in git-ignored `.env.local` |
 | `src/lib/db/schema.ts` | Zod validation schemas and TypeScript types (from SCHEMA.md) |
 | `src/lib/copy/inbox-triage.ts` *(proposed; absent today)* | `InboxTriageCopy` core-English resource keys/values for visible copy, statuses, reasons, live regions, and accessible names; exact `VQ-*`-reserved wording stays blocked |
-| `src/lib/constants.ts` | Grid dimensions (18×9), aging thresholds (5/11 days), urgency thresholds (3/2/1 days), trash retention (30 days); `DISPLAY_DELAY_MS` (300, from Task 243), and from the SaaS phases `REQUEST_TIMEOUT_MS` (15000) and the 30-second connection probe interval |
+| `src/lib/constants.ts` | Grid dimensions (18×9), aging thresholds (5/11 days), urgency thresholds (3/2/1 days), trash retention (30 days); `DISPLAY_DELAY_MS` (300, from Task 243), and from the SaaS phases `REQUEST_TIMEOUT_MS` (15000) and the 30-second connection probe interval; from Phase 52 `EDGE_REQUEST_TIMEOUT_MS` (160000) |
 | `src/lib/utils/bfs.ts` | BFS auto-placement algorithm — finds nearest empty cell from a starting position |
 | `src/lib/utils/aging.ts` | Aging state computation — Fresh/Stagnant/Neglected from mtime |
 | `src/lib/utils/urgency.ts` | Deadline urgency level computation — Level 1/2/3/Past from deadline |

@@ -425,6 +425,7 @@ invariants. The approved execution plan's transfer register moves unaccepted
 | Phase 49 (Tasks 241–244, completed) | `griddo`, `retro-mac` and `neumorphism` for correct rendering and `claymorphism` only for not breaking (F29), light and dark, 1920×1080 and 1024px; the four themes after Task 241. | The user's per-task disposition plus technical gates; per-theme finishing belongs to the theme stage. |
 | Phase 50 (Tasks 245–250, completed) | As Phase 49, on local Supabase, with every status state forced by the development state switch, and the Inbox at 1024px with the Pool open (MI-21). | As Phase 49. |
 | Phase 51 (Tasks 251–254, stabilization) | Task 252 only: the user sees two scenes, the unavailable Grid in `griddo` light and dark; the agent checks `retro-mac`, `neumorphism` and `claymorphism`, light and dark, for the same app-frame parts and theme classes (ST19). Tasks 251, 253 and 254 change no look: tests and the agent's isolated-browser checks. | The user's per-task disposition plus technical gates; text on the `retro-mac` dither stays theme-stage debt (Phase 48 mi-2). |
+| Phases 52–54 (Tasks 255–266, account backup) | Tasks 258, 262 and 266 only: the user sees the fewest scenes that show the new look, in `griddo` light and dark (258: the sidebar button with the red dot and the account dialog; 262: the restoring screen; 266: the deletion-grace dialog); the agent checks every state the development state switch forces, the guest dialog and the reduced-motion variants, and `retro-mac`, `neumorphism` and `claymorphism`, light and dark, for the reused classes. Other tasks change no look. | The user's per-task disposition plus technical gates; per-theme finishing stays with the theme stage. |
 
 Use the full gate declared in `CLAUDE.md`, with the approved task's direct test
 targets. This section changes the applicable visual matrix, not the gate
@@ -466,7 +467,7 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
 
 #### Core Project Architecture
 
-- [ ] **DataStore facade:** No component or hook imports `dexie` or `@supabase/supabase-js` directly for data access. All data access goes through `DataStore` interface methods. Only the store implementations import their libraries: `src/lib/db/supabase-client.ts`, `supabase-store.ts` and `snapshot-store.ts`; and `src/lib/auth/session.ts` for auth. Hooks use `liveRead` for reactive subscriptions.
+- [ ] **DataStore facade:** No component or hook imports `dexie` or `@supabase/supabase-js` directly for data access. All data access goes through `DataStore` interface methods. Only the store implementations import their libraries: `src/lib/db/supabase-client.ts`, `supabase-store.ts` and `snapshot-store.ts`; `src/lib/auth/session.ts` for auth; and from Phase 52 `src/lib/backup/backup-client.ts` for the backup Edge Function, used by components only through `src/hooks/use-backup.ts` (backup B2). Hooks use `liveRead` for reactive subscriptions.
 - [ ] **Reactive reads:** All data reads that feed UI are live: `liveRead` over the account snapshot. No one-time fetches for data that should be live (parent nodes, breadcrumbs, calendar items).
 - [ ] **URL-driven navigation:** Routes follow canonical pattern: `/` (L0), `/grid/[id]` (L1+), `?bit=[id]` (popup). No programmatic state-based routing that bypasses URL.
 - [ ] **Zod write-boundary:** Zod validation at write boundary only (`createNodeSchema.parse()`, `createBitSchema.parse()`, etc.). No read-path validation. The database constraints and the write functions' checks are the final gate (S12); client Zod gives immediate feedback.
@@ -565,10 +566,13 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   `internal`; (2) its owner: `griddo_writer` for writes, the caller
   (`security invoker`) for reads, `postgres` for `internal.cleanup_guests()`,
   which `pg_cron` runs and which deletes auth users (SCHEMA §Account deletion
-  fallback, recorded by Task 218);
+  fallback, recorded by Task 218), and for the `pg_cron` backup dispatch
+  functions; the caller for the backup functions, which run as `service_role`
+  with an explicit user id (SCHEMA §Backup functions, backup B9);
   (3) an empty `search_path` and schema-qualified names; (4) `EXECUTE` revoked
   from `public`, `anon` and `authenticated`, then granted to `authenticated`
-  only for an exposed function; (5) the locks of SCHEMA §Locks, taken before
+  only for an exposed function, and to `service_role` only for a backup
+  function and `internal.account_fingerprint`; (5) the locks of SCHEMA §Locks, taken before
   its checks and in the fixed order; (6) the result envelope with complete
   `changes`; (7) the account limits on every create path; (8) three tests:
   cross-account, concurrency and change-set match. Every task that changes SQL
@@ -595,7 +599,22 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   `griddo_writer`; composite foreign keys inside an account; no table
   write grant for a client role; `coverage.db.test.ts` passes; no client role
   can execute an `internal` function. Cross-account tests are blocking for
-  every phase that adds a table or function.
+  every phase that adds a table or function. From Phase 52, `service_role`'s
+  privileges in `app`, `internal` and `public` equal the SCHEMA §RLS and
+  grants list (catalog test; `dev` and Supabase's own schemas excluded).
+- [ ] **Server code boundary (backup B1, B10):** the only server code outside
+  the database is the backup Edge Function in `supabase/functions/backup/`. It
+  takes the user id only from the verified JWT's `sub`, or from the scheduled
+  call authenticated by the shared secret, never from a request body, and it
+  refuses a JWT whose `is_anonymous` claim is true.
+  `supabase/functions/_shared/` holds no Deno or Node globals and passes both
+  `tsc` and `deno check`; `pnpm check:edge` passes (once it is on `main`, from the Phase 52 merge). No new function or server
+  runtime appears without a canonical decision.
+- [ ] **Edge outcomes (backup B3–B7):** a backup or restore call that ends
+  without an answer is never resent; its outcome comes from a status read sent
+  after the request ended, and a restore's from its staging row, never from
+  elapsed time. `EDGE_REQUEST_TIMEOUT_MS`, the function's wall clock and the
+  `interrupted` threshold keep the SCHEMA §Account backup relation.
 - [ ] **One action, one call (S08):** a user action is one function call;
   components and hooks never sequence several writes for one action.
 - [ ] **Snapshot discipline (S07, S31, S32):** the snapshot base changes only

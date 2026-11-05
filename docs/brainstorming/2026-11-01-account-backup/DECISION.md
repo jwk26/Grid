@@ -6,6 +6,12 @@
 - Updated: 2026-11-04 (decision session: runner, export, restore, concurrency,
   format, retention, modal, alerts, recovery drill, restore check)
 - Readiness: code-ready
+- Promoted: 2026-11-05 through [`PROMOTION_MAP.md`](PROMOTION_MAP.md) into
+  Phases 52–54; its B4, B5, B8, B13, B15 and B16 and the Phases 52–54 flow
+  review supersede the 2-minute way-out, the staging row's deletion, the
+  `accounts` status columns, the user-task order, "no dependency on 53", the
+  drill's bucket, the restore order (rate check first) and the Phase split's
+  "every close: dump, then functions" line (CLAUDE.md §Production order applies)
 - Category: feature idea
 - Source project: GridDO
 - Source topic: `2026-10-21-saas-conversion` (S22, S35); Task 239 advisory
@@ -152,7 +158,7 @@ interim dump and the phase split. Discarded alternatives are in `NOTES.md`.
 
 ```text
 pg_cron (daily) --pg_net, one call per account, shared secret--+
-Account modal (user JWT): Back Up Now, Restore, status -------+
+Backup dialog (user JWT): Back Up Now, Restore, status -------+
                                                                v
                                           Edge Function (one)
    export_account() as service_role  <---|  |---> gzip (level 1) --> R2
