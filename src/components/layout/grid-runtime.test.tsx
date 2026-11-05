@@ -33,6 +33,8 @@ const NEXT_APP_PAGE_EXPORT_NAMES = new Set([
 
 const useParamsMock = vi.hoisted(() => vi.fn());
 const useNodeMock = vi.hoisted(() => vi.fn());
+const useRoutedNodeMock = vi.hoisted(() => vi.fn());
+const searchParamsMock = vi.hoisted(() => ({ current: new URLSearchParams() }));
 const useDndMock = vi.hoisted(() => vi.fn());
 const getDataStoreMock = vi.hoisted(() => vi.fn());
 const getGridOccupancyMock = vi.hoisted(() => vi.fn());
@@ -66,6 +68,8 @@ const createBitDialogSubmission = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   useParams: useParamsMock,
+  useSearchParams: () => searchParamsMock.current,
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 vi.mock("sonner", () => ({
@@ -100,9 +104,23 @@ vi.mock("@dnd-kit/core", async (importOriginal) => {
   };
 });
 
-vi.mock("@/hooks/use-node", () => ({
-  useNode: useNodeMock,
-}));
+// `useRoutedNode` is derived from `useNodeMock` like the real hook: a value of another id is not
+// the routed Node, and null is not yet read. A test sets `useRoutedNodeMock` to force a state.
+vi.mock("@/hooks/use-node", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/use-node")>();
+  return {
+    ...actual,
+    useNode: useNodeMock,
+    useRoutedNode: (id: string) => {
+      const forced = useRoutedNodeMock(id);
+      const value = useNodeMock(id) as Node | null | undefined;
+      if (forced) return forced;
+      return value && value.id === id
+        ? { status: "found", node: value }
+        : { status: "pending", node: null };
+    },
+  };
+});
 
 vi.mock("@/hooks/use-dnd", () => ({
   useDnd: useDndMock,
@@ -169,7 +187,9 @@ vi.mock("@/components/layout/sidebar", () => ({
     homeRevealHandlers,
     isAddActive,
     onAddClick,
+    addDisabledReason,
   }: {
+    addDisabledReason?: string;
     breadcrumbSlot?: React.ReactNode;
     homeLanding?: boolean;
     homeRevealHandlers?: {
@@ -200,7 +220,9 @@ vi.mock("@/components/layout/sidebar", () => ({
       <button
         aria-label="sidebar-add"
         data-active={isAddActive ? "true" : "false"}
+        disabled={addDisabledReason !== undefined}
         onClick={onAddClick}
+        title={addDisabledReason}
         type="button"
       >
         Add
@@ -498,6 +520,8 @@ describe("GridRuntime", () => {
   });
 
   beforeEach(() => {
+    useRoutedNodeMock.mockReset();
+    searchParamsMock.current = new URLSearchParams();
     useQuickCaptureStore.setState({ activeOverlay: null });
     getDataStoreMock.mockResolvedValue({
       getArchivedItems: vi.fn().mockResolvedValue({ nodes: [], bits: [] }),
@@ -1790,15 +1814,15 @@ describe("GridRuntime", () => {
       );
       expect(useToastAnchorStore.getState().breadcrumbBottom).toBeNull();
 
-      // useNode keeps the previous node until the new one arrives, so the route
-      // changes first while `node` is still the Inbox.
+      // The route changes while the hook still holds the Inbox: that value is not the routed Node
+      // (pending), so the Inbox no longer hides the breadcrumb of the Grid being opened.
       useParamsMock.mockReturnValue({ nodeId: parentNode.id });
       rerender(
         <GridRuntime>
           <RuntimeProbe />
         </GridRuntime>,
       );
-      expect(screen.queryByTestId("breadcrumbs")).not.toBeInTheDocument();
+      expect(screen.getByTestId("breadcrumbs")).toBeInTheDocument();
 
       useNodeMock.mockReturnValue(parentNode);
       rerender(
@@ -1809,6 +1833,271 @@ describe("GridRuntime", () => {
 
       expect(screen.getByTestId("breadcrumbs")).toBeInTheDocument();
       expect(useToastAnchorStore.getState().breadcrumbBottom).toBe(62);
+    });
+  });
+
+  describe("unavailable Grid (Task 252)", () => {
+    const missing = { status: "missing", node: null } as const;
+    const renderRuntime = () =>
+      render(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+    const screenId = "grid-unavailable";
+
+    it("shows the screen in place of the Grid for a missing Node: no breadcrumb, the app name as tab title, no page children", () => {
+      useParamsMock.mockReturnValue({ nodeId: "gone" });
+      useNodeMock.mockReturnValue(null);
+      useRoutedNodeMock.mockReturnValue(missing);
+
+      renderRuntime();
+
+      expect(screen.getByTestId(screenId)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { level: 1, name: "Couldn't open this Grid." })).toBeInTheDocument();
+      expect(screen.queryByTestId("breadcrumbs")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("add-at-cell")).not.toBeInTheDocument();
+      expect(document.title).toBe("Grid");
+    });
+
+    it.each([
+      ["in Trash", { deletedAt: 5 }],
+      ["archived", { archivedAt: 5 }],
+    ])("shows the screen for a Node %s", (_name, patch) => {
+      const node = createNode({ id: "n1", level: 0, ...patch });
+      useParamsMock.mockReturnValue({ nodeId: "n1" });
+      useNodeMock.mockReturnValue(node);
+
+      renderRuntime();
+
+      expect(screen.getByTestId(screenId)).toBeInTheDocument();
+      expect(screen.queryByTestId("breadcrumbs")).not.toBeInTheDocument();
+    });
+
+    it("does not show the screen for a Node hidden from Home, or for the Inbox and Archive", () => {
+      for (const node of [
+        createNode({ id: "h1", hiddenFromGrid: true }),
+        createNode({ id: "h2", systemRole: "inbox", hiddenFromGrid: true }),
+        createNode({ id: "h3", systemRole: "archive_view", hiddenFromGrid: true }),
+      ]) {
+        useParamsMock.mockReturnValue({ nodeId: node.id });
+        useNodeMock.mockReturnValue(node);
+        const { unmount } = renderRuntime();
+        expect(screen.queryByTestId(screenId)).not.toBeInTheDocument();
+        unmount();
+      }
+    });
+
+    it("never shows the screen before the read, nor for a stale Node of the previous id (no flash)", () => {
+      const shown: boolean[] = [];
+      const first = createNode({ id: "a", level: 0 });
+      useParamsMock.mockReturnValue({ nodeId: "a" });
+      useNodeMock.mockReturnValue(first);
+      const { rerender } = renderRuntime();
+      shown.push(screen.queryByTestId(screenId) !== null);
+
+      // client navigation: the route is "b", the hook still returns Node "a"
+      useParamsMock.mockReturnValue({ nodeId: "b" });
+      useNodeMock.mockReturnValue(first);
+      rerender(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      shown.push(screen.queryByTestId(screenId) !== null);
+      expect(screen.getByLabelText("add-at-cell")).toBeInTheDocument();
+
+      useNodeMock.mockReturnValue(createNode({ id: "b", level: 0 }));
+      rerender(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      shown.push(screen.queryByTestId(screenId) !== null);
+      expect(shown).toEqual([false, false, false]);
+    });
+
+    it("does not judge at L0, where there is no routed id", () => {
+      useParamsMock.mockReturnValue({});
+      useNodeMock.mockReturnValue(null);
+      useRoutedNodeMock.mockReturnValue(missing);
+
+      renderRuntime();
+
+      expect(screen.queryByTestId(screenId)).not.toBeInTheDocument();
+      expect(screen.getByLabelText("add-at-cell")).toBeInTheDocument();
+    });
+
+    it("returns to the Grid when the Node is restored", () => {
+      useParamsMock.mockReturnValue({ nodeId: "n1" });
+      useNodeMock.mockReturnValue(createNode({ id: "n1", deletedAt: 5 }));
+      const { rerender } = renderRuntime();
+      expect(screen.getByTestId(screenId)).toBeInTheDocument();
+
+      useNodeMock.mockReturnValue(createNode({ id: "n1", deletedAt: null }));
+      rerender(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(screen.queryByTestId(screenId)).not.toBeInTheDocument();
+      expect(screen.getByLabelText("add-at-cell")).toBeInTheDocument();
+    });
+
+    it("disables the sidebar + with its reason only while the screen shows", () => {
+      useParamsMock.mockReturnValue({ nodeId: "n1" });
+      useNodeMock.mockReturnValue(createNode({ id: "n1", deletedAt: 5 }));
+      const { rerender } = renderRuntime();
+      const add = screen.getByLabelText("sidebar-add");
+      expect(add).toBeDisabled();
+      expect(add).toHaveAttribute("title", "Adding restricted on this page");
+
+      useNodeMock.mockReturnValue(createNode({ id: "n1" }));
+      rerender(
+        <GridRuntime>
+          <RuntimeProbe />
+        </GridRuntime>,
+      );
+      expect(screen.getByLabelText("sidebar-add")).toBeEnabled();
+    });
+
+    describe("surfaces closed when the screen appears", () => {
+      const valid = createNode({ id: "n1", level: 0 });
+      const trashed = createNode({ id: "n1", level: 0, deletedAt: 5 });
+      const flip = (rerender: (ui: React.ReactElement) => void) => {
+        useNodeMock.mockReturnValue(trashed);
+        rerender(
+          <GridRuntime>
+            <RuntimeProbe />
+          </GridRuntime>,
+        );
+      };
+      beforeEach(() => {
+        useParamsMock.mockReturnValue({ nodeId: "n1" });
+        useNodeMock.mockReturnValue(valid);
+      });
+
+      it("closes the + entry surface but not the Scratch capture modal", () => {
+        const { rerender } = renderRuntime();
+        fireEvent.click(screen.getByLabelText("sidebar-add"));
+        expect(screen.getByTestId("entry-surface")).toBeInTheDocument();
+        flip(rerender);
+        expect(screen.queryByTestId("entry-surface")).not.toBeInTheDocument();
+        expect(useQuickCaptureStore.getState().activeOverlay).toBeNull();
+
+        useNodeMock.mockReturnValue(valid);
+        rerender(
+          <GridRuntime>
+            <RuntimeProbe />
+          </GridRuntime>,
+        );
+        act(() => useQuickCaptureStore.getState().setActiveOverlay("scratch"));
+        flip(rerender);
+        expect(useQuickCaptureStore.getState().activeOverlay).toBe("scratch");
+      });
+
+      it("closes the cell-opened chooser, and a create dialog opened from it", () => {
+        const { rerender } = renderRuntime();
+        fireEvent.click(screen.getByLabelText("add-at-cell"));
+        expect(screen.getByTestId("create-item-chooser")).toBeInTheDocument();
+        flip(rerender);
+        expect(screen.queryByTestId("create-item-chooser")).not.toBeInTheDocument();
+
+        useNodeMock.mockReturnValue(valid);
+        rerender(
+          <GridRuntime>
+            <RuntimeProbe />
+          </GridRuntime>,
+        );
+        fireEvent.click(screen.getByLabelText("add-at-cell"));
+        fireEvent.click(screen.getByLabelText("choose-node"));
+        expect(screen.getByLabelText("submit-node")).toBeInTheDocument();
+        flip(rerender);
+        expect(screen.queryByLabelText("submit-node")).not.toBeInTheDocument();
+      });
+
+      it("does not bring a closed surface back when the Node is restored", () => {
+        const { rerender } = renderRuntime();
+        fireEvent.click(screen.getByLabelText("add-at-cell"));
+        flip(rerender);
+        useNodeMock.mockReturnValue(valid);
+        rerender(
+          <GridRuntime>
+            <RuntimeProbe />
+          </GridRuntime>,
+        );
+        expect(screen.queryByTestId("create-item-chooser")).not.toBeInTheDocument();
+      });
+
+      it("closes the delete confirmation", () => {
+        const { rerender } = renderRuntime();
+        fireEvent.click(screen.getByLabelText("request-node-delete"));
+        expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+        flip(rerender);
+        expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      });
+
+      it("closes both move confirmations through their cancel handlers so the drag rolls back", () => {
+        const cancelNode = vi.fn();
+        const cancelAncestor = vi.fn();
+        useDndMock.mockReturnValue({
+          sensors: [],
+          activeItem: null,
+          handleDragStart: vi.fn(),
+          handleDragEnd: vi.fn(),
+          handleDragOver: vi.fn(),
+          handleNodeMoveConfirm: vi.fn(),
+          handleNodeMoveCancel: cancelNode,
+          handleAncestorMoveConfirm: vi.fn(),
+          handleAncestorMoveCancel: cancelAncestor,
+          pendingNodeMove: { itemTitle: "A", targetNodeTitle: "B" },
+          pendingAncestorMove: { itemTitle: "C", targetNodeTitle: "D" },
+        });
+        const { rerender } = renderRuntime();
+        expect(cancelNode).not.toHaveBeenCalled();
+        flip(rerender);
+        expect(cancelNode).toHaveBeenCalled();
+        expect(cancelAncestor).toHaveBeenCalled();
+      });
+    });
+
+    describe("focus on Go to Home", () => {
+      beforeEach(() => {
+        useParamsMock.mockReturnValue({ nodeId: "n1" });
+        useNodeMock.mockReturnValue(createNode({ id: "n1", deletedAt: 5 }));
+      });
+
+      it("moves to Go to Home when no layer is open", () => {
+        renderRuntime();
+        expect(screen.getByRole("button", { name: "Go to Home" })).toHaveFocus();
+      });
+
+      it("leaves an open Scratch capture modal its focus, and takes it when that layer closes", () => {
+        useQuickCaptureStore.setState({ activeOverlay: "scratch" });
+        renderRuntime();
+        const button = screen.getByRole("button", { name: "Go to Home" });
+        expect(button).not.toHaveFocus();
+        act(() => useQuickCaptureStore.getState().closeAll());
+        expect(button).toHaveFocus();
+      });
+
+      it("waits while ?bit= is in the URL and moves when it leaves", () => {
+        const url = new URL(window.location.href);
+        url.search = "?bit=b1";
+        window.history.replaceState(null, "", url);
+        searchParamsMock.current = new URLSearchParams("bit=b1");
+        const { rerender } = renderRuntime();
+        const button = screen.getByRole("button", { name: "Go to Home" });
+        expect(button).not.toHaveFocus();
+        window.history.replaceState(null, "", window.location.pathname);
+        searchParamsMock.current = new URLSearchParams();
+        rerender(
+          <GridRuntime>
+            <RuntimeProbe />
+          </GridRuntime>,
+        );
+        expect(button).toHaveFocus();
+      });
     });
   });
 });
