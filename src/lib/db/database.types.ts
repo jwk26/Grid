@@ -19,6 +19,20 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"backup_status": {
+                  Row: {
+                    "failing_since": number | null,"failure_changed_at": number | null,"failure_reason": string | null,"last_backup_now_at": number | null,"last_checked_at": number | null,"last_file_at": number | null,"last_file_bytes": number | null,"last_fingerprint": string | null,"last_finished_at": number | null,"last_result": string | null,"manual_finished_at": number | null,"manual_result": string | null,"manual_run_id": string | null,"run_started_at": number | null,"stored_bytes": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "failing_since"?: number | null,"failure_changed_at"?: number | null,"failure_reason"?: string | null,"last_backup_now_at"?: number | null,"last_checked_at"?: number | null,"last_file_at"?: number | null,"last_file_bytes"?: number | null,"last_fingerprint"?: string | null,"last_finished_at"?: number | null,"last_result"?: string | null,"manual_finished_at"?: number | null,"manual_result"?: string | null,"manual_run_id"?: string | null,"run_started_at"?: number | null,"stored_bytes"?: number,"user_id": string
+                  }
+                  Update: {
+                    "failing_since"?: number | null,"failure_changed_at"?: number | null,"failure_reason"?: string | null,"last_backup_now_at"?: number | null,"last_checked_at"?: number | null,"last_file_at"?: number | null,"last_file_bytes"?: number | null,"last_fingerprint"?: string | null,"last_finished_at"?: number | null,"last_result"?: string | null,"manual_finished_at"?: number | null,"manual_result"?: string | null,"manual_run_id"?: string | null,"run_started_at"?: number | null,"stored_bytes"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"bits": {
                   Row: {
                     "archived_at": number | null,"created_at": number,"deadline": number | null,"deadline_all_day": boolean,"deleted_at": number | null,"description": string,"icon": string,"id": string,"mtime": number,"parent_id": string,"past_deadline_dismissed": boolean,"priority": string | null,"status": string,"title": string,"user_id": string,"version": number,"x": number,"y": number
@@ -159,6 +173,30 @@ isOneToOne: false
 "archive_scratch":
 { Args: { "p_expected_version": number,"p_scratch_id": string }; Returns: Json
                            },
+"backup_begin":
+{ Args: { "p_kind": string,"p_run_id": string,"p_user_id": string }; Returns: Json
+                           },
+"backup_deletion_done":
+{ Args: { "p_user_id": string }; Returns: undefined
+                           },
+"backup_deletion_failed":
+{ Args: { "p_user_id": string }; Returns: undefined
+                           },
+"backup_due_deletions":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"backup_fingerprint":
+{ Args: { "p_user_id": string }; Returns: string
+                           },
+"backup_finish":
+{ Args: { "p_file_at"?: number,"p_file_bytes"?: number,"p_fingerprint"?: string,"p_reason"?: string,"p_result": string,"p_run_token": number,"p_stored_bytes"?: number,"p_user_id": string }; Returns: Json
+                           },
+"backup_read_status":
+{ Args: { "p_restore_id"?: string,"p_run_id"?: string,"p_user_id": string }; Returns: Json
+                           },
+"backup_summary":
+{ Args: { "p_as_of": number,"p_missing": number }; Returns: Json
+                           },
 "classify_archive_scratch_recovery":
 { Args: { "p_expected_version": number,"p_scratch_id": string,"p_started_at": number }; Returns: Json
                            },
@@ -188,6 +226,9 @@ isOneToOne: false
                            },
 "ensure_account":
 { Args: { "p_reserved_cells"?: Json }; Returns: Json
+                           },
+"export_account":
+{ Args: { "p_user_id": string }; Returns: Json
                            },
 "get_snapshot":
 { Args: Record<PropertyKey, never>; Returns: Json

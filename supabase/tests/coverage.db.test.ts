@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { findMissingCases, hasDisabledBlocks, hasLiveCase, type CatalogFunction } from "./helpers/coverage";
 import { connect } from "./helpers/db";
+import { BACKUP_FUNCTIONS } from "./helpers/backup";
 import { FUNCTION_CASES } from "./helpers/function-cases";
 
 // Function coverage (SCHEMA §Database tests): every exposed function has its registered
@@ -137,27 +138,30 @@ describe("function privileges by role", () => {
       for (const row of rows) {
         expect(row.anon, `${row.fn} for anon`).toBe(false);
         expect(row.authenticated, `${row.fn} for authenticated`).toBe(false);
-        expect(row.service_role, `${row.fn} for service_role`).toBe(false);
+        // service_role holds EXECUTE on internal.account_fingerprint alone (SCHEMA §RLS and grants).
+        expect(row.service_role, `${row.fn} for service_role`).toBe(row.fn === "internal.account_fingerprint(uuid)");
       }
     } finally {
       await db.end();
     }
   });
 
-  it("anon and service_role cannot execute any function in public", async () => {
+  it("anon cannot execute any function in public, and service_role only the backup functions", async () => {
     const db = await connect();
     try {
       const { rows } = await db.query(
         `select p.oid::regprocedure::text as fn,
                 has_function_privilege('anon', p.oid, 'execute') as anon,
-                has_function_privilege('service_role', p.oid, 'execute') as service_role
+                has_function_privilege('service_role', p.oid, 'execute') as service_role,
+                p.proname as name
            from pg_proc p
           where p.pronamespace = 'public'::regnamespace and ${EXTENSION_FREE}`,
       );
       expect(rows.length).toBeGreaterThan(0);
+      const backup = new Set<string>(BACKUP_FUNCTIONS);
       for (const row of rows) {
         expect(row.anon, `${row.fn} for anon`).toBe(false);
-        expect(row.service_role, `${row.fn} for service_role`).toBe(false);
+        expect(row.service_role, `${row.fn} for service_role`).toBe(backup.has(row.name));
       }
     } finally {
       await db.end();

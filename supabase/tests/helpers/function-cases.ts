@@ -8,6 +8,60 @@ export type CaseRef = { file: string; title: string };
 export type FunctionCases = { crossAccount: CaseRef; changeSet?: CaseRef };
 
 export const FUNCTION_CASES: Record<string, FunctionCases> = {
+  export_account: {
+    crossAccount: {
+      file: "backup-status.db.test.ts",
+      title: "leaves another account's rows untouched through every backup function",
+    },
+  },
+  backup_fingerprint: {
+    crossAccount: {
+      file: "backup-status.db.test.ts",
+      title: "leaves another account's rows untouched through every backup function",
+    },
+  },
+  backup_begin: {
+    crossAccount: {
+      file: "backup-status.db.test.ts",
+      title: "leaves another account's rows untouched through every backup function",
+    },
+  },
+  backup_finish: {
+    crossAccount: {
+      file: "backup-status.db.test.ts",
+      title: "leaves another account's rows untouched through every backup function",
+    },
+  },
+  backup_read_status: {
+    crossAccount: {
+      file: "backup-status.db.test.ts",
+      title: "leaves another account's rows untouched through every backup function",
+    },
+  },
+  backup_summary: {
+    crossAccount: {
+      file: "backup-status.db.test.ts",
+      title: "leaves another account's rows untouched through every backup function",
+    },
+  },
+  backup_due_deletions: {
+    crossAccount: {
+      file: "backup-status.db.test.ts",
+      title: "leaves another account's rows untouched through every backup function",
+    },
+  },
+  backup_deletion_done: {
+    crossAccount: {
+      file: "backup-status.db.test.ts",
+      title: "leaves another account's rows untouched through every backup function",
+    },
+  },
+  backup_deletion_failed: {
+    crossAccount: {
+      file: "backup-status.db.test.ts",
+      title: "leaves another account's rows untouched through every backup function",
+    },
+  },
   ensure_account: {
     crossAccount: {
       file: "ensure-account.db.test.ts",

@@ -54,11 +54,9 @@ default_pool_size = 20
 # Maximum number of client connections allowed.
 max_client_conn = 100
 
-# Phase 52: the cron functions read the backup shared secret from Vault; a reset restores it
-# from `.env.local`.
-[db.vault]
-backup_shared_secret = "env(BACKUP_SHARED_SECRET)"
-backup_function_url = "env(BACKUP_FUNCTION_URL)"
+# Phase 52: no [db.vault] here. `supabase db push` writes that section into the target database's
+# Vault, so a production push would replace the production entries with local values (Task 255
+# MI-2). `scripts/backup-vault.mjs` writes the local entries from `.env.local` after a reset.
 
 [db.migrations]
 # If disabled, migrations will be skipped during a db push or reset.
