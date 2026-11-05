@@ -290,7 +290,10 @@ describe("held command whose surface is gone (stabilization ST24, ST33, ST37, ST
     monitor().report("reachable");
   });
 
-  const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
+  const flush = () =>
+    act(async () => {
+      for (let tick = 0; tick < 10; tick++) await Promise.resolve();
+    });
 
   function setup(status: "applied" | null = null) {
     const check = vi.fn(async () => status);

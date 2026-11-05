@@ -226,6 +226,7 @@ export function useTriageOperationLock(): TriageOperationLock {
     },
     // Empty deps on purpose: both read only refs and each other (`runOwnerCheck` is defined below
     // and called later), so their identity must not change across renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
