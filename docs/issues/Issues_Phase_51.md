@@ -9,8 +9,8 @@ Plan fixes at start: Task 252 names `app-frame-title`, `app-frame-reason` and `a
 ## Task 251 — Small Grid and capture fixes
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 251 acceptance
+- Status: Accepted
+- Next: Task 252 (run-task 252)
 - Open: none
 
 ### Log
@@ -26,6 +26,8 @@ Plan fixes at start: Task 252 names `app-frame-title`, `app-frame-reason` and `a
 - Implemented, uncommitted (2026-11-05): aging filter skipped for system Nodes (style passed through unchanged), Scratch auto-close tracked by `onPointerEnter`/`onPointerLeave` with touch ignored (review item 1), `levelOpacityMap` and `borderOpacity` removed (`level` still used in `grid-view.tsx`). Failing tests first, now green. Gate: `git diff --check`, `pnpm lint`, `pnpm typecheck`, `pnpm build` pass; `pnpm test` had one failure in `datastore.live-read.test.ts` "callers that ask before the account is ready share one store" (6.4 s, timing under load), passing alone, in a file this task does not touch.
 - Decision request: the agent browser check (review item 2) needs local Supabase, but Docker is not running and the app lane does not start Supabase (CLAUDE.md Local Supabase). Recommended: the user starts Docker and local Supabase, then the session runs the check. Alternative: accept on unit tests alone, leaving the browser check undone. Trade-off: the unit tests cover the aging rule and the timer, but only the browser shows real pointer events and the Grid render after the prop removal.
 - Decision: user started Docker and local Supabase; the browser check ran (user, 2026-11-05).
+- Review (advisory, 2026-11-05, task finish): approve. Checked `48c2ece` against ST09–ST11 and the work-plan review: aging computed only for `systemRole === null` with the caller's `style` passed through; pointer tracking ignores touch, with over/outside/touch tests at the 3000 ms boundary; no `borderOpacity` or `levelOpacityMap` left in `src`; the three focused test files pass (55). Apply: Task 252 note below. Not applied: none.
+- Task 252 note (advisory, 2026-11-05): Task 251 found Docker and local Supabase stopped mid-task; the app lane cannot start them. Confirm with the user at the work plan that local Supabase is running, before the checks and the user visual checkpoint.
 
 ### Checkpoint
 - Changed: `node-card.tsx`, `scratch-modal.tsx`, `grid-view.tsx`, `grid-cell.tsx` and the tests of the first, second and fourth.

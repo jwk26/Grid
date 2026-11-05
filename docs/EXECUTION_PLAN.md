@@ -812,7 +812,7 @@ Phase 50 mi-10 stays held until it is seen again.
   `Lesson:` line. It is a close-time observation, not a task acceptance
   criterion.
 
-### Task 251: [ ] Small Grid and capture fixes
+### Task 251: [x] Small Grid and capture fixes
 
 **Files and actions:**
 - `src/components/grid/node-card.tsx` and test: no aging filter for a Node
