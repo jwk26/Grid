@@ -391,7 +391,11 @@ Feedback F21–F26 (Phase 50, Tasks 248–249). Looks: DESIGN_TOKENS
 - **Trigger:** `?bit=[bitId]` query parameter. Opens from grid or calendar.
 - **Unavailable Bit** (stabilization ST31): after the read, a Bit the account
   does not have, or one with `deletedAt` or `archivedAt` set, removes `?bit=`
-  with `router.replace` and the popup closes, on every route. The popup never
+  without a new history entry and the popup closes, on every route. The
+  removal, and the popup's own close, use `window.history.replaceState` on the
+  same path, which Next syncs with `useSearchParams`: `router.replace` does
+  nothing on a cold-loaded static route (`/`, `/calendar/*`, `/trash`; Phase 51
+  mi-2). A path change still goes through the router. The popup never
   closes before its read. A Bit the popup itself moved to Trash that comes
   back on a failed write does not reopen it.
 - **Structure:** Centered modal over blurred background.
