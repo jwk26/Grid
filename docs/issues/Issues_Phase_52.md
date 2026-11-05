@@ -1,0 +1,12 @@
+# Issues — Phase 52: Account backup
+
+Branch: phase-52/account-backup · Started: 2026-11-05
+Carried over: none bound to Phase 52 in `Issues_Deferred.md`. Phase 48 mi-3 (`next dev` blank page after a browser Back) applies to Task 258's browser checks: a check that uses Back runs on the production build.
+Known flaky tests (gate watch, user-approved 2026-11-05): every gate in this phase reports these two by name with their result in that run (failed or passed); any other failing test is a new finding and gets its own item.
+- `src/lib/db/datastore.live-read.test.ts` "callers that ask before the account is ready share one store": fails under full-suite load, passes alone. First recorded as Phase 51 mi-1 (Open on `phase-51/stabilization`).
+- `src/components/triage/triage-workspace.test.tsx` "renders the dedicated DP-VQ01 surface paused with every full source-labeled draft": a timing failure under load, passes alone. First recorded in `Issues_Phase_50.md` Task 247 Unresolved under the wrong file name (`breakdown-panel.test.tsx`; the test exists only in `triage-workspace.test.tsx`); seen again in the Phase 51 baseline.
+Baseline gate (2026-11-05, `origin/main` `8d841c7`): `git diff --check` pass; `pnpm lint` 0 errors, 10 warnings; `pnpm typecheck` pass; `pnpm test` 2496 passed (136 files), both known flaky tests passed; `pnpm test:db` 987 passed (35 files); `pnpm build` pass. `pnpm check:edge` does not exist until Task 255.
+Open beside it: Phase 51 (`app` lane, `phase-51/stabilization`; Tasks 251–252 accepted, 253–254 left). Files both phases change: `src/components/layout/sidebar.tsx`, `sidebar.test.tsx` and `src/lib/copy/feedback.ts` (Phase 51 Task 252, Phase 52 Task 258); Task 258 merges `main` when it starts. The local Supabase database is shared: every `pnpm test:db` runs while Phase 51 is not in a browser check, and Phase 51 seeds again after it.
+Environment at start: local Supabase CLI `2.121.0` (devDependency) stays at that version through the phase (user, 2026-11-05; v3.0.0 exists); `deno` is not installed; the local `edge_runtime` container was stopped. Task 255 owns both. `.env.local` was copied from the integration worktree (git-ignored; values not read).
+Plan fixes at start: none.
+User preparation before Task 255 (plan §User preparation): R2 prices checked again, R2 enabled, a development bucket and a token scoped to it in `.env.local`. Not yet recorded as done.
