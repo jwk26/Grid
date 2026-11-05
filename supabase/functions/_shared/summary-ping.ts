@@ -35,3 +35,8 @@ export function judgeSummary(c: SummaryCounts): PingDecision {
     (codes.length > 0 ? ` codes=${codes.join(",")}` : "");
   return { ok: codes.length === 0, codes, body };
 }
+
+/** A summary that could not run its own steps: `/fail` at once, with the step's code and no counts. */
+export function failedStepDecision(code: "summary_failed" | "deletion_check_failed"): PingDecision {
+  return { ok: false, codes: [code], body: `codes=${code}` };
+}

@@ -9,14 +9,12 @@ import {
 } from "../_shared/response.ts";
 import { logCode, SafeError } from "../_shared/safe-error.ts";
 import { runBackup, type RunDeps, type RunKind } from "../_shared/run.ts";
-import { judgeSummary } from "../_shared/summary-ping.ts";
+import { runSummary, type SummaryDeps } from "../_shared/summary.ts";
 import { authenticateUser, checkSharedSecret } from "./auth.ts";
 import * as db from "./database.ts";
 import { exportGzip } from "./export.ts";
+import { sendPing } from "./ping.ts";
 import { createObjectStore } from "./s3.ts";
-
-// Imported so that `deno check` of this graph covers the Stage 3 module too.
-export const SHARED = { judgeSummary };
 
 function answer(status: number, body: unknown): Response {
   return Response.json(body, { status: assertOwnStatus(status) });
@@ -55,6 +53,21 @@ function realDeps(): RunDeps {
     list: store.list,
     remove: store.remove,
     finish: db.finish,
+    log: (message) => console.error(message),
+  };
+}
+
+function summaryDeps(): SummaryDeps {
+  const store = createObjectStore();
+  return {
+    now: () => new Date(),
+    summary: db.summary,
+    dueDeletions: db.dueDeletions,
+    deletionDone: db.deletionDone,
+    deletionFailed: db.deletionFailed,
+    listKeys: async (prefix) => (await store.list(prefix)).map((o) => o.key),
+    remove: store.remove,
+    ping: sendPing,
     log: (message) => console.error(message),
   };
 }
@@ -114,9 +127,14 @@ export async function handle(req: Request): Promise<Response> {
         const status = await db.readStatus(jwtUserId as string, parsed.runId);
         return answer(200, { status: "applied", result: status });
       }
-      case "summary":
-        // Stage 3.
-        return answer(200, rejectedBody("not_implemented"));
+      case "summary": {
+        // Counts and codes only: no account id, email or reason leaves the function.
+        const outcome = await runSummary(summaryDeps(), { missing: parsed.missing, asOf: parsed.asOf });
+        return answer(200, {
+          status: "applied",
+          result: { ok: outcome.decision.ok, codes: outcome.decision.codes, pinged: outcome.pinged, deleted: outcome.deleted },
+        });
+      }
     }
   } catch (error) {
     // Before a run began, or a read failed: nothing was recorded here, so the client reads the verdict.

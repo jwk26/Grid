@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SafeError } from "../_shared/safe-error.ts";
+import type { DueDeletion, SummaryAnswer } from "../_shared/summary.ts";
 import type { BeginAnswer, FinishArgs, FinishResult, RunKind } from "../_shared/run.ts";
 
 // The backup functions through supabase-js `.rpc()` as service_role (SCHEMA §Backup functions).
@@ -70,4 +71,25 @@ export async function readStatus(userId: string, runId: string | null): Promise<
   });
   if (r.status !== "applied" || !r.result) throw new SafeError("status_unexpected");
   return r.result;
+}
+
+export async function summary(missing: number, asOf: number): Promise<SummaryAnswer> {
+  const r = await rpc<{ status: string; result?: SummaryAnswer }>("backup_summary", {
+    p_missing: missing,
+    p_as_of: asOf,
+  });
+  if (r.status !== "applied" || !r.result) throw new SafeError("summary_unexpected");
+  return r.result;
+}
+
+export function dueDeletions(): Promise<DueDeletion[]> {
+  return rpc<DueDeletion[]>("backup_due_deletions", {});
+}
+
+export async function deletionDone(userId: string): Promise<void> {
+  await rpc("backup_deletion_done", { p_user_id: userId });
+}
+
+export async function deletionFailed(userId: string): Promise<void> {
+  await rpc("backup_deletion_failed", { p_user_id: userId });
 }

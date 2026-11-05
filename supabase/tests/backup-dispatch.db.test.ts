@@ -143,6 +143,13 @@ describe("internal.dispatch_backup_summary() missing count", () => {
     await db.query("insert into app.backup_status (user_id, last_finished_at, last_result) values ($1, $2, 'unchanged')", [recent.id, now - 30 * HOUR]);
     const stale = await oauthUser("sm-stale"); // a result 40 h ago: mark = now - 4 h
     await db.query("insert into app.backup_status (user_id, last_finished_at, last_result) values ($1, $2, 'unchanged')", [stale.id, now - 40 * HOUR]);
+    // A permanently failing account is tried every day, so each failure is a result: never `missing`.
+    const failing = await oauthUser("sm-failing");
+    await setCreated(failing.id, now - 240 * HOUR);
+    await db.query(
+      "insert into app.backup_status (user_id, last_finished_at, last_result, failure_reason, failing_since) values ($1, $2, 'failed', 'upload_failed', $3)",
+      [failing.id, now - 30 * HOUR, now - 10 * 24 * HOUR],
+    );
     const deleting = await oauthUser("sm-del", { deletion: true });
     await setCreated(deleting.id, now - 40 * HOUR);
 
