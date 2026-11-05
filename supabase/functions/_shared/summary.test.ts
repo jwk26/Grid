@@ -141,9 +141,13 @@ describe("runSummary", () => {
   });
 
   it("sends /fail at once when backup_due_deletions() fails, and still throws", async () => {
-    const f = fake({ dueFails: true });
+    const f = fake({ dueFails: true, answer: { ...quiet, new_failures: 2, missing: 1 } });
     await expect(runSummary(f.deps, input)).rejects.toThrow("db");
-    expect(f.pings).toEqual([{ ok: false, body: "codes=deletion_check_failed" }]);
+    // the counts of the summary that already moved its window are not lost
+    expect(f.pings).toEqual([{
+      ok: false,
+      body: "new_failures=2 failing=0 missing=1 over_limit=0 deletion_overdue=0 codes=new_failure,missing,deletion_check_failed",
+    }]);
   });
 
   it("still throws the step's error when that ping cannot be sent", async () => {

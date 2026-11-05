@@ -14,7 +14,7 @@ import { authenticateUser, checkSharedSecret } from "./auth.ts";
 import * as db from "./database.ts";
 import { exportGzip } from "./export.ts";
 import { sendPing } from "./ping.ts";
-import { createObjectStore } from "./s3.ts";
+import { createObjectStore, type ObjectStore } from "./s3.ts";
 
 function answer(status: number, body: unknown): Response {
   return Response.json(body, { status: assertOwnStatus(status) });
@@ -58,15 +58,18 @@ function realDeps(): RunDeps {
 }
 
 function summaryDeps(): SummaryDeps {
-  const store = createObjectStore();
+  // Created on first use: a storage setting that is missing must not stop the summary itself, which
+  // records `interrupted` and counts the problems; it only fails the deletion of a due row.
+  let store: ObjectStore | null = null;
+  const objects = () => (store ??= createObjectStore());
   return {
     now: () => new Date(),
     summary: db.summary,
     dueDeletions: db.dueDeletions,
     deletionDone: db.deletionDone,
     deletionFailed: db.deletionFailed,
-    listKeys: async (prefix) => (await store.list(prefix)).map((o) => o.key),
-    remove: store.remove,
+    listKeys: async (prefix) => (await objects().list(prefix)).map((o) => o.key),
+    remove: (keys) => objects().remove(keys),
     ping: sendPing,
     log: (message) => console.error(message),
   };

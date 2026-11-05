@@ -76,7 +76,7 @@ describe("runBackup", () => {
     const f = fake({ fingerprint: "old" });
     const out = await runBackup(f.deps, input);
     expect(out).toMatchObject({ result: "unchanged", confirmed: true });
-    expect(f.calls).toEqual(["begin", "fingerprint", "finish"]);
+    expect(f.calls).toEqual(["begin", "fingerprint", "check", "finish"]);
   });
 
   it("a first run (no stored fingerprint) always writes", async () => {
@@ -161,5 +161,11 @@ describe("runBackup", () => {
     const b = fake({ check: () => Promise.reject(new Error("https://r2.example/secret-key")), log: (m) => lines.push(m) });
     await runBackup(b.deps, input);
     expect(lines).toEqual(["upload failed: put_403", "account check failed: Error"]);
+  });
+
+  it("an unchanged run that meets a deletion request records nothing", async () => {
+    const f = fake({ fingerprint: "old", check: "account_deleting" });
+    expect(await runBackup(f.deps, input)).toMatchObject({ result: "abandoned" });
+    expect(f.finishes).toEqual([{ result: "abandoned", args: undefined }]);
   });
 });

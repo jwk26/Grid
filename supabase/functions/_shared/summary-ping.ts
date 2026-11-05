@@ -36,7 +36,18 @@ export function judgeSummary(c: SummaryCounts): PingDecision {
   return { ok: codes.length === 0, codes, body };
 }
 
-/** A summary that could not run its own steps: `/fail` at once, with the step's code and no counts. */
-export function failedStepDecision(code: "summary_failed" | "deletion_check_failed"): PingDecision {
-  return { ok: false, codes: [code], body: `codes=${code}` };
+/**
+ * A summary that could not run one of its own steps: `/fail` at once with the step's code. When the
+ * counts of `backup_summary()` are known (it already moved its window), they go in the body, so the
+ * day's new problems are not lost behind the step's failure.
+ */
+export function failedStepDecision(
+  code: "summary_failed" | "deletion_check_failed",
+  counts?: SummaryCounts,
+): PingDecision {
+  if (!counts) return { ok: false, codes: [code], body: `codes=${code}` };
+  const known = judgeSummary(counts);
+  const codes = [...known.codes, code];
+  const base = known.body.replace(/ codes=.*$/, "");
+  return { ok: false, codes, body: `${base} codes=${codes.join(",")}` };
 }

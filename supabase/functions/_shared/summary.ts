@@ -70,10 +70,14 @@ async function processDeletions(deps: SummaryDeps, now: number) {
 export async function runSummary(deps: SummaryDeps, input: { missing: number; asOf: number }): Promise<SummaryOutcome> {
   // A step that fails sends `/fail` at once, so the owner is not left to the missing-ping rule (about
   // 27 hours later), and the error still reaches the caller.
-  const failStep = async (code: "summary_failed" | "deletion_check_failed", error: unknown): Promise<never> => {
+  const failStep = async (
+    code: "summary_failed" | "deletion_check_failed",
+    error: unknown,
+    counts?: SummaryAnswer,
+  ): Promise<never> => {
     deps.log(`${code}: ${logCode(error)}`);
     try {
-      await deps.ping(failedStepDecision(code));
+      await deps.ping(failedStepDecision(code, counts && { ...counts, deletion_overdue: 0 }));
     } catch (inner) {
       deps.log(`ping failed: ${logCode(inner)}`);
     }
@@ -89,7 +93,7 @@ export async function runSummary(deps: SummaryDeps, input: { missing: number; as
   try {
     processed = await processDeletions(deps, deps.now().getTime());
   } catch (error) {
-    return await failStep("deletion_check_failed", error);
+    return await failStep("deletion_check_failed", error, answer);
   }
   const { deleted, stillDue, overdue } = processed;
   const decision = judgeSummary({

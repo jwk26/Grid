@@ -82,7 +82,19 @@ export async function runBackup(deps: RunDeps, input: RunInput): Promise<RunOutc
       return await fail("fingerprint_failed");
     }
     if (typeof fingerprint !== "string" || fingerprint === "") return await fail("fingerprint_failed");
-    if (began.lastFingerprint !== null && fingerprint === began.lastFingerprint) return await end("unchanged");
+    if (began.lastFingerprint !== null && fingerprint === began.lastFingerprint) {
+      // A deletion request that landed since backup_begin() records nothing, an unchanged run included.
+      let present: string;
+      try {
+        present = await deps.accountCheck(userId);
+      } catch (error) {
+        deps.log(`account check failed: ${logCode(error)}`);
+        return await fail("account_check_failed");
+      }
+      if (present === "account_missing" || present === "account_deleting") return await end("abandoned");
+      if (present !== "ok") return await fail("account_check_unexpected");
+      return await end("unchanged");
+    }
 
     // 2. Export and compress. Only an export that begins with its `bits` key is uploaded.
     const exported = await deps.exportGzip(userId);

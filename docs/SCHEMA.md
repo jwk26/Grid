@@ -1606,8 +1606,9 @@ scheduled run backs up every account once; this is expected.
   `Back Up Now` alike; it records only the check.
 - Pruning runs only right after a new file is written and counts files, not
   calendar days: it keeps the 7 latest files and, before them, the latest file
-  of each of 4 ISO weeks. An unchanged account never prunes, and at least one
-  file always stays.
+  of each of 4 ISO weeks before the week of the 7th latest file (an older file
+  in that 7th file's own week is not kept; Task 257 review, 2026-11-06). An unchanged
+  account never prunes, and at least one file always stays.
 - Pre-restore files keep the 5 latest per account, outside the date slots.
 
 **Status** (`backup_status`):
