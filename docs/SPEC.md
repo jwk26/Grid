@@ -1962,11 +1962,16 @@ countdown near and at zero.
   shared secret live in the function's secrets; the function URL and the
   shared secret also live in Vault, where the cron functions read them.
   Production values are set by the owner outside Git and never in chat; they
-  are configuration, not schema. Locally, `supabase/config.toml` reads them
-  from `.env.local` (`[db.vault]`, `[edge_runtime.secrets]`), so a reset
-  restores them; a development R2 bucket with its own scoped token serves the
-  one real-R2 check (Task 255), and the gates use local object storage
-  (below). `.env.local` never holds a production token or ping URL, since the
+  are configuration, not schema. Locally, `supabase/config.toml` reads the
+  function's secrets from `.env.local` (`[edge_runtime.secrets]`), and a
+  local-only script writes the two Vault entries from `.env.local` after each
+  reset (`pnpm test:db` runs it); it refuses any database host but
+  `127.0.0.1` and `localhost`. The committed `config.toml` has no
+  `[db.vault]`, because `supabase db push` writes that section into the
+  target database's Vault, so a production push would replace the production
+  entries with local values (Task 255 MI-2; user, 2026-11-05). A
+  development R2 bucket with its own scoped token serves the one real-R2
+  check (Task 255), and the gates use local object storage (below). `.env.local` never holds a production token or ping URL, since the
   local cron runs daily too. The read-only token of the monthly restore check
   and the drill's token stay in `chmod 600` files on the owner's Mac.
 - **Local auth** (amends S20; user, 2026-10-22): anonymous sign-in and

@@ -907,7 +907,9 @@ period (Phase 54).
   prove both checkers and vitest.
 - `supabase/config.toml`: `[db.vault]` and `[edge_runtime.secrets]` read their
   values from `.env.local` through `env(...)`; `[functions.backup]` with
-  `verify_jwt = false`; the S3 endpoint if needed.
+  `verify_jwt = false`; the S3 endpoint if needed. (Amended 2026-11-05, Task
+  255 MI-2: `[db.vault]` served the local measurement only; Task 256 removes
+  it, since `supabase db push` writes it into the target database's Vault.)
   `.env.local.example`: the names.
 - `scripts/backup-measure/` (local only, never against production): builds an
   account of about 10 MB raw with SCHEMA's fields and random Hangul syllables
@@ -986,6 +988,12 @@ only); a deliberately broken `_shared` import fails `tsc` and `deno check`.
   insert an `internal.r2_deletions` row for each deleted real account in the
   same transaction.
 - `src/lib/db/database.types.ts` (generated).
+- `supabase/config.toml`: `[db.vault]` removed (Task 255 MI-2; SPEC
+  §Environments And Hosting, Backup secrets). A local-only script under
+  `scripts/` writes the Vault entries `backup_function_url` and
+  `backup_shared_secret` from `.env.local` after a reset, refusing any
+  database host but `127.0.0.1` and `localhost`; `package.json` `test:db` runs
+  it between `supabase db reset` and the suites.
 - `supabase/tests/backup-*.db.test.ts`, `coverage.db.test.ts`: the tests
   below; `src/lib/db/snapshot-store.test.ts`: the current parser accepts a
   value with a `backup` key and ignores it.
@@ -1157,13 +1165,21 @@ times and the fact that each secret was set):
    app lane runs no browser check; it seeds again afterwards. The role that
    ran the setting is recorded.
 2. Deploy the function with `verify_jwt = false`, then set its secrets and
-   the two Vault entries.
-3. Apply the migrations, outside the cron window.
+   the two Vault entries. Before the deploy, confirm from the Supabase CLI
+   `2.121.0` documentation or source which `config.toml` sections
+   `functions deploy` and `db push` send to the target project
+   (`[edge_runtime.secrets]`, `[storage.buckets]` and any other), and that
+   none carries a local value into production.
+3. Apply the migrations, outside the cron window. Before the push, confirm
+   that `config.toml` has no `[db.vault]` (Task 255 MI-2); after it, confirm
+   that both Vault entries kept the update time step 2 gave them.
 4. Measure on production with the limit-sized fixture (old 100% caps, about
-   9.44 MB raw, built in SQL under a test account): three runs of export with
-   upload; the worst under 37.5 s wall clock, `export_account()` inside 30 s.
-   The script deletes the account and its objects at the end and on SIGINT and
-   SIGTERM.
+   9.44 MB raw, built in SQL under a test account, with random text generated
+   per row and its compressed-to-raw ratio recorded as the proof, since an
+   uncorrelated subquery runs once and repeats one string in every row, Task
+   255): three runs of export with upload; the worst under 37.5 s wall
+   clock, `export_account()` inside 30 s. The script deletes the account
+   and its objects at the end and on SIGINT and SIGTERM.
 5. Confirm no new Security Advisor warning, or show each to the user (SCHEMA
    §Database tests).
 6. Confirm one successful scheduled run and the summary's success ping.
@@ -1567,7 +1583,7 @@ This register covers every implementation/test path declared by two or more task
 | `saas-providers` | `src/app/providers.tsx` | 228, 232; 244 (Toaster position, colour, stack limit) |
 | `feedback-copy` | `src/lib/copy/feedback.ts` | 228, 232, 235, 236, 238; 244 (creates it if first), 245; Phase 51: 252; 258, 262, 266 |
 | `saas-db-types` | `src/lib/db/database.types.ts` (generated) | 214 and every task that adds a migration; 256, 260, 265 |
-| `saas-supabase-config` | `supabase/config.toml`; `supabase/seed.sql` | 213, 229, 236; 255 (Vault and edge secrets from `.env.local`) |
+| `saas-supabase-config` | `supabase/config.toml`; `supabase/seed.sql` | 213, 229, 236; 255 (Vault and edge secrets from `.env.local`); 256 (`[db.vault]` removed, Vault entries by a local script) |
 | `inbox-copy-saas` | `src/lib/copy/inbox-triage.ts` | 227, 230 (orphan copy); 245, 246, 247 |
 | `saas-hooks` | the 17 hook files of Task 226 | 226, 227, 230; 245 (`use-scratch-breakdowns.ts`), 246 (`use-staged-candidates.ts`), after Phase 45 |
 | `state-switch` | the development state switch (feedback F30) | 243 creates it; 231, 233 extend it; 245–247 consume it; 258, 262, 266 extend it |
