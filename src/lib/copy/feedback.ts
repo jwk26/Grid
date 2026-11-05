@@ -133,7 +133,7 @@ export const ACCOUNT_MODAL = {
     signInGoogle: "Sign in with Google",
   },
   privacy:
-    "Grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives Grid your name, email address and profile picture, used only to identify your account. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data at any time.",
+    "Grid keeps your tasks in a Supabase database in Seoul. Signing in with GitHub or Google gives Grid your name, email address and profile picture, used only to identify your account. Signed-in accounts are also backed up every day to Cloudflare, outside the main database. A Cloudflare Turnstile check protects guest sign-in. You can delete your account and all its data, backups included, at any time.",
   account: { signOut: "Sign out", deleteAccount: "Delete account" },
   confirm: {
     title: "Delete your account?",
@@ -143,6 +143,39 @@ export const ACCOUNT_MODAL = {
     deleteFailed: "Couldn't delete your account. Try again.",
   },
   close: "Close",
+} as const;
+
+// The Backup button and dialog (SPEC §Feedback copy, Backup; Phases 52-53). `<time>` is a
+// timestamp in the user's time zone and locale, never an object name's UTC date.
+export const BACKUP_BUTTON_LABEL = "Backup";
+
+export function formatBackupTime(ms: number, locale?: string, timeZone?: string): string {
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(ms));
+}
+
+export const BACKUP_COPY = {
+  guest: {
+    title: "Keep your Grid safe",
+    note: "Signed-in accounts are backed up every day, outside the main database, and can be restored.",
+  },
+  checking: "Checking…",
+  running: "Backing up…",
+  green: (time: string) => `Backed up. Latest backup: ${time}`,
+  yellow: (time: string) => `No backup check in over 7 days. Latest backup: ${time}`,
+  gray: "Not backed up yet. The first backup runs within a day.",
+  red: "The last backup failed.",
+  redReason: (reason: string | null) =>
+    reason === "too_large" ? "This account is too large to back up." : "It runs again tomorrow.",
+  readFailed: "Couldn't check the backup status.",
+  checkAgain: "Check again",
+  backUpNow: "Back Up Now",
+  close: "Close",
+  unchanged: (time: string) => `No changes since the latest backup (${time}).`,
+  rateLimited: "Try again in a few minutes.",
+  stillFinishing: "Still finishing…",
+  notStarted: "The backup didn't start. Try again.",
+  privacy:
+    "Backups are stored with Cloudflare, outside the main database. We keep your 7 latest backups and one a week for 4 weeks before them. Deleting your account deletes them.",
 } as const;
 
 // Toasts (SPEC §Feedback copy, Toasts). A row is one kind of toast: `key` is what the toast helper

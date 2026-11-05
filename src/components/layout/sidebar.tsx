@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
 import { AccountButton } from "@/components/layout/account-button";
+import { BackupButton } from "@/components/layout/backup-button";
 import type { RevealHandlers } from "@/hooks/use-breadcrumb-reveal";
 import { HomeButton } from "@/components/layout/home-button";
 import { SidebarIconButton } from "@/components/layout/sidebar-icon-button";
@@ -318,6 +319,7 @@ export function Sidebar({
         </div>
       ) : null}
       <AccountButton variant={sessionVariant} />
+      <BackupButton variant={sessionVariant} />
       {isCalendarRoute ? (
         <Popover open={isChooserOpen} onOpenChange={setIsChooserOpen}>
           <PopoverTrigger asChild>

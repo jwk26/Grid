@@ -36,6 +36,8 @@ export type BackupClientOptions = {
 };
 
 const FUNCTION_NAME = "backup";
+// Development injection only: how long a dropped answer waits for the request to reach the database.
+const INJECTED_SETTLE_MS = 1000;
 // 408 is a request timeout (SPEC §Write feel); the platform set covers 500, 502, 503, 504 and 546.
 const isNoAnswer = (status: number) => status === 408 || isNoAnswerStatus(status);
 
@@ -79,8 +81,16 @@ export function createBackupClient(options: BackupClientOptions) {
     async backUpNow(runId: string): Promise<ManualOutcome> {
       const injection = options.takeInjection?.("manual") ?? null;
       if (injection === "unknown-before-send") return { kind: "unknown" };
+      if (injection === "unknown-after-send") {
+        // Sent, but its answer is dropped: the request runs on and the caller does not wait for it,
+        // so the verdict read can see the run still open (`Still finishing…`). One request leaves.
+        // A short settle first: a verdict read that overtakes the request's first database call
+        // would answer `not_started` for a run that then starts (Task 258 browser check).
+        void invoke(options.getClient(), { mode: "manual", run_id: runId }, edgeTimeoutMs);
+        await new Promise((resolve) => setTimeout(resolve, INJECTED_SETTLE_MS));
+        return { kind: "unknown" };
+      }
       const got = await invoke(options.getClient(), { mode: "manual", run_id: runId }, edgeTimeoutMs);
-      if (injection === "unknown-after-send") return { kind: "unknown" };
       if (got.kind === "none") return { kind: "unknown" };
       if (got.kind === "http") return isNoAnswer(got.status) ? { kind: "unknown" } : { kind: "refused" };
 

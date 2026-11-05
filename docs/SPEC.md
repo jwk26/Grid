@@ -1939,7 +1939,11 @@ since a local command ends in about 50ms and these states do not appear on
 their own. It is compiled only into development builds and never ships
 enabled. From Phase 52 it also forces the backup status (each dot and status
 line, running, `Checking…`, a failed status read, `already_running`, `Still
-finishing…`, `not_started`), from Phase 53 the restoring screen at each
+finishing…`, `not_started`) and injects at `backup-client`'s boundary (a `Back Up Now`
+request lost before it is sent, its answer dropped after it is sent, the next
+status read failing), so the real verdict read and `Check again` run end to
+end with one `Back Up Now` request in the network log (a verdict read is a
+request too). From Phase 53 it also forces the restoring screen at each
 step and its way-out, and from Phase 54 the deletion-grace dialog with its
 countdown near and at zero.
 

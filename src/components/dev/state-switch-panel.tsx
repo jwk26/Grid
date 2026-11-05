@@ -9,6 +9,11 @@ import {
 import { StatusTooltip } from "@/components/feedback/status-tooltip";
 import { useScratchBreakdowns } from "@/hooks/use-scratch-breakdowns";
 import { useStagedCandidates } from "@/hooks/use-staged-candidates";
+import {
+  BACKUP_SCENARIOS,
+  registerBackupInjectionSource,
+  registerForcedBackup,
+} from "@/lib/backup/forced-backup";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import { getConnectionMonitor, useConnectionState } from "@/lib/db/connection";
 import type { ConnectionState } from "@/lib/db/connection-monitor";
@@ -436,6 +441,62 @@ function NetworkSection() {
   );
 }
 
+const BACKUP_INJECTIONS = [
+  { value: "unknown-before-send", label: "Back Up Now: request lost (verdict not_started)" },
+  { value: "unknown-after-send", label: "Back Up Now: answer lost (verdict from the server)" },
+  { value: "status-failed", label: "Next status read fails" },
+] as const;
+
+/** Phase 52: the backup status, forced for a look, and the boundary injections for the real paths. */
+function BackupSection() {
+  const scenario = useStateSwitchStore((state) => state.backupScenario);
+  const setScenario = useStateSwitchStore((state) => state.setBackupScenario);
+  const queued = useStateSwitchStore((state) => state.backupInjections);
+  const queue = useStateSwitchStore((state) => state.queueBackupInjection);
+  const clear = useStateSwitchStore((state) => state.clearBackupInjections);
+
+  return (
+    <section aria-labelledby="state-switch-backup-heading" className="space-y-1.5">
+      <h3 id="state-switch-backup-heading" className="font-semibold">
+        Backup
+      </h3>
+      <div className="flex flex-wrap gap-1">
+        {BACKUP_SCENARIOS.map((name) => (
+          <button
+            key={name}
+            type="button"
+            aria-pressed={scenario === name}
+            className="rounded border border-border px-2 py-0.5 aria-pressed:bg-accent"
+            onClick={() => setScenario(scenario === name ? null : name)}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+      <div className="space-y-1">
+        {BACKUP_INJECTIONS.map((choice) => (
+          <button
+            key={choice.value}
+            type="button"
+            className="block w-full rounded border border-border px-2 py-0.5 text-left"
+            onClick={() => queue(choice.value)}
+          >
+            {choice.label}
+          </button>
+        ))}
+        <p className="text-muted-foreground" data-testid="backup-injections-queued">
+          Queued: {queued.length === 0 ? "none" : queued.join(", ")}
+        </p>
+        {queued.length > 0 ? (
+          <button type="button" className="rounded border border-border px-2 py-0.5" onClick={clear}>
+            Clear queued
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 export function StateSwitchPanel() {
   const [open, setOpen] = useState(false);
   const [replay, setReplay] = useState(0);
@@ -455,6 +516,19 @@ export function StateSwitchPanel() {
     registerForcedItemStates(forced);
   }, [forced]);
   useEffect(() => clearForcedItemStates, []);
+
+  // Publish the forced backup status and the backup injections to the production-safe seam.
+  const backupScenario = useStateSwitchStore((state) => state.backupScenario);
+  useEffect(() => {
+    registerForcedBackup(backupScenario);
+  }, [backupScenario]);
+  useEffect(() => {
+    registerBackupInjectionSource((operation) => useStateSwitchStore.getState().takeBackupInjection(operation));
+    return () => {
+      registerBackupInjectionSource(null);
+      registerForcedBackup(null);
+    };
+  }, []);
 
   return (
     <div
@@ -488,6 +562,8 @@ export function StateSwitchPanel() {
           </div>
 
           <NetworkSection />
+
+          <BackupSection />
 
           <section aria-labelledby="state-switch-primitives-heading" className="space-y-1.5">
             <div className="flex items-center justify-between">

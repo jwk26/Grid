@@ -129,12 +129,17 @@ describe("development injections", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
-  it("unknown-after-send sends once and drops the answer", async () => {
-    const { invoke, api } = setup(ok({ status: "applied", result: { result: "written" } }), {
+  it("unknown-after-send sends once and answers unknown without waiting for the request", async () => {
+    let finish!: (v: InvokeResult) => void;
+    const { invoke, api } = setup(() => new Promise<InvokeResult>((r) => (finish = r)), {
       takeInjection: (op: string) => (op === "manual" ? "unknown-after-send" : null),
     });
-    expect(await api.backUpNow(RUN)).toEqual({ kind: "unknown" });
+    vi.useFakeTimers();
+    const answer = api.backUpNow(RUN);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(await answer).toEqual({ kind: "unknown" });
     expect(invoke).toHaveBeenCalledTimes(1);
+    finish({ data: { status: "applied", result: { result: "written" } }, error: null });
   });
 
   it("status-failed fails the read without sending", async () => {

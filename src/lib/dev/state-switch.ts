@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import type { BackupInjection } from "@/lib/backup/backup-client";
+import type { BackupScenario } from "@/lib/backup/forced-backup";
 import type { ConnectionState } from "@/lib/db/connection-monitor";
 import type { DataStore } from "@/lib/db/datastore";
 import type { GriddoSupabaseClient } from "@/lib/db/supabase-client";
@@ -275,7 +277,21 @@ export type QueueInjectionInput = Readonly<{
 const MAX_INJECTION_COUNT = 9;
 const MAX_INJECTION_DELAY_MS = 60_000;
 
+export const BACKUP_INJECTION_OPERATION: Record<BackupInjection, "manual" | "status"> = {
+  "unknown-before-send": "manual",
+  "unknown-after-send": "manual",
+  "status-failed": "status",
+};
+
 type StateSwitchState = {
+  /** A forced backup status (Task 258), or null for the real one. */
+  backupScenario: BackupScenario | null;
+  setBackupScenario: (scenario: BackupScenario | null) => void;
+  /** Queued backup boundary injections; each is consumed by the next call of its operation. */
+  backupInjections: readonly BackupInjection[];
+  queueBackupInjection: (injection: BackupInjection) => void;
+  clearBackupInjections: () => void;
+  takeBackupInjection: (operation: "manual" | "status") => BackupInjection | null;
   /** Forced presentation state per item key (see `forcedItemKeys`). */
   forced: Record<string, ForcedState>;
   /** Queued boundary injections, in the order they were queued. */
@@ -299,6 +315,18 @@ export const useStateSwitchStore = create<StateSwitchState>()((set, get) => ({
   forced: {},
   injections: [],
   network: null,
+  backupScenario: null,
+  setBackupScenario: (backupScenario) => set({ backupScenario }),
+  backupInjections: [],
+  queueBackupInjection: (injection) => set((c) => ({ backupInjections: [...c.backupInjections, injection] })),
+  clearBackupInjections: () => set({ backupInjections: [] }),
+  takeBackupInjection: (operation) => {
+    const list = get().backupInjections;
+    const index = list.findIndex((i) => BACKUP_INJECTION_OPERATION[i] === operation);
+    if (index < 0) return null;
+    set({ backupInjections: list.filter((_, n) => n !== index) });
+    return list[index];
+  },
   setNetwork: (network) => set({ network }),
   setForced: (itemKey, state) =>
     set((current) => {
@@ -343,7 +371,7 @@ export const useStateSwitchStore = create<StateSwitchState>()((set, get) => ({
     }));
     return found;
   },
-  reset: () => set({ forced: {}, injections: [], network: null }),
+  reset: () => set({ forced: {}, injections: [], network: null, backupScenario: null, backupInjections: [] }),
 }));
 
 // --- The DataStore wrapper --------------------------------------------------

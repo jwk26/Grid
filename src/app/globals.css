@@ -754,6 +754,54 @@
   display: none;
 }
 
+/* Backup button and dialog (Task 258; DESIGN_TOKENS DP-BACKUP-01 BK-2 to BK-4). */
+/* BK-3, R3: the cloud (the 2nd path of Lucide cloud-upload) stays still; the arrow (the 1st and 3rd
+   paths) rises about 4px from below while fading in, then fades out at the top. No rotation. */
+@keyframes backup-arrow-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  35%,
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+@keyframes backup-lamp-fade {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+[data-app-role="backup-button"][data-backup-motion="running"] svg path:nth-child(1),
+[data-app-role="backup-button"][data-backup-motion="running"] svg path:nth-child(3) {
+  animation: backup-arrow-rise 1.5s ease-in-out infinite;
+}
+.backup-lamp--running {
+  animation: backup-lamp-fade 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-app-role="backup-button"][data-backup-motion="running"] svg path:nth-child(1),
+  [data-app-role="backup-button"][data-backup-motion="running"] svg path:nth-child(3),
+  .backup-lamp--running {
+    animation: none;
+  }
+  .backup-lamp--running {
+    opacity: 1;
+  }
+  /* The still dot in the BK-2 slot replaces the loop. */
+  .backup-running-dot {
+    display: block;
+  }
+}
+
 :root[data-color-theme="retro-mac"] .toast-stack[data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
   border-radius: 0;
   box-shadow: 2px 2px 0 hsl(var(--foreground));

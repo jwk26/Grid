@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createBackupClient } from "@/lib/backup/backup-client";
+import { takeBackupInjection, useForcedBackup } from "@/lib/backup/forced-backup";
 import { createBackupController, type BackupController, type DialogState } from "@/lib/backup/backup-controller";
 import { deriveBackup, isPendingOpen, type BackupSlot, type BackupSlotState, type DerivedBackup } from "@/lib/backup/backup-slot";
 import { getSessionController } from "@/lib/auth/session";
@@ -17,7 +18,7 @@ let runtime: Runtime | null = null;
 function getRuntime(): Runtime {
   const slot = getSessionController().store.backup;
   if (!runtime || runtime.slot !== slot) {
-    const client = createBackupClient({ getClient: getSupabaseClient });
+    const client = createBackupClient({ getClient: getSupabaseClient, takeInjection: takeBackupInjection });
     runtime = { slot, controller: createBackupController({ client, slot }) };
   }
   return runtime;
@@ -58,14 +59,22 @@ export function useBackup(injected?: Runtime): UseBackup {
     return () => clearTimeout(timer);
   }, [nextChangeIn, slotState]);
 
-  return {
-    derived,
-    slot: slotState,
-    dialog,
-    canBackUpNow: !dialog.busy && !isPendingOpen(slotState, slot.nowMono()),
+  // The development switch can force a state; always null in production (forced-backup.ts).
+  const forced = useForcedBackup();
+
+  // Stable for the life of the controller, so an effect can depend on them.
+  const [actions] = useState(() => ({
     open: () => void controller.open(),
     close: () => controller.close(),
     backUpNow: () => void controller.backUpNow(),
     checkAgain: () => void controller.checkAgain(),
+  }));
+
+  return {
+    derived: forced?.derived ?? derived,
+    slot: slotState,
+    dialog: forced?.dialog ?? dialog,
+    canBackUpNow: !dialog.busy && !isPendingOpen(slotState, slot.nowMono()) && !(forced && forced.dialog.read !== "idle"),
+    ...actions,
   };
 }

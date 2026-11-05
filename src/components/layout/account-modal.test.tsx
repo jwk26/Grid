@@ -33,6 +33,9 @@ describe("AccountModal, guest", () => {
     expect(screen.getByText(ACCOUNT_MODAL.guest.retention)).toBeInTheDocument();
     expect(screen.getByText(ACCOUNT_MODAL.guest.signInNote)).toBeInTheDocument();
     expect(screen.getByText(ACCOUNT_MODAL.privacy)).toBeInTheDocument();
+    // Phase 52: the backup sentence and the last sentence naming backups.
+    expect(ACCOUNT_MODAL.privacy).toContain("Signed-in accounts are also backed up every day to Cloudflare, outside the main database.");
+    expect(ACCOUNT_MODAL.privacy).toMatch(/all its data, backups included, at any time\.$/);
     expect(screen.queryByRole("button", { name: ACCOUNT_MODAL.account.signOut })).toBeNull();
     expect(screen.queryByRole("button", { name: ACCOUNT_MODAL.account.deleteAccount })).toBeNull();
   });
