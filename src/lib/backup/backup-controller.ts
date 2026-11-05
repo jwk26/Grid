@@ -40,12 +40,23 @@ export function createBackupController(options: { client: BackupClient; slot: Ba
 
   const set = (next: Partial<DialogState>) => {
     state = { ...state, ...next };
+    if (next.inline) inlineBaseline = slot.getState().value?.serverNow ?? 0;
     for (const l of [...listeners]) l();
   };
 
   // A sign-out or an account change drops every flow; a late answer is ignored by its epoch.
+  // `Still finishing…` and `Backing up…` end when a newer value says no run is in progress (a
+  // focus refetch, the dialog stays open), so the dialog never contradicts the sidebar (W4).
+  let inlineBaseline = 0;
+  const OPEN_RUN_INLINE = new Set(["still_finishing", "already_running"]);
   slot.subscribe(() => {
-    if (slot.getEpoch() === epoch) return;
+    if (slot.getEpoch() === epoch) {
+      const value = slot.getState().value;
+      if (OPEN_RUN_INLINE.has(state.inline.kind) && value && value.serverNow > inlineBaseline && value.runStartedAt === null) {
+        set({ inline: { kind: "none" } });
+      }
+      return;
+    }
     epoch = slot.getEpoch();
     opened = false;
     statusRead = null;

@@ -226,6 +226,37 @@ describe("unknown outcome", () => {
   });
 });
 
+describe("a newer value while the dialog stays open", () => {
+  it("ends Still finishing… when a refetch says no run is in progress, and keeps it while one is", async () => {
+    const { controller, slot, backUpNow, readStatus } = setup();
+    backUpNow.mockResolvedValue({ kind: "unknown" });
+    readStatus.mockResolvedValue({ kind: "ok", backup: value({ serverNow: 3000, runStartedAt: 2990 }), verdict: "running" });
+    await controller.backUpNow();
+    expect(controller.getState().inline).toEqual({ kind: "still_finishing" });
+    slot.offer(value({ serverNow: 3500, runStartedAt: 2990 }), slot.getEpoch());
+    expect(controller.getState().inline).toEqual({ kind: "still_finishing" });
+    slot.offer(value({ serverNow: 4000, lastResult: "failed", failureReason: "x" }), slot.getEpoch());
+    expect(controller.getState().inline).toEqual({ kind: "none" });
+  });
+
+  it("ends Backing up… after already_running the same way", async () => {
+    const { controller, slot, backUpNow } = setup();
+    backUpNow.mockResolvedValue({ kind: "rejected", code: "already_running" });
+    await controller.backUpNow();
+    expect(controller.getState().inline).toEqual({ kind: "already_running" });
+    slot.offer(value({ serverNow: 3000 }), slot.getEpoch());
+    expect(controller.getState().inline).toEqual({ kind: "none" });
+  });
+
+  it("an older value never ends it", async () => {
+    const { controller, slot, backUpNow } = setup();
+    backUpNow.mockResolvedValue({ kind: "rejected", code: "already_running" });
+    await controller.backUpNow();
+    slot.offer(value({ serverNow: 1500 }), slot.getEpoch());
+    expect(controller.getState().inline).toEqual({ kind: "already_running" });
+  });
+});
+
 describe("sign-out", () => {
   it("drops the flow, and a late answer is ignored", async () => {
     const { controller, slot, backUpNow } = setup();
