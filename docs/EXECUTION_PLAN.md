@@ -931,7 +931,7 @@ Phase 48 mi-2, not a finding.
 
 **Commit message:** `feat(grid): show an unavailable screen for a Grid the account cannot use`.
 
-### Task 253: [ ] Close one Inbox layer per `Esc` and keep focus on unblock
+### Task 253: [x] Close one Inbox layer per `Esc` and keep focus on unblock
 
 **Files and actions:**
 - `src/hooks/use-breadcrumb-reveal.ts` (`useEscapeOrder`) and
@@ -1000,6 +1000,10 @@ no keyboard case.
   tests: count outage evidence (a failed probe, the browser's `offline`
   event) and expose the count and the real state (ignoring a development
   forced state) read-only (ST34, ST37); state behavior unchanged.
+- `src/hooks/use-dnd.ts` and test (Task 253 mi-5, user 2026-11-05): register the
+  Triage drag as an `Esc` layer from dnd-kit's own drag start, so a drag that
+  `handleDragStart` refuses (a lock held or Placement open) still counts and
+  `Esc` cancels only it.
 - `src/components/triage/triage-workspace.tsx` and test: run the owner's
   checks: once when a held command's surface goes, unless a check of it
   already started after the surface began to go (a `Check again` or check
