@@ -1,3 +1,4 @@
 ignoredBuiltDependencies:
+  - deno
   - sharp
   - unrs-resolver

@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test:watch": "vitest",
     "test:db": "supabase db reset && vitest run --config vitest.db.config.ts",
+    "check:edge": "deno check --config supabase/functions/backup/deno.json supabase/functions/backup/index.ts && deno lint supabase/functions/",
     "db:types": "supabase gen types typescript --local --schema app --schema public"
   },
   "dependencies": {
@@ -44,6 +45,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "deno": "2.1.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "jsdom": "^29.0.1",
