@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useEscapeLayer } from "@/hooks/use-escape-layers";
 import {
   KeyboardSensor,
   MouseSensor,
@@ -434,6 +435,8 @@ export function useTriageDnd(
 } {
   const [activeDragItem, setActiveDragItem] =
     useState<TriageActiveDragItem>(null);
+  // A Triage drag is the top `Esc` layer: the press only cancels it (stabilization ST20).
+  useEscapeLayer(activeDragItem !== null, "triage-drag");
   const [overTargetId, setOverTargetId] = useState<string | null>(null);
   const [targetFeedback, setTargetFeedback] =
     useState<TriageTargetFeedback>(null);

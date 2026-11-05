@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HierarchyExplorer } from "@/components/triage/hierarchy-explorer";
 import { useTriageStore } from "@/stores/triage-store";
 import type { TriagePlacementRelease } from "./use-triage-placement";
+import { isEscapeLayerOpen, isTriageDragActive } from "@/hooks/use-escape-layers";
 import { invalidateTriageDragSource, useTriageDnd } from "./use-dnd";
 import type { TriageOperationKind } from "./use-triage-operation-lock";
 
@@ -962,6 +963,24 @@ describe("useTriageDnd — pointer activation lifecycle", () => {
     });
 
     expect(getDataStoreMock).not.toHaveBeenCalled();
+  });
+
+  it("is an Esc layer while a drag is active, and stops being one when Escape cancels it", () => {
+    const { result } = renderHook(() =>
+      useTriageDnd("scratch-1", durableCandidateOptions()),
+    );
+    expect(isEscapeLayerOpen()).toBe(false);
+
+    act(() => {
+      result.current.handleDragStart(makeDragEndEvent(makeBreakdownDragData(), null));
+    });
+    expect(isEscapeLayerOpen()).toBe(true);
+    expect(isTriageDragActive()).toBe(true);
+
+    act(() => {
+      fireEvent.keyDown(document, { key: "Escape" });
+    });
+    expect(isEscapeLayerOpen()).toBe(false);
   });
 
   it("cancels the active lifecycle on Escape and suppresses its later drop", async () => {

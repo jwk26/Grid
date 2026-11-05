@@ -1,9 +1,10 @@
 import { WriteOutcomeUnknownError, WriteRejectedError } from "@/lib/db/write-errors";
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GRID_COLS } from "@/lib/constants";
 import { useEditModeStore } from "@/stores/edit-mode-store";
+import { useEscapeLayer } from "@/hooks/use-escape-layers";
 import { useQuickCaptureStore } from "@/stores/quick-capture-store";
 import { useToastAnchorStore } from "@/stores/toast-anchor-store";
 import type { Bit, Node } from "@/types";
@@ -1562,6 +1563,33 @@ describe("GridRuntime", () => {
       expect(phase()).toBe("shown");
       expect(useEditModeStore.getState().isEditMode).toBe(true);
       useQuickCaptureStore.setState({ activeOverlay: null });
+    });
+
+    it("Esc leaves the breadcrumb and edit mode alone while the command palette is open", () => {
+      useEditModeStore.setState({ isEditMode: true });
+      renderNodeGrid();
+      useQuickCaptureStore.setState({ activeOverlay: "palette" });
+
+      press();
+
+      expect(phase()).toBe("shown");
+      expect(useEditModeStore.getState().isEditMode).toBe(true);
+      useQuickCaptureStore.setState({ activeOverlay: null });
+    });
+
+    it("Esc leaves the breadcrumb and edit mode alone while an Inbox layer is open, even with focus outside it", () => {
+      useEditModeStore.setState({ isEditMode: true });
+      renderNodeGrid();
+      const layer = renderHook(() => useEscapeLayer(true));
+      (document.activeElement as HTMLElement | null)?.blur();
+
+      press();
+      expect(phase()).toBe("shown");
+      expect(useEditModeStore.getState().isEditMode).toBe(true);
+
+      layer.unmount();
+      press();
+      expect(phase()).toBe("folding");
     });
 
     it("Esc leaves everything alone while the deadline picker holds the breadcrumb", () => {

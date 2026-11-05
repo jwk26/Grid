@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isEscapeLayerOpen, useEscapeLayer } from "@/hooks/use-escape-layers";
 import { resolveEscape, useBreadcrumbReveal, useEscapeOrder } from "@/hooks/use-breadcrumb-reveal";
 
 type Props = { enabled: boolean; nodeId: string | null; dragging: boolean };
@@ -353,14 +354,48 @@ describe("useEscapeOrder", () => {
     }
   });
 
-  it("yields to a layer that already handled the key and ignores other keys", () => {
+  it("ignores other keys", () => {
     const calls = mount();
-    const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
-    event.preventDefault();
-    document.dispatchEvent(event);
     press("Enter");
     expect(calls.hide).not.toHaveBeenCalled();
     expect(calls.exit).not.toHaveBeenCalled();
+  });
+
+  it("does nothing while an Inbox layer is registered, even when the layer closed itself first on the same press", () => {
+    // A child's `document` capture listener registers before the owner's effect and closes its layer
+    // at once (the explorer search): the owner must still see the layer as open (Phase 50 mi-8).
+    const closeOnEscape = () => unregister();
+    document.addEventListener("keydown", closeOnEscape, true);
+    const layer = renderHook(() => useEscapeLayer(true));
+    const unregister = () => layer.unmount();
+    const calls = mount({ breadcrumbShown: false });
+    press();
+    document.removeEventListener("keydown", closeOnEscape, true);
+    expect(isEscapeLayerOpen()).toBe(false);
+    expect(calls.exit).not.toHaveBeenCalled();
+    // The layer is gone: the next press exits edit mode.
+    press();
+    expect(calls.exit).toHaveBeenCalledOnce();
+  });
+
+  it("a locked layer that refuses the press still counts: edit mode stays", () => {
+    const layer = renderHook(() => useEscapeLayer(true));
+    const calls = mount({ breadcrumbShown: false });
+    press();
+    press();
+    expect(calls.exit).not.toHaveBeenCalled();
+    layer.unmount();
+  });
+
+  it("a Triage drag is a layer: the press does not hide the breadcrumb or exit edit mode", () => {
+    const drag = renderHook(() => useEscapeLayer(true, "triage-drag"));
+    const calls = mount();
+    press();
+    expect(calls.hide).not.toHaveBeenCalled();
+    expect(calls.exit).not.toHaveBeenCalled();
+    drag.unmount();
+    press();
+    expect(calls.hide).toHaveBeenCalledOnce();
   });
 
   it("exits edit mode on a page without a breadcrumb", () => {

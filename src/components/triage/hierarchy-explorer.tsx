@@ -46,6 +46,7 @@ import {
   type TriageDropData,
 } from "@/lib/grid-dnd";
 import type { ItemStatus } from "@/lib/feedback/item-status";
+import { isTriageDragActive, useEscapeLayer } from "@/hooks/use-escape-layers";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import { cn } from "@/lib/utils";
 import {
@@ -588,6 +589,8 @@ export function HierarchyExplorer({
   targetFeedback,
 }: HierarchyExplorerProps) {
   const search = useGridExplorerSearch();
+  // An open search is an `Esc` layer: one press closes only it (stabilization ST20).
+  useEscapeLayer(search.mode !== "closed");
   const explorerRef = useRef<HTMLDivElement>(null);
   const searchEntryRef = useRef<HTMLButtonElement>(null);
   const previousDragRef = useRef<TriageDragItem>(null);
@@ -982,6 +985,8 @@ export function HierarchyExplorer({
   useEffect(() => {
     const clearSearchOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || search.mode === "closed") return;
+      // During a Triage drag the press only cancels the drag; the search closes on the next one.
+      if (isTriageDragActive()) return;
       event.preventDefault();
       search.closeSearch();
       if (activeDragItem === null) {
@@ -1738,6 +1743,8 @@ function PlacementAffordance({
   const reconcileRef = useRef<HTMLButtonElement>(null);
   const retryRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  // Mounted only while the affordance is open: an `Esc` layer, locked or not (stabilization ST35).
+  useEscapeLayer(true);
   const descriptionId = useId();
   const errorId = useId();
   const nodeReasonId = useId();
@@ -1961,6 +1968,7 @@ function PlacementAffordance({
       data-triage-role="placement-affordance"
       onKeyDown={(event) => {
         if (event.key !== "Escape") return;
+        if (isTriageDragActive()) return;
         if (locked) {
           event.preventDefault();
           return;

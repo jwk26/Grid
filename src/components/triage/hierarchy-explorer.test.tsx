@@ -1,9 +1,11 @@
 import "@testing-library/jest-dom/vitest";
+import { isEscapeLayerOpen, useEscapeLayer } from "@/hooks/use-escape-layers";
 import {
   act,
   cleanup,
   fireEvent,
   render,
+  renderHook,
   screen,
   waitFor,
   within,
@@ -1355,6 +1357,27 @@ describe("HierarchyExplorer Task 152 target-column placement", () => {
     fireEvent.keyDown(screen.getByRole("region", { name: "Placement" }), {
       key: "Escape",
     });
+    expect(onPlacementCancel).toHaveBeenCalledOnce();
+  });
+});
+
+describe("HierarchyExplorer Placement affordance during a Triage drag", () => {
+  it("leaves the Placement affordance to the next Esc while a Triage drag is active", () => {
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const onPlacementCancel = vi.fn();
+    render(
+      <HierarchyExplorer
+        {...defaultProps}
+        placementSnapshot={placementSnapshot()}
+        onPlacementCancel={onPlacementCancel}
+      />,
+    );
+    const drag = renderHook(() => useEscapeLayer(true, "triage-drag"));
+
+    fireEvent.keyDown(screen.getByRole("region", { name: "Placement" }), { key: "Escape" });
+    expect(onPlacementCancel).not.toHaveBeenCalled();
+    drag.unmount();
+    fireEvent.keyDown(screen.getByRole("region", { name: "Placement" }), { key: "Escape" });
     expect(onPlacementCancel).toHaveBeenCalledOnce();
   });
 });
@@ -3054,6 +3077,45 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
       );
     },
   );
+
+  it("registers an open search and the Placement affordance as Esc layers, and nothing when both are closed", () => {
+    const view = render(<HierarchyExplorer {...defaultProps} />);
+    expect(isEscapeLayerOpen()).toBe(false);
+    view.unmount();
+
+    explorerSearchState.mode = "active";
+    explorerSearchState.activeQuery = "projects";
+    const searching = render(<HierarchyExplorer {...defaultProps} />);
+    expect(isEscapeLayerOpen()).toBe(true);
+    searching.unmount();
+    expect(isEscapeLayerOpen()).toBe(false);
+
+    explorerSearchState.mode = "closed";
+    explorerSearchState.activeQuery = null;
+    setGrid(null, [createNode({ id: "target-1", title: "Target" })]);
+    const placing = render(
+      <HierarchyExplorer {...defaultProps} placementSnapshot={placementSnapshot({ phase: "pending", resultType: "node" })} />,
+    );
+    // A locked placement still counts, so a press does nothing and edit mode stays (ST35).
+    expect(isEscapeLayerOpen()).toBe(true);
+    placing.unmount();
+    expect(isEscapeLayerOpen()).toBe(false);
+  });
+
+  it("leaves an open search to the next Esc while a Triage drag is active", () => {
+    explorerSearchState.mode = "active";
+    explorerSearchState.activeQuery = "projects";
+    explorerSearchState.results = [searchResult("node:projects")];
+    render(<HierarchyExplorer {...defaultProps} />);
+    const drag = renderHook(() => useEscapeLayer(true, "triage-drag"));
+
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Escape" });
+    expect(explorerSearchState.closeSearch).not.toHaveBeenCalled();
+
+    drag.unmount();
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Escape" });
+    expect(explorerSearchState.closeSearch).toHaveBeenCalledOnce();
+  });
 
   it("clears interrupted search with Escape from an ordinary column without changing DnD focus ownership", () => {
     setGrid(null, [createNode({ id: "projects", title: "Projects" })]);
