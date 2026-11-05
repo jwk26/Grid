@@ -45,6 +45,17 @@
 > [`DECISION.md`](brainstorming/2026-11-04-stabilization-pass/DECISION.md)
 > ST09. System Nodes have no aging state. No table, column, function or
 > migration changes.
+> **Account backup amendment (Phases 52–54):** 2026-11-05, from
+> [`DECISION.md`](brainstorming/2026-11-01-account-backup/DECISION.md) and
+> [`DECISION.md`](brainstorming/2026-10-31-account-deletion-grace-period/DECISION.md)
+> under the backup
+> [`PROMOTION_MAP.md`](brainstorming/2026-11-01-account-backup/PROMOTION_MAP.md)
+> (B1–B18). Adds `app.backup_status`, `app.restore_staging`,
+> `internal.r2_deletions`, `internal.backup_summary_state`, the [backup functions](#backup-functions) that only
+> `service_role` executes, `restore_account()`, `cancel_account_deletion()`,
+> the `backup` key of the snapshot and [Account backup](#account-backup); the
+> deletion fallback gains a 24-hour grace period. Until a task lands, the
+> database keeps today's behavior.
 > **Promotion provenance:** selected topic
 > [`DECISION.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/DECISION.md),
 > approved [`PROMOTION_MAP.md`](brainstorming/2026-06-25-inbox-triage-theme-surface-redesign/PROMOTION_MAP.md),
@@ -491,7 +502,7 @@ states the database rules. The exact SQL lives in `supabase/migrations/`.
 |---|---|---|
 | `public` | Yes | Only the functions the client calls ([Database Functions](#database-functions)) |
 | `app` | No | The tables below |
-| `internal` | No | Internal functions: shared helpers, the demo seed copy, guest cleanup |
+| `internal` | No | Internal functions: shared helpers, the demo seed copy, guest cleanup, the account fingerprint; and `internal.r2_deletions` ([Account backup](#account-backup)) |
 | `dev` | Locally only | Local only: `dev.seed_fixture()` for browser checks, created by `supabase/seed.sql` (never a migration, so never in production) and executable only by `service_role` |
 
 - Default `EXECUTE` is revoked from `public`, `anon` and `authenticated` on
@@ -519,6 +530,19 @@ states the database rules. The exact SQL lives in `supabase/migrations/`.
   ordinary write function owned by `griddo_writer`, and the auth user is
   deleted by `internal.cleanup_guests()`, owned by `postgres` and run by
   `pg_cron` ([Guest cleanup](#guest-cleanup)).
+- **Backup functions** (Phase 52; backup B9): the one exception to "write
+  functions run as a role that cannot bypass RLS" and to revoking the default
+  `service_role` grant. A small set of `public` functions
+  ([Backup functions](#backup-functions)) is executable by `service_role`
+  alone, which only the backup Edge Function holds (SPEC Architecture
+  Decision 1). They are `security invoker`, so they run as `service_role`,
+  which bypasses RLS. Isolation is held by three things instead: the function
+  takes the user id only from the verified JWT's `sub` or from the scheduled
+  call for one account; every backup function takes an explicit
+  `p_user_id` and filters every statement by it; and `service_role`'s rights
+  are the fixed list in [RLS and grants](#rls-and-grants), which a catalog
+  test checks over `app`, `internal` and `public`. `service_role` is not a
+  client role: its key never reaches the browser.
 - Read functions (`get_snapshot()` and the reconcile functions) are
   `security invoker`: they run as the caller, under RLS.
 - Every function sets `search_path` to an empty value and schema-qualifies
@@ -538,13 +562,17 @@ states the database rules. The exact SQL lives in `supabase/migrations/`.
 | `scratchBreakdowns` | `app.scratch_breakdowns` | |
 | `stagedCandidates` | `app.staged_candidates` | |
 | — | `app.accounts` | New: one row per account, below |
+| — | `app.backup_status` | Phase 52: one row per backed-up account, below |
+| — | `app.restore_staging` | Phase 53: one row per restore in flight, below |
+| — | `internal.r2_deletions` | Phase 52: backups to delete after an account deletion, below |
+| — | `internal.backup_summary_state` | Phase 52: one row of the daily summary's previous state, below |
 | `candidateOrphanAuditEvents` | — | Not ported (S18) |
 | `settings` | — | Not ported ([Not ported](#not-ported)) |
 
 Column rules (S11):
 
-- Every table has `user_id uuid not null` referencing `auth.users (id)` with
-  `on delete cascade`.
+- Every `app` table has `user_id uuid not null` referencing `auth.users (id)`
+  with `on delete cascade` (`internal.r2_deletions` has no foreign key, below).
 - Column names are the snake_case form of the field names (`parentId` →
   `parent_id`, `pastDeadlineDismissed` → `past_deadline_dismissed`).
   Conversion to the camelCase TypeScript types happens only in the snapshot
@@ -569,9 +597,64 @@ Column rules (S11):
 | `created_at` | `bigint` | First `ensure_account()` call |
 | `last_visit_at` | `bigint` | Set by every `ensure_account()` call and by every `cleanup_expired_trash()` call, which an open tab makes hourly. Guest cleanup deletes a guest 7 days after it |
 | `seeded_at` | `bigint \| null` | Set when the demo seed was copied; the copy runs at most once per account |
-| `deletion_requested_at` | `bigint \| null` | Used only by the account-deletion fallback: set by `delete_my_account()`; the daily cleanup deletes the account |
+| `deletion_requested_at` | `bigint \| null` | Used only by the account-deletion fallback: set by `delete_my_account()`; the daily cleanup deletes the account once the grace period has passed; `cancel_account_deletion()` clears it (Phase 54, [Account deletion](#account-deletion)) |
 
 The snapshot does not return `accounts`.
+
+`app.backup_status` (Phase 52; backup B8). Written only by `service_role`
+through the [backup functions](#backup-functions); the first run for an
+account creates its row, so a guest has none. It holds no domain data, so the
+account fingerprint leaves it out ([Account backup](#account-backup)).
+
+| Column | Type | Description |
+|---|---|---|
+| `user_id` | `uuid` PK → `auth.users (id)` on delete cascade | The account |
+| `run_started_at` | `bigint \| null` | Start of the run in progress (scheduled or `Back Up Now`); cleared when the run records its result |
+| `last_checked_at` | `bigint \| null` | Last successful check: a file written, or the account found unchanged |
+| `last_file_at` | `bigint \| null` | Creation time of the latest file |
+| `last_finished_at` | `bigint \| null` | When the last run recorded any result (`written`, `unchanged` or `failed`); the `missing` count reads it (flow review R2-G1) |
+| `last_result` | `text \| null` | `written`, `unchanged` or `failed` |
+| `failure_reason` | `text \| null` | Reason code of the last failure (`too_large`, `interrupted`, `export_failed`, `upload_failed`, …); null after a success |
+| `failing_since` | `bigint \| null` | First failure of the current failing streak; null after a success |
+| `last_fingerprint` | `text \| null` | Fingerprint of the latest file |
+| `last_file_bytes` | `bigint \| null` | Size of the latest file |
+| `stored_bytes` | `bigint` default 0 | Sum of the account's stored files, date slots and pre-restore files alike, after the last write and pruning; the daily summary adds these for the 8 GB check |
+| `last_backup_now_at` | `bigint \| null` | Last accepted `Back Up Now`, for its rate limit |
+| `manual_run_id` | `uuid \| null` | The id the client generated for its last accepted `Back Up Now` (flow review G1) |
+| `manual_result` | `text \| null` | That run's result (`written`, `unchanged` or `failed`), written by `backup_finish()` |
+| `manual_finished_at` | `bigint \| null` | When that run recorded its result |
+| `restore_started_at` | `bigint \| null` | Phase 53: start of the last accepted restore, for its rate limit and the restoring screen's way-out |
+| `restore_id` | `uuid \| null` | Phase 53: that restore's id (generated by the client), the key of its `restore_staging` row |
+
+Task 256 may add the columns the daily summary needs to tell a new failure
+from a known one, under the same grants.
+
+`internal.backup_summary_state` (Phase 52): one row with `last_summary_at`
+(`bigint`) and `over_limit` (`boolean`), so the summary alerts only on a
+change: a failure, a missing account or the 8 GB total that is new since the
+previous summary. RLS enabled with no policy; the migration that creates it
+inserts its single row, since `service_role` has no `insert` on it.
+
+`app.restore_staging` (Phase 53; backup B5). One row per restore, created by
+`restore_begin()` before any other step, filled by `restore_stage()`, and read
+and finished by `restore_account()` under RLS:
+
+| Column | Type | Description |
+|---|---|---|
+| `user_id` | `uuid` → `auth.users (id)` on delete cascade | The account |
+| `id` | `uuid` PK | The restore id, generated by the client |
+| `payload` | `jsonb \| null` | The backup's rows, set by `restore_stage()`; cleared when the restore ends |
+| `created_at` | `bigint` | Insert time |
+| `result` | `text \| null` | `applied` or the rejection code, written by `restore_account()` in its own transaction, or by `restore_abort()` when the function stops before it |
+| `finished_at` | `bigint \| null` | When `restore_account()` or `restore_abort()` wrote the result |
+
+An hourly `pg_cron` job owned by `postgres` deletes rows older than one hour
+(flow review W14).
+
+`internal.r2_deletions` (Phase 52): `user_id uuid`, `requested_at bigint`,
+`attempts integer`, with no foreign key, since the auth user is already gone.
+RLS is enabled with no policy, so every client role is refused; the catalog
+test covers it.
 
 ### Constraints
 
@@ -637,11 +720,36 @@ cleanup.
   `user_id = (select internal.uid())`, in `using` and `with check`; the
   sub-select makes Postgres evaluate it once per statement instead of once per
   row (S14, S29 (5)).
+  The backup tables have only the policies their readers need:
+  `backup_status` a `select` policy for `authenticated`; `restore_staging`
+  `select` and `update` policies for `griddo_writer`; `internal.r2_deletions`
+  none. `service_role` bypasses RLS, so its rights are the fixed list below.
 - `authenticated` has `usage` on `app` and `select` on its tables, for the
   `security invoker` read functions; it has no `insert`, `update` or `delete`
   (S08). `anon` has no grant.
 - `griddo_writer` has `select`, `insert`, `update` and `delete` on the tables,
   except `delete` on `accounts`: an account row goes only with its auth user.
+  It has no right on `backup_status`, and only `select` and `update` on
+  `restore_staging` (Phase 53).
+- `authenticated` reads its own `backup_status` row through the RLS policy
+  above, for `get_snapshot()`.
+- **`service_role`** (Phase 52; backup B9) has exactly these rights in `app`,
+  `internal` and `public`, and no other:
+  - `usage` on `app` and `internal`;
+  - `select` on `nodes`, `bits`, `chunks`, `scratch_breakdowns`,
+    `staged_candidates` (the export), `accounts` (the existence and
+    deletion-request check right before an upload) and `backup_status`;
+  - `insert` and `update` on `backup_status`;
+  - `select`, `insert` and `update` on `restore_staging` (Phase 53);
+  - `select`, `update` and `delete` on `internal.r2_deletions`;
+  - `select` and `update` on `internal.backup_summary_state`;
+  - `execute` on the [backup functions](#backup-functions) and on
+    `internal.account_fingerprint`.
+
+  A catalog test lists every privilege `service_role` holds on tables,
+  sequences and functions in those three schemas and compares it with this
+  list. It leaves out `dev` (local fixture code, also `service_role` only) and
+  Supabase's own schemas, whose default grants are not this project's.
 - Because `app` is not exposed, no table is reachable through the API, even
   for `select`.
 
@@ -1053,7 +1161,8 @@ function (S31). Every function follows the SQL function checklist in
 
 | Group | Functions | Contract |
 |---|---|---|
-| Account | `ensure_account()`, `delete_my_account()` | [Account preparation](#account-preparation), [Account deletion](#account-deletion) |
+| Account | `ensure_account()`, `delete_my_account()`; `cancel_account_deletion()` (Phase 54) | [Account preparation](#account-preparation), [Account deletion](#account-deletion) |
+| Restore | `restore_account(p_restore_id, p_expected_fingerprint)` (Phase 53), called by the backup Edge Function with the user's JWT, never by the app | [Account backup](#account-backup) |
 | Snapshot | `get_snapshot()` | [Snapshot](#snapshot) |
 | Ordinary writes | One function per `DataStore` write method that production code calls: Node and Bit create, update, soft delete, restore, hard delete, archive and unarchive; Chunk create, update and delete; Bit-to-Node promotion; `cleanup_expired_trash()`, which also records the visit (`accounts.last_visit_at`); `empty_trash()` | [Application Hooks](#application-hooks) 1–11 and Hook 12's version rules. Last write wins: no expected version (S15) |
 | Inbox/Triage commands | One function per row of the [atomic command matrix](#atomic-command-matrix), plus one read-only reconcile function for each command that has a reconcile method today | [Repository Operation Contract](#repository-operation-contract) |
@@ -1159,6 +1268,49 @@ Grid it places in. The client passes nothing (Task 249 stopped passing the
 top-left 3×2 block), so the parameter stays at its default with no SQL change.
 Writes that take the client's cell (create, move, placement) are not affected.
 
+**Backup helpers** (Phase 52). `internal.account_fingerprint(p_user_id)`
+([Account backup](#account-backup)), executable by `service_role` and by the
+`griddo_writer`-owned `restore_account()` only. `internal.dispatch_backups()`
+and `internal.dispatch_backup_summary()`, owned by `postgres` and run by
+`pg_cron` like `internal.cleanup_guests()`: they read the function URL and the
+shared secret from Vault. `dispatch_backups()` sends one `pg_net` call per
+signed-in OAuth account without a deletion request (flow review W8), with a
+request timeout and batch size that Task 255 measures (W1).
+`dispatch_backup_summary()` counts, from `auth.users`, the OAuth accounts
+without a deletion request that became `missing` since the previous summary
+(no recorded run result, success or failure, for 36 hours, or no status row
+36 hours after the account's creation; flow review R2-G1) and sends that
+count with the one summary call, so `service_role`
+needs no right in `auth` (W13). A missing Vault entry sends nothing, so no
+summary ping reaches Healthchecks.io and its missing-ping alert fires
+(backup B12).
+
+### Backup functions
+
+Phase 52, with the Phase 53 restore additions (backup B9). `public` functions
+that only `service_role` can execute; `security invoker`, an empty
+`search_path`, and an explicit `p_user_id` that filters every statement. They
+are the only `public` functions that are not client functions, and the
+catalog test lists them by name.
+
+| Function | Does |
+|---|---|
+| `export_account(p_user_id)` | `set statement_timeout = '30s'` (applied by REST as a hoisted setting). One statement builds one JSON value with every row of the five tables, as `get_snapshot()` (active, trashed and archived), and the account fingerprint, so both describe one point in time and no API row limit cuts it |
+| `backup_fingerprint(p_user_id)` | The account fingerprint, read before the export so the function can skip an unchanged account without parsing the stream; the run records this value, so a write that lands between the two costs at most one extra file the next day |
+| `backup_begin(p_user_id, p_kind, p_run_id)` | Locks the account's `backup_status` row (creating it) and records a start older than the `interrupted` threshold with no result as `interrupted`. A run already in progress refuses the new one with `already_running` (a scheduled run records nothing; flow review W3). For `p_kind = 'manual'` it refuses a second `Back Up Now` within 5 minutes with `rate_limited`, and otherwise records `manual_run_id` (the client's id) and `last_backup_now_at`; every accepted run records `run_started_at` |
+| `backup_finish(p_user_id, …)` | Sets `last_finished_at` and records the run's result: `written` (fingerprint, file time, size, `stored_bytes`), `unchanged` (check time only) or `failed` (reason, `failing_since`); for a manual run also `manual_result` and `manual_finished_at`; clears `run_started_at` |
+| `backup_read_status(p_user_id, p_run_id, p_restore_id)` | One signature from Phase 52 on (`p_restore_id` ignored until Task 260 replaces the body), so the deployed function's call keeps working across the Phase 53 migrations. The status row and `server_now`, after recording a stale start as `interrupted`. With a run id or restore id it also returns that operation's verdict, judged on the server clock (flow review G1): see [Account backup](#account-backup) |
+| `backup_summary()` | Records stale starts as `interrupted`; counts failures new since `last_summary_at` (a changed state or reason); sums `stored_bytes` and reports the 8 GB total only on the first summary above it (`over_limit`); updates `internal.backup_summary_state`. The `missing` count comes from the dispatch. A failing or missing account and a total kept above 8 GB alert once, so they never hide a new problem |
+| `backup_due_deletions()`, `backup_deletion_done(p_user_id)`, `backup_deletion_failed(p_user_id)` | Reads the `r2_deletions` rows older than one hour; deletes a row once its objects are gone, or increments `attempts` |
+| `restore_begin(p_user_id, p_restore_id)` (Phase 53) | The restore's first step (flow review W2): refuses a restore within 10 minutes of the last with `rate_limited`; records `restore_started_at` and `restore_id`; inserts the `restore_staging` row with no payload |
+| `restore_stage(p_user_id, p_restore_id, p_payload)` (Phase 53) | Sets the fetched backup as the row's payload |
+| `restore_abort(p_user_id, p_restore_id, p_reason)` (Phase 53) | Writes a not-applied result when the function stops before `restore_account()` (a failed pre-restore upload or fetch) |
+
+Names may be refined by the SQL task that writes them, with these rights and
+no others; the catalog test then names the final set. They compute epoch
+milliseconds inline, since `internal.now_ms()` stays executable by
+`griddo_writer` only.
+
 ### Result envelope
 
 Every write function returns one JSON value (S31):
@@ -1195,7 +1347,9 @@ type WriteEnvelope<Result> = {
   `grid_full`, `not_found`, `invalid_target` (a move into a descendant, a Bit
   onto Home, a system-Node rule; for Nodes see Hook 8), `invalid_input` (a malformed
   `p_reserved_cells`), `parent_inactive`, `deadline_exceeds_parent`,
-  `account_deleting` (deletion fallback only) and `account_missing`; the
+  `account_deleting` (deletion fallback only), `account_missing`, and for
+  the account backup `rate_limited`, `already_running`, `account_changed`
+  and `unsupported_format` ([Account backup](#account-backup)); the
   Inbox/Triage commands use these codes as
   [Inbox/Triage command functions](#inboxtriage-command-functions) lists. A rule the function does not check, such as a CHECK
   violation, ends the call with an error, which the client treats as a failed
@@ -1221,6 +1375,13 @@ only the envelope's `rejection` object, for example
 `{ "rejection": { "code": "account_missing" } }`, built in the same
 statement; a returned snapshot has no `rejection`. So the client reads
 `rejection?.code` the same way on every function result (user, 2026-10-23).
+
+From Phase 52 the value also holds `backup`: the caller's `backup_status`
+row (`run_started_at`, `last_checked_at`, `last_file_at`, `last_result`,
+`failure_reason`, and from Phase 53 `restore_started_at`) with `server_now`,
+or null when there is none (backup B8). It is an added key, so it is expand: the deployed parser
+reads only the five table keys and ignores it. The sidebar status dot is
+computed from it at render time (SPEC [Account backup](SPEC.md#account-backup)).
 
 ### Locks
 
@@ -1259,6 +1420,18 @@ checks the locked rows again after it holds them (S30; user, 2026-10-22):
 - **Order.** A function that needs several locks takes the advisory lock first,
   then row locks in a fixed order (Nodes ordered by id, then Bits, then
   Chunks), so two functions cannot deadlock.
+- **Restore** (Phase 53). `restore_account()` takes the L0 advisory lock,
+  then every Node of the account by id, then every Bit, and only then
+  computes the fingerprint again ([Account backup](#account-backup)). Chunk
+  writes lock the Bit's parent Node and then the Bit, and `reorder_chunks`
+  the Bit, in the same direction. Before Task 260 is accepted, its `expert`
+  review checks the full lock list over every write function and decides
+  whether `restore_account()` locks the `accounts` row first (as
+  `ensure_account()` and `cancel_account_deletion()` do) or never touches it.
+- **Backup status.** `backup_begin()` and `restore_begin()` lock the
+  account's `backup_status` row, which no other function locks; two
+  concurrent calls for one account give one `already_running` or
+  `rate_limited`.
 - **Planned deletes** delete staged candidates before their source rows.
 - System Node inserts use `on conflict do nothing` on the partial unique index.
 - Tests fire concurrent calls: two creates into one cell (one is `rejected`);
@@ -1331,6 +1504,31 @@ deletes them with the rest (user, 2026-10-30). The client then shows the load-fa
 the deletion-in-progress reason and `Continue as guest` (SPEC), and signs out
 to a new guest only from there.
 
+**Grace period and cancel** (Phase 54; deletion grace Decisions 1–4, 7, 9;
+user, 2026-11-04). From Phase 54 the request is no longer final:
+
+- The cleanup deletes only requests older than 24 hours and stays a daily
+  job, so an account goes 24 to 48 hours after its request. The copy promises
+  only the guaranteed time, the request plus 24 hours.
+- `public.cancel_account_deletion()`: `security definer`, owned by
+  `griddo_writer`, EXECUTE for `authenticated`. It is the one write function
+  that accepts an account with a deletion request. It locks the caller's
+  `accounts` row `for update` and clears `deletion_requested_at`; with no
+  request it changes nothing and returns `applied`. A caller whose account the
+  cleanup has already deleted gets `account_missing`.
+- `ensure_account()`'s `account_deleting` rejection adds
+  `deletion_requested_at` and the server's current time (`server_now`), both
+  epoch milliseconds; the deployed code ignores added fields (expand).
+- After a cancel, a write that committed just after the request stays: the
+  user made it and the whole account comes back (the 2026-10-30 race becomes
+  expected behavior; no fix).
+- Backups stay in R2 during the grace period, so a cancel brings them back too
+  ([Account backup](#account-backup)).
+- Tests: a cancel never touches another account; both orders of cancel and
+  cleanup (a cancel that locked first leaves nothing to delete; a cancel that
+  waits behind the cleanup gets `account_missing`); a request younger than 24
+  hours survives the cleanup.
+
 ### Guest cleanup
 
 `internal.cleanup_guests()` runs daily through `pg_cron` and deletes anonymous
@@ -1341,14 +1539,170 @@ no `accounts` row (sign-in finished, `ensure_account()` never ran) has no
 `last_visit_at`; the job deletes it 7 days after `auth.users.created_at`. This
 covers the extra guest of two first-visit tabs (SPEC §Several tabs). Under the
 account-deletion fallback the same job also deletes every account with a
-deletion request. The job deletes one account at a time; an account that
+deletion request (from Phase 54, a request older than 24 hours). The job
+deletes one account at a time; an account that
 deadlocks with a client write in flight is skipped and taken by the next run,
-so one busy account never stops the others. The
+so one busy account never stops the others. From Phase 52 the job locks each
+target's `accounts` row `for update` and checks again, on the locked row, that
+the target still qualifies before it deletes the auth user (today its targets
+come from one unlocked query); and for every deleted real account it inserts
+an `internal.r2_deletions` row in the same transaction
+([Account backup](#account-backup)). The
 job is owned by `postgres`, the one role that can delete from `auth.users`.
 Task 218 proved `pg_cron` on the free plan (off by default; the Task 238
 migration enables it), so the S22 fallback, a scheduled GitHub Actions call,
 is not used. Real accounts
 are never deleted automatically (S23).
+
+### Account backup
+
+Phases 52 (backup) and 53 (restore), from the account-backup `DECISION.md`
+and backup B1–B18. Signed-in OAuth accounts only; guests are never backed up.
+Copies live outside Supabase in Cloudflare R2, written and read only by the
+backup Edge Function (SPEC Architecture Decision 1, [Account
+backup](SPEC.md#account-backup)).
+
+**Objects.**
+
+- An object is the gzip (level 1) of the `export_account()` value, streamed
+  without parsing: every row of the five tables, active, trashed and archived,
+  plus `format_version`, the creation time and the provider's stable user id.
+  It holds no OAuth token or session, no device preference and no guest data.
+- Keys: `accounts/<user_id>/YYYY-MM-DD.json.gz` (UTC date slot; another run on
+  the same day overwrites that day's file),
+  `accounts/<user_id>/pre-restore/<UTC time>.json.gz` (Phase 53) and
+  `accounts/<user_id>/identity.json` with the account's providers and provider
+  user ids. After a recovery into a new project the internal id changes; the
+  owner's operations script finds the old key by provider user id and copies
+  the objects to the new key.
+
+**Fingerprint.** `internal.account_fingerprint(p_user_id)` is the md5 of each
+of the five tables' rows (`md5(string_agg(t::text, ',' order by t.id))`),
+combined by md5. `accounts` and `backup_status` are left out. Every write
+changes it with no audit of what each write touches, Chunk edits included. An
+expand migration that adds a column changes every fingerprint, so the next
+scheduled run backs up every account once; this is expected.
+
+**Retention** (no R2 lifecycle rule for account backups):
+
+- A run whose fingerprint matches the last backup writes no file, scheduled or
+  `Back Up Now` alike; it records only the check.
+- Pruning runs only right after a new file is written and counts files, not
+  calendar days: it keeps the 7 latest files and, before them, the latest file
+  of each of 4 ISO weeks. An unchanged account never prunes, and at least one
+  file always stays.
+- Pre-restore files keep the 5 latest per account, outside the date slots.
+
+**Status** (`backup_status`):
+
+- A run records its start first. A start with no result after 5 minutes is
+  recorded as `interrupted` by the next run, a status read or the summary,
+  since a function killed at a limit cannot record its own failure.
+- Rule (backup B6): the `interrupted` threshold is at least the function's wall
+  clock plus the longest statement timeout plus a margin (150 s + 30 s
+  < 5 minutes on the free plan). On a paid plan (400 s) the threshold, the
+  wall clock and SPEC's `EDGE_REQUEST_TIMEOUT_MS` change together.
+- Status is judged from `last_checked_at`, an unchanged account included; the
+  date shown is `last_file_at`. The scheduled run picks accounts by
+  fingerprint, not by modification time, which would miss Chunk edits.
+- An account that keeps failing is tried every day; the owner is alerted only
+  when its state or failure reason changes.
+- Rate limits, enforced in `backup_begin()` and `restore_begin()` under the
+  row lock: `Back Up Now` once per 5 minutes and a restore once per 10 minutes
+  per account, otherwise `rejected` with `rate_limited`; a run already in
+  progress gives `already_running`. No storage cap.
+- **Operation verdicts** (flow review G1). `Back Up Now` and a restore carry
+  an id the client generates and never reuses. `backup_read_status()` judges
+  that id on the server clock and returns one verdict: for a manual run,
+  `running` (its start is younger than the `interrupted` threshold), its
+  result, `interrupted`, or `not_started` (another id is recorded); for a
+  restore, `finishing` (no result and its start younger than 180 s), its
+  result, `not_applied` (no result after 180 s), `expired` (the row is gone,
+  but `backup_status.restore_id` is that id: re-enter and read the account;
+  flow review R2-W2), or `not_started` (another restore id is recorded). The
+  client never compares a server timestamp with its own clock.
+- **Guests** (flow review G2). The function refuses every JWT whose
+  `is_anonymous` claim is true, before any read or write, so a guest never
+  gets a status row or an object.
+
+**Restore** (Phase 53; backup B5):
+
+1. The function verifies the JWT, refuses a guest, and takes the user id
+   from `sub`.
+2. `restore_begin()` checks the rate limit and creates the staging row, so a
+   refused restore uploads nothing and prunes nothing.
+3. It exports the current account to a pre-restore file; if that upload
+   fails, `restore_abort()` records it and the restore stops.
+4. It fetches and unzips the chosen backup and sets it with
+   `restore_stage()`.
+5. It calls `restore_account(p_restore_id, p_expected_fingerprint)` with the
+   user's JWT: `security definer`, owned by `griddo_writer`, EXECUTE for
+   `authenticated`, `set statement_timeout = '30s'`. Under RLS it reads only
+   the caller's staging row; after the locks it computes the fingerprint
+   again, and on a mismatch writes `account_changed` and changes nothing. It
+   refuses an unsupported `format_version` with `unsupported_format`.
+   Otherwise it replaces the whole account in one transaction. Either way it
+   writes `result` and `finished_at` into the staging row and clears its
+   payload in the same transaction.
+
+- The outcome is read from that row through the operation verdict, never
+  from elapsed time on the client: a `result` is the outcome; no `result` 180 s
+  after the start (150 s wall clock plus the 30 s statement) is `not_applied`;
+  no row while `backup_status.restore_id` is still this id is `expired` and
+  the client re-enters; another recorded id is `not_started`. Phase 53's `expert` review confirms the staging row
+  against writing the result to `backup_status`.
+- Account isolation stays the S14 kind: RLS and `griddo_writer`; a browser that
+  calls `restore_account()` directly can only apply what the server staged for
+  it.
+- No row limit is checked; an account above a limit keeps its rows
+  ([Account limits](#account-limits)). A partial restore is never made.
+- Versions: every restored row gets `greatest(backup version, current
+  version) + 1`, one increment for one logical change (Hook 12), so a stale
+  tab's next revision-checked Inbox/Triage command on it conflicts. Ordinary
+  writes stay last-write-wins with no expected version (S15): a stale tab on
+  another device can still overwrite the fields it writes, as with any
+  concurrent edit, and its next focus refetch shows the restored account (flow
+  review W9). Accepted residual: a row changed once after the backup and then
+  permanently deleted, held at exactly that version by a stale tab. Chunks have
+  no version and stay last-write-wins.
+
+**Format versions.** `format_version` starts at `1`, and the first
+`restore_account()` accepts `1` only. An expand migration keeps the version: a
+restore fills a missing key with the column default. A contract migration
+raises it, and the same task writes one conversion from the previous version;
+a restore refuses N−2 and older. A contract phase's close backs up every
+account after its migrations and runs the periodic restore check once.
+
+**Deleting R2 objects** (deletion grace Decision 5):
+
+- Objects are deleted only from `internal.r2_deletions`, never because a key
+  has no `accounts` row: after a recovery every old key has none.
+- The daily summary processes rows older than one hour: it deletes everything
+  under `accounts/<user_id>/` and then the row; a failure is retried the next
+  day, and a row older than three days sends `/fail`.
+- Right before an upload the function checks that the account exists and has
+  no deletion request, so an upload in flight cannot leave an orphan.
+- During the grace period the files stay. The dispatch skips the account and
+  does not count it as `missing`; if a run already in flight meets the request
+  at its pre-upload check, it records nothing.
+
+**Tests** (vitest database suites, through supabase-js `.rpc()` and HTTP
+calls to the locally served function where REST behavior matters):
+
+- `anon` and `authenticated` calling any backup function get
+  `permission denied`; the `service_role` catalog test passes
+  ([RLS and grants](#rls-and-grants)).
+- `Back Up Now` naming another account in its body backs up only the caller
+  or is refused; a status write for account A leaves account B's row
+  unchanged; `restore_account()` cannot read another account's staging row.
+- A REST call to `export_account()` that runs past 8 s passes with the 30 s
+  setting and is cut at 8 s without it.
+- Object tests write only under random user ids and delete their keys; files
+  left after a reset never change a result; the 8 GB check sums recorded
+  `stored_bytes`, not a bucket listing.
+- With no Vault entry, `internal.dispatch_backup_summary()` sends nothing.
+- A guest JWT gets a refusal and leaves no row and no object; a verdict read
+  for another run or restore id never reports this one's result.
 
 ### Database tests
 
@@ -1376,7 +1730,10 @@ function (S14; user, 2026-10-24); lint 0012 on the six `app` tables, whose
 policies apply to guests by design, and on `cron.job` and
 `cron.job_run_details`, which no client role can reach without USAGE on `cron`;
 and `auth_leaked_password_protection`, since Email sign-in is off and no
-password exists (user, 2026-11-02).
+password exists (user, 2026-11-02). A warning that the backup phases add
+(for example on `backup_status`, `restore_staging`, `internal.r2_deletions`
+or the `net` schema of `pg_net`) is new: the close shows it to the user, who
+accepts it here or has it fixed.
 
 ---
 

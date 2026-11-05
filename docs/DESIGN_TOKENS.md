@@ -1611,6 +1611,11 @@ Shared elements carry `data-app-role`:
 | `narrow-notice` | Narrow-window notice (S42 (4)) | Laid over the mounted, `inert` app |
 | `grid-unavailable` | Unavailable Grid screen (stabilization ST17, Phase 51) | Sits in the Grid content area beside the sidebar, not in the whole-window `app-frame`. Its title, reason line and action reuse the `app-frame-title`, `app-frame-reason` and `app-frame-action` parts and their realized look in each theme; no new value |
 | `account-modal` | Guest and account modal (Phase 48) | Contents per SPEC |
+| `backup-button` | Sidebar `Backup` button (Phase 52), right below `account-button` | Lucide `cloud-upload`; [`DP-BACKUP-01`](#backup-surfaces--dp-backup-01) |
+| `backup-dot` | Status dot on `backup-button` | Yellow or red only, or the reduced-motion running dot; `DP-BACKUP-01` |
+| `backup-dialog` | Guest and account backup dialog (Phases 52–53) | The `account-modal` frame (SA-6); `DP-BACKUP-01` |
+| `restoring-screen` | Blocking restore dialog over the app (Phase 53) | `DP-BACKUP-01` |
+| `deletion-grace-dialog` | Deletion-grace dialog over the empty app frame (Phase 54) | `DP-BACKUP-01` |
 | (reused) server-confirmed pending loader | The loader on a control or row of a SPEC write-feel group 3 action | The feedback F03 loader role ([Feedback Status Surfaces](#feedback-status-surfaces), Task 243), one loader app-wide; shown after `DISPLAY_DELAY_MS`; static under reduced motion. Not part of `DP-SAAS-01` (user, 2026-10-22) |
 
 ### Toast use
@@ -1638,7 +1643,7 @@ were placeholders; implementation uses the providers' official marks.
 
 | Contract | Exact requirement |
 |---|---|
-| Account icon (SA-1) | `data-app-role="account-button"` is a sidebar icon button with exactly the classes of its neighbour `Add item` (`flex h-10 w-10 items-center justify-center rounded-lg border border-transparent p-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 text-muted-foreground hover:bg-accent hover:text-foreground`). Lucide `user-round` for a guest and `user-round-check` for an OAuth account at `h-5 w-5`. No ring, tint or background distinguishes the account state; the glyph does. It is the top-most sidebar icon until the Home button lands (Phase 50), then sits right below Home and above `+`: the order is Home, account icon, `+` (SPEC §Sidebar, F21, F33). |
+| Account icon (SA-1) | `data-app-role="account-button"` is a sidebar icon button with exactly the classes of its neighbour `Add item` (`flex h-10 w-10 items-center justify-center rounded-lg border border-transparent p-2.5 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 text-muted-foreground hover:bg-accent hover:text-foreground`). Lucide `user-round` for a guest and `user-round-check` for an OAuth account at `h-5 w-5`. No ring, tint or background distinguishes the account state; the glyph does. It is the top-most sidebar icon until the Home button lands (Phase 50), then sits right below Home and above `+`: the order is Home, account icon, `+` (SPEC §Sidebar, F21, F33); from Phase 52 the `Backup` button sits between the account icon and `+` (BK-1). |
 | Connection badge (SA-2) | `data-app-role="account-badge"` has the shape of the existing Inbox count badge: `absolute -top-1 -right-1 z-10 flex h-4 min-w-4 translate-x-[25%] -translate-y-[25%] items-center justify-center rounded-full px-1 font-mono text-[10px] font-bold leading-none ring-2 ring-background`. Unstable (`data-connection-state="unstable"`): the glyph `!`, `background: hsl(var(--status-warning-surface))`, `color: hsl(var(--status-warning))`, plus an inner 1px `hsl(var(--status-warning-border))` edge (an inset `box-shadow` kept beside the ring). Offline (`"offline"`): Lucide `wifi-off` at 10px with the same treatment in `--status-error-*`. No badge in the normal state. The sentence is a tooltip in the FB-4 look, to the right of the icon, 8px away. |
 | Loading screen (SA-3) | The frame (below) holds no card: on the shell background, centred, the title `Loading your grid…` at `text-xl font-semibold` with the app loader (`--status-icon-size: 28px`) 12px below it. The loader is named by that title (`aria-labelledby`) and the frame is exposed as busy. It covers the sidebar and appears after `DISPLAY_DELAY_MS`. |
 | App-level frame (SA-4) | Adjusted to option C, "text block on the background" (user, 2026-10-26, Task 225; Task 242 had chosen the confirmation-dialog card). The frame is the shell background (`data-triage-role="shell-background"`, so each theme's desktop or page surface shows) over the whole window, sidebar included, with no card, no overlay and no `!` mark: one centred block `grid gap-3 text-center` with `max-width: 440px` and `justify-items: center`, holding the title (`text-xl font-semibold`), the reason line (`text-sm text-muted-foreground`) and the actions (`flex flex-wrap justify-center gap-2 pt-1`) of the SPEC screen. It needs no per-theme surface work: each theme shows only its own shell background behind the text. Buttons use the existing button variants: `Retry` and `Continue as guest` are `default`; `Sign in with GitHub` and `Sign in with Google` are `outline`. The security-check screen holds the Turnstile widget, 300×65, centred below the title. The narrow-window notice (SA-5) takes this look, laid over the app; the guest and account modal (SA-6) keeps the Scratch Trash dialog card. |
@@ -1656,6 +1661,30 @@ were placeholders; implementation uses the providers' official marks.
 | Resume condition | Met: the user's choice is recorded in this section and committed |
 | Unblocks | The Phase 45 load-failure screens (Task 228), the Phase 47 icon, badge, loading and session-expired screens (Task 234), and the Phase 48 modal, account-being-deleted screen, security-check screen and narrow-window notice (Tasks 235, 236, 238); not the data, network-state or toast-helper work. It is decided in Task 242 (Phase 49) on the same option sheet as `DP-FB-01` (feedback F33); Task 225, at the start of Phase 45, confirms the recorded choice against the current SPEC surfaces |
 | Remaining | Per-theme finishing belongs to the theme stage; implementation chooses no other size, spacing, layout, motion or per-theme value than those recorded |
+
+### Backup surfaces — `DP-BACKUP-01`
+
+**User-decided 2026-11-04** on the option sheet of the account-backup topic
+(PR #74; the sheet itself is the user's reference, not an artifact). Behavior
+and copy are SPEC [Account backup](SPEC.md#account-backup). Every surface
+reuses a realized shape, so no theme needs a new one.
+
+| Contract | Requirement |
+|---|---|
+| Button (BK-1) | `data-app-role="backup-button"`: a sidebar icon button with exactly the classes of `account-button` (SA-1) and Lucide `cloud-upload` at `h-5 w-5`. Order: Home, account icon, `Backup`, `+` |
+| Status dot (BK-2) | `data-app-role="backup-dot"` with `data-backup-state="stale"` or `"failed"`: the Calendar urgency dot's shape and slot (`absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-background`), filled with `hsl(var(--status-warning))` (stale) or `hsl(var(--status-error))` (failed). No dot when backed up, not yet backed up or for a guest. The dialog's status line carries the state in text (WCAG 1.4.1) |
+| Running motion (BK-3, R3) | The cloud path stays still; the arrow's two paths, drawn as one group, rise about 4px from below while fading in and fade out at the top, in a 1.5 s ease-in-out loop. No rotation; the button keeps its size and place. Under `prefers-reduced-motion` the loop stops and a still dot in `hsl(var(--primary))` shows in the BK-2 slot. A BK-2 dot wins over the motion |
+| Status lamp (BK-4) | In the dialog's status line and the restoring steps: a small dot in `hsl(var(--primary))` that slowly fades in and out while running (no spinner); still under reduced motion. Green, yellow, gray and red use the F15 status tokens ([Feedback Status Surfaces](#feedback-status-surfaces)) beside their text |
+| Dialog (BK-5) | `data-app-role="backup-dialog"` in the SA-6 frame (the Scratch Trash dialog card and overlay, which `retro-mac` and `neumorphism` already restyle). Guest: title, description paragraphs, the `border-t pt-4` sign-in block of SA-6. Account: the status line as the dialog's state line (`role="status"`, `min-h-5 text-sm font-medium`), then a `border-t pt-4` row with `Restore…` (`outline`, Phase 53) on the left and `Back Up Now` (`default`) on the right (this row's layout was proposed at promotion, 2026-11-05, and is confirmed at Task 258's user check), the privacy note below in `text-xs text-muted-foreground` with line-height 1.5, and `Close`. The backup list and the restore confirmation replace the body inside the same card. Not a popover |
+| Restoring screen (BK-6) | The app stays mounted and `inert` behind the existing modal overlay (`bg-background/80 backdrop-blur-sm`, as the Bit popup and Scratch modal); over it the SA-6 card holds the title, the line and the three steps, each with the BK-4 lamp while current and a check when reached. No progress bar or percentage |
+| Deletion-grace dialog (BK-7) | The BK-6 overlay over the empty app frame, with the SA-6 card: title, the deadline line, the countdown (`font-mono`, `aria-hidden`) with `left to cancel`, then `Cancel deletion` (`default`, first) and `Continue as guest` (`outline`) |
+
+| Field | Value |
+|---|---|
+| Owner | User |
+| Status | **Decided, 2026-11-04** (option sheet; R3 for the motion) |
+| Checks | Tasks 258, 262 and 266 show the user `griddo` light and dark; the agent checks `retro-mac`, `neumorphism` and `claymorphism`, light and dark, for the reused classes (PLANNING_STANDARD §5.2) |
+| Remaining | The overlay's blur and the lamp's fade timing are taken from the existing overlay and the R3 loop; if the user's first check finds them different from the sheet, the task records the correction here. Per-theme finishing belongs to the theme stage |
 
 ---
 

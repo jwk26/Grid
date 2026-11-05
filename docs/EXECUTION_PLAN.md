@@ -42,6 +42,12 @@ Execution plan mode: scaled
 > [stabilization DECISION](brainstorming/2026-11-04-stabilization-pass/DECISION.md)
 > ST01–ST29. It waits for no phase and may run beside the account-backup DB
 > lane. See [Stabilization — Phase 51](#stabilization--phase-51).
+> **Account backup (2026-11-05):** Phases 52–54, Tasks 255–266, `db` lane,
+> from the [account-backup DECISION](brainstorming/2026-11-01-account-backup/DECISION.md)
+> and the [deletion-grace DECISION](brainstorming/2026-10-31-account-deletion-grace-period/DECISION.md)
+> under the backup [PROMOTION_MAP](brainstorming/2026-11-01-account-backup/PROMOTION_MAP.md).
+> Phase 52 waits for none and may run beside Phase 51; 53 waits for 52 and 54
+> for 53. See [Account Backup — Phases 52–54](#account-backup--phases-5254).
 > **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
 > corrections, Tasks 209–212, from
 > [DECISION](brainstorming/2026-10-15-scratch-trash-hotfix/DECISION.md). It
@@ -232,6 +238,11 @@ Feedback lane:
 Stabilization (app lane):
   251→252→253→254  Phase 51 (waits for none; beside the account-backup DB lane)
 
+Account backup (db lane):
+  255→256→257→258→259  Phase 52 (waits for none; beside Phase 51)
+  →260→261→262→263→264  Phase 53
+  →265→266  Phase 54
+
 Retired Tasks 164/165 and 180–208 are not dependency nodes.
 Cross-phase arrows also require the preceding phase's actual Final Close/main
 sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
@@ -270,6 +281,9 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 50 | — | Completed | [Feedback lane, part 2: Inbox status, breadcrumb reveal, last Scratch](execution-plan/archive/phase-50.md) | 245–250 + 245A | Accepted and archived (2026-10-31); no migration; Phase 35 MI-14 and MI-21, Phase 45 mi-1–mi-3 and Phase 49 mi-1–mi-3 closed; follow-ups in `Issues_Deferred.md`. The theme stage no longer waits for it. |
 | Phases 36–40 | — | Retired (feedback F28, 2026-10-22) | [Terminal, Claymorphism + Origami, GridDO + Tiny Desk, Graphite, and the Task 208 campaign gate](execution-plan/archive/phases-36-40-retired.md) | 180–208 | Retired as superseded; never runnable. Numbers are not reused. |
 | Phase 51 | app | Planned | [Stabilization: small fixes, unavailable Grid, Inbox `Esc` and focus, Inbox lock recovery](#stabilization--phase-51) | 251–254 | Waits for none; may run beside the account-backup DB lane. Flow review: [Phase 51](reviews/phase-51-flow-review.md). |
+| Phase 52 | db | Planned | [Account backup: toolchain, SQL, Edge Function, sidebar button, production close](#phase-52--account-backup) | 255–259 | Waits for none; may run beside Phase 51. Flow review: [Phases 52–54](reviews/phase-52-54-flow-review.md). |
+| Phase 53 | db | Planned | [Account restore: SQL, Edge restore, restoring screen, monthly check, recovery drill](#phase-53--account-restore) | 260–264 | Waits for Phase 52. Flow review: [Phases 52–54](reviews/phase-52-54-flow-review.md). |
+| Phase 54 | db | Planned | [Account deletion grace period and cancel](#phase-54--account-deletion-grace-period) | 265–266 | Waits for Phase 53 (reuses its other-tab follow and dialog frame). Flow review: [Phases 52–54](reviews/phase-52-54-flow-review.md). |
 
 ## Theme Realization Task Sets
 
@@ -1063,6 +1077,690 @@ residual.
 
 **Commit message:** `fix(inbox): check a held command when its surface goes and after an outage`.
 
+## Account Backup — Phases 52–54
+
+Authority: the account-backup [DECISION](brainstorming/2026-11-01-account-backup/DECISION.md)
+and the deletion-grace [DECISION](brainstorming/2026-10-31-account-deletion-grace-period/DECISION.md)
+under the backup [PROMOTION_MAP](brainstorming/2026-11-01-account-backup/PROMOTION_MAP.md)
+(B1–B18); SCHEMA [Account backup amendment](SCHEMA.md), §Schemas and roles,
+§Tables, §RLS and grants, §Backup functions, §Snapshot, §Locks, §Account
+deletion, §Guest cleanup and §Account backup; SPEC
+[Account Backup Amendment](SPEC.md#account-backup-amendment--2026-11-05),
+Architecture Decisions 1 and 2, §Account backup, §App-level screens,
+§Feedback copy and §Environments And Hosting; DESIGN_TOKENS `DP-BACKUP-01`;
+PLANNING_STANDARD §5.2 Phases 52–54 row and §6; CLAUDE.md Architecture 1, 2
+and 10, §Gates and §Production.
+
+Flow review: [Phases 52–54 flow review](reviews/phase-52-54-flow-review.md)
+covers all three phases.
+
+### Lanes and phase waits
+
+All three are `db` lane phases (CLAUDE.md §Workflow, Phase waits), so only one
+is open at a time; the app lane (Phase 51, later the FE/Visual pass) may run
+beside any of them.
+
+| Phase | Waits for (Final Close and `main` sync) |
+|---|---|
+| 52 | None. May run beside Phase 51 |
+| 53 | Phase 52 |
+| 54 | Phase 53: it reuses 53's other-tab follow (`BroadcastChannel`) and its blurred-frame dialog (B15). The deletion-grace SQL needs only Phase 52 |
+
+Each phase leaves `main` working and protects more: 52 backs up real data, 53
+makes it restorable and retires the manual dump, 54 protects from a mistaken
+deletion.
+
+### Shared rules for every Phase 52–54 task
+
+- **Gates:** the full CLAUDE.md gate, `pnpm test:db` included, on every task;
+  `pnpm check:edge` on every task after Task 255 adds it. A user or production
+  step runs `git diff --check` and whatever its task names.
+- **SQL:** every task that adds or changes a database function or table
+  follows the SQL function checklist in PLANNING_STANDARD §6, adds the
+  cross-account and concurrency tests SCHEMA names for it, and gets an
+  `expert` review before acceptance. A backup function returns no envelope, so
+  the change-set test does not apply to it; `restore_account()` and
+  `cancel_account_deletion()` keep it.
+- **Edge Function:** every task that changes `supabase/functions/` gets an
+  `expert` review before acceptance; its refusal tests send the refused
+  request (a body naming another account, a missing or wrong shared secret, an
+  `anon` key) and prove the refusal.
+- **Local Supabase and storage:** the CLAUDE.md Local Supabase rules apply;
+  object tests write only under random user ids and delete their keys (SCHEMA
+  §Account backup, Tests).
+- **Secrets:** never in chat, Git, logs or the ledger; the ledger records only
+  that and when one was set (CLAUDE.md §Production). Local values live in
+  `.env.local`, and `.env.local.example` lists their names.
+- **Checks:** the agent runs every functional check. Only Tasks 258, 262 and
+  266 have a user visual checkpoint (PLANNING_STANDARD §5.2), each prepared
+  with the development state switch (CLAUDE.md Forced states).
+- **Production:** no production deploy, migration or secret during a phase
+  except in its close task (259, 264) and the close itself, after the user's
+  approval, in the CLAUDE.md §Production order.
+- **App lane coordination:** a UI task (258, 262, 266) merges `main` when it
+  starts, since the app lane may have changed the sidebar or the account
+  modal. A step that resets the local database (every `pnpm test:db`, the dump
+  restore test of Task 259) runs while the app lane is not in a browser check;
+  the app lane seeds again after it.
+- **Learnings flow:** as Phase 51 (ST29), each close records per task whether
+  the work plan carried a `Learnings:` line from
+  `docs/execution-plan/LEARNINGS.md` and whether the checkpoint carried a
+  `Lesson:` line. A close-time observation, not an acceptance criterion.
+
+### User preparation
+
+Each item is done by the user before the task named, outside chat and Git
+(B13).
+
+| Before | Item |
+|---|---|
+| Task 255 | Check the R2 prices again (DECISION §Why R2); enable Cloudflare R2 (it may ask for a payment method); a development bucket and a token scoped to it, into `.env.local`. `.env.local` never holds a production token or ping URL, since the local cron also runs daily |
+| Task 259 | A production bucket and a read-write token scoped to it; a Healthchecks.io account with a daily check (one-day period, three-hour grace; confirm email alerts); the backup-only shared secret; approval of the dump, the function deploy, the secrets and the migrations |
+| Task 263 | A read-only token for the production bucket and a second Healthchecks.io check (31-day period), in `chmod 600` files on the Mac and the password app |
+| Task 264 | A Google identity on the owner's production account (the drill signs in with Google only); a free active-project slot (no other free project active); the drill project and a drill-only bucket with its own token; the drill project's callback on the development Google client and its redirect allow-list (removed after); approval of the Phase 53 close steps |
+| Monthly, from Task 263 | Run the restore check; on a Healthchecks.io email, read the details in the database |
+
+The interim dump of 2026-11-04 (`~/griddo-dumps/2026-11-04/`) is deleted
+within 7 days after Task 259's dump passes its restore test (Task 259 step
+8).
+
+## Phase 52 — Account backup
+
+Scope: automatic daily backups of signed-in accounts to R2, `Back Up Now`,
+status, failure alerts and deleting R2 objects with the account; the sidebar
+`Backup` button and dialog without `Restore…`. Leaves behind automatic
+backups of real data. Out of scope: restore (Phase 53) and the deletion grace
+period (Phase 54).
+
+**Task order:** 255 → 256 → 257 → 258 → 259.
+
+### Task 255: [ ] Set up the Edge toolchain and measure the function locally (go/no-go)
+
+**Files and actions:**
+- `package.json`, `pnpm-lock.yaml`: Deno pinned as a devDependency if a
+  `deno` npm package publishes the binary at the Supabase edge runtime's major
+  version, otherwise a documented global install at that version; the script
+  `check:edge` (`deno check` and `deno lint` over `supabase/functions/`).
+- `tsconfig.json`: `allowImportingTsExtensions`, the `@edge-shared/*` path to
+  `supabase/functions/_shared/*`, and `supabase/functions/backup` in
+  `exclude`. `vitest.config.ts`: the same alias, and
+  `supabase/functions/_shared/**/*.test.ts` in `include`. The ESLint config
+  ignores `supabase/functions/backup`.
+- `supabase/functions/backup/index.ts`, `deno.json`, `deno.lock`: a minimal
+  handler; `supabase/functions/_shared/`: one pure module with its test, to
+  prove both checkers and vitest.
+- `supabase/config.toml`: `[db.vault]` and `[edge_runtime.secrets]` read their
+  values from `.env.local` through `env(...)`; `[functions.backup]` with
+  `verify_jwt = false`; the S3 endpoint if needed.
+  `.env.local.example`: the names.
+- `scripts/backup-measure/` (local only, never against production): builds an
+  account of about 10 MB raw with SCHEMA's fields and random Hangul syllables
+  in SQL under a random test user, a temporary export of the same shape, and
+  deletes both at the end and on SIGINT and SIGTERM.
+- The Phase 52 ledger: every measurement below, as numbers.
+
+**Measurements and checks** (each recorded with its result):
+1. Stream the export into gzip level 1 and upload it, with each candidate S3
+   client (a light signer such as `aws4fetch`, and `@aws-sdk/client-s3`):
+   go when CPU stays under 500 ms and memory under 64 MB (a quarter of each
+   limit).
+2. The fingerprint's cost on the 10 MB account.
+3. The API request body limit for a roughly 10 MB `restore_stage()` payload;
+   if refused, Task 260 stages rows per table.
+4. Local object storage: local Supabase Storage's S3 endpoint for
+   PutObject, GetObject, ListObjectsV2, DeleteObjects and CopyObject, and the
+   bucket's recreation after `supabase db reset`; any failure moves the gates
+   to a separate S3-compatible container. The endpoint is an environment
+   variable.
+5. Real R2, once, with the development bucket: the same five calls.
+6. `pg_net` from the database container reaches the local function at the URL
+   stored in local Vault (for example through `kong` or
+   `host.docker.internal`), and the Vault values come back after a reset. The
+   scheduled path (flow review W1): a call longer than `pg_net`'s request
+   timeout, whether the run continues once the caller has gone, and so the
+   `timeout_milliseconds` and batch size the dispatch uses; the function runs
+   with `verify_jwt = false` in `[functions.backup]` and verifies the JWT
+   itself for the JWT modes, since the scheduled call carries the shared
+   secret, not a JWT.
+7. The HTTP status a function killed at its wall clock or memory limit
+   returns, for the client's no-answer set (SPEC §Account backup).
+8. `.ts`-extension imports and `@edge-shared/*` pass `tsc`, `pnpm build`,
+   vitest (both `vitest.config.ts` and `vitest.db.config.ts` get the alias)
+   and `deno check`.
+9. The unchanged-account check without parsing the stream: the fingerprint
+   read first through `backup_fingerprint()`, its cost added to item 2.
+
+**Dependencies:** this phase's lifecycle gate; the user's development bucket
+and token.
+
+**Authority:** DECISION §Measurement and acceptance, §Runner; B10, B11, B12;
+SPEC §Environments And Hosting.
+
+**Observable acceptance:** the ledger holds each measurement with its numbers
+and a go or no-go; the chosen S3 client, object storage and Deno pin are
+named; `pnpm check:edge` runs and passes; the gate passes. On a no-go the task
+stops and the user chooses between the DECISION fallbacks (the scheduled run
+on GitHub Actions, or one account's export split into calls per table) through
+a plan amendment.
+
+**Verification:** gate; the measurement script's output (counts and times
+only); a deliberately broken `_shared` import fails `tsc` and `deno check`.
+
+**Commit message:** `chore(backup): set up the Edge toolchain and record the local go/no-go`.
+
+### Task 256: [ ] Add backup status, export, fingerprint and the daily dispatch in SQL
+
+**Files and actions:**
+- A migration: `pg_net`; `app.backup_status` with RLS, its `authenticated`
+  select policy and grants; `internal.r2_deletions` with RLS and no policy;
+  `internal.account_fingerprint`; `internal.backup_summary_state` with its
+  single row;
+  `public.export_account` (30 s); the backup functions of SCHEMA §Backup
+  functions except the Phase 53 `restore_begin`, `restore_stage` and
+  `restore_abort`, with `backup_read_status` in its final signature
+  (`p_restore_id` ignored until Task 260); `get_snapshot()`
+  with the `backup` key; `internal.dispatch_backups()` and
+  `internal.dispatch_backup_summary()` reading Vault (the backup dispatch skips
+  accounts with a deletion request; the summary dispatch counts `missing`
+  from `auth.users` and sends the count); two `pg_cron` jobs, the
+  backup at 17:00 UTC and the summary at 19:00 UTC; the revoke of
+  `service_role`'s default grants followed by exactly the SCHEMA list.
+- The same migration changes `internal.cleanup_guests()`: lock each target's
+  `accounts` row `for update`, check again on the locked row, then delete;
+  insert an `internal.r2_deletions` row for each deleted real account in the
+  same transaction.
+- `src/lib/db/database.types.ts` (generated).
+- `supabase/tests/backup-*.db.test.ts`, `coverage.db.test.ts`: the tests
+  below; `src/lib/db/snapshot-store.test.ts`: the current parser accepts a
+  value with a `backup` key and ignores it.
+
+**Dependencies:** Task 255 (go).
+
+**Authority:** SCHEMA §Backup functions, §RLS and grants, §Snapshot, §Guest
+cleanup, §Account backup; B8, B9, B12; DECISION §Export path, §Backup status,
+§Deleting R2 objects.
+
+**`expert` review items:** the SQL checklist for every function; how each
+backup function applies RLS as `service_role` and filters by `p_user_id`;
+`already_running` and `rate_limited` under the one row lock of
+`backup_begin()`; the operation verdicts on the server clock; the cleanup's
+lock order against `delete_my_account()` and client writes; that
+`statement_timeout` is hoisted by REST; that no backup function needs a right
+in `auth`.
+
+**Observable acceptance:** `anon` and `authenticated` get `permission denied`
+on every backup function; the `service_role` catalog test passes and fails
+when one extra grant is added; a status write for account A leaves B's row
+unchanged; a REST call to `export_account()` running past 8 s passes with the
+setting and is cut at 8 s without it; the fingerprint changes on a Chunk edit
+and not on a `backup_status` write; `backup_begin()` refuses a second manual
+run within 5 minutes with `rate_limited`, refuses a run while another is in
+progress with `already_running`, gives one refusal for two concurrent calls,
+and records a 5-minute-old start as `interrupted`; a verdict read returns
+`running`, the result, `interrupted` or `not_started` for the given run id
+and never another run's result; `get_snapshot()` carries the caller's `backup` row and never
+another account's; with no Vault entry the dispatch functions send nothing;
+the cleanup skips an account whose request was cancelled between its query
+and its lock, and records an `r2_deletions` row for a deleted real account and
+none for a guest; the dispatch sends no call for an account with a deletion
+request and the summary's `missing` count leaves it out.
+
+**Verification:** gate; the database suites above through supabase-js
+`.rpc()`; a concurrency test of the cleanup against a cancel-like update of
+`deletion_requested_at`.
+
+**Commit message:** `feat(db): add backup status, export and daily dispatch`.
+
+### Task 257: [ ] Build the backup Edge Function
+
+**Files and actions:**
+- `supabase/functions/backup/`: modes `scheduled` and `summary` (shared
+  secret), `manual` and `status` (user JWT verified in the function, user id
+  only from `sub`, a JWT with `is_anonymous` refused before any read or
+  write);
+  stream the export through gzip level 1 to R2; skip an unchanged
+  fingerprint; check right before an upload that the account exists and has
+  no deletion request; prune after a write; write `identity.json` from the
+  auth admin API; record start and result through the backup functions; the
+  summary records `interrupted`, counts `missing` and new failures, sums
+  `stored_bytes` against 8 GB, processes `r2_deletions`, and pings
+  Healthchecks.io (success or `/fail`, counts and reason codes only).
+- `supabase/functions/_shared/`: retention and pruning, status judgement,
+  object keys, response classification, each with vitest tests.
+- `supabase/tests/backup-function.db.test.ts`: integration tests against the
+  locally served function with local object storage and a Healthchecks.io
+  stub.
+
+**Dependencies:** Task 256.
+
+**Authority:** SCHEMA §Account backup; SPEC §Account backup; B3, B6, B7,
+B11, B12; DECISION §Runner, §Retention, §Object key, §Failure alerts,
+§Deleting R2 objects, §Limits.
+
+**Observable acceptance:** a `manual` call whose body names another account
+backs up only the caller; a guest JWT is refused and leaves no row and no
+object; `scheduled` and `summary` without the shared secret are refused; an unchanged account writes no file and records the check; after
+writes on 9 different days and across 5 ISO weeks the bucket holds the 7
+latest files and the latest of each of 4 earlier weeks, and an unchanged
+account keeps its old file; a run that dies after recording its start is
+`interrupted` after 5 minutes; an account deleted during a run, or given a deletion request, leaves no
+object and records nothing; the summary pings success with no new problem
+and `/fail` with one, pings success again when the same account fails on the
+next day for the same reason, sends `/fail` once when an account newly
+becomes `missing` (no run result of any kind for 36 hours) and once when the
+stored total first passes 8 GB, then success again while nothing new appears,
+so a new failure on another account still alerts; a permanently failing
+account never counts as `missing`; its body holds no id or email; an `r2_deletions` row's objects and row are
+deleted, and a row older than three days sends `/fail`; files left from an
+earlier run never change a result; files under a key that has no `accounts`
+row and no `r2_deletions` row are never deleted (the recovery case).
+
+**Verification:** gate with `pnpm check:edge`; `_shared` vitest suites;
+integration suites; `expert` review.
+
+**Commit message:** `feat(backup): add the backup Edge Function`.
+
+### Task 258: [ ] Add the sidebar Backup button and dialog
+
+**Files and actions:**
+- Merge `main` first (Phase 51 Task 252 also edits `sidebar.tsx`).
+- `src/lib/backup/backup-client.ts` and test: `functions.invoke` on the shared
+  client; `EDGE_REQUEST_TIMEOUT_MS` for `Back Up Now`, `REQUEST_TIMEOUT_MS`
+  for status; the no-answer statuses with Task 255's measured one.
+- `src/hooks/use-backup.ts` and test: status from the snapshot's `backup`
+  value, replaced by a newer `Back Up Now` result or status read (later
+  `server_now` wins); ages from `server_now`, never the device clock; the
+  dialog's single status read; `Back Up Now` with a client-generated run id,
+  `already_running`, and its unknown outcome path (one verdict read for that
+  run id after the request ended: `Still finishing…`, the result, the red line
+  or the did-not-start line, `Check again`), never a resend.
+- `src/lib/db/snapshot-store.ts` and test: keep the `backup` value beside the
+  account view, refreshed with every snapshot fetch.
+- `src/components/layout/backup-button.tsx`, `backup-dialog.tsx` and tests;
+  `src/components/layout/sidebar.tsx` and test: the button between the account
+  icon and `+`.
+- `src/app/globals.css`: the R3 loop and the BK-4 lamp, with reduced-motion
+  variants.
+- `src/lib/constants.ts`: `EDGE_REQUEST_TIMEOUT_MS = 160000`.
+- `src/lib/copy/feedback.ts`: the Backup copy and the guest privacy note.
+- `src/lib/dev/state-switch.ts`: backup status overrides (SPEC §Development
+  state switch).
+- `public/privacy.html`: a backup paragraph (signed-in accounts only, daily,
+  Cloudflare R2 outside the main database, the retention, deleted with the
+  account).
+
+**Dependencies:** Task 257.
+
+**Authority:** SPEC §Account backup, §Feedback copy, §Development state
+switch; DESIGN_TOKENS `DP-BACKUP-01` BK-1–BK-5; B2, B3, B7.
+
+**Observable acceptance:** on every route the sidebar order is Home, account
+icon, `Backup`, `+`; a guest's dialog shows `Keep your Grid safe` and the two
+sign-in buttons; an account shows each status line with its text, and the
+dot only for stale and failed; the running motion shows while a run is in
+progress and the still dot under reduced motion; `Back Up Now` shows its
+result inline with no toast, the nothing-changed line, and `Try again in a few
+minutes.` on a second press, and `Backing up…` with `Check again` while a
+scheduled run is in progress; a forced unknown outcome is never resent (one
+request in the network log), ends in one verdict read, and shows `Still
+finishing…` while the run is open and the did-not-start line when it never
+started; after `already_running`, `Check again` reads the status without a
+run id and shows the scheduled run's status line, never the did-not-start
+line; `Checking…` shows until the status read answers, and a failed read
+shows `Couldn't check the backup status.` with `Check again`; after a
+successful `Back Up Now` the red dot clears at once; a device clock moved by
+an hour changes neither the dot nor the motion; in a non-UTC time zone (for
+example `Asia/Seoul`) a backup taken across the UTC date boundary shows the
+user's local date and time, not the object name's UTC date; closing the dialog keeps the motion until
+the tab sees the result; a scheduled result changes the dot after a tab focus
+with no request of its own; the guest privacy note and `public/privacy.html`
+carry the backup text.
+
+**Verification:** gate; component and hook tests; the agent's browser checks
+on local Supabase with every state forced, the guest dialog, reduced motion,
+and `retro-mac`, `neumorphism` and `claymorphism`, light and dark; **Please
+check** by the user: two scenes in `griddo`, light and dark, each the sidebar
+with the red dot and the account dialog open on the red status, in the
+prepared window (CLAUDE.md Test data). The user also confirms the dialog's
+action row (DESIGN_TOKENS BK-5).
+
+**Commit message:** `feat(backup): add the sidebar Backup button and dialog`.
+
+### Task 259: [ ] Close Phase 52 on production
+
+**Files and actions** (user and production steps; the ledger records counts,
+times and the fact that each secret was set):
+1. The first manual dump with the interim dump's commands, and its restore
+   test on local Supabase (DECISION §First manual dump and restore test):
+   reset the stack from a temporary workdir with no migrations, confirm
+   `griddo_writer` is gone, restore with `session_replication_role = replica`
+   in one transaction, count orphan rows for every composite foreign key and
+   for `user_id` (each 0), compare function owners, ACLs, RLS, policies and
+   default privileges, confirm one `cleanup-guests` cron row owned by
+   `postgres`, then `pnpm test:db` to bring the branch back. Done while the
+   app lane runs no browser check; it seeds again afterwards. The role that
+   ran the setting is recorded.
+2. Deploy the function with `verify_jwt = false`, then set its secrets and
+   the two Vault entries.
+3. Apply the migrations, outside the cron window.
+4. Measure on production with the limit-sized fixture (old 100% caps, about
+   9.44 MB raw, built in SQL under a test account): three runs of export with
+   upload; the worst under 37.5 s wall clock, `export_account()` inside 30 s.
+   The script deletes the account and its objects at the end and on SIGINT and
+   SIGTERM.
+5. Confirm no new Security Advisor warning, or show each to the user (SCHEMA
+   §Database tests).
+6. Confirm one successful scheduled run and the summary's success ping.
+7. Force an alert: point the summary's ping secret at an invalid URL for one
+   cycle, receive the missing-ping email, restore the secret, and see the next
+   success. This step takes more than a day: the email comes only after the
+   check's one-day period plus its three-hour grace without a ping (about 27
+   hours after the last success), and the next success ping comes at the
+   following summary.
+8. The user deletes the interim dump (`~/griddo-dumps/2026-11-04/`); the
+   ledger records the date, which is within 7 days of step 1's passing restore
+   test.
+
+**Dependencies:** Task 258; the user's Task 259 preparation and approvals.
+
+**Authority:** CLAUDE.md §Production, §Backup; DECISION §Deploy order,
+§Measurement and acceptance, §Failure alerts, §First manual dump and restore
+test; B12.
+
+**Observable acceptance:** the restore test passes with every orphan count 0
+and the compared catalog unchanged; the function, secrets and migrations are
+on production in that order; the measurement's worst run passes; one
+scheduled run and its summary succeed; the forced alert email arrived; the
+interim dump's deletion is recorded. Then `/end-phase` merges.
+
+**Verification:** the ledger record of each step; `git diff --check`.
+
+**Commit message:** `docs(phase-52): record the production close`.
+
+## Phase 53 — Account restore
+
+Scope: restore with concurrency protection, `Restore…` and the restoring
+screen, the monthly restore check and the recovery drill. Leaves behind the
+manual dump's retirement once its three conditions hold. Out of scope: pushing
+a restore to other devices.
+
+**Task order:** 260 → 261 → 262 → 263 → 264.
+
+### Task 260: [ ] Add restore staging and `restore_account()` in SQL
+
+**Files and actions:**
+- A migration: `app.restore_staging` with RLS, `griddo_writer` select and
+  update policies and the `service_role` grants (`select`, `insert`,
+  `update`); `restore_begin()` (first step, no payload), `restore_stage()`,
+  `restore_abort()`; `restore_account()`; `backup_read_status()` with the
+  restore verdict by id; the hourly `postgres` `pg_cron` job that deletes
+  staging rows older than one hour.
+- If Task 255 found the body limit too small, staging takes rows per table.
+- `src/lib/db/database.types.ts`; `supabase/tests/restore-*.db.test.ts`.
+
+**Dependencies:** Phase 52 closed.
+
+**Authority:** SCHEMA §Account backup (Restore, Format versions), §Locks; B4,
+B5; DECISION §Restore, §Concurrent writes and other tabs.
+
+**`expert` review items:** the full lock list over every write function and
+the restore's order; whether `restore_account()` locks the `accounts` row
+first or never touches it; the result in the staging row against a result in
+`backup_status` (B5); the restore verdicts on the server clock; no deadlock
+with Chunk writes and Node moves.
+
+**Observable acceptance:** `restore_account()` cannot read another account's
+staging row; a direct browser call applies only what was staged for it; a
+fingerprint mismatch writes `account_changed` and changes nothing; an
+unsupported `format_version` is refused; after `applied` every restored row's
+version is `greatest(backup, current) + 1` and a re-export equals the backup
+except `version`; a restore above the row limits keeps every row; the staging
+row holds the result and no payload; a restore beside concurrent Chunk writes
+and Node moves ends without a deadlock error; `restore_begin()` refuses a
+second restore within 10 minutes before anything is staged; a payload missing
+a column key restores with the column default (the expand rule); a verdict
+read returns `finishing`, the result, `not_applied`, `expired` (row gone,
+id still recorded) or `not_started` for the given restore id and never an
+earlier restore's result.
+
+**Verification:** gate; database suites including concurrency.
+
+**Commit message:** `feat(db): add restore staging and restore_account`.
+
+### Task 261: [ ] Add restore to the Edge Function
+
+**Files and actions:**
+- First, measure locally and record: whether a streamed response passes the
+  local gateway unbuffered; and what the database does when the function's
+  connection drops while `restore_account()` runs (it commits or rolls back;
+  either way the staging row decides).
+- `supabase/functions/backup/`: the `restore` mode (JWT verified in the
+  function, guests refused), in SCHEMA's order: `restore_begin()` with the
+  client's restore id (rate check, staging row); the pre-restore export and
+  upload (on failure `restore_abort()`; keep the 5 latest); fetch and unzip
+  the chosen file, then `restore_stage()`; call `restore_account()` with the
+  user's JWT; stream each step and the result as `text/event-stream`; the
+  `status` mode's backup list and verdict by id.
+- `supabase/functions/_shared/`: list ordering, pre-restore pruning.
+- `supabase/tests/restore-function.db.test.ts`.
+
+**Dependencies:** Task 260.
+
+**Authority:** SCHEMA §Account backup; SPEC §Account backup (Restore); B3–B5.
+
+**Observable acceptance:** a restore body naming another account restores
+only the caller; a guest JWT is refused; a rate-limited restore uploads and
+prunes nothing; a failed pre-restore upload stops the restore with nothing
+changed and a recorded not-applied result; the stream carries the three steps in order and the result; a
+dropped connection leaves a staging row whose result, or its absence after
+180 s, matches the account's real state; pre-restore files keep the 5 latest;
+the list shows date slots and pre-restore entries.
+
+**Verification:** gate with `pnpm check:edge`; integration suites; `expert`
+review.
+
+**Commit message:** `feat(backup): restore from the Edge Function`.
+
+### Task 262: [ ] Add `Restore…`, the restoring screen and the other-tab follow
+
+**Files and actions:**
+- Merge `main` first.
+- `src/lib/backup/backup-client.ts`, `src/hooks/use-backup.ts` and tests: a
+  client-generated restore id; the `text/event-stream` restore read under the
+  client's own deadline from the request start; `BroadcastChannel`
+  `restore-started` and `restore-ended` with the outcome on every terminal
+  outcome; the way-out after `EDGE_REQUEST_TIMEOUT_MS` with the verdict for
+  that restore id; drop the snapshot and repeat entry on `applied`.
+- `backup-dialog.tsx`: `Restore…`, the list, the confirmation.
+- `src/components/layout/restoring-screen.tsx` and test, mounted by the app
+  frame over the `inert` app.
+- `src/lib/copy/feedback.ts`, `src/lib/dev/state-switch.ts`.
+
+**Dependencies:** Task 261.
+
+**Authority:** SPEC §Account backup (Restore), §Feedback copy; DESIGN_TOKENS
+BK-5, BK-6; B4, B5.
+
+**Observable acceptance:** a restore shows the three steps as the stream
+reaches them and opens the restored account behind the loading frame; a
+second tab of the browser blocks on `restore-started`, re-enters on
+`restore-ended` after `applied` and unblocks with nothing changed after any
+other outcome; `account_changed`, `rate_limited` and `unsupported_format`
+return to the dialog with their line and nothing changed; a stalled stream
+ends at the client's deadline and goes to the way-out; in `Asia/Seoul` a
+backup taken across the UTC date boundary is listed with the local date, not
+its object name's UTC date; a forced unknown
+outcome reads the verdict once and shows `Still finishing…`, then not applied
+or the restored account, and never resends; a verdict for an earlier restore
+never shows as this one's; a way-out read two hours later (a sleeping laptop)
+gets `expired` and re-enters, never the not-applied line; the second tab's way-out reads
+once after `EDGE_REQUEST_TIMEOUT_MS`.
+
+**Verification:** gate; tests; the agent's browser checks with two tabs and
+every forced state, reduced motion, and the three other themes, light and
+dark; **Please check** by the user: the restoring screen mid-step in `griddo`,
+light and dark, in the prepared window.
+
+**Commit message:** `feat(backup): add restore and the restoring screen`.
+
+### Task 263: [ ] Add the monthly restore check
+
+**Files and actions:**
+- `scripts/backup-restore-check/` (run on the owner's Mac): with the
+  read-only token, download the latest backup of the owner's account; create
+  a dedicated local test user (not the fixture user); stage and call
+  `restore_account()` through the same SQL path; export again and compare
+  every row (equal except `version`, one higher); delete the test user and its
+  rows at the end and on SIGINT and SIGTERM; print counts and hashes only;
+  ping the 31-day Healthchecks.io check on success. No database reset.
+- Its header documents usage; the token file path comes from an environment
+  variable.
+
+**Dependencies:** Task 262; the user's Task 263 preparation.
+
+**Authority:** DECISION §Periodic restore check; SCHEMA §Account backup.
+
+**Observable acceptance:** the user's first run passes and pings the check;
+an interrupted run leaves no test user; no row content appears in the output.
+
+**Verification:** gate; a test of the comparison on a crafted mismatch.
+
+**Commit message:** `feat(backup): add the monthly restore check`.
+
+### Task 264: [ ] Run the recovery drill and close Phase 53 on production
+
+**Files and actions:**
+- `scripts/backup-ops/copy-account` (Mac): finds an account's old key by
+  provider user id and copies its objects to the new key in a **target
+  bucket given as an argument** (B16): the drill bucket now, the production
+  bucket in a real recovery. Across buckets it reads with the read-only
+  production token (Task 263) and writes with the target's token (GET and
+  PUT); within one bucket it uses CopyObject.
+- The drill, recorded in the ledger: a new Supabase project; the migrations
+  from Git; unschedule its cron jobs at once; set none of the Healthchecks.io
+  URLs, the shared secret or the production token; deploy the function with
+  the drill bucket's token; enter the auth settings and the redirect
+  allow-list; run the phase branch locally against the drill project's URL and
+  publishable key and sign in with Google (development client with the drill
+  callback); copy the owner's objects into
+  the drill bucket under the new key; restore through the dialog; compare
+  counts and hashes with the source; delete the project, the drill bucket and
+  the callback.
+- The Phase 53 close steps in the CLAUDE.md §Production order (flow review
+  G3): dump, migrations (expand, so the deployed Phase 52 function keeps
+  working on them), function, then the merge; on
+  production, three restore runs of the limit-sized fixture under a test
+  account (`restore_account()` inside 30 s, the worst run under 37.5 s wall
+  clock) and a check that the streamed steps arrive unbuffered; the script
+  cleans up on SIGINT and SIGTERM.
+- If the drill passed and Task 263's first run passed (Task 259 proved the
+  alert), the ledger records that the three retirement conditions hold and
+  that the first SQL phase after Phase 54 removes the manual dump through its
+  `/craft-docs` (B17).
+
+**Dependencies:** Task 263; the user's Task 264 preparation.
+
+**Authority:** DECISION §Recovery drill, §Retiring the manual dump, §Object
+key; B16; CLAUDE.md §Production, §Backup.
+
+**Observable acceptance:** the drill restores the owner's account in the new
+project with matching counts and hashes; the drill project never touched the
+production bucket; the production measurement passes; the steps stream on
+production; the retirement record is written or its missing condition named.
+
+**Verification:** the ledger record; `git diff --check`.
+
+**Commit message:** `docs(phase-53): record the recovery drill and the production close`.
+
+## Phase 54 — Account deletion grace period
+
+Scope: a 24-hour grace period with `Cancel deletion`, the countdown dialog
+and the new copy. Leaves behind protection from a mistaken deletion.
+
+**Task order:** 265 → 266.
+
+### Task 265: [ ] Add the grace period and `cancel_account_deletion()` in SQL
+
+**Files and actions:**
+- A migration: `internal.cleanup_guests()` deletes only requests older than
+  24 hours, keeping Task 256's lock-then-recheck; `public.cancel_account_deletion()`;
+  `ensure_account()`'s `account_deleting` rejection adds
+  `deletion_requested_at` and `server_now`.
+- `src/lib/db/database.types.ts`; `supabase/tests/account-deletion-*.db.test.ts`.
+
+**Dependencies:** Phase 53 closed.
+
+**Authority:** SCHEMA §Account deletion (Grace period and cancel), §Guest
+cleanup; deletion-grace Decisions 1–4, 7, 9.
+
+**Observable acceptance:** a request younger than 24 hours survives the
+cleanup and an older one does not; a cancel clears only the caller's request
+and succeeds with no request; a cancel that locks first leaves nothing to
+delete, and one that waits behind the cleanup gets `account_missing`; a
+deleted account's backups are listed in `r2_deletions`, a cancelled one's are
+not; the rejection carries both added fields and the current client ignores
+them.
+
+**Verification:** gate; database suites with both concurrency orders;
+`expert` review.
+
+**Commit message:** `feat(db): add the account deletion grace period and cancel`.
+
+### Task 266: [ ] Add the deletion-grace dialog and copy
+
+**Files and actions:**
+- Merge `main` first.
+- `src/lib/auth/session.ts` and test: `cancel_account_deletion()`; read the
+  rejection's added fields, through one `ensure_account()` call when the
+  `account_deleting` came from `get_snapshot()` or a write (flow review G4);
+  after a cancel, repeat entry and post the other-tab message on Task 262's
+  channel.
+- `src/components/layout/deletion-grace-dialog.tsx` and test, in place of the
+  account-being-deleted screen in `app-frame.tsx`.
+- `src/lib/copy/feedback.ts`: the confirmation, toast and dialog copy.
+- `src/lib/dev/state-switch.ts`: the dialog with the countdown near and at
+  zero.
+
+**Dependencies:** Task 265.
+
+**Authority:** SPEC Deletion-grace dialog, §Feedback copy; DESIGN_TOKENS
+BK-7; deletion-grace Decisions 6, 8, 10.
+
+**Observable acceptance:** after `Delete account` and a new sign-in to the
+same account, the blurred empty frame shows the dialog with the deadline in
+the user's time zone and a countdown that follows the server's time even with
+a wrong device clock; at zero the line changes and `Cancel deletion` stays;
+screen readers read the deadline line, not the countdown; `Cancel deletion`
+enters the account and the browser's other tabs follow; another browser's
+cancel on an already cancelled account enters it; `Continue as guest` starts
+a new guest; a forced unknown outcome is decided by one `ensure_account()`
+read and never resent; a browser that was already signed in when another
+browser deleted the account shows the same dialog with the deadline after its
+next refetch; a cancel that meets a deleted account shows the account-deleted
+screen; a refused cancel shows `Couldn't cancel the deletion. Try again.`
+
+**Verification:** gate; tests; the agent's browser checks with a shifted
+device clock, two tabs and the three other themes, light and dark; **Please
+check** by the user: the dialog in `griddo`, light and dark, in the prepared
+window.
+
+**Commit message:** `feat(account): add the deletion grace dialog`.
+
+The Phase 54 close: dump, migrations, then the merge (no function change).
+The manual dump stays for Phase 54 (user, 2026-11-05, flow review W11); the
+first SQL phase after Phase 54 whose `/craft-docs` finds the three retirement
+conditions met replaces it.
+
+Before its migrations, the Phase 54 close also rehearses that replacement
+once, beside the dump and without blocking the close (control tower, user
+2026-11-05): with the user's approval it calls `internal.dispatch_backups()`
+once on production, waits for the calls to finish, and reads with one
+read-only query how many dispatched accounts have a successful check after the
+rehearsal's start and how many failed. The ledger records the counts only. A
+failure is recorded as input to the retirement decision, not as a close
+blocker.
+
+
 ## Phases 36–40 — Retired
 
 Retired as superseded by feedback F28 (user, 2026-10-20/22): the theme set
@@ -1103,7 +1801,7 @@ This register covers every implementation/test path declared by two or more task
 | `db-breakdown-regression` | `src/lib/db/scratch-breakdowns.test.ts` | 101, 103, 105, 120 |
 | `db-command-harness` | `src/lib/db/inbox-operations.test.ts` | 120 creates; 121, 123, 124, 209 extend |
 | `copy` | `src/lib/copy/inbox-triage.ts`; `src/lib/copy/inbox-triage.test.ts` | 128, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 210 |
-| `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 176A, 179A, 210, 211; THEMES; feedback lane 241, 243–248 |
+| `global-theme` | `src/app/globals.css` | 129, 138, 140, 141, 143, 144, 147, 148, 150, 151, 153, 154, 157, 160, 162, 176A, 179A, 210, 211; THEMES; feedback lane 241, 243–248; 258 (R3 loop, BK-4 lamp) |
 | `triage-state` | `src/stores/triage-store.ts`; `src/stores/triage-store.test.ts` | 127, 130, 134, 141, 150, 161, 163, 209, 212, 250 |
 | `triage-preferences` | `src/stores/triage-preferences-store.ts`; `src/stores/triage-preferences-store.test.ts` | 127, 130, 132, 250 |
 | `breakdown-component` | `src/components/triage/breakdown-panel.tsx` | 132, 136, 137, 138, 139, 140, 142, 143, 145, 147, 148, 159, 160, 161, 162, 176A, 179A, 210, 211 (conditional); BREAKDOWN, ARCHIVE, 245, 233 (offline source); Phase 51: 253, 254 |
@@ -1138,43 +1836,49 @@ This register covers every implementation/test path declared by two or more task
 | `completion-hook-test` | `src/hooks/use-can-archive-scratch.test.ts` | 101, 159, 160 |
 | `archive-coordinator` | `src/hooks/use-archive-scratch.ts`; `src/hooks/use-archive-scratch.test.ts` | 161, 162, 171A |
 | `runtime-fixture-test` | `src/components/layout/grid-runtime.test.tsx` | 101, 163; proposed P31-R01 only after Q03 repair approval; 244, 248, 249; Phase 51: 252, 253 (conditional) |
-| `saas-db-tests` | `supabase/tests/helpers/*`; `supabase/tests/coverage.db.test.ts` | 213, 216, then every task that adds a database function |
+| `saas-db-tests` | `supabase/tests/helpers/*`; `supabase/tests/coverage.db.test.ts` | 213, 216, then every task that adds a database function; Phases 52–54: 256, 257, 260, 261, 265 |
 | `saas-zod` | `src/lib/db/schema.ts`; `src/lib/db/schema.test.ts`; `src/lib/db/boundary-cases.ts` | 214 |
-| `saas-snapshot` | `src/lib/db/snapshot-store.ts` and test | 217, 226, 227, 231, 233 |
+| `saas-snapshot` | `src/lib/db/snapshot-store.ts` and test | 217, 226, 227, 231, 233; 256 (parser test), 258 (`backup` value) |
 | `saas-store` | `src/lib/db/supabase-store.ts` and test | 226, 227, 231, 232, 233, 249 (no-op removal) |
 | `saas-datastore` | `src/lib/db/datastore.ts` | 226, 227, 228, 230; 249, 243 (development-only injection wrapper) |
 | `saas-dexie` | `src/lib/db/indexeddb.ts` | 226, 227, 230; 249 if Phase 46 has not removed the file |
 | `saas-dnd` | `src/hooks/use-dnd.ts` | 227, 232; 248, 249 |
 | `saas-bit-detail` | `src/components/bit-detail/bit-detail-popup.tsx` | 227, 232; Phase 51: 252 (unavailable Bit) |
-| `saas-env-example` | `.env.local.example` | 213, 217, 236 |
-| `saas-session` | `src/lib/auth/session.ts` | 228, 235, 236, 238; 249 (stops passing the reserved block) |
-| `saas-frame` | `src/components/layout/app-frame.tsx` and test | 228, 234, 235, 236, 238; Phase 51: 252 (shared screen block) |
-| `saas-sidebar` | `src/components/layout/sidebar.tsx`; `src/components/layout/account-button.tsx` | 232 (kept toast in `sidebar.tsx`), 234, 235; 248 (Home button and order); Phase 51: 252 (disabled `+`) |
+| `saas-env-example` | `.env.local.example` | 213, 217, 236; 255 |
+| `saas-session` | `src/lib/auth/session.ts` | 228, 235, 236, 238; 249 (stops passing the reserved block); 266 (cancel) |
+| `saas-frame` | `src/components/layout/app-frame.tsx` and test | 228, 234, 235, 236, 238; Phase 51: 252 (shared screen block); 262 (restoring screen mount), 266 (deletion-grace dialog) |
+| `saas-sidebar` | `src/components/layout/sidebar.tsx`; `src/components/layout/account-button.tsx` | 232 (kept toast in `sidebar.tsx`), 234, 235; 248 (Home button and order); Phase 51: 252 (disabled `+`); Phase 52: 258 (`Backup` button; app lane in parallel, so 258 merges `main` when it starts and the lane that merges second resolves the conflict) |
 | `saas-providers` | `src/app/providers.tsx` | 228, 232; 244 (Toaster position, colour, stack limit) |
-| `feedback-copy` | `src/lib/copy/feedback.ts` | 228, 232, 235, 236, 238; 244 (creates it if first), 245; Phase 51: 252 |
-| `saas-db-types` | `src/lib/db/database.types.ts` (generated) | 214 and every task that adds a migration |
-| `saas-supabase-config` | `supabase/config.toml`; `supabase/seed.sql` | 213, 229, 236 |
+| `feedback-copy` | `src/lib/copy/feedback.ts` | 228, 232, 235, 236, 238; 244 (creates it if first), 245; Phase 51: 252; 258, 262, 266 |
+| `saas-db-types` | `src/lib/db/database.types.ts` (generated) | 214 and every task that adds a migration; 256, 260, 265 |
+| `saas-supabase-config` | `supabase/config.toml`; `supabase/seed.sql` | 213, 229, 236; 255 (Vault and edge secrets from `.env.local`) |
 | `inbox-copy-saas` | `src/lib/copy/inbox-triage.ts` | 227, 230 (orphan copy); 245, 246, 247 |
 | `saas-hooks` | the 17 hook files of Task 226 | 226, 227, 230; 245 (`use-scratch-breakdowns.ts`), 246 (`use-staged-candidates.ts`), after Phase 45 |
-| `state-switch` | the development state switch (feedback F30) | 243 creates it; 231, 233 extend it; 245–247 consume it |
+| `state-switch` | the development state switch (feedback F30) | 243 creates it; 231, 233 extend it; 245–247 consume it; 258, 262, 266 extend it |
 | `cross-lane` | `package.json`; `pnpm-lock.yaml`; `src/lib/constants.ts` | 213, 217, 230, 239 (`APP_NAME`) and the feedback lane (243 `DISPLAY_DELAY_MS`, 248 `APP_NAME` and breadcrumb timings), which may run at the same time. Mutex rule 1 cannot serialize two worktrees; the lane that merges second resolves the conflict when it merges `main`. |
 | `feedback-status` | `src/components/feedback/*`; `src/hooks/use-display-delay.ts` and tests | 243 creates; 232 (group-3 loader), 245–248 consume |
 | `color-theme` | `src/lib/color-themes.ts`; `src/stores/color-theme-store.ts` and test; `src/components/layout/color-theme-toggle.tsx`; `src/app/layout.tsx` | 241; 239 (`layout.tsx` metadata) |
 | `grid-shell` | `src/components/layout/grid-runtime.tsx`; `src/components/layout/breadcrumbs.tsx`; `src/components/layout/breadcrumb-deadline.tsx`; `src/components/grid/grid-view.tsx`; `src/hooks/use-grid-actions.ts`; `src/lib/grid-dnd.ts` and their tests | 244 (`grid-runtime.tsx`), 248, 249, and any SaaS task that names one of them; Phase 51: 251 (`grid-view.tsx`), 252 (`grid-runtime.tsx`, `breadcrumbs.tsx` conditional), 253 (`grid-runtime.tsx`) |
 | `toast-anchor` | `src/hooks/use-toast-anchor.ts` and test; `src/stores/toast-anchor-store.ts` | 244 creates; 248 extends |
+| `cross-lane-tooling` | `tsconfig.json`; `vitest.config.ts`; the ESLint config; `package.json` scripts and the Deno pin | 255. The app lane may also touch these; the lane that merges second resolves the conflict when it merges `main` |
+| `backup-edge` | `supabase/functions/backup/*`; `supabase/functions/_shared/*` and tests | 255 creates; 257, 261 |
+| `backup-client` | `src/lib/backup/backup-client.ts`; `src/hooks/use-backup.ts`; `src/components/layout/backup-button.tsx`; `src/components/layout/backup-dialog.tsx` and tests | 258 creates; 262 extends |
+| `backup-constants` | `EDGE_REQUEST_TIMEOUT_MS` in `src/lib/constants.ts` (the `cross-lane` row) | 258 |
+| `privacy-page` | `public/privacy.html` | 240; 258 (backup paragraph) |
 | `reserved-cells` | `BREADCRUMB_RESERVED_CELLS` in `src/lib/db/supabase-calls.ts` (the static top-left block) | 227, 228 read it; 249 deleted it and stopped passing it |
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 51 / Task 251 (stabilization, app lane, waits for none). The account-backup DB lane (`2026-11-01-account-backup`) and the theme stage (`2026-10-17-theme-scope-replan`) come through `/craft-docs`. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
-- **Next unallocated numbers:** Phase 52 / Task 255. Planned Phases 42–51 and
-  Tasks 213–254 are allocated; retired Phases 36–40 and Tasks 180–208 keep
+- **Next planned implementation phase/task:** Phase 51 / Task 251 (stabilization, app lane, waits for none) and Phase 52 / Task 255 (account backup, db lane, waits for none), which may run side by side. The theme stage (`2026-10-17-theme-scope-replan`) comes through `/craft-docs`. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next unallocated numbers:** Phase 55 / Task 267. Planned Phases 42–54 and
+  Tasks 213–266 are allocated; retired Phases 36–40 and Tasks 180–208 keep
   their numbers; none may be reused for another meaning.
 - Graph reconciliation: 125 accepted tasks (101–163 plus 105A, 166–172, 171A,
   173–179 plus 176A and 179A, 209–212, 213–240 plus 238A, 241–244, and 245–250
   plus 245A), twenty-one completed archives (Phases 23–31, 34, 35 and 41–50),
   two historical unaccepted transfer records (164/165), 29 retired tasks
-  (180–208) in retired Phases 36–40, two reserved phases (32–33), and four
-  planned tasks (251–254) in Phase 51.
+  (180–208) in retired Phases 36–40, two reserved phases (32–33), four
+  planned tasks (251–254) in Phase 51, and twelve planned tasks (255–266) in
+  Phases 52–54.
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.
