@@ -846,7 +846,7 @@ check by the agent of both behaviors.
 
 **Commit message:** `fix(grid): drop aging on system Nodes, wait for hover on capture success and remove dead opacity props`.
 
-### Task 252: [ ] Show an unavailable screen for a Grid the account cannot use
+### Task 252: [x] Show an unavailable screen for a Grid the account cannot use
 
 **Files and actions:**
 - `src/hooks/use-node.ts` and test (or a routed-Node hook beside it): tell
