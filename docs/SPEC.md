@@ -1538,7 +1538,8 @@ G1).
   for that run id, sent after the request ended, decides it with the server's
   verdict (SCHEMA §Account backup, Operation verdicts): `running` shows
   `Still finishing…` with `Check again`, never a failure; a result shows that
-  result; `interrupted` shows the red line; `not_started` shows the
+  result; `interrupted` shows the red line; `abandoned` (the account is under
+  deletion) shows the did-not-start line; `not_started` shows the
   did-not-start line. `Check again` is another single read.
 - Closing the dialog does not stop the run; the button's motion continues
   until this tab sees the result.

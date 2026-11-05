@@ -23,7 +23,7 @@ async function finish(
   db: Client,
   user: string,
   token: number,
-  result: "written" | "unchanged" | "failed",
+  result: "written" | "unchanged" | "failed" | "abandoned",
   extra: { fingerprint?: string; at?: number; bytes?: number; stored?: number; reason?: string } = {},
 ) {
   const { rows } = await db.query("select public.backup_finish($1, $2, $3, $4, $5, $6, $7, $8) as r", [
@@ -263,6 +263,38 @@ describe("backup_begin() and backup_finish()", () => {
       const again = (await backupRow(db, a.id))!;
       expect(again.failing_since).toBe(since);
       expect(again.failure_changed_at).toBe(changed); // the same failure is not new
+    });
+  });
+
+  it("ends an abandoned run with no result: its start is cleared, nothing else changes, and it is never recorded as interrupted", async () => {
+    await withActor(service, async (db) => {
+      const done = (await begin(db, a.id, "scheduled")).result!;
+      await finish(db, a.id, done.run_token, "written", { fingerprint: "fp", at: 10, bytes: 20, stored: 30 });
+      const before = (await backupRow(db, a.id))!;
+      const run = (await begin(db, a.id, "scheduled")).result!;
+      expect((await finish(db, a.id, run.run_token, "abandoned")).status).toBe("applied");
+      const after = (await backupRow(db, a.id))!;
+      expect(after).toEqual({ ...before, run_started_at: null });
+      // Nothing is recorded as a failure afterwards.
+      const read = (await readStatus(db, a.id)).result!;
+      expect(read.backup.last_result).toBe("written");
+      expect(read.backup.failure_reason).toBeNull();
+      // The token is required: a stale token changes nothing.
+      const next = (await begin(db, a.id, "scheduled")).result!;
+      expect((await finish(db, a.id, next.run_token - 1, "abandoned")).status).toBe("not_applied");
+      expect((await backupRow(db, a.id))!.run_started_at).toBe(String(next.run_token));
+    });
+  });
+
+  it("gives an abandoned Back Up Now the verdict abandoned, not interrupted, and records no failure", async () => {
+    await withActor(service, async (db) => {
+      const run = randomUUID();
+      const started = (await begin(db, a.id, "manual", run)).result!;
+      await finish(db, a.id, started.run_token, "abandoned");
+      expect((await readStatus(db, a.id, run)).result!.verdict).toBe("abandoned");
+      const row = (await backupRow(db, a.id))!;
+      expect(row).toMatchObject({ run_started_at: null, manual_result: "abandoned" });
+      expect(row.last_result).not.toBe("failed");
     });
   });
 

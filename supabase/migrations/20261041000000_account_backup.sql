@@ -57,7 +57,7 @@ create table app.backup_status (
   stored_bytes bigint not null default 0,
   last_backup_now_at bigint,
   manual_run_id uuid,
-  manual_result text check (manual_result in ('written', 'unchanged', 'failed', 'interrupted')),
+  manual_result text check (manual_result in ('written', 'unchanged', 'failed', 'interrupted', 'abandoned')),
   manual_finished_at bigint,
   -- When the current failing state or reason began (SCHEMA §Backup status: a column the daily
   -- summary needs to tell a new failure from a known one). The same failure on the next day
@@ -295,8 +295,8 @@ declare
   v_manual boolean;
 begin
   if p_user_id is null or p_run_token is null or p_result is null
-     or p_result not in ('written', 'unchanged', 'failed') then
-    raise exception 'backup_finish needs a user, a run token and a result of written, unchanged or failed'
+     or p_result not in ('written', 'unchanged', 'failed', 'abandoned') then
+    raise exception 'backup_finish needs a user, a run token and a result of written, unchanged, failed or abandoned'
       using errcode = '22023';
   end if;
   if p_result = 'written'
@@ -313,6 +313,19 @@ begin
   end if;
 
   v_manual := v_row.last_backup_now_at = v_row.run_started_at and v_row.manual_result is null;
+
+  -- `abandoned`: the run met a deletion request (or a rejected export) before it wrote anything and
+  -- records no result (SCHEMA §Deleting R2 objects). Only its start is cleared, so it is never
+  -- recorded as `interrupted` later; the last result, check time and failure state stay as they
+  -- were, and a manual run's own verdict reads `abandoned`.
+  if p_result = 'abandoned' then
+    update app.backup_status set
+      run_started_at = null,
+      manual_result = case when v_manual then 'abandoned' else manual_result end,
+      manual_finished_at = case when v_manual then v_now else manual_finished_at end
+    where user_id = p_user_id;
+    return jsonb_build_object('status', 'applied', 'result', jsonb_build_object('server_now', v_now));
+  end if;
 
   update app.backup_status set
     run_started_at = null,
@@ -345,7 +358,7 @@ grant execute on function public.backup_finish(uuid, bigint, text, text, bigint,
 
 -- The status row and `server_now`, after recording a stale start as `interrupted`. With a run id
 -- it also returns that manual run's verdict on the server clock: `running`, its result
--- (`written`, `unchanged`, `failed` or `interrupted`), or `not_started` (another id is recorded).
+-- (`written`, `unchanged`, `failed`, `interrupted` or `abandoned`), or `not_started` (another id is recorded).
 -- The verdict reads the manual run's own recorded start and result, never run_started_at, which a
 -- later scheduled run reuses. `p_restore_id` is ignored until Task 260 replaces the body; the
 -- signature stays, so the deployed function's call keeps working across the Phase 53 migrations.
