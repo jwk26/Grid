@@ -226,6 +226,21 @@ describe("BitDetailPopup", () => {
     expect(screen.getByText("Move to trash")).toBeInTheDocument();
   });
 
+  it("renders nothing for an unavailable Bit (ST31)", () => {
+    useBitDetailMock.mockReturnValue({
+      bit: null,
+      chunks: [],
+      parentNode: null,
+      isOpen: true,
+      unavailable: true,
+      close: closeMock,
+    });
+
+    render(<BitDetailPopup />);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("closes at once on Move to trash, before the server answers (Task 231)", async () => {
     mockBitDetail(createBit(), [], createNode({ level: 1 }));
     softDeleteBitMock.mockImplementationOnce(() => new Promise<undefined>(() => undefined));
