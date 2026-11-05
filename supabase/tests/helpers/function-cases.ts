@@ -44,6 +44,12 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "leaves another account's rows untouched through every backup function",
     },
   },
+  backup_account_check: {
+    crossAccount: {
+      file: "backup-account-check.db.test.ts",
+      title: "answers only for the named account",
+    },
+  },
   backup_due_deletions: {
     crossAccount: {
       file: "backup-status.db.test.ts",

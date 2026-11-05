@@ -173,6 +173,9 @@ isOneToOne: false
 "archive_scratch":
 { Args: { "p_expected_version": number,"p_scratch_id": string }; Returns: Json
                            },
+"backup_account_check":
+{ Args: { "p_user_id": string }; Returns: Json
+                           },
 "backup_begin":
 { Args: { "p_kind": string,"p_run_id": string,"p_user_id": string }; Returns: Json
                            },

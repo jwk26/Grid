@@ -59,6 +59,7 @@ describe("backup function rights", () => {
       backup_finish: "select public.backup_finish($1, 1, 'unchanged')",
       backup_read_status: "select public.backup_read_status($1)",
       backup_summary: "select public.backup_summary(0, 1)",
+      backup_account_check: "select public.backup_account_check($1)",
       backup_due_deletions: "select public.backup_due_deletions()",
       backup_deletion_done: "select public.backup_deletion_done($1)",
       backup_deletion_failed: "select public.backup_deletion_failed($1)",

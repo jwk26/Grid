@@ -10,6 +10,7 @@ export const BACKUP_FUNCTIONS = [
   "backup_finish",
   "backup_read_status",
   "backup_summary",
+  "backup_account_check",
   "backup_due_deletions",
   "backup_deletion_done",
   "backup_deletion_failed",

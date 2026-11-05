@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { backupObjectKey } from "./object-key.ts";
+import { accountPrefix, backupObjectKey, identityKey, parseBackupKey } from "./object-key.ts";
 
 const ID = "3f2b8c1e-5a47-4d0e-9b6a-1c2d3e4f5a6b";
 
@@ -32,5 +32,20 @@ describe("backupObjectKey", () => {
     expect(() => backupObjectKey("../other", at)).toThrow();
     expect(() => backupObjectKey(ID.toUpperCase(), at)).toThrow();
     expect(() => backupObjectKey(ID, new Date("nope"))).toThrow();
+  });
+});
+
+describe("account keys", () => {
+  it("builds the prefix and the identity key", () => {
+    expect(accountPrefix(ID)).toBe(`accounts/${ID}/`);
+    expect(identityKey(ID)).toBe(`accounts/${ID}/identity.json`);
+    expect(() => accountPrefix("x")).toThrow();
+  });
+  it("parses only dated keys of the same account", () => {
+    expect(parseBackupKey(ID, `accounts/${ID}/2026-11-05.json.gz`)).toBe("2026-11-05");
+    expect(parseBackupKey(ID, `accounts/${ID}/identity.json`)).toBeNull();
+    expect(parseBackupKey(ID, `accounts/${ID}/pre-restore/2026-11-05.json.gz`)).toBeNull();
+    expect(parseBackupKey(ID, `accounts/${ID}/2026-02-30.json.gz`)).toBeNull();
+    expect(parseBackupKey(ID, "accounts/11111111-1111-4111-8111-111111111111/2026-11-05.json.gz")).toBeNull();
   });
 });
