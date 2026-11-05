@@ -10,6 +10,10 @@ assertLocalDatabase();
 const STATE = process.env.MEASURE_STATE ?? "/tmp/backup-measure-state.json";
 const [cmd] = process.argv.slice(2);
 const client = new pg.Client({ connectionString: LOCAL_DB_URL });
+if (client.host !== "127.0.0.1" && client.host !== "localhost") {
+  console.error("refusing: database host is not local");
+  process.exit(1);
+}
 await client.connect();
 
 async function down(userId) {

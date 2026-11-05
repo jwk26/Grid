@@ -14,8 +14,11 @@ export const LOCAL_DB_URL =
   process.env.MEASURE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
 export function assertLocalDatabase(url = LOCAL_DB_URL) {
-  const host = new URL(url).hostname;
-  if (host !== "127.0.0.1" && host !== "localhost") {
+  const parsed = new URL(url);
+  const host = parsed.hostname;
+  // pg lets query parameters override the URL's host, so refuse them outright.
+  const overrides = ["host", "hostaddr", "service"].some((k) => parsed.searchParams.has(k));
+  if (overrides || (host !== "127.0.0.1" && host !== "localhost")) {
     console.error(`refusing: database host is not local`);
     process.exit(1);
   }
