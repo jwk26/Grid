@@ -67,7 +67,9 @@ export function NodeCard({
 }: NodeCardProps) {
   const tooltips = useExplorerCardTooltips();
   const Icon = NODE_ICON_MAP[node.icon] ?? NODE_ICON_MAP.Box;
-  const agingFilter = getAgingFilter(getAgingState(node.mtime));
+  // System Nodes (Inbox, Archive) never age (ST09).
+  const agingFilter =
+    node.systemRole === null ? getAgingFilter(getAgingState(node.mtime)) : undefined;
   const { archive } = useArchiveActions();
   const isExplorer = presentation === "inbox-explorer";
   const hasOptions = !isExplorer && !isEditMode && node.systemRole === null;
@@ -109,7 +111,7 @@ export function NodeCard({
           if (isExplorer) tooltips.onCardFocus(event);
         }}
         onClick={onClick}
-        style={{ ...style, filter: agingFilter }}
+        style={agingFilter === undefined ? style : { ...style, filter: agingFilter }}
         transition={nodeCardTransition}
         variants={nodeCardVariants}
         whileHover={isExplorer || isDragging ? undefined : "hover"}

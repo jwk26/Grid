@@ -12,7 +12,6 @@ describe("GridCell", () => {
   it("shows a plus affordance when an empty cell is dragged over outside edit mode", () => {
     const { container } = render(
       createElement(GridCell as never, {
-        borderOpacity: "0.15",
         isDragOver: true,
         isEditMode: false,
         isEmpty: true,
@@ -27,7 +26,6 @@ describe("GridCell", () => {
   it("uses the shared node footprint for the drag-over affordance", () => {
     const { container } = render(
       <GridCell
-        borderOpacity="0.15"
         isDragOver={true}
         isEditMode={false}
         isEmpty={true}
@@ -50,7 +48,6 @@ describe("GridCell", () => {
     const onAddClick = vi.fn();
     const { getByRole } = render(
       <GridCell
-        borderOpacity="0.15"
         isEditMode={true}
         isEmpty={true}
         onAddClick={onAddClick}
@@ -67,7 +64,6 @@ describe("GridCell", () => {
   it("applies theme-grid-line class for CSS-variable-driven borders", () => {
     const { container } = render(
       <GridCell
-        borderOpacity="0.15"
         isDragOver={false}
         isEditMode={false}
         isEmpty={false}
