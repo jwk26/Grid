@@ -237,6 +237,7 @@ describe("backup_begin() and backup_finish()", () => {
   it("records written, unchanged and failed, clears run_started_at, and keeps failing_since across a streak", async () => {
     await withActor(service, async (db) => {
       const r1 = (await begin(db, a.id, "scheduled")).result!;
+      expect(r1.last_fingerprint).toBeNull();
       await finish(db, a.id, r1.run_token, "written", { fingerprint: "fp", at: 10, bytes: 20, stored: 30 });
       let row = (await backupRow(db, a.id))!;
       expect(row).toMatchObject({
@@ -247,6 +248,7 @@ describe("backup_begin() and backup_finish()", () => {
       expect(row.last_finished_at).not.toBeNull();
 
       const r2 = (await begin(db, a.id, "scheduled")).result!;
+      expect(r2.last_fingerprint).toBe("fp"); // Task 257: begin returns the latest file's fingerprint
       await finish(db, a.id, r2.run_token, "unchanged");
       row = (await backupRow(db, a.id))!;
       expect(row).toMatchObject({ last_result: "unchanged", last_file_at: "10", stored_bytes: "30" });

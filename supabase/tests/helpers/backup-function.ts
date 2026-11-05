@@ -47,3 +47,64 @@ export async function callFunction(opts: CallOptions = {}): Promise<{ status: nu
 
 export const asSecret = () => ({ "x-backup-secret": sharedSecret() });
 export const asBearer = (token: string) => ({ authorization: `Bearer ${token}` });
+
+// ---- Users and objects ------------------------------------------------------------------------
+
+import { randomUUID } from "node:crypto";
+import { gunzipSync } from "node:zlib";
+import type { Client } from "pg";
+import { seedAccount } from "./seed";
+import { adminClient, createTestUser, signedInClient, type TestUser } from "./users";
+
+export type OAuthUser = TestUser & { jwt: string; providerUserId: string };
+
+/** A signed-in account with data and one GitHub identity, as the sign-in would leave it. */
+export async function createOAuthUser(db: Client, label: string, opts: { oauth?: boolean } = {}): Promise<OAuthUser> {
+  const user = await createTestUser(label);
+  await seedAccount(db, user.id);
+  const providerUserId = `gh-${randomUUID().slice(0, 8)}`;
+  if (opts.oauth !== false) {
+    await db.query(
+      `insert into auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+       values ($1, $2, jsonb_build_object('sub', $1::text), 'github', now(), now(), now())`,
+      [providerUserId, user.id],
+    );
+  }
+  const client = await signedInClient(user);
+  const jwt = (await client.auth.getSession()).data.session!.access_token;
+  return { ...user, jwt, providerUserId };
+}
+
+const bucket = () => adminClient().storage.from("backup");
+
+/** File names directly under `accounts/<id>/` (or a sub-folder), by the local Storage API. */
+export async function listFiles(userId: string, sub = ""): Promise<string[]> {
+  const { data, error } = await bucket().list(`accounts/${userId}${sub}`, { limit: 1000 });
+  if (error) throw new Error(`list failed: ${error.message}`);
+  return (data ?? []).filter((o) => o.id !== null).map((o) => o.name).sort();
+}
+
+export async function putObject(key: string, body: string | Uint8Array = "x"): Promise<void> {
+  const { error } = await bucket().upload(key, body, { upsert: true, contentType: "application/octet-stream" });
+  if (error) throw new Error(`upload failed: ${error.message}`);
+}
+
+export async function removeObjects(keys: string[]): Promise<void> {
+  if (keys.length > 0) await bucket().remove(keys);
+}
+
+export async function readObject(key: string): Promise<Buffer> {
+  const { data, error } = await bucket().download(key);
+  if (error || !data) throw new Error(`download failed: ${error?.message}`);
+  return Buffer.from(await data.arrayBuffer());
+}
+
+export async function readExport(key: string): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+  return JSON.parse(gunzipSync(await readObject(key)).toString("utf8"));
+}
+
+/** Deletes every object under the account's prefix and its sub-folders (tests clean up their own keys). */
+export async function removeAccountObjects(userId: string): Promise<void> {
+  const names = await listFiles(userId);
+  await removeObjects(names.map((n) => `accounts/${userId}/${n}`));
+}
