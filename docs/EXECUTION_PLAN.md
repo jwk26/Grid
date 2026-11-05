@@ -861,9 +861,11 @@ check by the agent of both behaviors.
   no breadcrumb and the tab title `APP_NAME` (ST17); judge only after the
   read and for the routed id (ST15); `hiddenFromGrid` is not a condition.
 - `src/components/layout/app-frame.tsx` and test: extract the title, reason
-  and actions block of the private `Screen` (with the `app-frame-title`,
-  `app-frame-reason` and `app-frame-action` roles) into a shared component;
-  app-frame output and focus unchanged.
+  and actions block of the private `Screen` (the parts DESIGN_TOKENS names
+  `app-frame-title`, `app-frame-reason` and `app-frame-action`, which carry no
+  DOM marker today) into a shared component that marks them with those names
+  as `data-app-role`; app-frame look and focus unchanged, the markers being
+  the only output change.
 - A new `src/components/layout/grid-unavailable.tsx` and test: the
   `grid-unavailable` role, in a non-`main` container filling the content area
   with the `triage-shell triage-shell--frame` classes, built from that shared
