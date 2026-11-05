@@ -1566,8 +1566,11 @@ backup](SPEC.md#account-backup)).
 
 - An object is the gzip (level 1) of the `export_account()` value, streamed
   without parsing: every row of the five tables, active, trashed and archived,
-  plus `format_version`, the creation time and the provider's stable user id.
-  It holds no OAuth token or session, no device preference and no guest data.
+  plus `format_version`, the export time (server clock) and the internal user
+  id. The provider's stable user ids live only in `identity.json` (below),
+  since no backup function has a right in `auth` (Task 256 advisory review,
+  2026-11-06). It holds no OAuth token or session, no device preference and
+  no guest data.
 - Keys: `accounts/<user_id>/YYYY-MM-DD.json.gz` (UTC date slot; another run on
   the same day overwrites that day's file),
   `accounts/<user_id>/pre-restore/<UTC time>.json.gz` (Phase 53) and
