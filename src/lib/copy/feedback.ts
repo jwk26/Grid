@@ -67,6 +67,14 @@ export const LOAD_FAILURE = {
   retry: "Retry",
 } as const;
 
+// The Grid of a route the account cannot use (SPEC §Feedback copy, Dialogs and shell; ST18, ST30).
+export const GRID_UNAVAILABLE = {
+  title: "Couldn't open this Grid.",
+  reason: "It may have been deleted, moved to Trash or archived, or it may belong to another account.",
+  goHome: "Go to Home",
+  addRestricted: "Adding restricted on this page",
+} as const;
+
 export const GUEST_CREATION_FAILURE = {
   title: "Couldn't start a guest session.",
   reason: {

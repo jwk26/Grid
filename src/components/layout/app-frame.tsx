@@ -5,6 +5,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore } from 
 import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import { StatusIcon } from "@/components/feedback/status-icon";
+import { ScreenBlock } from "@/components/layout/screen-block";
 import { Button } from "@/components/ui/button";
 import { setTurnstileHost } from "@/lib/auth/turnstile";
 import { takeHomeReturn } from "@/lib/auth/user-change";
@@ -61,13 +62,7 @@ function Screen({ title, reason, actions }: ScreenProps) {
       data-testid="app-frame-screen"
       data-triage-role="shell-background"
     >
-      <div className="grid max-w-[440px] place-self-center justify-items-center gap-3 text-center">
-        <h1 className="text-xl font-semibold">{title}</h1>
-        {reason ? <p className="text-sm text-muted-foreground">{reason}</p> : null}
-        <div ref={actionsRef} className="flex flex-wrap justify-center gap-2 pt-1">
-          {actions}
-        </div>
-      </div>
+      <ScreenBlock title={title} reason={reason} actions={actions} actionsRef={actionsRef} />
     </main>
   );
 }
