@@ -2237,6 +2237,9 @@ Infrastructure files that don't follow the File Organization Conventions above.
 | `src/components/layout/sidebar-icon-button.tsx` *(Phase 50)* | The sidebar rail's shared icon button, which `home-button.tsx` and the rail entries use |
 | `src/hooks/use-document-title.ts` *(Phase 50)* | Sets each page's tab title ([Feedback copy](#feedback-copy)) |
 | `src/components/grid/newly-undo-slot.tsx` *(Phase 50)* | The Newly Undo button as the status slot, for Node and Bit cards and the replacement-search results (F07, F09) |
+| `src/components/layout/screen-block.tsx` *(Phase 51)* | The app frame's title, reason and actions block (`data-app-role` `app-frame-title`, `app-frame-reason`, `app-frame-action`), shared by `app-frame.tsx` and `grid-unavailable.tsx`; no focus rule (ST18) |
+| `src/components/layout/grid-unavailable.tsx` *(Phase 51)* | The unavailable screen of [`/grid/[nodeId]`](#route-gridnodeid-level-1-3-grid) and its focus rule: `Go to Home` once no dialog layer is open (ST13–ST19, ST36) |
+| `src/hooks/use-escape-layers.ts` *(Phase 51)* | Registry of the Inbox layers that handle `Esc` themselves, the Triage drag apart; read by `useEscapeOrder` (ST20, ST35) |
 | `src/lib/copy/feedback.ts` *(Phase 49)* | Toast, app-state and blocking copy (F14); Task 244 creates it with the create-dialog sentence |
 | `supabase/config.toml`, `supabase/migrations/`, `supabase/tests/` *(Phase 42)* | Local Supabase configuration, migrations in Git, `pnpm test:db` suites |
 | `supabase/seed.sql`, `scripts/dev-fixtures/` *(Phase 45, local only)* | `dev.seed_fixture()` and the browser-check fixture that signs in as a local `@griddo.test` user and seeds through it; usage in each script header |

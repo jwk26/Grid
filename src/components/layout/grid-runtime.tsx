@@ -1,7 +1,7 @@
 "use client";
 
 import { DndContext } from "@dnd-kit/core";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { CreateBitDialog } from "@/components/grid/create-bit-dialog";
 import { CreateItemChooser } from "@/components/grid/create-item-chooser";
@@ -12,6 +12,7 @@ import {
 } from "@/components/grid/delete-confirm-dialog";
 import { EditModeOverlay } from "@/components/grid/edit-mode-overlay";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { GridUnavailable } from "@/components/layout/grid-unavailable";
 import { Sidebar } from "@/components/layout/sidebar";
 import { EntrySurface } from "@/components/quick-capture/entry-surface";
 import { ArchiveView } from "@/components/archive/archive-view";
@@ -28,9 +29,9 @@ import { useBreadcrumbReveal, useEscapeOrder } from "@/hooks/use-breadcrumb-reve
 import { useDnd } from "@/hooks/use-dnd";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useGridActions } from "@/hooks/use-grid-actions";
-import { useNode } from "@/hooks/use-node";
+import { isNodeAvailable, useRoutedNode } from "@/hooks/use-node";
 import { GRID_COLS } from "@/lib/constants";
-import { createDialogNoEmptyCell } from "@/lib/copy/feedback";
+import { createDialogNoEmptyCell, GRID_UNAVAILABLE } from "@/lib/copy/feedback";
 import { gridCollisionDetection } from "@/lib/grid-dnd";
 import { cn } from "@/lib/utils";
 import { hexToHsl } from "@/lib/utils/color";
@@ -87,10 +88,20 @@ export function useDeleteFlow(): DeleteFlowContextValue {
 export function GridRouteBody({
   children,
   node,
+  unavailable = false,
+  isLayerOpen,
+  recheckKey,
 }: {
   children: React.ReactNode;
   node: Node | null | undefined;
+  /** The routed Node is missing, in Trash or archived: the screen takes the Grid's place. */
+  unavailable?: boolean;
+  isLayerOpen?: () => boolean;
+  recheckKey?: unknown;
 }) {
+  if (unavailable) {
+    return <GridUnavailable isLayerOpen={isLayerOpen ?? isDialogLayerOpen} recheckKey={recheckKey} />;
+  }
   if (node?.systemRole === "archive_view") {
     return <ArchiveView node={node} />;
   }
@@ -103,22 +114,28 @@ export function GridRouteBody({
 export function GridRuntime({ children }: { children: React.ReactNode }) {
   const params = useParams<{ nodeId?: string | string[] }>();
   const nodeId = typeof params.nodeId === "string" ? params.nodeId : null;
-  const node = useNode(nodeId ?? "");
+  // The one owner of the routed read (ST15): the value belongs to the routed id, or it is null
+  // before the read and when the Node is missing. The availability is judged here, once, so the
+  // screen, the breadcrumb and the sidebar `+` never disagree for a frame.
+  const routed = useRoutedNode(nodeId ?? "");
+  const node = routed.node;
+  // L0 has no routed id: `""` reads as missing there and is never judged.
+  const unavailable =
+    nodeId !== null &&
+    (routed.status === "missing" || (routed.status === "found" && !isNodeAvailable(routed.node)));
   const isInboxRoute = node?.systemRole === "inbox";
   const isArchiveRoute = node?.systemRole === "archive_view";
-  // Only a Node's Grid has a breadcrumb: L0, the Inbox and the Archive have none.
-  const showsBreadcrumb = nodeId !== null && !isInboxRoute && !isArchiveRoute;
-  // `useNode` keeps the previous node until the new one arrives: its name and
-  // role count only once it is the routed Node.
-  const routedNode = node?.id === nodeId ? node : null;
+  // Only a Node's Grid has a breadcrumb: L0, the Inbox, the Archive and the unavailable screen
+  // have none.
+  const showsBreadcrumb = nodeId !== null && !isInboxRoute && !isArchiveRoute && !unavailable;
   useDocumentTitle(
-    nodeId === null
+    nodeId === null || unavailable
       ? null
-      : routedNode?.systemRole === "inbox"
+      : node?.systemRole === "inbox"
         ? "Inbox"
-        : routedNode?.systemRole === "archive_view"
+        : node?.systemRole === "archive_view"
           ? "Archive"
-          : (routedNode?.title ?? null),
+          : (node?.title ?? null),
   );
   const displayLevel = nodeId === null ? 0 : (node?.level ?? 0) + 1;
   const isLeafLevel = displayLevel >= 3;
@@ -160,6 +177,12 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
   );
   const setToastDragActive = useToastAnchorStore((state) => state.setDragActive);
   const resetToastAnchor = useToastAnchorStore((state) => state.reset);
+
+  const searchParams = useSearchParams();
+  const searchOpen = useSearchStore((state) => state.isOpen);
+  // Everything `isDialogLayerOpen` reads that is not in the DOM: the unavailable screen asks its
+  // focus rule again when one of them changes.
+  const layerKey = `${activeOverlay ?? ""}|${searchOpen}|${searchParams.has("bit")}`;
 
   const isEditMode = useEditModeStore((state) => state.isEditMode);
   const disableEditMode = useEditModeStore((state) => state.disable);
@@ -225,6 +248,24 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
       setToastBreadcrumbBottom(null);
     };
   }, [reveal.phase, setToastBreadcrumbBottom, nodeId, showsBreadcrumb]);
+
+  // When the screen appears, every create and confirm surface this component hosts closes: no
+  // write starts from it (ST16, ST30, ST38). Not `closeAll`, which would also close the Scratch
+  // capture modal; that one writes to the Inbox and stays. Move confirmations close through their
+  // cancel handlers so the drag state rolls back.
+  useEffect(() => {
+    if (!unavailable) return;
+    setChooserOpen(false);
+    setOpenDialogType(null);
+    setPendingDelete(null);
+    setError(undefined);
+    if (useQuickCaptureStore.getState().activeOverlay === "entry") {
+      useQuickCaptureStore.getState().setActiveOverlay(null);
+    }
+    if (pendingNodeMove !== null) handleNodeMoveCancel();
+    if (pendingAncestorMove !== null) handleAncestorMoveCancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unavailable]);
 
   function openAdd(context: PlacementContext) {
     setPlacementContext(context);
@@ -461,6 +502,7 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
             }
             isAddActive={activeOverlay === "entry"}
             dragActiveItem={activeItem}
+            addDisabledReason={unavailable ? GRID_UNAVAILABLE.addRestricted : undefined}
             homeLanding={reveal.landing}
             homeRevealHandlers={showsBreadcrumb ? reveal.homeHandlers : undefined}
             breadcrumbSlot={
@@ -478,7 +520,7 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
             }
           />
           <EntrySurface
-            open={activeOverlay === "entry"}
+            open={activeOverlay === "entry" && !unavailable}
             canCreateNode={!isLeafLevel}
             onClose={closeAll}
             onScratch={() => setActiveOverlay("scratch")}
@@ -510,7 +552,14 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
                 )}
                 data-dragging={activeItem ? "true" : undefined}
               >
-                <GridRouteBody node={node}>{children}</GridRouteBody>
+                <GridRouteBody
+                  node={node}
+                  unavailable={unavailable}
+                  isLayerOpen={isDialogLayerOpen}
+                  recheckKey={layerKey}
+                >
+                  {children}
+                </GridRouteBody>
               </div>
             </AddFlowProvider>
             <EditModeOverlay />
@@ -524,20 +573,20 @@ export function GridRuntime({ children }: { children: React.ReactNode }) {
 
                 setChooserOpen(open);
               }}
-              open={chooserOpen}
+              open={chooserOpen && !unavailable}
             />
             <CreateNodeDialog
               error={openDialogType === "node" ? error : undefined}
               level={displayLevel}
               onOpenChange={(open) => handleDialogOpenChange(open, "node")}
               onSubmit={handleNodeSubmit}
-              open={openDialogType === "node"}
+              open={openDialogType === "node" && !unavailable}
             />
             <CreateBitDialog
               error={openDialogType === "bit" ? error : undefined}
               onOpenChange={(open) => handleDialogOpenChange(open, "bit")}
               onSubmit={handleBitSubmit}
-              open={openDialogType === "bit"}
+              open={openDialogType === "bit" && !unavailable}
               requireParent={nodeId === null}
               defaultParentId={nodeId}
             />

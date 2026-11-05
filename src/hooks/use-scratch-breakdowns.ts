@@ -239,6 +239,37 @@ export function useScratchBreakdowns(
   const editorSnapshotRef = useRef<ConditionalEditorSnapshot>(null);
   const pendingIntentRef = useRef<(() => void) | null>(null);
 
+  // The lock owner keeps a held command's read-only check, so the check outlives this hook
+  // (stabilization ST24, ST33). This hook is the surface of an editor save, an Add and a Delete:
+  // when it unmounts, every command it handed over is reported as "surface gone". The cleanup sits
+  // in an empty-deps effect and reads refs only, so a dependency change never reports a surface gone.
+  const lockRef = useRef(editorOptions.operationLock);
+  const heldOperationIdsRef = useRef(new Set<string>());
+  const unmountedRef = useRef(false);
+  useEffect(() => {
+    lockRef.current = editorOptions.operationLock;
+  }, [editorOptions.operationLock]);
+  useEffect(() => {
+    unmountedRef.current = false;
+    const held = heldOperationIdsRef.current;
+    return () => {
+      unmountedRef.current = true;
+      for (const operationId of held) lockRef.current?.surfaceGone?.(operationId);
+    };
+  }, []);
+  const registerHold = useCallback(
+    (
+      operationId: string,
+      check: () => Promise<RepositoryOperationStatus | null>,
+    ) => {
+      lockRef.current?.holdUnknown?.(operationId, check);
+      heldOperationIdsRef.current.add(operationId);
+      // The request ended unknown after this hook already unmounted: nothing else will check it.
+      if (unmountedRef.current) lockRef.current?.surfaceGone?.(operationId);
+    },
+    [],
+  );
+
   const commitEditorSnapshot = useCallback(
     (next: ConditionalEditorSnapshot) => {
       editorSnapshotRef.current = next;
@@ -430,10 +461,13 @@ export function useScratchBreakdowns(
     ): Promise<boolean> => {
       const command = snapshot.command;
       if (command === null) return false;
-      if (automatic) {
-        if (checkedCommandIdsRef.current.has(command.operationId)) return false;
-        checkedCommandIdsRef.current.add(command.operationId);
+      if (automatic && checkedCommandIdsRef.current.has(command.operationId)) {
+        return false;
       }
+      // The owner sends nothing while a check of this command is out, and neither do we.
+      const finishCheck = lockRef.current?.noteCheckStart?.(command.operationId);
+      if (finishCheck === null) return false;
+      if (automatic) checkedCommandIdsRef.current.add(command.operationId);
       commitEditorSnapshot({ ...snapshot, checking: true });
       try {
         const dataStore = await getDataStore();
@@ -457,6 +491,8 @@ export function useScratchBreakdowns(
           commitEditorSnapshot({ ...latest, checking: false });
         }
         return false;
+      } finally {
+        finishCheck?.();
       }
     },
     [commitEditorSnapshot, editorOptions.operationLock],
@@ -560,6 +596,11 @@ export function useScratchBreakdowns(
       reconcile: boolean,
     ): Promise<boolean> => {
       const phase = reconcile ? "reconciling" : "saving";
+      // Check again goes through the owner: nothing is sent while a check of this command is out.
+      const finishCheck = reconcile
+        ? lockRef.current?.noteCheckStart?.(command.operationId)
+        : undefined;
+      if (finishCheck === null) return false;
       commitEditorSnapshot({ ...current, phase, command });
       try {
         const dataStore = await getDataStore();
@@ -577,15 +618,42 @@ export function useScratchBreakdowns(
                   command as SaveBreakdownCommand,
                 )
               : await dataStore.saveBreakdown(command as SaveBreakdownCommand);
-        return applyEditorResult(editorSnapshotRef.current ?? current, result);
+        const applied = applyEditorResult(editorSnapshotRef.current ?? current, result);
+        finishCheck?.();
+        return applied;
       } catch {
         const latest = editorSnapshotRef.current ?? current;
+        // The outcome is unknown: hand the owner the read-only check before anything else.
+        registerHold(command.operationId, async () => {
+          const dataStore = await getDataStore();
+          const checked =
+            current.target.kind === "scratch-title"
+              ? await dataStore.reconcileSaveScratchTitle(
+                  command as SaveScratchTitleCommand,
+                )
+              : await dataStore.reconcileSaveBreakdown(
+                  command as SaveBreakdownCommand,
+                );
+          // The owner's answer settles the command. A still-mounted invalidated editor drops it,
+          // as `checkInvalidated` does, so Close and the title blocker do not wait for another check.
+          if (!unmountedRef.current) {
+            const open = editorSnapshotRef.current;
+            if (open?.phase === "invalidated" && open.command?.operationId === command.operationId) {
+              commitEditorSnapshot({ ...open, command: null, checking: false });
+            }
+          }
+          return checked.status;
+        });
         if (latest.phase === "invalidated") {
-          // Invalidated while the request was out: check it once, read-only.
+          // Invalidated while the request was out: the surface began to go before this check, so
+          // mark it first and then check once, read-only.
+          lockRef.current?.markSurfaceGone?.(command.operationId);
+          finishCheck?.();
           pendingIntentRef.current = null;
           void checkInvalidated(latest, true);
           return false;
         }
+        finishCheck?.();
         // The outcome is unknown: keep the command and the lock, drop a pending
         // navigation (a later Check again never navigates) and never resend.
         pendingIntentRef.current = null;
@@ -598,7 +666,7 @@ export function useScratchBreakdowns(
         return false;
       }
     },
-    [applyEditorResult, checkInvalidated, commitEditorSnapshot],
+    [applyEditorResult, checkInvalidated, commitEditorSnapshot, registerHold],
   );
 
   const save = useCallback(
@@ -743,8 +811,14 @@ export function useScratchBreakdowns(
     };
     commitEditorSnapshot(next);
     // An editor holding an unconfirmed save checks it once; one whose request
-    // is still out settles through that request's answer instead.
-    if (current.phase === "unknown") void checkInvalidated(next, true);
+    // is still out settles through that request's answer instead. The surface began to go
+    // here, so the owner is told first and our own check counts as made after it.
+    if (current.phase === "unknown") {
+      if (current.command !== null) {
+        lockRef.current?.markSurfaceGone?.(current.command.operationId);
+      }
+      void checkInvalidated(next, true);
+    }
   }, [checkInvalidated, commitEditorSnapshot]);
 
   const stayHere = useCallback(() => {
@@ -797,6 +871,14 @@ export function useScratchBreakdowns(
       invoke: () => Promise<TResult>,
       sourceSnapshot?: ScratchBreakdown,
     ): Promise<BreakdownCommandOutcome<TResult>> => {
+      // Check again goes through the owner: nothing is sent while a check of this command is out.
+      const finishCheck =
+        phase === "reconciling"
+          ? lockRef.current?.noteCheckStart?.(command.operationId)
+          : undefined;
+      if (finishCheck === null) {
+        return { operationId: command.operationId, outcome: "unknown" };
+      }
       const projection: BreakdownOperationProjection = {
         kind,
         operationId: command.operationId,
@@ -845,8 +927,23 @@ export function useScratchBreakdowns(
               : operation,
           ),
         );
+        // A terminal answer releases the lock before the check ends, so the owner sees no record.
+        if (finishCheck !== undefined) {
+          lockRef.current?.release(command.operationId, status);
+          finishCheck();
+        }
         return result;
       } catch {
+        // The outcome is unknown: the owner keeps the read-only check, so it outlives this hook.
+        registerHold(command.operationId, async () => {
+          const dataStore = await getDataStore();
+          const checked =
+            kind === "add"
+              ? await dataStore.reconcileAddBreakdown(command as AddBreakdownCommand)
+              : await dataStore.reconcileDeleteBreakdown(command as DeleteBreakdownCommand);
+          return checked.status;
+        });
+        finishCheck?.();
         setOperations((current) =>
           current.map((operation) =>
             operation.operationId === command.operationId
@@ -857,7 +954,7 @@ export function useScratchBreakdowns(
         return { operationId: command.operationId, outcome: "unknown" };
       }
     },
-    [],
+    [registerHold],
   );
 
   const addBreakdown = useCallback(

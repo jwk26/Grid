@@ -109,8 +109,15 @@ function SearchResultItem({
 
   useEffect(() => {
     const state = undo?.state;
+    const previous = previousStateRef.current;
+    // Only as the answer to this item's own Undo (it was pending, reconciling or unknown): a
+    // not-applied Undo that another operation blocked and that is unblocked again keeps focus
+    // where it is (stabilization ST21).
+    const wasRunning =
+      previous === "pending" || previous === "reconciling" || previous === "unknown";
     const enteredRecoveryState =
-      previousStateRef.current !== state &&
+      wasRunning &&
+      previous !== state &&
       (state === "unknown" || state === "not-applied" || state === "conflict");
     previousStateRef.current = state;
     if (enteredRecoveryState) actionRef.current?.focus({ preventScroll: true });

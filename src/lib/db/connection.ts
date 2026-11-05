@@ -54,3 +54,13 @@ export function useConnectionState(): ConnectionState {
   const m = getConnectionMonitor();
   return useSyncExternalStore(m.subscribe, m.getState, () => "normal" as const);
 }
+
+/** The state requests produced, ignoring a development forced state (stabilization ST37). */
+export function getRealConnectionState(): ConnectionState {
+  return getConnectionMonitor().getRealState();
+}
+
+/** Outage evidence so far: failed probes and browser `offline` events (stabilization ST34, ST37). */
+export function getOutageEvidenceCount(): number {
+  return getConnectionMonitor().getOutageEvidenceCount();
+}

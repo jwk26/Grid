@@ -256,7 +256,11 @@ export function Sidebar({
   homeRevealHandlers,
   homeLanding,
   breadcrumbSlot,
+  addDisabledReason,
 }: {
+  // While set, the `+` is a real disabled button with this reason as its wrapper's title, as the
+  // Calendar's edit-mode pencil is (the unavailable Grid, ST30).
+  addDisabledReason?: string;
   onAddClick?: () => void;
   dragActiveItem?: DragActiveItem;
   isAddActive?: boolean;
@@ -351,6 +355,18 @@ export function Sidebar({
             </button>
           </PopoverContent>
         </Popover>
+      ) : addDisabledReason !== undefined ? (
+        <div className="cursor-not-allowed" title={addDisabledReason}>
+          <SidebarIconButton
+            className="opacity-40 pointer-events-none"
+            disabled={true}
+            icon={Plus}
+            isActive={false}
+            label="Add item"
+            onClick={noop}
+            title={null}
+          />
+        </div>
       ) : (
         <div className={cn(!onAddClick && "pointer-events-none opacity-40")}>
           <SidebarIconButton

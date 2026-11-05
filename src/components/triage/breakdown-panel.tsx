@@ -66,6 +66,7 @@ import {
 } from "@/hooks/use-trash-scratch";
 import { useTriageDepartureContext } from "@/hooks/use-triage-departure";
 import { useTriageOperationLockContext } from "@/hooks/use-triage-operation-lock";
+import { isTriageDragActive, useEscapeLayer } from "@/hooks/use-escape-layers";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import {
   forcedItemKeys,
@@ -571,6 +572,7 @@ function InlineEditor({
     }
 
     if (event.key === "Escape") {
+      if (isTriageDragActive()) return;
       event.preventDefault();
       editor.cancel();
     }
@@ -1728,6 +1730,7 @@ export function BreakdownPanel({
 
   function handleDepartureKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
+      if (isTriageDragActive()) return;
       event.preventDefault();
       continueWriting();
       return;
@@ -1764,6 +1767,10 @@ export function BreakdownPanel({
   // Check again that ends in an applied answer closes the editor from
   // `reconciling`; no other path leaves that phase for a closed editor.
   const editorPhase = editor.snapshot?.phase ?? null;
+  // An open editor, the Add field and the Archive completion area are `Esc` layers: one press
+  // closes only the layer, or does nothing while it is locked (stabilization ST20, ST35).
+  useEscapeLayer(editorPhase !== null);
+  useEscapeLayer(isAdding);
   const previousEditorPhaseRef = useRef(editorPhase);
   useEffect(() => {
     if (previousEditorPhaseRef.current === "reconciling" && editorPhase === null) {
@@ -1876,6 +1883,7 @@ export function BreakdownPanel({
     (completion !== undefined &&
       isConsumedCompletion &&
       completionPresentation === "overlay");
+  useEscapeLayer(isCompletionOverlayOpen);
   const trashReasonId = useId();
   const trashEntryReason =
     selectedScratchId === null
@@ -2175,6 +2183,7 @@ export function BreakdownPanel({
     }
 
     if (event.key === "Escape") {
+      if (isTriageDragActive()) return;
       if (operationLock.isLocked()) return;
       setIsAdding(false);
       updateAddDraft("");
@@ -2858,6 +2867,7 @@ export function BreakdownPanel({
           onBlurCapture={trackCompletionBlur}
           onKeyDown={(event) => {
             if (event.key !== "Escape") return;
+            if (isTriageDragActive()) return;
             if (
               operationLock.isLocked() ||
               completion?.archiveOperation !== undefined

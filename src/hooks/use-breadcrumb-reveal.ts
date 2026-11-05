@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BREADCRUMB_ENTRY_REVEAL_MS, BREADCRUMB_HIDE_DELAY_MS } from "@/lib/constants";
 import { motionDuration } from "@/lib/animations/motion-language";
+import { isEscapeLayerOpen } from "@/hooks/use-escape-layers";
 
 // The breadcrumb reveal state machine and the Escape order (feedback F22, F23;
 // SPEC §Breadcrumb reveal and Home button).
@@ -327,12 +328,15 @@ export function resolveEscape(state: {
 }
 
 /**
- * The one `document` `Esc` owner. It listens in the capture phase, so a drag the
- * pointer sensor is about to cancel still counts as a drag.
+ * The one `Esc` owner. It listens on `window` in the capture phase, so a drag the pointer sensor
+ * is about to cancel, and an Inbox layer about to close, still count as open. An Inbox layer or
+ * Triage drag registered with `useEscapeLayer` means the press does nothing: the layer closes
+ * itself, or refuses while locked, and edit mode stays.
  */
 export function useEscapeOrder({
   dragging,
   isLayerOpen,
+  isInboxLayerOpen = isEscapeLayerOpen,
   held,
   breadcrumbShown,
   editMode,
@@ -342,6 +346,8 @@ export function useEscapeOrder({
 }: {
   dragging: boolean;
   isLayerOpen: () => boolean;
+  /** An Inbox layer (or the Triage drag) is open: the press does nothing, locked or not. */
+  isInboxLayerOpen?: () => boolean;
   held: boolean;
   breadcrumbShown: boolean;
   editMode: boolean;
@@ -349,9 +355,9 @@ export function useEscapeOrder({
   exitEditMode: () => void;
   focusHome: () => void;
 }) {
-  const latest = useRef({ dragging, isLayerOpen, held, breadcrumbShown, editMode, hideBreadcrumb, exitEditMode, focusHome });
+  const latest = useRef({ dragging, isLayerOpen, isInboxLayerOpen, held, breadcrumbShown, editMode, hideBreadcrumb, exitEditMode, focusHome });
   useEffect(() => {
-    latest.current = { dragging, isLayerOpen, held, breadcrumbShown, editMode, hideBreadcrumb, exitEditMode, focusHome };
+    latest.current = { dragging, isLayerOpen, isInboxLayerOpen, held, breadcrumbShown, editMode, hideBreadcrumb, exitEditMode, focusHome };
   });
 
   useEffect(() => {
@@ -360,7 +366,7 @@ export function useEscapeOrder({
       const s = latest.current;
       const action = resolveEscape({
         dragging: s.dragging,
-        layerOpen: event.defaultPrevented || s.isLayerOpen(),
+        layerOpen: s.isLayerOpen() || s.isInboxLayerOpen(),
         held: s.held,
         breadcrumbShown: s.breadcrumbShown,
         editMode: s.editMode,
@@ -374,7 +380,11 @@ export function useEscapeOrder({
       }
     }
 
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => document.removeEventListener("keydown", onKeyDown, true);
+    // `window`, capture: it runs before every `document` listener, so no layer has closed itself
+    // on this press when the owner reads the layers. A `useEffect`, not a layout effect, so the
+    // narrow-window key block (a layout effect) stays first and its `stopImmediatePropagation`
+    // still hides the press.
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
   }, []);
 }

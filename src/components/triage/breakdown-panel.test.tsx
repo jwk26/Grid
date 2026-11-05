@@ -1,5 +1,6 @@
 import { getConnectionMonitor } from "@/lib/db/connection";
 import "@testing-library/jest-dom/vitest";
+import { isEscapeLayerOpen, useEscapeLayer } from "@/hooks/use-escape-layers";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { useEffect, useState, type ComponentProps } from "react";
@@ -8,6 +9,7 @@ import {
   cleanup,
   fireEvent,
   render,
+  renderHook,
   screen,
   waitFor,
   within,
@@ -1102,6 +1104,19 @@ describe("BreakdownPanel", () => {
     fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape" });
     expect(departureState.continueWriting).toHaveBeenCalledTimes(1);
     expect(departureState.discardAndMove).not.toHaveBeenCalled();
+  });
+
+  it("leaves the departure decision to the next Esc while a Triage drag is active", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    departureState.pendingDestination = { id: "parent-1", kind: "path" };
+    render(<BreakdownPanel />);
+    const drag = renderHook(() => useEscapeLayer(true, "triage-drag"));
+
+    fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape" });
+    expect(departureState.continueWriting).not.toHaveBeenCalled();
+    drag.unmount();
+    fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape" });
+    expect(departureState.continueWriting).toHaveBeenCalledTimes(1);
   });
 
   it("returns attempted outside focus to the last focused departure action", () => {
@@ -3602,6 +3617,70 @@ describe("BreakdownPanel", () => {
     }
   });
 
+  it("registers an open editor, the Add field and the Archive completion area as Esc layers", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    const idle = render(<BreakdownPanel />);
+    expect(isEscapeLayerOpen()).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add a note..." }));
+    expect(isEscapeLayerOpen()).toBe(true);
+    // The Add field's own Esc closes it, and the layer goes with it.
+    fireEvent.keyDown(screen.getByPlaceholderText("Add a note..."), { key: "Escape" });
+    expect(isEscapeLayerOpen()).toBe(false);
+    idle.unmount();
+
+    editorState.snapshot = {
+      target: { kind: "scratch-title", id: "scratch-1" }, phase: "dirty",
+      base: { value: "Scratch", version: 1 }, draft: "Changed",
+      latest: null, copyableDraft: null, pendingIntent: false,
+      focusIntent: "field-end", command: null,
+    };
+    const editing = render(<BreakdownPanel />);
+    expect(isEscapeLayerOpen()).toBe(true);
+    editing.unmount();
+    expect(isEscapeLayerOpen()).toBe(false);
+
+    editorState.snapshot = null;
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", consumedAt: currentTime }),
+    ];
+    const completing = render(<CompletionHarness />);
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(isEscapeLayerOpen()).toBe(true);
+    completing.unmount();
+    expect(isEscapeLayerOpen()).toBe(false);
+  });
+
+  it("leaves the Add field, the editor and the completion area to the next Esc while a Triage drag is active", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    const view = render(<BreakdownPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Add a note..." }));
+    const input = screen.getByPlaceholderText("Add a note...");
+    const drag = renderHook(() => useEscapeLayer(true, "triage-drag"));
+
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(screen.getByPlaceholderText("Add a note...")).toBeInTheDocument();
+    drag.unmount();
+    fireEvent.keyDown(screen.getByPlaceholderText("Add a note..."), { key: "Escape" });
+    expect(screen.queryByPlaceholderText("Add a note...")).not.toBeInTheDocument();
+    view.unmount();
+
+    editorState.snapshot = {
+      target: { kind: "scratch-title", id: "scratch-1" }, phase: "dirty",
+      base: { value: "Scratch", version: 1 }, draft: "Changed",
+      latest: null, copyableDraft: null, pendingIntent: false,
+      focusIntent: "field-end", command: null,
+    };
+    render(<BreakdownPanel />);
+    const field = screen.getByRole("textbox", { name: "Scratch title" });
+    const duringDrag = renderHook(() => useEscapeLayer(true, "triage-drag"));
+    fireEvent.keyDown(field, { key: "Escape" });
+    expect(editorState.cancel).not.toHaveBeenCalled();
+    duringDrag.unmount();
+    fireEvent.keyDown(field, { key: "Escape" });
+    expect(editorState.cancel).toHaveBeenCalledOnce();
+  });
+
   it("limits Escape cancellation to focus inside the completion overlay", () => {
     triageStoreState.selectedScratchId = "scratch-1";
     hookState.breakdownsByScratch["scratch-1"] = [
@@ -3616,6 +3695,23 @@ describe("BreakdownPanel", () => {
     cancel.focus();
     fireEvent.keyDown(cancel, { key: "Escape" });
     expect(screen.getByRole("button", { name: "Reopen" })).toHaveFocus();
+  });
+
+  it("leaves the completion area to the next Esc while a Triage drag is active", () => {
+    triageStoreState.selectedScratchId = "scratch-1";
+    hookState.breakdownsByScratch["scratch-1"] = [
+      createScratchBreakdown({ id: "row-1", consumedAt: currentTime }),
+    ];
+    render(<CompletionHarness />);
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    cancel.focus();
+    const drag = renderHook(() => useEscapeLayer(true, "triage-drag"));
+
+    fireEvent.keyDown(cancel, { key: "Escape" });
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    drag.unmount();
+    fireEvent.keyDown(screen.getByRole("button", { name: "Cancel" }), { key: "Escape" });
+    expect(screen.getByRole("button", { name: "Reopen" })).toBeInTheDocument();
   });
 
   it("keeps the add-note bar when consumed breakdowns still have staged candidates", () => {

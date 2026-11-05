@@ -12,8 +12,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HierarchyExplorer } from "@/components/triage/hierarchy-explorer";
 import { useTriageStore } from "@/stores/triage-store";
 import type { TriagePlacementRelease } from "./use-triage-placement";
+import { isEscapeLayerOpen, isTriageDragActive } from "@/hooks/use-escape-layers";
 import { invalidateTriageDragSource, useTriageDnd } from "./use-dnd";
-import type { TriageOperationKind } from "./use-triage-operation-lock";
+import { getConnectionMonitor } from "@/lib/db/connection";
+import {
+  useTriageOperationLock,
+  type TriageOperationKind,
+} from "./use-triage-operation-lock";
 
 const stageCandidateMock = vi.hoisted(() => vi.fn());
 const reconcileStageCandidateMock = vi.hoisted(() => vi.fn());
@@ -962,6 +967,83 @@ describe("useTriageDnd — pointer activation lifecycle", () => {
     });
 
     expect(getDataStoreMock).not.toHaveBeenCalled();
+  });
+
+  it("is an Esc layer while a drag is active, and stops being one when Escape cancels it", () => {
+    const { result } = renderHook(() =>
+      useTriageDnd("scratch-1", durableCandidateOptions()),
+    );
+    expect(isEscapeLayerOpen()).toBe(false);
+
+    act(() => {
+      result.current.handleDragStart(makeDragEndEvent(makeBreakdownDragData(), null));
+    });
+    expect(isEscapeLayerOpen()).toBe(true);
+    expect(isTriageDragActive()).toBe(true);
+
+    act(() => {
+      fireEvent.keyDown(document, { key: "Escape" });
+    });
+    expect(isEscapeLayerOpen()).toBe(false);
+  });
+
+  describe("a drag that handleDragStart refuses is still an Esc layer (Phase 51 mi-5)", () => {
+    const refusals = {
+      "a lock is held": () => {
+        operationLockState.activeOperation = { kind: "edit", operationId: "held-op" };
+      },
+      "Placement is open": () => {
+        placementOpenState.open = true;
+      },
+    } as const;
+
+    it.each(Object.keys(refusals) as (keyof typeof refusals)[])(
+      "when %s, the drag is a layer until dnd-kit cancels it",
+      (reason) => {
+        refusals[reason]();
+        const { result } = renderHook(() =>
+          useTriageDnd("scratch-1", durableCandidateOptions()),
+        );
+        act(() => {
+          result.current.handleDragStart(makeDragEndEvent(makeBreakdownDragData(), null));
+        });
+        expect(result.current.activeDragItem).toBeNull();
+        expect(isEscapeLayerOpen()).toBe(true);
+        expect(isTriageDragActive()).toBe(true);
+
+        act(() => result.current.handleDragCancel());
+        expect(isEscapeLayerOpen()).toBe(false);
+      },
+    );
+
+    it("a refused drag that ends by a drop stops being a layer", async () => {
+      operationLockState.activeOperation = { kind: "edit", operationId: "held-op" };
+      const { result } = renderHook(() =>
+        useTriageDnd("scratch-1", durableCandidateOptions()),
+      );
+      const event = makeDragEndEvent(makeBreakdownDragData(), {
+        kind: "triage-node-zone-drop",
+      });
+      act(() => result.current.handleDragStart(event));
+      expect(isEscapeLayerOpen()).toBe(true);
+      await act(async () => {
+        await result.current.handleDragEnd(event);
+      });
+      expect(isEscapeLayerOpen()).toBe(false);
+      expect(stageCandidateMock).not.toHaveBeenCalled();
+    });
+
+    it("the layer closes when the hook unmounts mid-drag", () => {
+      operationLockState.activeOperation = { kind: "edit", operationId: "held-op" };
+      const { result, unmount } = renderHook(() =>
+        useTriageDnd("scratch-1", durableCandidateOptions()),
+      );
+      act(() => {
+        result.current.handleDragStart(makeDragEndEvent(makeBreakdownDragData(), null));
+      });
+      unmount();
+      expect(isEscapeLayerOpen()).toBe(false);
+    });
   });
 
   it("cancels the active lifecycle on Escape and suppresses its later drop", async () => {
@@ -2481,5 +2563,207 @@ describe("useTriageDnd — post-close non-hierarchy hover feedback", () => {
     expect(result.current.targetFeedback).toBeNull();
     expect(stageCandidateMock).not.toHaveBeenCalled();
     expect(getDataStoreMock).not.toHaveBeenCalled();
+  });
+});
+
+// Hand-off to the lock owner (stabilization ST24, ST33, ST37, ST38). These use the real lock hook,
+// so a Stage that never registers its check cannot pass.
+describe("a held Stage or Unstage handed to the real lock owner (Task 254)", () => {
+  const monitor = () => getConnectionMonitor();
+
+  beforeEach(() => {
+    monitor().report("reachable");
+    monitor().start();
+  });
+  afterEach(() => {
+    monitor().stop();
+    monitor().report("reachable");
+  });
+
+  function realOptions(lock: ReturnType<typeof useTriageOperationLock>) {
+    return { ...durableCandidateOptions(), operationLock: lock };
+  }
+
+  async function holdWith(kind: "stage" | "unstage") {
+    const unknown = async (command: { operationId: string }) => ({
+      operationId: command.operationId,
+      outcome: "unknown",
+    });
+    if (kind === "stage") {
+      stageCandidateMock.mockImplementationOnce(unknown);
+      reconcileStageCandidateMock.mockImplementationOnce(unknown);
+    } else {
+      unstageCandidateMock.mockImplementationOnce(unknown);
+      reconcileUnstageCandidateMock.mockImplementationOnce(unknown);
+    }
+    const hook = renderHook(
+      ({ scratch }: { scratch: string | null }) => {
+        const lock = useTriageOperationLock();
+        return { lock, dnd: useTriageDnd(scratch, realOptions(lock)) };
+      },
+      { initialProps: { scratch: "scratch-1" as string | null } },
+    );
+    await act(async () => {
+      await completeDrag(
+        hook.result.current.dnd,
+        kind === "stage"
+          ? makeDragEndEvent(makeBreakdownDragData(), { kind: "triage-node-zone-drop" })
+          : makeDragEndEvent(makeStagedDragData(), { kind: "triage-remove-drop" }),
+      );
+    });
+    const reconcileMock =
+      kind === "stage" ? reconcileStageCandidateMock : reconcileUnstageCandidateMock;
+    expect(hook.result.current.lock.activeOperation?.kind).toBe(kind);
+    expect(reconcileMock).toHaveBeenCalledTimes(1);
+    return { ...hook, reconcileMock };
+  }
+
+  const settle = () =>
+    act(async () => {
+      for (let tick = 0; tick < 10; tick++) await Promise.resolve();
+    });
+
+  it.each(["stage", "unstage"] as const)(
+    "a %s whose Scratch left sends exactly one check, and a terminal answer unlocks",
+    async (kind) => {
+      const { result, rerender, reconcileMock } = await holdWith(kind);
+      reconcileMock.mockImplementationOnce(async (c) => ({
+        operationId: c.operationId,
+        status: "not_applied",
+        candidate: null,
+        source: null,
+        scratch: null,
+      }));
+      rerender({ scratch: "scratch-2" });
+      await waitFor(() => expect(result.current.lock.activeOperation).toBeNull());
+      expect(reconcileMock).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it("after a failed gone-check, outage evidence and a return to normal send exactly one more", async () => {
+    const { result, rerender, reconcileMock } = await holdWith("stage");
+    reconcileMock.mockImplementation(async (c: { operationId: string }) => ({
+      operationId: c.operationId,
+      outcome: "unknown",
+    }));
+    rerender({ scratch: "scratch-2" });
+    await waitFor(() => expect(reconcileMock).toHaveBeenCalledTimes(2));
+    await settle();
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+    act(() => monitor().report("reachable"));
+    await waitFor(() => expect(reconcileMock).toHaveBeenCalledTimes(3));
+    // The check's own failure is not evidence, so another return to normal sends nothing.
+    act(() => monitor().report("unreachable"));
+    act(() => monitor().report("reachable"));
+    await settle();
+    expect(reconcileMock).toHaveBeenCalledTimes(3);
+    expect(stageCandidateMock).toHaveBeenCalledOnce();
+    expect(result.current.lock.activeOperation).not.toBeNull();
+  });
+
+  it("a `?` pressed while the owner's check is out sends no second request", async () => {
+    const { result, rerender, reconcileMock } = await holdWith("stage");
+    reconcileMock.mockImplementation(async (c: { operationId: string }) => ({
+      operationId: c.operationId,
+      outcome: "unknown",
+    }));
+    rerender({ scratch: "scratch-2" });
+    await waitFor(() => expect(reconcileMock).toHaveBeenCalledTimes(2));
+    await settle();
+    let answer!: (value: unknown) => void;
+    reconcileMock.mockImplementationOnce(() => new Promise((r) => (answer = r)));
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+    act(() => monitor().report("reachable"));
+    await waitFor(() => expect(reconcileMock).toHaveBeenCalledTimes(3));
+    const operationId = result.current.lock.activeOperation!.operationId;
+    await act(async () => {
+      await result.current.dnd.checkUnknownOperation(operationId);
+    });
+    expect(reconcileMock).toHaveBeenCalledTimes(3);
+    await act(async () => {
+      answer({ operationId, outcome: "unknown" });
+    });
+  });
+
+  it.each(["scratch", "candidate"] as const)(
+    "a `?` check still out when the %s goes: one more check after it fails on its own path",
+    async (gone) => {
+      const { result, rerender, reconcileMock } = await holdWith("unstage");
+      const operationId = result.current.lock.activeOperation!.operationId;
+      const candidateId = unstageCandidateMock.mock.calls[0]?.[0].candidateId as string;
+      let fail!: (value: unknown) => void;
+      reconcileMock.mockImplementationOnce(() => new Promise((r) => (fail = r)));
+      reconcileMock.mockImplementation(async (c: { operationId: string }) => ({
+        operationId: c.operationId,
+        outcome: "unknown",
+      }));
+      let question!: Promise<void>;
+      act(() => {
+        question = result.current.dnd.checkUnknownOperation(operationId);
+      });
+      await settle();
+      expect(reconcileMock).toHaveBeenCalledTimes(2);
+      if (gone === "scratch") rerender({ scratch: "scratch-2" });
+      else act(() => result.current.dnd.notifyCandidateGone(candidateId));
+      await settle();
+      // The `?` check made while mounted does not count, but nothing is sent while it is out.
+      expect(reconcileMock).toHaveBeenCalledTimes(2);
+      await act(async () => {
+        fail({ operationId, outcome: "unknown" });
+        await question;
+      });
+      await settle();
+      expect(reconcileMock).toHaveBeenCalledTimes(3);
+      expect(result.current.lock.activeOperation).not.toBeNull();
+    },
+  );
+
+  it("a held command whose surface is still mounted gets no automatic check on a return to normal", async () => {
+    const { reconcileMock } = await holdWith("stage");
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+    act(() => monitor().report("reachable"));
+    await settle();
+    expect(reconcileMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("a `?` check made while mounted does not count: the gone surface still gets one check", async () => {
+    const { result, rerender, reconcileMock } = await holdWith("stage");
+    reconcileMock.mockImplementation(async (c: { operationId: string }) => ({
+      operationId: c.operationId,
+      outcome: "unknown",
+    }));
+    await act(async () => {
+      await result.current.dnd.checkUnknownOperation(
+        result.current.lock.activeOperation!.operationId,
+      );
+    });
+    expect(reconcileMock).toHaveBeenCalledTimes(2);
+    rerender({ scratch: "scratch-2" });
+    await waitFor(() => expect(reconcileMock).toHaveBeenCalledTimes(3));
+  });
+
+  it("an Unstage whose candidate left the list sends one check, not two", async () => {
+    const { result, reconcileMock } = await holdWith("unstage");
+    const candidateId = unstageCandidateMock.mock.calls[0]?.[0].candidateId as string;
+    expect(candidateId).toBeDefined();
+    reconcileMock.mockImplementation(async (c: { operationId: string }) => ({
+      operationId: c.operationId,
+      outcome: "unknown",
+    }));
+    act(() => {
+      result.current.dnd.notifyCandidateGone(candidateId);
+    });
+    await settle();
+    act(() => {
+      result.current.dnd.notifyCandidateGone(candidateId);
+    });
+    await settle();
+    expect(reconcileMock).toHaveBeenCalledTimes(2);
   });
 });

@@ -41,6 +41,58 @@ afterEach(() => {
 });
 
 describe("ScratchModal", () => {
+  describe("auto-close with the pointer", () => {
+    async function captureWith(pointer: "over" | "outside" | "touch") {
+      vi.useFakeTimers();
+      const onClose = vi.fn();
+      render(
+        <ScratchModal inboxNodeId="inbox-1" onClose={onClose} onSubmit={vi.fn().mockResolvedValue(undefined)} open={true} />,
+      );
+      const panel = screen.getByRole("dialog", { name: "Scratch capture" });
+      if (pointer === "over") fireEvent.pointerEnter(panel, { pointerType: "mouse" });
+      if (pointer === "touch") fireEvent.pointerEnter(panel, { pointerType: "touch" });
+      fireEvent.change(screen.getByRole("textbox", { name: "Scratch title" }), { target: { value: "Idea" } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Capture scratch" }));
+      });
+      expect(screen.getByText("Idea captured!")).toBeInTheDocument();
+      return { onClose, panel };
+    }
+
+    it("stays open while the pointer was already over the panel at success, then closes after it leaves", async () => {
+      const { onClose, panel } = await captureWith("over");
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      });
+      expect(onClose).not.toHaveBeenCalled();
+      fireEvent.pointerLeave(panel, { pointerType: "mouse" });
+      act(() => {
+        vi.advanceTimersByTime(2999);
+      });
+      expect(onClose).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("closes after the usual delay when the pointer is outside the panel", async () => {
+      const { onClose } = await captureWith("outside");
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("closes after the usual delay when the entry was a touch tap", async () => {
+      const { onClose } = await captureWith("touch");
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("submits a trimmed title, shows confirmation, and auto-closes", async () => {
     vi.useFakeTimers();
     const onSubmit = vi.fn().mockResolvedValue(undefined);

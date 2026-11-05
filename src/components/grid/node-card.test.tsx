@@ -104,6 +104,25 @@ afterEach(() => {
 });
 
 describe("NodeCard", () => {
+  describe("aging filter", () => {
+    const old = Date.now() - 200 * 86_400_000;
+
+    it("gives an ordinary Node the aging filter", () => {
+      const node = createNode({ title: "Old work", mtime: old });
+      render(<NodeCard node={node} onClick={vi.fn()} />);
+      expect(screen.getByRole("button", { name: node.title }).style.filter).toContain("saturate(0.2)");
+    });
+
+    it.each(["inbox", "archive_view"] as const)("gives the %s system Node no aging filter in grid and explorer", (role) => {
+      for (const presentation of [undefined, "inbox-explorer"] as const) {
+        const node = createNode({ title: `System ${role}`, mtime: old, systemRole: role });
+        const view = render(<NodeCard presentation={presentation} node={node} onClick={vi.fn()} />);
+        expect(screen.getByRole("button", { name: node.title }).style.filter).toBe("");
+        view.unmount();
+      }
+    });
+  });
+
   it("keeps Finder selectable without drag or hover lift and removes only its ordinary menu", () => {
     const node = createNode({ title: "Finder selection", icon: "Star" });
     const view = render(<NodeCard presentation="inbox-explorer" node={node} onClick={vi.fn()} />);
