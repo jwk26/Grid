@@ -977,7 +977,7 @@ no keyboard case.
 
 **Commit message:** `fix(inbox): close one layer per Esc and keep focus when an Undo unblocks`.
 
-### Task 254: [ ] Recover an Inbox lock whose surface is gone
+### Task 254: [x] Recover an Inbox lock whose surface is gone
 
 **Files and actions:**
 - `src/hooks/use-triage-operation-lock.ts` and test: the lock owner keeps,

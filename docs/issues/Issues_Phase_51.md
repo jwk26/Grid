@@ -151,9 +151,9 @@ Plan fixes at start: Task 252 names `app-frame-title`, `app-frame-reason` and `a
 ## Task 254 — Recover an Inbox lock whose surface is gone
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 254 acceptance
-- Open: mi-5 (fixed in Stage 3, status for the user to decide); mi-6 (Low, expert Low-1); mi-4 (held until seen again); mi-3 (deferred at the Phase 51 close); mi-1 (phase-wide gate item, not this task's work)
+- Status: Accepted
+- Next: Phase 51 close (`/end-phase`)
+- Open: mi-6 (Deferred to `Issues_Deferred.md` at the Phase 51 close); mi-4 (held until seen again); mi-3 (deferred at the Phase 51 close); mi-1 (phase-wide gate item, not this task's work)
 
 ### Log
 - Work plan (2026-11-05): Three stages, each ending at a stage-acceptance stop (no user visual checkpoint; ST05). Local Supabase: the agent checks the containers before the browser stage and asks the user to start it if it is down. No file outside the plan's list is expected; if one is needed the task stops (ST27).
@@ -179,6 +179,10 @@ Plan fixes at start: Task 252 names `app-frame-title`, `app-frame-reason` and `a
 - Review (expert, 2026-11-05, finish): no High or Medium finding; duplicate or missing requests, write resend or timed loop, stranded or wrongly released lock, the reconnect rule (ST37, ST38), the `Esc` layer flag and the optional lock members all checked sound. Low-2 fixed: after the workspace left, `holdUnknown` and `noteCheckStart` refuse (an editor save invalidated while still out no longer sends its own check after the Inbox is left); test, mutation-checked. Low-1 → mi-6, not fixed.
 - mi-6 [Open, Low, user decides]: a still-mounted invalidated editor whose owner check (a return to normal) is out ignores a `Check again` press without showing "checking" — cause: the owner's closure does not set `checking` on a mounted editor, and `checkInvalidated` returns on a busy check before committing — fix: commit `checking: true` from the closure while mounted (the existing `reconcile()` guard then blocks the button). Not fixed: a visible-state change outside the plan's acceptance, and the window is one request long.
 
+- Review (advisory, 2026-11-05, task finish): approve. Checked `bc9d47f`..`94ebc8e` against the observable acceptance and ST23–ST27, ST33, ST34, ST37, ST38: runs 1–5 by `reconcile_*` count, Unstage, Delete and a Stage whose candidate leaves covered by unit tests as the plan allows, run 4 recorded as the ST25 residual; the `expert` Low-2 fix (`holdUnknown` and `noteCheckStart` refuse after the workspace left) checked in the diff; the change stays inside the ST27 file list, with `breakdown-panel.tsx` and `triage-workspace.tsx` unchanged and the reconnect subscription in the lock hook, both recorded in the checkpoint for the `/end-phase` conformance review. Next is `/end-phase`; it needs nothing beyond the plan and this ledger (phase-close `pnpm test:db` after merging `main` while the DB lane is idle; the Open items). Apply: none. Not applied: none.
+- Decision: mi-5 Closed, fixed in `9cfc07d` and unit-tested (user, 2026-11-05).
+- Decision: mi-6 Deferred to `Issues_Deferred.md` at the Phase 51 close, fix direction as recorded (user, 2026-11-05).
+- Decision: Task 254 accepted (user, 2026-11-05).
 ### Checkpoint
 - Changed: `use-triage-operation-lock.ts` (the owner: held record, `holdUnknown`, `noteCheckStart`, `markSurfaceGone`, `surfaceGone`, reconnect rule, dispose), `connection-monitor.ts` and `connection.ts` (outage evidence count, real state), `use-scratch-breakdowns.ts` (editor, Add and Delete hand-off and unmount report), `use-dnd.ts` (Stage and Unstage hand-off, `checkAfterSurfaceGone`, the `Esc` layer from drag start for mi-5), and their tests. `breakdown-panel.tsx` and `triage-workspace.tsx` needed no change (the hook sits inside the panel). Reconnect subscription lives in the lock hook, not the workspace.
 - Verified: full gate without `pnpm test:db` (app lane): diff check, lint (10 warnings, as at the baseline), typecheck, 2615 tests, build; mutation checks per stage. Browser (isolated Playwright, local Supabase, fixture `task254`): acceptance runs 1–5 by `reconcile_*` request count (Add and Stage once on a gone surface; offline back within and after 30 s one more each, none while offline, no timed loop, unlocked and Add works after an answer; own-path failure sent once; 500 answer keeps the lock; editor invalidation check plus remount one request), and a normal drag `Esc` then edit-mode `Esc`.
@@ -186,3 +190,4 @@ Plan fixes at start: Task 252 names `app-frame-title`, `app-frame-reason` and `a
 - Unresolved: mi-6 (Low). Not browser-run: Unstage, Delete, a Stage whose candidate leaves the list (unit tests); in run 3 the unstable state itself was not seen on screen. ST25 residual recorded in run 4.
 - Lesson: a test that finds a count by `Promise.resolve()` ticks passes when the call has not happened yet; flush ten ticks, and run the mutation by hand once when the script says it survived (the script missed a multi-line replace). A class-name check for a toggle (`bg-accent`) matched the hover variant in every state; check the toggle before reading it.
 - Review: `expert`: Low-2 → fixed (this commit); Low-1 → mi-6, not fixed.
+- Accepted by the user (2026-11-05); the dev server on port 3054 was stopped by its PID and the Playwright window closed. Advisory finish review and the mi-5 and mi-6 decisions applied.
