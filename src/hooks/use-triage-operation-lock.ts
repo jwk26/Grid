@@ -158,6 +158,8 @@ export function useTriageOperationLock(): TriageOperationLock {
       operationId: string,
       check: () => Promise<RepositoryOperationStatus | null>,
     ) => {
+      // Leaving the workspace drops the record and its check: nothing outlives it.
+      if (disposedRef.current) return;
       if (activeOperationRef.current?.operationId !== operationId) return;
       const existing = heldRef.current;
       if (existing?.operationId === operationId) {
@@ -190,6 +192,7 @@ export function useTriageOperationLock(): TriageOperationLock {
   const noteCheckStart = useCallback(
     (operationId: string): (() => void) | null => {
       const held = heldRef.current;
+      if (disposedRef.current) return null;
       if (held === null || held.operationId !== operationId) return () => {};
       if (held.checking) return null;
       held.checking = true;

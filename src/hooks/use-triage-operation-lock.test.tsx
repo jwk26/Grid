@@ -405,6 +405,16 @@ describe("held command whose surface is gone (stabilization ST24, ST33, ST37, ST
     expect(result.current.noteCheckStart?.("op-1")).not.toBeNull();
   });
 
+  it("after the workspace left, a late registration or check start is refused", () => {
+    const { result, unmount } = setup(null);
+    unmount();
+    const check = vi.fn(async () => null);
+    result.current.holdUnknown?.("op-1", check);
+    expect(result.current.noteCheckStart?.("op-1")).toBeNull();
+    result.current.surfaceGone?.("op-1");
+    expect(check).not.toHaveBeenCalled();
+  });
+
   it("drops the deferred check once the workspace left", async () => {
     const { result, check, unmount } = setup(null);
     act(() => result.current.surfaceGone?.("op-1"));
