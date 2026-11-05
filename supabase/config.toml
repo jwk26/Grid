@@ -55,9 +55,10 @@ default_pool_size = 20
 max_client_conn = 100
 
 # Phase 52: the cron functions read the backup shared secret from Vault; a reset restores it
-# from `.env.local`. The function URL is added with the pg_net measurement (Task 255 item 6).
+# from `.env.local`.
 [db.vault]
 backup_shared_secret = "env(BACKUP_SHARED_SECRET)"
+backup_function_url = "env(BACKUP_FUNCTION_URL)"
 
 [db.migrations]
 # If disabled, migrations will be skipped during a db push or reset.
@@ -118,6 +119,12 @@ port = 54324
 [storage]
 enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
+file_size_limit = "50MiB"
+
+# Phase 52: the local stand-in for the R2 backup bucket (Task 255 item 4); the CLI creates it
+# again after `supabase db reset`.
+[storage.buckets.backup]
+public = false
 file_size_limit = "50MiB"
 
 # Uncomment to configure local storage buckets
@@ -412,6 +419,11 @@ deno_version = 2
 # Phase 52: the backup function's secrets, read from `.env.local` (never a production value).
 [edge_runtime.secrets]
 BACKUP_SHARED_SECRET = "env(BACKUP_SHARED_SECRET)"
+BACKUP_S3_ENDPOINT = "env(BACKUP_S3_ENDPOINT)"
+BACKUP_S3_REGION = "env(BACKUP_S3_REGION)"
+BACKUP_S3_BUCKET = "env(BACKUP_S3_BUCKET)"
+BACKUP_S3_ACCESS_KEY_ID = "env(BACKUP_S3_ACCESS_KEY_ID)"
+BACKUP_S3_SECRET_ACCESS_KEY = "env(BACKUP_S3_SECRET_ACCESS_KEY)"
 
 # The scheduled call carries the shared secret, not a JWT, so the gateway must not check one;
 # the function verifies the JWT itself for the JWT modes.

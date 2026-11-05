@@ -32,5 +32,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "supabase/functions/backup"]
+  "exclude": ["node_modules", "supabase/functions/backup", "scripts/backup-measure/measure-fn"]
 }

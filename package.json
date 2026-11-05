@@ -44,6 +44,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "aws4fetch": "1.0.20",
     "babel-plugin-react-compiler": "1.0.0",
     "deno": "2.1.4",
     "eslint": "^9",

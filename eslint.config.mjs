@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Deno code, checked by `pnpm check:edge`.
     "supabase/functions/backup/**",
+    "scripts/backup-measure/measure-fn/**",
   ]),
 ]);
 
