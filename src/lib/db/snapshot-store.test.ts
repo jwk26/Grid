@@ -73,15 +73,18 @@ describe("parseSnapshotValue", () => {
     expect(result.data.bits.get(OTHER_ID)).toMatchObject({ id: OTHER_ID, parentId: baseEntities.bit.parentId });
   });
 
-  it("accepts a value with the Phase 52 `backup` key and ignores it", () => {
+  it("reads the Phase 52 `backup` key beside the view, never inside it", () => {
     const backup = { run_started_at: null, last_checked_at: 1, last_file_at: 1, last_result: "written", failure_reason: null, server_now: 2 };
-    const plain = parseSnapshotValue(snapshotOf([nodeRow(NODE_ID)]));
-    for (const value of [backup, null]) {
-      const result = parseSnapshotValue({ ...snapshotOf([nodeRow(NODE_ID)]), backup: value });
-      expect(result).toEqual(plain);
+    const withValue = parseSnapshotValue({ ...snapshotOf([nodeRow(NODE_ID)]), backup });
+    const withNull = parseSnapshotValue({ ...snapshotOf([nodeRow(NODE_ID)]), backup: null });
+    const without = parseSnapshotValue(snapshotOf([nodeRow(NODE_ID)]));
+    for (const result of [withValue, withNull, without]) {
       expect(result.kind).toBe("snapshot");
       if (result.kind === "snapshot") expect(Object.keys(result.data)).not.toContain("backup");
     }
+    expect(withValue).toMatchObject({ backup: { lastResult: "written", serverNow: 2 } });
+    expect(withNull).toMatchObject({ backup: null });
+    expect(without).toMatchObject({ backup: undefined });
   });
 
   it("treats a value that holds a rejection as a rejection, never as an empty account", () => {
@@ -94,6 +97,44 @@ describe("parseSnapshotValue", () => {
   it("refuses a value that is neither", () => {
     expect(() => parseSnapshotValue({ nodes: [] })).toThrow();
     expect(() => parseSnapshotValue(null)).toThrow();
+  });
+});
+
+describe("SnapshotStore: backup slot", () => {
+  const raw = (serverNow: number, extra: Record<string, unknown> = {}) => ({
+    run_started_at: null,
+    last_checked_at: 1,
+    last_file_at: 1,
+    last_result: "written",
+    failure_reason: null,
+    server_now: serverNow,
+    ...extra,
+  });
+
+  it("is refreshed with every snapshot fetch, and an older fetch never overwrites a later value", async () => {
+    const answers = [raw(2000), raw(1000, { last_result: "failed" })];
+    const store = new SnapshotStore({
+      fetchSnapshot: async () => ({ ...snapshotOf([]), backup: answers.shift() }),
+    });
+    await store.load();
+    expect(store.backup.getState().value?.serverNow).toBe(2000);
+    await store.refetch();
+    expect(store.backup.getState().value).toMatchObject({ serverNow: 2000, lastResult: "written" });
+  });
+
+  it("a snapshot without the key leaves the slot unknown", async () => {
+    const { store } = await loaded();
+    expect(store.backup.getState().known).toBe(false);
+  });
+
+  it("reset clears it, and an answer started before the reset is ignored after it", async () => {
+    const store = new SnapshotStore({ fetchSnapshot: async () => ({ ...snapshotOf([]), backup: raw(5) }) });
+    await store.load();
+    const epoch = store.backup.getEpoch();
+    store.reset();
+    expect(store.backup.getState()).toMatchObject({ known: false, value: null });
+    store.backup.offer({ ...store.backup.getState().value!, serverNow: 9 } as never, epoch);
+    expect(store.backup.getState().known).toBe(false);
   });
 });
 

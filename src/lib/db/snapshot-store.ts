@@ -1,4 +1,5 @@
 import { REQUEST_TIMEOUT_MS } from "@/lib/constants";
+import { BackupSlot, parseBackupValue, type BackupValue } from "@/lib/backup/backup-slot";
 import type { RequestResult } from "@/lib/db/connection-monitor";
 import {
   bitFromRow,
@@ -93,7 +94,8 @@ export type StoreState = {
 export type RefetchResult = "applied" | "rejected" | "failed";
 
 export type ParsedSnapshot =
-  | { kind: "snapshot"; data: AccountView }
+  // `backup`: the snapshot's backup value; null is no row yet, undefined a value the server did not send.
+  | { kind: "snapshot"; data: AccountView; backup: BackupValue | null | undefined }
   | { kind: "rejection"; code: string };
 
 function emptyView(): MutableView {
@@ -142,7 +144,7 @@ export function parseSnapshotValue(value: unknown): ParsedSnapshot {
       (data[table] as Map<string, Entity>).set(row.id, mapRow(table, row));
     }
   }
-  return { kind: "snapshot", data };
+  return { kind: "snapshot", data, backup: parseBackupValue(record.backup) };
 }
 
 function cloneView(view: AccountView): MutableView {
@@ -266,6 +268,8 @@ export class SnapshotStore {
   // The tail of each record's send chain: a write waits for the one before it on the same record.
   private readonly chains = new Map<string, Promise<unknown>>();
   private epoch = 0;
+  /** The account's backup state beside the view (SPEC §Account backup); not part of `StoreState`. */
+  readonly backup = new BackupSlot();
 
   constructor(options: SnapshotStoreOptions) {
     this.fetchSnapshot = options.fetchSnapshot;
@@ -325,6 +329,7 @@ export class SnapshotStore {
         return "rejected";
       }
       this.base = parsed.data;
+      if (parsed.backup !== undefined) this.backup.offer(parsed.backup, this.backup.getEpoch());
       this.status = { phase: "ready" };
       this.publish();
       return "applied";
@@ -520,6 +525,7 @@ export class SnapshotStore {
     this.pending = [];
     this.chains.clear();
     this.inflight = null;
+    this.backup.reset();
     this.publish();
   }
 
