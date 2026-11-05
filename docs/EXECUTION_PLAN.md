@@ -1067,7 +1067,7 @@ B11, B12; DECISION §Runner, §Retention, §Object key, §Failure alerts,
 
 **Observable acceptance:** a `manual` call whose body names another account
 backs up only the caller; a guest JWT is refused and leaves no row and no
-object; `scheduled` and `summary` without the shared secret are refused; an unchanged account writes no file and records the check; after
+object; `scheduled` and `summary` without the shared secret are refused; an unchanged account writes no dated file and records the check, and rewrites `identity.json` only when its providers changed; after
 files on 14 different days across 8 ISO weeks the bucket holds the 7
 latest files and the latest file of each of the 4 ISO weeks before them, and
 every other dated file is deleted (amended 2026-11-06: 9 days could not reach
@@ -1192,7 +1192,11 @@ times and the fact that each secret was set):
    and its objects at the end and on SIGINT and SIGTERM.
 5. Confirm no new Security Advisor warning, or show each to the user (SCHEMA
    §Database tests).
-6. Confirm one successful scheduled run and the summary's success ping.
+6. Confirm one successful scheduled run and the summary's success ping. Then
+   the owner, signed in on production, presses `Back Up Now` once and reopens
+   the dialog once (one status read): the JWT modes run only there through
+   `getClaims`' JWKS path and the function's `SUPABASE_ANON_KEY` (Task 257
+   finish review, 2026-11-06).
 7. Force an alert: point the summary's ping secret at an invalid URL for one
    cycle, receive the missing-ping email, restore the secret, and see the next
    success. This step takes more than a day: the email comes only after the

@@ -1602,8 +1602,12 @@ scheduled run backs up every account once; this is expected.
 
 **Retention** (no R2 lifecycle rule for account backups):
 
-- A run whose fingerprint matches the last backup writes no file, scheduled or
-  `Back Up Now` alike; it records only the check.
+- A run whose fingerprint matches the last backup writes no dated file,
+  scheduled or `Back Up Now` alike; it records only the check. After the
+  pre-upload check it reads `identity.json` and writes it again only when the
+  providers or provider user ids differ or the file is missing, since linking
+  a provider does not change the fingerprint (Task 257 finish review,
+  2026-11-06).
 - Pruning runs only right after a new file is written and counts files, not
   calendar days: it keeps the 7 latest files and, before them, the latest file
   of each of 4 ISO weeks before the week of the 7th latest file (an older file
