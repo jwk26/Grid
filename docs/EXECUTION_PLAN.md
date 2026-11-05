@@ -885,9 +885,7 @@ check by the agent of both behaviors.
 - `src/hooks/use-bit-detail.ts` and `src/components/bit-detail/bit-detail-popup.tsx`
   and tests: tell apart not yet read, missing and found; after the read, a
   missing Bit or one with `deletedAt` or `archivedAt` removes `?bit=` with
-  `window.history.replaceState` on the same path (no new history entry;
-  `router.replace` does nothing on a cold-loaded static route, mi-2) and
-  closes, on every route (ST31); the popup's own close uses the same removal.
+  `router.replace` and closes, on every route (ST31).
 - `src/lib/copy/feedback.ts`: the ST18 title, reason and button and the ST30
   reason.
 - `src/components/layout/breadcrumbs.tsx` only if the breadcrumb needs a guard
