@@ -987,6 +987,65 @@ describe("useTriageDnd — pointer activation lifecycle", () => {
     expect(isEscapeLayerOpen()).toBe(false);
   });
 
+  describe("a drag that handleDragStart refuses is still an Esc layer (Phase 51 mi-5)", () => {
+    const refusals = {
+      "a lock is held": () => {
+        operationLockState.activeOperation = { kind: "edit", operationId: "held-op" };
+      },
+      "Placement is open": () => {
+        placementOpenState.open = true;
+      },
+    } as const;
+
+    it.each(Object.keys(refusals) as (keyof typeof refusals)[])(
+      "when %s, the drag is a layer until dnd-kit cancels it",
+      (reason) => {
+        refusals[reason]();
+        const { result } = renderHook(() =>
+          useTriageDnd("scratch-1", durableCandidateOptions()),
+        );
+        act(() => {
+          result.current.handleDragStart(makeDragEndEvent(makeBreakdownDragData(), null));
+        });
+        expect(result.current.activeDragItem).toBeNull();
+        expect(isEscapeLayerOpen()).toBe(true);
+        expect(isTriageDragActive()).toBe(true);
+
+        act(() => result.current.handleDragCancel());
+        expect(isEscapeLayerOpen()).toBe(false);
+      },
+    );
+
+    it("a refused drag that ends by a drop stops being a layer", async () => {
+      operationLockState.activeOperation = { kind: "edit", operationId: "held-op" };
+      const { result } = renderHook(() =>
+        useTriageDnd("scratch-1", durableCandidateOptions()),
+      );
+      const event = makeDragEndEvent(makeBreakdownDragData(), {
+        kind: "triage-node-zone-drop",
+      });
+      act(() => result.current.handleDragStart(event));
+      expect(isEscapeLayerOpen()).toBe(true);
+      await act(async () => {
+        await result.current.handleDragEnd(event);
+      });
+      expect(isEscapeLayerOpen()).toBe(false);
+      expect(stageCandidateMock).not.toHaveBeenCalled();
+    });
+
+    it("the layer closes when the hook unmounts mid-drag", () => {
+      operationLockState.activeOperation = { kind: "edit", operationId: "held-op" };
+      const { result, unmount } = renderHook(() =>
+        useTriageDnd("scratch-1", durableCandidateOptions()),
+      );
+      act(() => {
+        result.current.handleDragStart(makeDragEndEvent(makeBreakdownDragData(), null));
+      });
+      unmount();
+      expect(isEscapeLayerOpen()).toBe(false);
+    });
+  });
+
   it("cancels the active lifecycle on Escape and suppresses its later drop", async () => {
     const { result } = renderHook(() =>
       useTriageDnd("scratch-1", durableCandidateOptions()),

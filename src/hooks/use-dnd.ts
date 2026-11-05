@@ -435,8 +435,11 @@ export function useTriageDnd(
 } {
   const [activeDragItem, setActiveDragItem] =
     useState<TriageActiveDragItem>(null);
-  // A Triage drag is the top `Esc` layer: the press only cancels it (stabilization ST20).
-  useEscapeLayer(activeDragItem !== null, "triage-drag");
+  // A Triage drag is the top `Esc` layer: the press only cancels it (stabilization ST20). It is
+  // one from dnd-kit's own drag start, not from the snapshot: a drag that `handleDragStart` refuses
+  // (a lock held, Placement open) still runs in dnd-kit, so `Esc` must cancel only it (mi-5).
+  const [dragStarted, setDragStarted] = useState(false);
+  useEscapeLayer(dragStarted, "triage-drag");
   const [overTargetId, setOverTargetId] = useState<string | null>(null);
   const [targetFeedback, setTargetFeedback] =
     useState<TriageTargetFeedback>(null);
@@ -462,6 +465,7 @@ export function useTriageDnd(
       !isPlacementOpen() &&
       !operationLock.isLocked() &&
       snapshot?.scratchId === selectedScratchId;
+    setDragStarted(true);
     activationSnapshotRef.current = isCurrentScratch ? snapshot : null;
     dragCancelledRef.current = false;
     feedbackRequestRef.current += 1;
@@ -696,6 +700,7 @@ export function useTriageDnd(
 
       dragCancelledRef.current = true;
       activationSnapshotRef.current = null;
+      setDragStarted(false);
       setActiveDragItem(null);
       pointerRef.current = null;
       clearDragTarget();
@@ -822,6 +827,7 @@ export function useTriageDnd(
   };
 
   const handleDragCancel = () => {
+    setDragStarted(false);
     dragCancelledRef.current = true;
     activationSnapshotRef.current = null;
     pointerRef.current = null;
@@ -845,6 +851,7 @@ export function useTriageDnd(
         ? null
         : eventDropData);
 
+    setDragStarted(false);
     activationSnapshotRef.current = null;
     pointerRef.current = null;
     setActiveDragItem(null);
