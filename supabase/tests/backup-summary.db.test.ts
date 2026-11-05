@@ -115,7 +115,7 @@ describe("the ping", () => {
     expect(r.ping.path).toBe("/ping/fail");
     expect(r.ping.body).toContain("new_failures=1");
 
-    await runFailing(a.id, "export_timeout"); // a changed reason is new
+    await runFailing(a.id, "too_large"); // a changed reason is new
     r = await summary();
     expect(r.ping.path).toBe("/ping/fail");
 

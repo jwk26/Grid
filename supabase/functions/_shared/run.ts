@@ -5,7 +5,7 @@
 
 import { backupObjectKey, identityKey, accountPrefix } from "./object-key.ts";
 import { planPrune } from "./retention.ts";
-import type { IdentityFile } from "./identity.ts";
+import { sameIdentity, type IdentityFile } from "./identity.ts";
 import { logCode } from "./safe-error.ts";
 
 export type RunKind = "scheduled" | "manual";
@@ -37,6 +37,8 @@ export type RunDeps = {
   exportGzip(userId: string): Promise<ExportAnswer>;
   accountCheck(userId: string): Promise<string>;
   put(key: string, body: Uint8Array | string, contentType: string): Promise<void>;
+  /** The object text, or null when it does not exist. */
+  getText(key: string): Promise<string | null>;
   list(prefix: string): Promise<ListedObject[]>;
   remove(keys: string[]): Promise<void>;
   /** True only when the database confirmed the finish (`applied`). */
@@ -93,6 +95,16 @@ export async function runBackup(deps: RunDeps, input: RunInput): Promise<RunOutc
       }
       if (present === "account_missing" || present === "account_deleting") return await end("abandoned");
       if (present !== "ok") return await fail("account_check_unexpected");
+      // Linking a provider does not change the fingerprint: rewrite identity.json only when its
+      // content differs or the file is missing, so the recovery lookup finds a newly linked provider.
+      try {
+        if (!sameIdentity(await deps.getText(identityKey(userId)), identity)) {
+          await deps.put(identityKey(userId), JSON.stringify(identity), "application/json");
+        }
+      } catch (error) {
+        deps.log(`identity refresh failed: ${logCode(error)}`);
+        return await fail("upload_failed");
+      }
       return await end("unchanged");
     }
 

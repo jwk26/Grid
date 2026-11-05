@@ -8,6 +8,7 @@ import { SafeError } from "../_shared/safe-error.ts";
 
 export type ObjectStore = {
   put(key: string, body: Uint8Array | string, contentType: string): Promise<void>;
+  getText(key: string): Promise<string | null>;
   list(prefix: string): Promise<ListedObject[]>;
   remove(keys: string[]): Promise<void>;
 };
@@ -41,6 +42,17 @@ export function createObjectStore(): ObjectStore {
       const res = await send(objectUrl(key), { method: "PUT", body, headers: { "content-type": contentType } });
       await res.arrayBuffer();
       if (!res.ok) throw new SafeError(`put_${res.status}`);
+    },
+
+    async getText(key) {
+      const res = await aws.fetch(objectUrl(key));
+      if (res.status === 404) {
+        await res.arrayBuffer();
+        return null;
+      }
+      const text = await res.text();
+      if (!res.ok) throw new SafeError(`get_${res.status}`);
+      return text;
     },
 
     async list(prefix) {

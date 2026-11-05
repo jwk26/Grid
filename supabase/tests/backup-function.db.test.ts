@@ -135,6 +135,34 @@ describe("scheduled", () => {
     expect(row2).toMatchObject({ last_result: "unchanged", run_started_at: null });
   });
 
+  it("rewrites identity.json on an unchanged run only when a provider was linked or the file is missing", async () => {
+    const a = await newUser("bkf-link");
+    await scheduled(a.id);
+    const key = `accounts/${a.id}/identity.json`;
+    const same = JSON.stringify({ providers: [{ provider_user_id: a.providerUserId, provider: "github" }], user_id: a.id }, null, 2);
+    await putObject(key, same); // the same content in another layout: not rewritten
+    expect((await scheduled(a.id)).json.result.result).toBe("unchanged");
+    expect((await readObject(key)).toString("utf8")).toBe(same);
+
+    await db.query(
+      `insert into auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+       values ('g-linked', $1, jsonb_build_object('sub', 'g-linked'), 'google', now(), now(), now())`,
+      [a.id],
+    );
+    expect((await scheduled(a.id)).json.result.result).toBe("unchanged"); // a link does not change the fingerprint
+    expect(JSON.parse((await readObject(key)).toString("utf8"))).toEqual({
+      user_id: a.id,
+      providers: [
+        { provider: "github", provider_user_id: a.providerUserId },
+        { provider: "google", provider_user_id: "g-linked" },
+      ],
+    });
+
+    await removeObjects([key]); // a missing file is written again
+    expect((await scheduled(a.id)).json.result.result).toBe("unchanged");
+    expect(JSON.parse((await readObject(key)).toString("utf8")).providers).toHaveLength(2);
+  });
+
   it("writes a new file when the account changed", async () => {
     const a = await newUser("bkf-changed");
     await scheduled(a.id);

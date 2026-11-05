@@ -12,6 +12,7 @@ type Opts = {
   exported?: ExportAnswer | (() => Promise<ExportAnswer>);
   check?: string | (() => Promise<string>);
   put?: (key: string) => Promise<void>;
+  stored?: string | null; // the existing identity.json text
   log?: (m: string) => void;
   listed?: { key: string; size: number }[];
   remove?: () => Promise<void>;
@@ -35,6 +36,7 @@ function fake(o: Opts = {}) {
       puts.push(key);
       await o.put?.(key);
     },
+    getText: () => (calls.push("get"), Promise.resolve(o.stored === undefined ? JSON.stringify(identity) : o.stored)),
     list: () => (calls.push("list"), Promise.resolve(o.listed ?? [{ key: `accounts/${ID}/2026-11-06.json.gz`, size: 4 }, { key: `accounts/${ID}/identity.json`, size: 80 }])),
     remove: async (keys) => {
       calls.push("remove");
@@ -76,7 +78,8 @@ describe("runBackup", () => {
     const f = fake({ fingerprint: "old" });
     const out = await runBackup(f.deps, input);
     expect(out).toMatchObject({ result: "unchanged", confirmed: true });
-    expect(f.calls).toEqual(["begin", "fingerprint", "check", "finish"]);
+    expect(f.calls).toEqual(["begin", "fingerprint", "check", "get", "finish"]);
+    expect(f.puts).toEqual([]); // identity.json is the same: nothing written
   });
 
   it("a first run (no stored fingerprint) always writes", async () => {
@@ -167,5 +170,18 @@ describe("runBackup", () => {
     const f = fake({ fingerprint: "old", check: "account_deleting" });
     expect(await runBackup(f.deps, input)).toMatchObject({ result: "abandoned" });
     expect(f.finishes).toEqual([{ result: "abandoned", args: undefined }]);
+  });
+
+  it("an unchanged run rewrites identity.json when a provider was linked, or the file is missing", async () => {
+    for (const stored of [JSON.stringify({ user_id: ID, providers: [] }), null]) {
+      const f = fake({ fingerprint: "old", stored });
+      expect(await runBackup(f.deps, input)).toMatchObject({ result: "unchanged", confirmed: true });
+      expect(f.puts).toEqual([`accounts/${ID}/identity.json`]);
+    }
+  });
+
+  it("an unchanged run whose identity refresh fails is failed, not unchanged", async () => {
+    const f = fake({ fingerprint: "old", stored: null, put: () => Promise.reject(new Error("net")) });
+    expect(await runBackup(f.deps, input)).toMatchObject({ result: "failed", reason: "upload_failed" });
   });
 });

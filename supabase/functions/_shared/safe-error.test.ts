@@ -11,8 +11,8 @@ describe("logCode", () => {
 });
 
 describe("classifyExportFailure", () => {
-  it("reads 57014 as a timeout and everything else as a failure", () => {
-    expect(classifyExportFailure('{"code":"57014","message":"canceling statement due to statement timeout"}')).toBe("export_timeout");
+  it("reads 57014 as too_large and everything else as a failure", () => {
+    expect(classifyExportFailure('{"code":"57014","message":"canceling statement due to statement timeout"}')).toBe("too_large");
     expect(classifyExportFailure('{"code":"42501","message":"permission denied"}')).toBe("export_failed");
     expect(classifyExportFailure("<html>502</html>")).toBe("export_failed");
     expect(classifyExportFailure("")).toBe("export_failed");

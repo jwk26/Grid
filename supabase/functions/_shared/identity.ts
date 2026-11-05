@@ -25,3 +25,20 @@ export function judgeAuthUser(user: AuthUserLike): Eligibility {
   if (providers.length === 0) return { ok: false, code: "no_oauth_identity" };
   return { ok: true, identity: { user_id: user.id, providers } };
 }
+
+/**
+ * True when the stored `identity.json` text holds the same user id, providers and provider user ids
+ * as `identity`. A missing, unreadable or different file is not the same.
+ */
+export function sameIdentity(stored: string | null, identity: IdentityFile): boolean {
+  if (stored === null) return false;
+  try {
+    const parsed = JSON.parse(stored) as Partial<IdentityFile> | null;
+    if (!parsed || parsed.user_id !== identity.user_id || !Array.isArray(parsed.providers)) return false;
+    const norm = (list: { provider?: unknown; provider_user_id?: unknown }[]) =>
+      list.map((p) => `${String(p.provider)}\u0000${String(p.provider_user_id)}`).sort().join("\u0001");
+    return norm(parsed.providers) === norm(identity.providers);
+  } catch {
+    return false;
+  }
+}

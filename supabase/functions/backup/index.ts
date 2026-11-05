@@ -50,6 +50,7 @@ function realDeps(): RunDeps {
     exportGzip,
     accountCheck: db.accountCheck,
     put: store.put,
+    getText: store.getText,
     list: store.list,
     remove: store.remove,
     finish: db.finish,
