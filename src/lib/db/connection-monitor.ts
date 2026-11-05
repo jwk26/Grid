@@ -35,6 +35,9 @@ export class ConnectionMonitor {
   // Development state switch only (feedback F30): shows and gates as this state without touching the real one.
   private forced: ConnectionState | null = null;
   private failures = 0;
+  // Outage evidence (stabilization ST34, ST37): a failed probe or the browser's `offline` event.
+  // A request's own failure is not evidence, so a held command's check cannot earn its own retry.
+  private outageEvidence = 0;
   private started = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private probing = false;
@@ -50,6 +53,12 @@ export class ConnectionMonitor {
   }
 
   getState = (): ConnectionState => this.forced ?? this.state;
+
+  /** The state requests have produced, ignoring a development forced state. */
+  getRealState = (): ConnectionState => this.state;
+
+  /** How many times outage evidence has arrived (a failed probe, the browser `offline` event). */
+  getOutageEvidenceCount = (): number => this.outageEvidence;
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
@@ -113,6 +122,7 @@ export class ConnectionMonitor {
   }
 
   private readonly onBrowserOffline = () => {
+    this.outageEvidence += 1;
     this.failures = this.offlineAfter;
     this.set("offline");
   };
@@ -170,6 +180,7 @@ export class ConnectionMonitor {
     }
     clearTimeout(timer);
     if (!answered) {
+      this.outageEvidence += 1;
       this.probing = false;
       this.report("unreachable");
     } else if (this.options.isReady()) {
