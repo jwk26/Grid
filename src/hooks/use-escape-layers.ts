@@ -16,6 +16,11 @@ export function isEscapeLayerOpen(): boolean {
   return open.size > 0;
 }
 
+/** How many registered layers are open (the explorer search included). */
+export function escapeLayerCount(): number {
+  return open.size;
+}
+
 /** Whether a Triage drag is active. While it is, only the drag cancels: no other layer closes. */
 export function isTriageDragActive(): boolean {
   for (const kind of open.values()) if (kind === "triage-drag") return true;

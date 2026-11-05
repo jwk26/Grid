@@ -3162,6 +3162,41 @@ describe("HierarchyExplorer Task 151 dedicated search and reveal", () => {
     expect(isEscapeLayerOpen()).toBe(false);
   });
 
+  it("leaves an open search to the next Esc when focus is outside the Explorer and another layer is open", () => {
+    explorerSearchState.mode = "active";
+    explorerSearchState.activeQuery = "projects";
+    explorerSearchState.results = [searchResult("node:projects")];
+    render(
+      <>
+        <HierarchyExplorer {...defaultProps} />
+        <button type="button">outside</button>
+      </>,
+    );
+    const outside = screen.getByRole("button", { name: "outside" });
+    outside.focus();
+    const other = renderHook(() => useEscapeLayer(true));
+
+    fireEvent.keyDown(outside, { key: "Escape" });
+    expect(explorerSearchState.closeSearch).not.toHaveBeenCalled();
+
+    other.unmount();
+    fireEvent.keyDown(outside, { key: "Escape" });
+    expect(explorerSearchState.closeSearch).toHaveBeenCalledOnce();
+  });
+
+  it("closes an open search with Esc from inside the Explorer even while another layer is open", () => {
+    explorerSearchState.mode = "active";
+    explorerSearchState.activeQuery = "projects";
+    explorerSearchState.results = [searchResult("node:projects")];
+    render(<HierarchyExplorer {...defaultProps} />);
+    const other = renderHook(() => useEscapeLayer(true));
+
+    screen.getByRole("searchbox").focus();
+    fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Escape" });
+    expect(explorerSearchState.closeSearch).toHaveBeenCalledOnce();
+    other.unmount();
+  });
+
   it("leaves an open search to the next Esc while a Triage drag is active", () => {
     explorerSearchState.mode = "active";
     explorerSearchState.activeQuery = "projects";

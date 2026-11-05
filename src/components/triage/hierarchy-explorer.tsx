@@ -46,7 +46,7 @@ import {
   type TriageDropData,
 } from "@/lib/grid-dnd";
 import type { ItemStatus } from "@/lib/feedback/item-status";
-import { isTriageDragActive, useEscapeLayer } from "@/hooks/use-escape-layers";
+import { escapeLayerCount, isTriageDragActive, useEscapeLayer } from "@/hooks/use-escape-layers";
 import { INBOX_TRIAGE_COPY } from "@/lib/copy/inbox-triage";
 import { cn } from "@/lib/utils";
 import {
@@ -990,6 +990,19 @@ export function HierarchyExplorer({
       if (event.key !== "Escape" || search.mode === "closed") return;
       // During a Triage drag the press only cancels the drag; the search closes on the next one.
       if (isTriageDragActive()) return;
+      // The search is not the top layer when focus is outside the Explorer and another layer is
+      // open (the Add field, an editor, the completion area, a dialog): that layer takes the press
+      // and the search stays for the next one (stabilization ST20).
+      const focusInExplorer = explorerRef.current?.contains(document.activeElement) ?? false;
+      if (
+        !focusInExplorer &&
+        (escapeLayerCount() > 1 ||
+          document.querySelector(
+            '[role="dialog"]:not([data-state="closed"]), [role="alertdialog"]:not([data-state="closed"])',
+          ) !== null)
+      ) {
+        return;
+      }
       event.preventDefault();
       search.closeSearch();
       if (activeDragItem === null) {
