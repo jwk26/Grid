@@ -45,6 +45,10 @@
 
 **Key a measuring effect to what mounts the measured node, not to the route id.** After client navigation a data hook can return the previous record for one render, so a conditionally mounted element (the breadcrumb) mounts a render after the id changed; an effect keyed on the id has already run and measured nothing, and the toast stack stayed over the breadcrumb. Add the mount condition (`showsBreadcrumb`) to the effect's dependencies. *(Phase 49, Task 244)*
 
+**A routed read must say which route it read.** A hook that keeps its previous value across a route change lets a caller judge the new id by the old record (an unavailable screen, a breadcrumb). Return a read state tied to the id (`pending` until that subscription's first emission, cleared in its cleanup, so a → b → a is pending again). *(Phase 51, Task 252)*
+
+**A shared `Esc` decision needs a registry and an earlier phase, not `defaultPrevented`.** An owner on `document` capture lost to child listeners registered first (children's effects run before the parent's), so it read a layer as open or closed depending on order. Layers register while open (`useEscapeLayer`, a layout effect) and the owner listens on `window` capture; a new `Esc`-handling surface registers and gets a test that fails when its registration is removed. *(Phase 51, Task 253)*
+
 ---
 
 ## Radix UI
@@ -115,6 +119,8 @@ Theme-specific values in these entries are examples. Never carry a number, color
 
 **Check a first load with a stored theme, not only a toggle.** Switching light to dark can pass while a first load with a stored dark setting fails hydration: the `ThemeToggle` server and client icon trees differed (P34-13). After a shared theme change, load and reload once with stored light, dark and system settings. *(Phase 34, Task 168)*
 
+**Trash a test Node by SQL with the current time.** TrashAutoCleanup purges Nodes in Trash older than `TRASH_RETENTION_DAYS` on the next load, so a past `deleted_at` permanently deleted test Nodes and their Bits mid-check and looked like another process replacing the seed. *(Phase 51, Task 252)*
+
 ---
 
 ## Accessibility
@@ -134,6 +140,10 @@ Theme-specific values in these entries are examples. Never carry a number, color
 **Run the real coordinator when a test proves handoff identity or focus.** With the Archive coordinator mocked, workspace-identity and marker tests passed while every successful Archive remounted the workspace. At least one test must drive the real hook through pending → selection change → terminal and fail on the old code. *(Phase 34, Task 171A)*
 
 **jsdom never matches `:focus-visible`.** A keyboard-focus test needs a stubbed `matches`, and its negative tests pass with no implementation at all. Check the browser heuristic (Tab, mouse, drop, click) in the mounted app before claiming focus-visible behavior. *(Phase 35, Task 179A)*
+
+**Mutation-check each guard a test claims to cover.** Tests written after the code passed while three of six drag guards had no test that failed without them; remove each guard alone and watch a test fail. When a scripted mutation reports a survivor, apply it by hand once (the script missed a multi-line replace). *(Phase 51, Tasks 253 and 254)*
+
+**Count calls after enough ticks, and check a toggle before reading its class.** A count taken after one `Promise.resolve()` passes when the call has not happened yet; flush about ten ticks. A class-name check for a toggle (`bg-accent`) matched the hover variant in every state. *(Phase 51, Task 254)*
 
 ---
 
@@ -156,6 +166,8 @@ Theme-specific values in these entries are examples. Never carry a number, color
 **Canonical file boundaries must include the real composition owner.** When an accepted behavior requires a parent component to project child counts or close parent-owned transient state, include that parent and its focused test in the canonical task contract. A child-only file list cannot truthfully own cross-boundary callback or heading behavior. *(Phase 26, Tasks 133–134)* To find the owner early, follow where the state appears on screen: Staging's Remove is drawn by the Workspace, Return by Breakdown, and the gap between panels by the shell. A component found this way is not automatically a write owner. *(Phase 34, Task 168)*
 
 **A regression task returns behavior defects through a bounded repair task.** When the final regression task finds a shared component or hook defect that predates the phase, an Opus session plans a separate repair task with its own scope review, and the regression task waits for its acceptance. The regression task never fixes it in place. *(Phase 34, Tasks 171A and 172)*
+
+**Check a framework premise in the production build before writing it into documents.** A decision that `history.replaceState` syncs with `useSearchParams` went into SPEC and DECISION, then failed on a cold-loaded static route in `next build`; the amendment was reverted. Run the premise in the build that ships before committing it. *(Phase 51, Task 252 mi-2)*
 
 ---
 
