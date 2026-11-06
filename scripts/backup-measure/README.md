@@ -17,3 +17,8 @@ Counts and times only. The Task 255 scripts are local only: they refuse any host
   `--local` rehearses it on local Supabase (`supabase functions serve --env-file .env.local`
   running); without it, it targets production and reads `~/.config/griddo/production.env` and
   `~/.griddo-secrets/prod-edge-secrets.env`. It refuses to run near 17:00, 19:00 and 03:17 UTC.
+- `prod-console-check.js` (Task 259 step 6): not Node: pasted into the browser console of the
+  production page, signed in as the owner. Calls the function's `manual` and `status` modes once each
+  with the page's own session token (read from localStorage, never printed or sent elsewhere), to prove
+  the browser's CORS preflight, `getClaims` through the JWKS path and `SUPABASE_ANON_KEY` on hosted.
+  `manual` makes the owner's first real backup.
