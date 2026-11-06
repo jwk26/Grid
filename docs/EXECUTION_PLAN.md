@@ -1384,10 +1384,11 @@ light and dark, in the prepared window.
   ping the 31-day Healthchecks.io check on success. No database reset.
 - Its header documents usage; the token file path comes from an environment
   variable.
-- The first-run drill of its 31-day check (a missing-ping alert) sends one
-  success ping to the check right before shortening the period, so the check
-  is up with a recent ping when it goes down (Task 259 step 7: a down flip made
-  with a stale last ping sent no email, one two minutes after a fresh ping did).
+- Note, not a step: this task has no alert drill. If the 31-day check's
+  missing-ping alert is ever drilled, send one success ping right before
+  shortening the period, so the check is up with a recent ping when it goes
+  down (Task 259 step 7: a down flip made with a stale last ping sent no
+  email, one two minutes after a fresh ping did).
 
 **Dependencies:** Task 262; the user's Task 263 preparation.
 
