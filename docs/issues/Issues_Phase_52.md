@@ -154,8 +154,8 @@ User preparation before Task 255 (plan §User preparation): R2 prices checked ag
 ## Task 258 — Add the sidebar Backup button and dialog
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 258 acceptance
+- Status: Accepted
+- Next: Task 259 (`/run-task 259`)
 - Open: none (mi-1 closed; mi-2 deferred to Phase 53)
 
 ### Log
@@ -188,3 +188,4 @@ User preparation before Task 255 (plan §User preparation): R2 prices checked ag
 - mi-2 [Deferred to Phase 53 (user, 2026-11-06)]: a connection reset after the request body reached the server lets the verdict read overtake `backup_begin()` and answer `not_started` for a run that then starts; harmless for a backup (no resend, no data loss; the next press is `rate_limited`), but Phase 53's restore verdicts share the design — cause: SCHEMA §Operation verdicts judge an id that is not yet recorded as `not_started` — fix: decided with the restore verdict design; carried in the plan's Task 260 `expert` review items, and to `Issues_Deferred.md` at the phase close.
 - Review applied (user go-ahead, 2026-11-06, task finish): (1) a successful `Back Up Now` answer with no `backup` value (`written` or `unchanged`) asks for one snapshot refetch through the existing refetch path, never a resend or a status read; tests for both results and for the cases that ask for none; (2) mi-2 above; (3) gate rerun below; (4) DESIGN_TOKENS BK-5 records the row as confirmed by the user at the check, 2026-11-06; (5) the dev server and `supabase functions serve` stop after acceptance.
 - Gate after the finish review (2026-11-06): `git diff --check` pass; `pnpm lint` 0 errors, 10 warnings (all existing, none in Task 258 files); `pnpm typecheck` pass; `pnpm check:edge` pass; `pnpm test` 2784 passed (160 files), both known flaky tests (`datastore.live-read.test.ts` "callers that ask before the account is ready share one store", `triage-workspace.test.tsx` "renders the dedicated DP-VQ01 surface paused with every full source-labeled draft") passed in this run; `pnpm test:db` 1072 passed (44 files); `pnpm build` pass, no state-switch marker in the production bundle.
+- Accepted by the user, 2026-11-06.

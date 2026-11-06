@@ -1090,7 +1090,7 @@ integration suites; `expert` review.
 
 **Commit message:** `feat(backup): add the backup Edge Function`.
 
-### Task 258: [ ] Add the sidebar Backup button and dialog
+### Task 258: [x] Add the sidebar Backup button and dialog
 
 **Files and actions:**
 - Merge `main` first (Phase 51 Task 252 also edits `sidebar.tsx`).
