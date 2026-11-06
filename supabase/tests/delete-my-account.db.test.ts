@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Client } from "pg";
 import { beforeAll, describe, expect, it } from "vitest";
 import { becomeActor, connect, withActor } from "./helpers/db";
+import { BACKUP_FUNCTIONS } from "./helpers/backup";
 import { adminClient, createTestUser, type TestUser } from "./helpers/users";
 
 // Task 235, Stage 1: the account-deletion fallback (SCHEMA §Account deletion). delete_my_account()
@@ -188,6 +189,14 @@ describe("delete_my_account()", () => {
       // The reads (get_snapshot, the reconcile functions and the classifier) stay `security invoker`
       // and owned by postgres; every other function stays `security definer` and owned by griddo_writer.
       for (const r of rows) {
+        if ((BACKUP_FUNCTIONS as readonly string[]).includes(r.name)) {
+          // The backup functions (Task 256) are the one exception: security invoker, owned by
+          // postgres, executable by service_role alone.
+          expect({ name: r.name, owner: r.owner, definer: r.definer, authed: r.authed, anon: r.anon, pub: r.pub, service: r.service }, r.name).toEqual({
+            name: r.name, owner: "postgres", definer: false, authed: false, anon: false, pub: false, service: true,
+          });
+          continue;
+        }
         const read = r.name === "get_snapshot" || r.name === "classify_archive_scratch_recovery" || r.name.startsWith("reconcile_");
         expect({ name: r.name, owner: r.owner, definer: r.definer }, r.name).toEqual(
           read

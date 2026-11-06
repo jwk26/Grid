@@ -35,11 +35,14 @@
 <h2>Where it is kept</h2>
 <p>Your account and tasks are stored in a Supabase Postgres database in Seoul, South Korea. The app is served by Vercel, which keeps ordinary request logs. Your browser stores only device settings (such as theme and sort order) and the sign-in session on your device.</p>
 
+<h2>Backups</h2>
+<p>Signed-in accounts (not guest accounts) are backed up automatically every day. A backup is a copy of all your Grid data (Nodes, Bits, Chunks and Inbox items), stored with Cloudflare R2 outside the main database, and Grid can restore your account from it. Next to the backups Grid keeps a small file naming your sign-in provider and your account id at that provider, so your account can be found again after a recovery; it holds no email address, name, sign-in token or session. Grid keeps your 7 latest backups and one a week for the 4 weeks before them, and a backup is written only when something changed. Deleting your account deletes its backups too.</p>
+
 <h2>How long it is kept</h2>
-<p>A guest account that has not been opened for 7 days is deleted with all its tasks. A signed-in account is kept until you delete it.</p>
+<p>A guest account that has not been opened for 7 days is deleted with all its tasks. A signed-in account is kept until you delete it. Its backups are kept as described under Backups, and are deleted with the account.</p>
 
 <h2>Deleting your data</h2>
-<p>Signed in, open the account menu and choose <strong>Delete account</strong>. Your account is signed out at once and cannot be used again; a daily cleanup then deletes the account and every task in it, within 24 hours. This cannot be undone.</p>
+<p>Signed in, open the account menu and choose <strong>Delete account</strong>. Your account is signed out at once and cannot be used again; a daily cleanup then deletes the account and every task in it, within 24 hours. Its backups are deleted by the next daily backup run after that. This cannot be undone.</p>
 
 <h2>Contact</h2>
 <p>Questions or requests about your data: open an issue at <a href="https://github.com/jwk26/Grid/issues">github.com/jwk26/Grid/issues</a>. Issues are public, so do not put your email address or other personal details in one; say only that you have a request and it will be answered there.</p>

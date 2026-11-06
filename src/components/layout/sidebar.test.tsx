@@ -400,6 +400,18 @@ describe("Sidebar", () => {
     expect(account).toHaveAttribute("data-app-role", "account-button");
   });
 
+  it("orders Home, account icon, Backup, Add item", () => {
+    usePathnameMock.mockReturnValue("/calendar/weekly");
+
+    render(<Sidebar />);
+
+    const names = ["Home", "Account", "Backup", "Add item"].map((name) => screen.getByRole("button", { name }));
+    for (let i = 0; i < names.length - 1; i += 1) {
+      expect(names[i].compareDocumentPosition(names[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    expect(names[2]).toHaveAttribute("data-app-role", "backup-button");
+  });
+
   it("shows Home button on system node routes and navigates to root on click", () => {
     const inbox = createNode({ id: "inbox-id", systemRole: "inbox" });
     usePathnameMock.mockReturnValue(`/grid/inbox-id`);

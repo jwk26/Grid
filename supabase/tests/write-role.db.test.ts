@@ -153,9 +153,14 @@ describe("function privileges", () => {
       for (const row of rows) {
         expect(row.anon, row.fn).toBe(false);
         expect(row.authenticated, row.fn).toBe(false);
-        // cleanup_guests() is the one internal function griddo_writer cannot run: it deletes from
-        // auth.users, is owned by postgres and is run by pg_cron (Task 238).
-        expect(row.writer, row.fn).toBe(row.fn !== "internal.cleanup_guests()");
+        // griddo_writer cannot run the functions that are owned by postgres: cleanup_guests() and the
+        // backup dispatch functions are run by pg_cron (Tasks 238, 256), backup_targets() is their
+        // helper, and account_fingerprint() is service_role's (restore_account() gets it in Task 260).
+        const postgresOnly = [
+          "internal.cleanup_guests()", "internal.backup_targets()", "internal.dispatch_backups()",
+          "internal.dispatch_backup_summary()", "internal.account_fingerprint(uuid)",
+        ];
+        expect(row.writer, row.fn).toBe(!postgresOnly.includes(row.fn));
       }
     } finally {
       await db.end();

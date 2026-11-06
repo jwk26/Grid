@@ -666,6 +666,50 @@ Task 239 work-plan review, checked on local Supabase on 2026-11-01 (CLI
   recorded. The setting needs superuser-level rights; the role that runs it on
   the local stack is recorded in the ledger.
 
+### Restore procedure, as proven (Task 259, 2026-11-06)
+
+The Phase 52 close dump passed its restore test only with these additions to
+the command above (Phase 52 ledger, Task 259 step 1 and MI-2). They hold for a
+restore of a manual dump while the dump lasts; the in-app restore (Phase 53)
+and the recovery drill (migrations from Git) do not restore a dump and need
+none of them.
+
+- Run as a superuser (`supabase_admin` on the local stack). As `postgres`,
+  `roles.sql` stops at `GRANT SET ON PARAMETER log_min_messages` (`permission
+  denied`).
+- Before `schema.sql`, remove the stack's default privileges in `public`, then
+  put the stack's own back after the load. Otherwise every function the
+  restore creates also gets `EXECUTE` for `anon` and `service_role` (48
+  functions in this test), which production does not grant, because the
+  dump's `GRANT`s only add:
+
+  ```sql
+  -- before schema.sql
+  ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM postgres, anon, authenticated, service_role;
+  ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public REVOKE ALL ON SEQUENCES FROM postgres, anon, authenticated, service_role;
+  ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public REVOKE ALL ON TABLES FROM postgres, anon, authenticated, service_role;
+  ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated, service_role;
+  ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated, service_role;
+  ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated, service_role;
+  -- after data.sql: the stack's own defaults (future objects only)
+  ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
+  ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+  ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+  ```
+
+- Skip a `COPY` block for a platform table the target's image lacks only when
+  the block holds 0 rows (`storage.bucket_lifecycle_states` and
+  `storage.lifecycle_abandoned_artifacts` in this test); a block with rows
+  stops the restore for a decision.
+- Finish with the read-only catalog listing (`scripts/verify/catalog.sql`) on
+  the restored database and on production, compared line by line after
+  display-only normalizations (`uid()` against `auth.uid()`; the stack's
+  `pg_db_role_setting` lines).
+- Unproven: a dump restore into a hosted project, whose `postgres` is not a
+  superuser. Accepted until the manual dump retires (user, 2026-11-06); a real
+  recovery before then rehearses on the local stack first and checks the
+  hosted result with the same catalog listing.
+
 ### Interim dump (user, 2026-11-04)
 
 Until Phase 52 closes, production has no backup at all, since a dump comes

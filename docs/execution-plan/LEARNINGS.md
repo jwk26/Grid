@@ -26,8 +26,9 @@
 6. [Accessibility](#accessibility)
 7. [Testing (Vitest)](#testing-vitest)
 8. [Supabase / Postgres](#supabase--postgres)
-9. [Planning](#planning)
-10. [Workflow / Process](#workflow--process)
+9. [Edge Functions and Monitoring](#edge-functions-and-monitoring)
+10. [Planning](#planning)
+11. [Workflow / Process](#workflow--process)
 
 ---
 
@@ -103,6 +104,8 @@
 
 **Clear the dev build before judging a CSS change that does not show.** With Turbopack a restart alone kept serving stale `globals.css` rules; remove `.next/dev` (or `.next`) and reload before concluding that the change is wrong. *(Phase 35, Task 179)*
 
+**A new global rule in `globals.css` goes before the theme sections.** The theme-scope tests read the file from the first theme block on, so a global rule goes above that block. *(Phase 52, Task 258)*
+
 ---
 
 ## Visual Verification
@@ -145,6 +148,10 @@ Theme-specific values in these entries are examples. Never carry a number, color
 
 **Count calls after enough ticks, and check a toggle before reading its class.** A count taken after one `Promise.resolve()` passes when the call has not happened yet; flush about ten ticks. A class-name check for a toggle (`bg-accent`) matched the hover variant in every state. *(Phase 51, Task 254)*
 
+**Check a dev injection against the real server before judging the UI.** An `unknown-after-send` injection that returned at once let the verdict read overtake the request's first database call, so a run that then succeeded showed `The backup didn't start.`; the injection now settles first. A fake boundary must keep the real order of request and follow-up read. *(Phase 52, Task 258 mi-1)*
+
+**Database tests read the database clock and commit through the owner when another connection must see the rows.** The Docker VM's clock can differ from the host's, so a test that compares a database time with one it passes in reads `now()` from the database. `withActor` rolls back, so rows that an HTTP call to the function must read are written through the owner connection and deleted afterwards. *(Phase 52, Task 257)*
+
 ---
 
 ## Supabase / Postgres
@@ -154,6 +161,20 @@ Theme-specific values in these entries are examples. Never carry a number, color
 **postgrest-js reports a request that got no response as status 0, not as a thrown error.** An `rpc()` whose connection drops resolves with `status: 0` and an error object, so code that only catches exceptions treats a write of unknown outcome as an ordinary failure. Map status 0 to the unknown outcome (refetch, never resend). *(Phase 42, Task 217)*
 
 **Retained evidence needs an indexed lookup.** Append-only audit or integrity evidence must be read through its identity index on production paths; a full-table read quietly turns permanent retention into growing latency and memory cost. *(Phase 25, on Dexie; the same holds for Postgres)*
+
+**A scalar subquery with no outer reference runs once.** A limit-sized fixture built with an uncorrelated `(select … random() …)` repeated one string in every row, which compresses unlike real data. Generate per-row data with a volatile function call per row and record the compressed-to-raw ratio as the proof. *(Phase 52, Tasks 255 and 259)*
+
+**`continue` inside a plpgsql `begin … exception` block does not roll the block back.** Row locks taken in the block stay held; to release them, raise a private SQLSTATE and catch it. *(Phase 52, Task 256)*
+
+**A row lock clause needs `UPDATE` on the table.** `for key share` cannot be taken by a role that only reads, so check the privilege a lock needs before designing a test seam on it. *(Phase 52, Task 257)*
+
+---
+
+## Edge Functions and Monitoring
+
+**An unknown Healthchecks.io ping uuid answers HTTP 200** (`OK (not found)`), so it cannot stand for "an invalid ping URL" in a drill or a test; a host that does not resolve gives the fetch error instead. *(Phase 52, Task 259)*
+
+**Drill a Healthchecks.io down alert right after a fresh ping.** Shortening the period while the last ping was hours old flipped the check down and sent no email; the same change two minutes after a success ping sent the down email at once. *(Phase 52, Task 259 step 7)*
 
 ---
 

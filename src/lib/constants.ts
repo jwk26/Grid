@@ -34,6 +34,15 @@ export const BREADCRUMB_ENTRY_REVEAL_MS = 3000;
 
 // Account snapshot writes (SPEC Write feel, Architecture Decision 19)
 export const REQUEST_TIMEOUT_MS = 15000;
+// The backup function's `Back Up Now` wait: its 150 s wall clock plus 10 s, because a shorter wait
+// would call a slow success unknown (SPEC §Account backup, Request timeouts). On a paid plan this,
+// the wall clock and BACKUP_INTERRUPTED_MS change together (SCHEMA §Account backup, B6).
+export const EDGE_REQUEST_TIMEOUT_MS = 160000;
+// A run started longer ago than this with no result counts as `interrupted`; equal to the SQL's
+// threshold (`backup_read_status`: 300000 ms). The client never compares it with its own clock.
+export const BACKUP_INTERRUPTED_MS = 300000;
+// A last successful check older than this is stale (the yellow dot and line).
+export const BACKUP_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 export const CONNECTION_PROBE_INTERVAL_MS = 30000;
 // Requests in a row that got no answer before the connection counts as offline (SPEC Connection states)
 export const OFFLINE_AFTER_FAILURES = 3;

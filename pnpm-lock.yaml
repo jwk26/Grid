@@ -90,9 +90,15 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.3(@types/react@19.2.14)
+      aws4fetch:
+        specifier: 1.0.20
+        version: 1.0.20
       babel-plugin-react-compiler:
         specifier: 1.0.0
         version: 1.0.0
+      deno:
+        specifier: 2.1.4
+        version: 2.1.4
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.6.1)
@@ -251,6 +257,36 @@ packages:
 
   '@date-fns/tz@1.4.1':
     resolution: {integrity: sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA==}
+
+  '@deno/darwin-arm64@2.1.4':
+    resolution: {integrity: sha512-Fn7PzbJOtd0J7YN480fAzNt9TZ4mlyAyYUxaigXOYZw/zeD8qFsZds4NVxkpdxkG0B5YR4EmgWdxcHJMrgCZlg==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@deno/darwin-x64@2.1.4':
+    resolution: {integrity: sha512-pAxTbT3U1BWFaeNS3NbxAexYUFjj23QYPfvDYIUCS7qnMExRzhSALGbQa8wpn+2640kDsZjqr6B5vnIGEPVl9w==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@deno/linux-arm64-glibc@2.1.4':
+    resolution: {integrity: sha512-pBWgd7wsrJ3cYP1epu/fNMkreIC7iahNMH1LWdCYRjxJAcZo7OYChKQ0VK89zXPEwOn6IdXX7S2aIgNIAsSmnw==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@deno/linux-x64-glibc@2.1.4':
+    resolution: {integrity: sha512-EjVrCS51yw2OCYHiVDC2mhlqxH2dJ6cJrGxxDEDvMojm9Nj5IloSGPecLvlBtAtd9z1NFs0Ouv8n581rrtphEA==}
+    cpu: [x64]
+    os: [linux]
+
+  '@deno/win32-arm64@2.1.4':
+    resolution: {integrity: sha512-wEVGdrZJ7b0cp3/yGoXeBhEiUy/i9woTROEv6Sl4LUqFpnH1OQ4SvOJNOs0bzqaFCiqen1SyCgK0mSo9OIi9zQ==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@deno/win32-x64@2.1.4':
+    resolution: {integrity: sha512-FAJJEGEoFfGTIJUsnibAY5OTKsdtUUftgexArpopiCbFwB+i+cHZ6hBEYd8krhDLkzDcx4EAA6MaUxyiyjliuQ==}
+    cpu: [x64]
+    os: [win32]
 
   '@dnd-kit/accessibility@3.1.1':
     resolution: {integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==}
@@ -1893,6 +1929,9 @@ packages:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
 
+  aws4fetch@1.0.20:
+    resolution: {integrity: sha512-/djoAN709iY65ETD6LKCtyyEI04XIBP5xVvfmNxsEP0uJB5tyaGBztSryRr4HqMStr9R06PisQE7m9zDTXKu6g==}
+
   axe-core@4.11.1:
     resolution: {integrity: sha512-BASOg+YwO2C+346x3LZOeoovTIoTrRqEsqMa6fmfAV0P+U9mFr9NsyOEpiYvFjbc64NMrSswhV50WdXzdb/Z5A==}
     engines: {node: '>=4'}
@@ -2054,6 +2093,10 @@ packages:
   define-properties@1.2.1:
     resolution: {integrity: sha512-8QmQKqEASLd5nx0U1B1okLElbUuuttJ/AnYmRXbbbGDWh6uS208EjD4Xqq/I9wK7u0v6O08XhTWnt5XtEbR6Dg==}
     engines: {node: '>= 0.4'}
+
+  deno@2.1.4:
+    resolution: {integrity: sha512-62N0sXvubvWKv4n0ioCvphAVLJ0DWoNQ5JPmuwGs7O/Y9M3f65hjbzKoruE8BhBCQjV4yr7T3K6KQ+G2M3uWpQ==}
+    hasBin: true
 
   dequal@2.0.3:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
@@ -3745,6 +3788,24 @@ snapshots:
 
   '@date-fns/tz@1.4.1': {}
 
+  '@deno/darwin-arm64@2.1.4':
+    optional: true
+
+  '@deno/darwin-x64@2.1.4':
+    optional: true
+
+  '@deno/linux-arm64-glibc@2.1.4':
+    optional: true
+
+  '@deno/linux-x64-glibc@2.1.4':
+    optional: true
+
+  '@deno/win32-arm64@2.1.4':
+    optional: true
+
+  '@deno/win32-x64@2.1.4':
+    optional: true
+
   '@dnd-kit/accessibility@3.1.1(react@19.2.4)':
     dependencies:
       react: 19.2.4
@@ -5352,6 +5413,8 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.1.0
 
+  aws4fetch@1.0.20: {}
+
   axe-core@4.11.1: {}
 
   axobject-query@4.1.0: {}
@@ -5506,6 +5569,15 @@ snapshots:
       define-data-property: 1.1.4
       has-property-descriptors: 1.0.2
       object-keys: 1.1.1
+
+  deno@2.1.4:
+    optionalDependencies:
+      '@deno/darwin-arm64': 2.1.4
+      '@deno/darwin-x64': 2.1.4
+      '@deno/linux-arm64-glibc': 2.1.4
+      '@deno/linux-x64-glibc': 2.1.4
+      '@deno/win32-arm64': 2.1.4
+      '@deno/win32-x64': 2.1.4
 
   dequal@2.0.3: {}
 
