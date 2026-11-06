@@ -1,7 +1,9 @@
 // Task 259 step 4: the limit-sized measurement of the backup function (DECISION §Measurement and
 // acceptance). One test account at the old 100% caps (nodes 1,000, bits 5,000, chunks 10,000,
-// breakdowns 5,000, candidates 1,250; about 9.4 MB raw), built in SQL with its own text per row
-// (the fixture seeds each row with md5, so no row repeats another), then three runs of the real
+// breakdowns 5,000, candidates 1,250; about 9.4 MB raw), built in SQL by the shared fixture, whose md5
+// filler compresses to about 0.45. This script then overwrites every text column with random Hangul
+// syllables, a different string per row and the same number of bytes (a syllable is 3 bytes in UTF-8),
+// so the upload is the worst case Task 255 measured (random Hangul gzips to about 0.92), then three runs of the real
 // function (export, gzip, upload to R2) in `scheduled` mode, and `export_account()` timed on its
 // own. The function's `manual` mode needs a signed-in OAuth user's token, so the shared-secret
 // `scheduled` mode runs the same code path (`runBackup`) for the test user.
@@ -194,6 +196,24 @@ for (const [sig, code] of [["SIGINT", 130], ["SIGTERM", 143]]) {
   process.on(sig, () => cleanup().finally(() => process.exit(code)));
 }
 
+// Random Hangul per row, in bytes: `ceil(octet_length / 3)` syllables replace each text. The sub-select
+// refers to the outer row, so it runs once per row (an uncorrelated one would run once and give every
+// row the same string: Task 255 lesson). The system Nodes (Inbox, Archive) keep their titles.
+const HANGUL = (col, alias) =>
+  `(select string_agg(chr(44032 + floor(random() * 11172)::int), '') from generate_series(1, greatest(1, ceil(octet_length(${alias}.${col}) / 3.0)::int)))`;
+async function fillWithHangul(client, userId) {
+  await client.query(`update app.nodes t set title = ${HANGUL("title", "t")} where t.user_id = $1 and t.system_role is null`, [userId]);
+  await client.query(`update app.bits t set title = ${HANGUL("title", "t")}, description = ${HANGUL("description", "t")} where t.user_id = $1`, [userId]);
+  await client.query(`update app.chunks t set title = ${HANGUL("title", "t")}, description = ${HANGUL("description", "t")} where t.user_id = $1`, [userId]);
+  await client.query(`update app.scratch_breakdowns t set content = ${HANGUL("content", "t")} where t.user_id = $1`, [userId]);
+  const d = await client.query(
+    `select (select count(distinct description) from app.bits where user_id = $1) as bit_descriptions, (select count(*) from app.bits where user_id = $1) as bits,
+            (select count(distinct description) from app.chunks where user_id = $1) as chunk_descriptions, (select count(*) from app.chunks where user_id = $1) as chunks`,
+    [userId],
+  );
+  return d.rows[0];
+}
+
 let fails = 0;
 try {
   // A user that the function counts as an OAuth account: not anonymous, one `github` identity.
@@ -212,9 +232,12 @@ try {
     [`measure-${userId}`, userId],
   );
   const counts = await buildLimitSizedAccount(db, userId, SCALE);
+  const distinct = await fillWithHangul(db, userId);
+  console.log(`random Hangul per row: distinct/rows ${JSON.stringify(distinct)}`);
   await db.query("vacuum analyze app.nodes");
   await db.query("vacuum analyze app.bits");
   await db.query("vacuum analyze app.chunks");
+  await db.query("vacuum analyze app.scratch_breakdowns");
   console.log(`built ${JSON.stringify(counts)}`);
 
   // export_account() on its own, as service_role, three times.
@@ -290,7 +313,7 @@ try {
       parsed.scratch_breakdowns?.length === counts.scratchBreakdowns && parsed.staged_candidates?.length === counts.stagedCandidates;
     if (!rowsOk) fails++;
     console.log(
-      `${rowsOk ? "PASS" : "FAIL"} object: ${keys.length} keys (${keys.map((k) => k.split("/").pop().replace(/^\d{4}-\d{2}-\d{2}/, "<date>")).join(", ")}); raw ${raw.length} bytes, gzip ${gz.length} bytes, ratio ${(gz.length / raw.length).toFixed(2)}; every table's row count equals what was built: ${rowsOk}`,
+      `${rowsOk ? "PASS" : "FAIL"} object: ${keys.length} keys (${keys.map((k) => k.split("/").pop().replace(/^\d{4}-\d{2}-\d{2}/, "<date>")).join(", ")}); raw ${raw.length} bytes, gzip ${gz.length} bytes, ratio ${(gz.length / raw.length).toFixed(2)} (Task 255: 0.92 for random Hangul); every table's row count equals what was built: ${rowsOk}`,
     );
   }
   const st = await db.query(
