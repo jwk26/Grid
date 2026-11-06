@@ -907,13 +907,32 @@ a restore to other devices.
 ### Task 260: [ ] Add restore staging and `restore_account()` in SQL
 
 **Files and actions:**
+- First, before the migration is written: the hosted body probe. Task 255
+  measured the body limit on local Kong only (a 10,461,416-byte rpc body
+  returned 200), so `restore_stage()` takes the whole payload in one call
+  unless production refuses that size. `scripts/backup-measure/hosted-body-probe.mjs`
+  reads the URL and publishable key with `scripts/verify/lib.mjs` (no secret
+  key, no database connection) and POSTs to
+  `rest/v1/rpc/<a function name that does not exist>`: a small body first as
+  the control, then an about 10.5 MB JSON body, then one about twice that
+  size, recorded only (an account above the row limits can be larger). Pass:
+  404 `PGRST202` naming the body's parameter, so PostgREST read and parsed
+  the whole body; limit: 413; any other answer is inconclusive and is
+  reported, with no scope change. It changes nothing on production and
+  prints statuses, codes and sizes only, with the URL masked. The user runs
+  it in their own terminal after approving it; the ledger records the
+  result. On a 413 for the 10.5 MB body, staging takes rows per table: the
+  advisory session writes that change into SCHEMA §Backup functions and
+  Tasks 260–261 before the migration. Task 264's real restore runs confirm
+  the hosted limit again either way.
 - A migration: `app.restore_staging` with RLS, `griddo_writer` select and
   update policies and the `service_role` grants (`select`, `insert`,
-  `update`); `restore_begin()` (first step, no payload), `restore_stage()`,
-  `restore_abort()`; `restore_account()`; `backup_read_status()` with the
-  restore verdict by id; the hourly `postgres` `pg_cron` job that deletes
-  staging rows older than one hour.
-- If Task 255 found the body limit too small, staging takes rows per table.
+  `update`); the two restore columns of `app.backup_status`
+  (`restore_started_at`, `restore_id`); `restore_begin()` (first step, no
+  payload), `restore_stage()`, `restore_abort()`; `restore_account()`;
+  `backup_read_status()` with the restore verdict by id; `get_snapshot()`'s
+  `backup` key with `restore_started_at` (SCHEMA §Snapshot); the hourly
+  `postgres` `pg_cron` job that deletes staging rows older than one hour.
 - `src/lib/db/database.types.ts`; `supabase/tests/restore-*.db.test.ts`.
 
 **Dependencies:** Phase 52 closed.
@@ -930,7 +949,8 @@ connection reset can overtake the begin call and answer `not_started` for an
 operation that then starts): decide whether the restore verdict closes it, for
 example by refusing a begin whose id was already judged `not_started`.
 
-**Observable acceptance:** `restore_account()` cannot read another account's
+**Observable acceptance:** the hosted body probe's result is in the ledger
+before the migration, and staging follows it; `restore_account()` cannot read another account's
 staging row; a direct browser call applies only what was staged for it; a
 fingerprint mismatch writes `account_changed` and changes nothing; an
 unsupported `format_version` is refused; after `applied` every restored row's
@@ -952,7 +972,8 @@ earlier restore's result.
 
 **Files and actions:**
 - First, measure locally and record: whether a streamed response passes the
-  local gateway unbuffered; and what the database does when the function's
+  local gateway unbuffered through `withCorsHandler` (Phase 52 Task 260
+  note); and what the database does when the function's
   connection drops while `restore_account()` runs (it commits or rolls back;
   either way the staging row decides).
 - `supabase/functions/backup/`: the `restore` mode (JWT verified in the
@@ -1084,8 +1105,10 @@ an interrupted run leaves no test user; no row content appears in the output.
   working on them), function, then the merge; on
   production, three restore runs of the limit-sized fixture under a test
   account (`restore_account()` inside 30 s, the worst run under 37.5 s wall
-  clock) and a check that the streamed steps arrive unbuffered; the script
-  cleans up on SIGINT and SIGTERM.
+  clock), which also confirm that the hosted API accepts the limit-sized
+  `restore_stage()` body (Phase 52 Task 255 carry; Task 260's probe checked
+  it first), and a check that the streamed steps arrive unbuffered; the
+  script cleans up on SIGINT and SIGTERM.
 - If the drill passed and Task 263's first run passed (Task 259 proved the
   alert), the ledger records that the three retirement conditions hold and
   that the first SQL phase after Phase 54 removes the manual dump through its
