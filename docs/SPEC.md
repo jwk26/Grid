@@ -1544,6 +1544,15 @@ G1).
 - Closing the dialog does not stop the run; the button's motion continues
   until this tab sees the result.
 
+**Browser calls** (Task 259 advisory review, 2026-11-06). The hosted gateway
+adds no CORS headers to Edge Functions (the local gateway does, which hid the
+gap), so the function answers them itself: `OPTIONS` gets 204, and every
+response, refusals and errors included, carries `Access-Control-Allow-Origin:
+*` and the allowed headers `authorization, apikey, content-type,
+x-client-info`. `*` is enough because the function authenticates by the
+bearer token, never by a cookie. A response without these headers reaches the
+client as a fetch error, so a definite refusal would read as no answer.
+
 **Request timeouts** (backup B3). The function's calls for `Back Up Now` and
 restore wait `EDGE_REQUEST_TIMEOUT_MS` (160 s: the function's 150 s wall clock
 plus 10 s), because a shorter wait would call a slow success unknown. The

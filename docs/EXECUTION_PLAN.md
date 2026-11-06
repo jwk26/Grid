@@ -1171,7 +1171,10 @@ times and the fact that each secret was set):
    app lane runs no browser check; it seeds again afterwards. The role that
    ran the setting is recorded.
 2. Deploy the function with `verify_jwt = false`, then set its secrets and
-   the two Vault entries. Before the deploy, confirm from the Supabase CLI
+   the two Vault entries. Before the deploy, the function answers CORS itself
+   (SPEC §Account backup, Browser calls), with tests, the full gate and an
+   `expert` review (Task 259 advisory review, 2026-11-06). Before the deploy,
+   also confirm from the Supabase CLI
    `2.121.0` documentation or source which `config.toml` sections
    `functions deploy` and `db push` send to the target project
    (`[edge_runtime.secrets]`, `[storage.buckets]` and any other), and that
@@ -1192,11 +1195,16 @@ times and the fact that each secret was set):
    and its objects at the end and on SIGINT and SIGTERM.
 5. Confirm no new Security Advisor warning, or show each to the user (SCHEMA
    §Database tests).
-6. Confirm one successful scheduled run and the summary's success ping. Then
-   the owner, signed in on production, presses `Back Up Now` once and reopens
-   the dialog once (one status read): the JWT modes run only there through
-   `getClaims`' JWKS path and the function's `SUPABASE_ANON_KEY` (Task 257
-   finish review, 2026-11-06).
+6. Confirm one successful scheduled run and the summary's success ping. Then,
+   before the merge, the owner, signed in on the production site, calls the
+   function's `manual` mode once and its `status` mode once from that page's
+   browser console, with a short script the working session shows first; the
+   access token never leaves the browser. The JWT modes run only there,
+   through the browser's CORS preflight, `getClaims`' JWKS path and the
+   function's `SUPABASE_ANON_KEY` (Task 257 finish review; Task 259 advisory
+   review, 2026-11-06). After the merge, the owner presses `Back Up Now` once
+   and reopens the dialog once (one status read) as the post-merge smoke,
+   recorded in a follow-up record PR as the Phase 48 smoke was.
 7. Force an alert: point the summary's ping secret at an invalid URL for one
    cycle, receive the missing-ping email, restore the secret, and see the next
    success. This step takes more than a day: the email comes only after the
@@ -1215,11 +1223,14 @@ test; B12.
 
 **Observable acceptance:** the restore test passes with every orphan count 0
 and the compared catalog unchanged; the function, secrets and migrations are
-on production in that order; the measurement's worst run passes; one
-scheduled run and its summary succeed; the forced alert email arrived; the
-interim dump's deletion is recorded. Then `/end-phase` merges.
+on production in that order; the function answers the CORS preflight; the
+measurement's worst run passes; one scheduled run and its summary succeed;
+the console calls of `manual` and `status` succeed from the production
+origin; the forced alert email arrived; the interim dump's deletion is
+recorded. Then `/end-phase` merges, and the post-merge smoke follows.
 
-**Verification:** the ledger record of each step; `git diff --check`.
+**Verification:** the ledger record of each step; `git diff --check`; for the
+CORS change, the full gate and an `expert` review.
 
 **Commit message:** `docs(phase-52): record the production close`.
 
