@@ -1,7 +1,7 @@
-# Task 255 measurements (local only)
+# Task 255 and 259 measurements
 
-Counts and times only; never run against production. Database scripts refuse any host but
-`127.0.0.1` and `localhost`.
+Counts and times only. The Task 255 scripts are local only: they refuse any host but `127.0.0.1` and
+`localhost`. `close-measure.mjs` (Task 259) is the one that can target production.
 
 - `account.mjs up|down`: a ~10 MB account under a random test user plus temporary
   `public.measure_export` / `public.measure_fingerprint`; `down` deletes them.
@@ -9,3 +9,11 @@ Counts and times only; never run against production. Database scripts refuse any
 - `measure-fn/`: a temporary Edge Function (copy it to `supabase/functions/measure/` while
   measuring, then delete the copy). `/run` is item 1, `/sleep` item 6, `/spin` and `/alloc` item 7.
   It is not under `supabase/functions/`, so `pnpm check:edge` never sees it.
+- `close-measure.mjs [--local] [--run]` (Task 259 step 4): the limit-sized measurement of the
+  deployed backup function. Without `--run` it only checks (privileges, the cron windows) and writes
+  nothing. With `--run` it builds one temporary OAuth account at the old 100% caps, times
+  `export_account()` and three function runs (shared-secret `scheduled` mode), then deletes the
+  account, its rows and its R2 objects, also on SIGINT and SIGTERM, and counts what is left.
+  `--local` rehearses it on local Supabase (`supabase functions serve --env-file .env.local`
+  running); without it, it targets production and reads `~/.config/griddo/production.env` and
+  `~/.griddo-secrets/prod-edge-secrets.env`. It refuses to run near 17:00, 19:00 and 03:17 UTC.
