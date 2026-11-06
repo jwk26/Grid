@@ -1156,7 +1156,7 @@ action row (DESIGN_TOKENS BK-5).
 
 **Commit message:** `feat(backup): add the sidebar Backup button and dialog`.
 
-### Task 259: [ ] Close Phase 52 on production
+### Task 259: [x] Close Phase 52 on production
 
 **Files and actions** (user and production steps; the ledger records counts,
 times and the fact that each secret was set):

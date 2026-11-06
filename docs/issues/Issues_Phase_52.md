@@ -193,8 +193,8 @@ User preparation before Task 255 (plan §User preparation): R2 prices checked ag
 ## Task 259 — Close Phase 52 on production
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 259 acceptance (the user); then `/end-phase` merges and the post-merge smoke follows
+- Status: Accepted
+- Next: `/end-phase` (merge); after it the post-merge smoke and the record PR; the user deletes the close dump by 2026-11-13
 - Open: none (MI-2 closed)
 
 ### Log
@@ -302,3 +302,8 @@ User preparation before Task 255 (plan §User preparation): R2 prices checked ag
 - Unresolved: the first drill's down flip sent no email (a stale last ping when the period was shortened; the second flip, the kind a real outage is, did), accepted by the advisory review with no change. The compressed-body join's memory peak and CPU per run are not separable from the hosted shutdown event (643 ms and 13.9 MB for the whole isolate); both far under the limits.
 - Lesson: a local gateway can hide what hosted lacks (Kong added the CORS headers the function never set): prove a browser-facing path on the hosted gateway before the merge (CORS curl right after the deploy, the console check). A restore into a stock Supabase stack needs a superuser and the default privileges cleared first, then a catalog compare against production. An unknown Healthchecks.io uuid answers HTTP 200, so it cannot stand for "an invalid ping URL". To drill a Healthchecks.io down alert, send a ping first and then shorten the period.
 - Review: `expert` on the CORS wrapper (Low: the catch logged nothing; fixed, `a1430e5`); advisory reviews of every stage are in the Log.
+- Review (advisory, 2026-11-07, task finish): approve once the two changes below are in. Checked: the finish gate (both known flaky tests named with their result, `test:db` 1072, `check:edge` pass); every observable acceptance item is backed by a Log entry (restore test, deploy order, CORS preflight, measurement, console check, first scheduled run and summary, alert email, interim dump deletion); no further `expert` review is needed (the one code change, the CORS wrapper, was reviewed). Apply: (1) the Task 263 text the working session added to the plan read as a new drill requirement, which Task 263 never had (DECISION §Retiring the manual dump asks only for the check's first run), and plan text is changed through the advisory session with the user's approval: it is reworded as a conditional note (Decision below); (2) the Task 260 note below. Not applied: none.
+- Task 260 note (for Phase 53): production access uses `~/.config/griddo/production.env` (database URL and CA) and `~/.griddo-secrets/prod-edge-secrets.env` (function secrets), both mode 600, read by scripts in the user's own terminal; Advisor reads use `--db-url` (`--linked` mints `cli_login_postgres`). The Security Advisor baseline for the Task 264 close is the 48 results recorded in Task 259 stage 4. Task 264's restore measurement reuses the `close-measure.mjs` patterns (random Hangul per row, cleanup on its own connection, the user deleted first, the R2 prefix deleted three times). Task 261 confirms that `withCors` passes a `text/event-stream` response with the headers and unbuffered. The close dump `~/griddo-dumps/2026-11-06-close/` is deleted by the user by 2026-11-13 and recorded in the post-merge record PR with the smoke.
+- Decision: the Task 263 text is a conditional note, not a drill step (Task 263 has no alert drill); amended in `74a2368` (user, 2026-11-07).
+- Review applied (user go-ahead, 2026-11-07, task finish): (1) the Task 263 text is a conditional note in the plan (`74a2368`, the Decision above); (2) the Task 260 note above is in the ledger for Phase 53; nothing else to apply.
+- Accepted by the user, 2026-11-07.
