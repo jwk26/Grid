@@ -3,7 +3,8 @@
 // breakdowns 5,000, candidates 1,250; about 9.4 MB raw), built in SQL by the shared fixture, whose md5
 // filler compresses to about 0.45. This script then overwrites every text column with random Hangul
 // syllables, a different string per row and the same number of bytes (a syllable is 3 bytes in UTF-8),
-// so the upload is the worst case Task 255 measured (random Hangul gzips to about 0.92), then three runs of the real
+// so the text is the least compressible content a real account holds (random Hangul alone gzips to about 0.70;
+// the whole account, with its ids and keys, to about 0.50), then three runs of the real
 // function (export, gzip, upload to R2) in `scheduled` mode, and `export_account()` timed on its
 // own. The function's `manual` mode needs a signed-in OAuth user's token, so the shared-secret
 // `scheduled` mode runs the same code path (`runBackup`) for the test user.
@@ -313,7 +314,7 @@ try {
       parsed.scratch_breakdowns?.length === counts.scratchBreakdowns && parsed.staged_candidates?.length === counts.stagedCandidates;
     if (!rowsOk) fails++;
     console.log(
-      `${rowsOk ? "PASS" : "FAIL"} object: ${keys.length} keys (${keys.map((k) => k.split("/").pop().replace(/^\d{4}-\d{2}-\d{2}/, "<date>")).join(", ")}); raw ${raw.length} bytes, gzip ${gz.length} bytes, ratio ${(gz.length / raw.length).toFixed(2)} (Task 255: 0.92 for random Hangul); every table's row count equals what was built: ${rowsOk}`,
+      `${rowsOk ? "PASS" : "FAIL"} object: ${keys.length} keys (${keys.map((k) => k.split("/").pop().replace(/^\d{4}-\d{2}-\d{2}/, "<date>")).join(", ")}); raw ${raw.length} bytes, gzip ${gz.length} bytes, ratio ${(gz.length / raw.length).toFixed(2)} (random Hangul text alone: about 0.70); every table's row count equals what was built: ${rowsOk}`,
     );
   }
   const st = await db.query(
