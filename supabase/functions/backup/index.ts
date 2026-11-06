@@ -1,3 +1,4 @@
+import { withCorsHandler } from "../_shared/cors.ts";
 import { judgeAuthUser, type IdentityFile } from "../_shared/identity.ts";
 import { parseRequest } from "../_shared/request.ts";
 import { readMode } from "../_shared/request.ts";
@@ -147,4 +148,4 @@ export async function handle(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(handle);
+Deno.serve(withCorsHandler(handle));
