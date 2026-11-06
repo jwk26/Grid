@@ -1205,12 +1205,17 @@ times and the fact that each secret was set):
    review, 2026-11-06). After the merge, the owner presses `Back Up Now` once
    and reopens the dialog once (one status read) as the post-merge smoke,
    recorded in a follow-up record PR as the Phase 48 smoke was.
-7. Force an alert: point the summary's ping secret at an invalid URL for one
-   cycle, receive the missing-ping email, restore the secret, and see the next
-   success. This step takes more than a day: the email comes only after the
-   check's one-day period plus its three-hour grace without a ping (about 27
-   hours after the last success), and the next success ping comes at the
-   following summary.
+7. Force an alert, after step 6's success ping has shown that the function
+   reaches the check: in Healthchecks.io set the daily check's period and
+   grace to one minute each, receive the missing-ping email, set them back to
+   one day and three hours, then send one success ping to the real ping URL
+   from the user's own terminal (the URL read from the secrets file, never
+   printed) so the check is up again at once; the ledger records that ping as
+   manual. The function's secrets stay as they are, so the alert has no blind
+   window beyond those minutes (Task 259 advisory review, 2026-11-07; it
+   replaces pointing the ping secret at an invalid URL for about two days).
+   The next scheduled summary's success ping is read with the post-merge
+   smoke.
 8. The user deletes the interim dump (`~/griddo-dumps/2026-11-04/`); the
    ledger records the date, which is within 7 days of step 1's passing restore
    test.
@@ -1302,6 +1307,10 @@ earlier restore's result.
   user's JWT; stream each step and the result as `text/event-stream`; the
   `status` mode's backup list and verdict by id.
 - `supabase/functions/_shared/`: list ordering, pre-restore pruning.
+- `supabase/functions/backup/auth.ts`: a token whose payload does not decode
+  makes `getClaims` throw, and the function answers 502 `unconfirmed`, a
+  no-answer status; it answers 401 `invalid_token` instead, with a test
+  (Phase 52 Task 259, 2026-11-07).
 - `supabase/tests/restore-function.db.test.ts`.
 
 **Dependencies:** Task 260.
