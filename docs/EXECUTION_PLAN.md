@@ -1397,7 +1397,10 @@ an interrupted run leaves no test user; no row content appears in the output.
   production token (Task 263) and writes with the target's token (GET and
   PUT); within one bucket it uses CopyObject.
 - The drill, recorded in the ledger: a new Supabase project; the migrations
-  from Git; unschedule its cron jobs at once; set none of the Healthchecks.io
+  from Git; unschedule its cron jobs at once; the read-only catalog listing
+  (`scripts/verify/catalog.sql`, Task 259) on the drill project compared with
+  production, every difference explained (Phase 52 MI-2: a hosted project's
+  default privileges are unproven); set none of the Healthchecks.io
   URLs, the shared secret or the production token; deploy the function with
   the drill bucket's token; enter the auth settings and the redirect
   allow-list; run the phase branch locally against the drill project's URL and
