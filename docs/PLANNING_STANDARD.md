@@ -609,7 +609,10 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   refuses a JWT whose `is_anonymous` claim is true.
   `supabase/functions/_shared/` holds no Deno or Node globals and passes both
   `tsc` and `deno check`; `pnpm check:edge` passes (once it is on `main`, from the Phase 52 merge). No new function or server
-  runtime appears without a canonical decision.
+  runtime appears without a canonical decision. A browser-facing function path is
+  proven on the hosted gateway before the merge (a CORS preflight right after
+  the deploy and one call from the production origin), since the local Kong
+  gateway adds CORS headers the hosted one does not (Phase 52, Task 259 MI-1).
 - [ ] **Edge outcomes (backup B3–B7):** a backup or restore call that ends
   without an answer is never resent; its outcome comes from a status read sent
   after the request ended, and a restore's from its staging row, never from
@@ -631,7 +634,12 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   order; no secret key in Git or client code. A security setting is proven by
   a request it refuses, since a check that reads the same with the setting on
   and off proves nothing (Phase 48, Task 240). A script that creates rows on
-  production also cleans up on SIGINT and SIGTERM (Phase 48, Task 240).
+  production also cleans up on SIGINT and SIGTERM (Phase 48, Task 240). A
+  production `supabase db push` runs with `--skip-vault`, and the committed
+  `config.toml` holds no section that a production deploy or push sends to the
+  target with local values (`db push` upserts `[db.vault]`); a CLI upgrade
+  checks that list again in the CLI's source (Phase 52, Tasks 255 MI-2 and
+  259).
 - [ ] **Test gate and lanes (S20, F33):** every DB-lane task runs
   `pnpm test:db`; an app-lane phase never edits `supabase/`, never resets the
   database or adds a migration during the phase, and runs `pnpm test:db` only
