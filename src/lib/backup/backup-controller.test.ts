@@ -21,14 +21,14 @@ function deferred<T>(): Deferred<T> {
   return { promise, resolve };
 }
 
-function setup() {
+function setup(refetchSnapshot?: () => Promise<unknown>) {
   const backUpNow = vi.fn<(runId: string) => Promise<ManualOutcome>>();
   const readStatus = vi.fn<(runId: string | null) => Promise<StatusOutcome>>();
   const client = { backUpNow, readStatus } as unknown as BackupClient;
   const slot = new BackupSlot({ now: () => 0 });
   slot.offer(value(), slot.getEpoch());
   let n = 0;
-  const controller = createBackupController({ client, slot, newRunId: () => `run-${++n}` });
+  const controller = createBackupController({ client, slot, newRunId: () => `run-${++n}`, refetchSnapshot });
   return { controller, slot, backUpNow, readStatus };
 }
 
@@ -114,7 +114,31 @@ describe("Back Up Now", () => {
     expect(controller.getState().inline).toEqual({ kind: "not_started" });
   });
 
-  it("a result with no backup value leaves the slot as it is and sends no extra request", async () => {
+  it("a success with no backup value asks for one snapshot refetch, never a resend or a status read", async () => {
+    const refetch = vi.fn(async () => "applied");
+    const { controller, backUpNow, readStatus } = setup(refetch);
+    for (const result of ["written", "unchanged"] as const) {
+      backUpNow.mockResolvedValueOnce({ kind: "result", result, reason: null, backup: undefined });
+      await controller.backUpNow();
+    }
+    expect(refetch).toHaveBeenCalledTimes(2);
+    expect(backUpNow).toHaveBeenCalledTimes(2);
+    expect(readStatus).not.toHaveBeenCalled();
+  });
+
+  it("a result that carries a backup value, a failed result and a rejection ask for no refetch", async () => {
+    const refetch = vi.fn(async () => "applied");
+    const { controller, backUpNow } = setup(refetch);
+    backUpNow.mockResolvedValueOnce({ kind: "result", result: "written", reason: null, backup: value({ serverNow: 3000 }) });
+    await controller.backUpNow();
+    backUpNow.mockResolvedValueOnce({ kind: "result", result: "failed", reason: "x", backup: undefined });
+    await controller.backUpNow();
+    backUpNow.mockResolvedValueOnce({ kind: "rejected", code: "rate_limited" });
+    await controller.backUpNow();
+    expect(refetch).not.toHaveBeenCalled();
+  });
+
+  it("a result with no backup value leaves the slot as it is and sends no status read", async () => {
     const { controller, slot, backUpNow, readStatus } = setup();
     const before = slot.getState().value;
     backUpNow.mockResolvedValue({ kind: "result", result: "written", reason: null, backup: undefined });

@@ -19,7 +19,7 @@ function getRuntime(): Runtime {
   const slot = getSessionController().store.backup;
   if (!runtime || runtime.slot !== slot) {
     const client = createBackupClient({ getClient: getSupabaseClient, takeInjection: takeBackupInjection });
-    runtime = { slot, controller: createBackupController({ client, slot }) };
+    runtime = { slot, controller: createBackupController({ client, slot, refetchSnapshot: () => getSessionController().store.refetch() }) };
   }
   return runtime;
 }

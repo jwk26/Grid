@@ -1253,7 +1253,10 @@ B5; DECISION §Restore, §Concurrent writes and other tabs.
 the restore's order; whether `restore_account()` locks the `accounts` row
 first or never touches it; the result in the staging row against a result in
 `backup_status` (B5); the restore verdicts on the server clock; no deadlock
-with Chunk writes and Node moves.
+with Chunk writes and Node moves; Phase 52 `mi-2` (a verdict read sent after a
+connection reset can overtake the begin call and answer `not_started` for an
+operation that then starts): decide whether the restore verdict closes it, for
+example by refusing a begin whose id was already judged `not_started`.
 
 **Observable acceptance:** `restore_account()` cannot read another account's
 staging row; a direct browser call applies only what was staged for it; a

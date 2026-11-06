@@ -29,7 +29,13 @@ const INITIAL: DialogState = { read: "idle", inline: { kind: "none" }, busy: fal
 
 export type BackupController = ReturnType<typeof createBackupController>;
 
-export function createBackupController(options: { client: BackupClient; slot: BackupSlot; newRunId?: () => string }) {
+export function createBackupController(options: {
+  client: BackupClient;
+  slot: BackupSlot;
+  newRunId?: () => string;
+  /** One snapshot refetch (a read through the existing path, never a resend of the run). */
+  refetchSnapshot?: () => Promise<unknown>;
+}) {
   const { client, slot } = options;
   const newRunId = options.newRunId ?? (() => crypto.randomUUID());
   let state: DialogState = INITIAL;
@@ -168,6 +174,9 @@ export function createBackupController(options: { client: BackupClient; slot: Ba
       switch (outcome.kind) {
         case "result": {
           if (outcome.backup !== undefined) slot.offer(outcome.backup, mine);
+          // A success whose answer has no `backup` value (the function's follow-up read failed) would
+          // leave the old, possibly red, value on screen: ask for one snapshot read to bring it.
+          else if (outcome.result === "written" || outcome.result === "unchanged") void options.refetchSnapshot?.();
           slot.endRun(runId);
           const inline: Inline =
             outcome.result === "written"
