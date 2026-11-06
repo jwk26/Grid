@@ -1,3 +1,4 @@
+import { corsHeaders as supabaseCors } from "@supabase/supabase-js/cors";
 import { describe, expect, it, vi } from "vitest";
 import { SafeError } from "./safe-error.ts";
 import { CORS_HEADERS, withCors, withCorsHandler } from "./cors.ts";
@@ -47,6 +48,11 @@ describe("CORS", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+  it("allows every header the installed supabase-js allows (the local gateway would hide a gap)", () => {
+    const names = (v: string) => v.split(",").map((h) => h.trim().toLowerCase());
+    const ours = names(CORS_HEADERS["Access-Control-Allow-Headers"]);
+    for (const h of names(supabaseCors["Access-Control-Allow-Headers"])) expect(ours).toContain(h);
   });
   it("names the three headers", () => {
     expect(Object.keys(CORS_HEADERS)).toContain("Access-Control-Allow-Origin");

@@ -1,13 +1,14 @@
 // The hosted gateway adds no CORS headers to Edge Functions (the local one does), so the function
 // answers them itself (SPEC §Account backup, Browser calls). `*` is enough: the function
-// authenticates by the bearer token, never by a cookie.
+// authenticates by the bearer token, never by a cookie. The allowed headers are every one in
+// `@supabase/supabase-js/cors` `corsHeaders` (a test keeps ours a superset of the installed list).
 
 import { logCode } from "./safe-error.ts";
 import { assertOwnStatus, UNCONFIRMED_STATUS } from "./response.ts";
 
 export const CORS_HEADERS: Readonly<Record<string, string>> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 

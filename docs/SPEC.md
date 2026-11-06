@@ -1548,8 +1548,9 @@ G1).
 adds no CORS headers to Edge Functions (the local gateway does, which hid the
 gap), so the function answers them itself: `OPTIONS` gets 204, and every
 response, refusals and errors included, carries `Access-Control-Allow-Origin:
-*` and the allowed headers `authorization, apikey, content-type,
-x-client-info`. `*` is enough because the function authenticates by the
+*` and the allowed headers of `@supabase/supabase-js/cors` (`authorization,
+x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate,
+baggage`). `*` is enough because the function authenticates by the
 bearer token, never by a cookie. A response without these headers reaches the
 client as a fetch error, so a definite refusal would read as no answer.
 
