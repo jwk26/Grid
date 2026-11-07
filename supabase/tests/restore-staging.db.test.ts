@@ -238,6 +238,27 @@ describe("restore verdicts", () => {
         await Promise.all([reader.end(), beginner.end(), watcher.end()]);
       }
     }
+    // The begin first and rolled back: the read waits, then closes the id and answers not_started.
+    {
+      const u = await freshUser("rs-race-rollback");
+      const id = randomUUID();
+      const beginner = await session();
+      const reader = await session();
+      const watcher = await connect();
+      try {
+        expect((await beginner.query("select public.restore_begin($1, $2) as r", [u.id, id])).rows[0].r.status).toBe("applied");
+        const pending = reader.query("select public.backup_read_status($1, null, $2) as r", [u.id, id]);
+        await waitForLockWait(watcher, "backup_read_status");
+        await beginner.query("rollback");
+        expect((await pending).rows[0].r.result.restore_verdict).toBe("not_started");
+        await reader.query("commit");
+        expect(await stagingRow(id)).toMatchObject({ result: "not_applied", reason: "not_started" });
+      } finally {
+        await beginner.query("rollback").catch(() => undefined);
+        await reader.query("rollback").catch(() => undefined);
+        await Promise.all([beginner.end(), reader.end(), watcher.end()]);
+      }
+    }
     // The begin first, uncommitted: the read waits, then judges finishing and closes nothing.
     {
       const u = await freshUser("rs-race-begin");
@@ -250,7 +271,10 @@ describe("restore verdicts", () => {
         const pending = reader.query("select public.backup_read_status($1, null, $2) as r", [u.id, id]);
         await waitForLockWait(watcher, "backup_read_status");
         await beginner.query("commit");
-        expect((await pending).rows[0].r.result.restore_verdict).toBe("finishing");
+        const answer = (await pending).rows[0].r.result;
+        expect(answer.restore_verdict).toBe("finishing");
+        // The same answer carries the start the begin recorded.
+        expect(Number(answer.backup.restore_started_at)).toBeGreaterThan(0);
         await reader.query("commit");
         expect(await stagingRow(id)).toMatchObject({ result: null, reason: null });
       } finally {

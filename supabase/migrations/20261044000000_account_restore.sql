@@ -267,6 +267,8 @@ begin
   -- Too late: the verdict reads `not_applied` 180 s after the start, so a call at 140 s or more
   -- (transaction time) writes `not_applied` and changes nothing; any `applied` then commits before
   -- 180 s (140 s, the REST setup and commit, and at most the 30 s statement; user, 2026-11-07).
+  -- The bound relies on PostgREST applying the function's 30 s setting: only `authenticated`
+  -- executes this function, and it reaches it through REST; a direct SQL call has no such timeout.
   if v_now - v_stage.created_at >= 140000 then
     update app.restore_staging set result = 'not_applied', reason = 'too_late', payload = null, finished_at = v_now
      where id = p_restore_id;
@@ -393,6 +395,7 @@ declare
   v_now bigint := (extract(epoch from transaction_timestamp()) * 1000)::bigint;
   v_row app.backup_status;
   v_stage app.restore_staging;
+  v_closed integer;
   v_verdict text;
   v_restore_verdict text;
 begin
@@ -439,10 +442,21 @@ begin
     select * into v_stage from app.restore_staging s where s.id = p_restore_id and s.user_id = p_user_id;
     if not found and not (v_row.user_id is not null and v_row.restore_id = p_restore_id) then
       if exists (select 1 from app.accounts a where a.user_id = p_user_id) then
-        insert into app.restore_staging (id, user_id, created_at, result, reason, finished_at)
-          values (p_restore_id, p_user_id, v_now, 'not_applied', 'not_started', v_now)
-          on conflict (id) do nothing;
+        begin
+          insert into app.restore_staging (id, user_id, created_at, result, reason, finished_at)
+            values (p_restore_id, p_user_id, v_now, 'not_applied', 'not_started', v_now)
+            on conflict (id) do nothing;
+          get diagnostics v_closed = row_count;
+        exception when foreign_key_violation then
+          -- The auth user was deleted meanwhile: nothing to close, and a status read never errors.
+          v_closed := 0;
+        end;
         select * into v_stage from app.restore_staging s where s.id = p_restore_id and s.user_id = p_user_id;
+        if v_closed = 0 then
+          -- The id was taken meanwhile (a begin committed): read the status row again, so
+          -- `restore_started_at` in this answer matches a `finishing` verdict.
+          select * into v_row from app.backup_status where user_id = p_user_id;
+        end if;
       end if;
     end if;
     if v_stage.id is not null then
