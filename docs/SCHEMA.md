@@ -1368,7 +1368,10 @@ type WriteEnvelope<Result> = {
   violation, ends the call with an error, which the client treats as a failed
   write (S16).
 - Test (S31): for every function, the snapshot before the call plus the
-  returned `changes` equals a fresh snapshot after it.
+  returned `changes` equals a fresh snapshot after it. Exception:
+  `restore_account()` replaces the whole account and returns no `changes`;
+  the restoring tab drops its snapshot and repeats entry (SPEC §Account
+  backup, End; user, 2026-11-07).
 
 ### Snapshot
 

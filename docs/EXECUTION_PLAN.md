@@ -836,8 +836,11 @@ deletion.
   follows the SQL function checklist in PLANNING_STANDARD §6, adds the
   cross-account and concurrency tests SCHEMA names for it, and gets an
   `expert` review before acceptance. A backup function returns no envelope, so
-  the change-set test does not apply to it; `restore_account()` and
-  `cancel_account_deletion()` keep it.
+  the change-set test does not apply to it; `cancel_account_deletion()` keeps
+  it. `restore_account()` returns the envelope without `changes`, since the
+  restoring tab drops its snapshot and repeats entry (SPEC §Account backup,
+  End), so the change-set test does not apply to it either (user,
+  2026-11-07).
 - **Edge Function:** every task that changes `supabase/functions/` gets an
   `expert` review before acceptance; its refusal tests send the refused
   request (a body naming another account, a missing or wrong shared secret, an
