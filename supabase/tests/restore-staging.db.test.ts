@@ -245,6 +245,8 @@ describe("restore_staging rights", () => {
     }
     expect(by.restore_account).toMatchObject({ prosecdef: true, owner: "griddo_writer" });
     expect(by.restore_account.proconfig).toEqual(expect.arrayContaining(['search_path=""', "statement_timeout=30s"]));
+    // restore_stage takes a payload of about 10 MB through REST, which hoists this setting.
+    expect(by.restore_stage.proconfig).toContain("statement_timeout=30s");
   });
 });
 

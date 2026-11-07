@@ -64,6 +64,28 @@ describe("restore_account() under concurrency", () => {
     }
   });
 
+  it("waits for delete_my_account() in flight and then refuses with account_deleting", async () => {
+    const { u } = await fresh("rc-deleting");
+    const { id, fingerprint } = await staged(u);
+    const deleter = await openSession(u);
+    const restorer = await openSession(u);
+    const watcher = await connect();
+    try {
+      expect((await call(deleter, "delete_my_account", [])).status).toBe("applied");
+      const pending = restoreCall(id, fingerprint)(restorer);
+      await waitForLockWait(watcher, "restore_account");
+      await deleter.query("commit");
+      const result = await pending;
+      await restorer.query("commit");
+      expect(result).toMatchObject({ status: "rejected", rejection: { code: "account_deleting" } });
+      expect(await stagingRow(id)).toMatchObject({ result: null });
+    } finally {
+      await deleter.query("rollback").catch(() => undefined);
+      await restorer.query("rollback").catch(() => undefined);
+      await Promise.all([deleter.end(), restorer.end(), watcher.end()]);
+    }
+  });
+
   it("waits for a Chunk write in flight, then reports account_changed with no deadlock", async () => {
     const { u, seed } = await fresh("rc-after-chunk");
     const { id, fingerprint } = await staged(u);

@@ -1316,8 +1316,8 @@ catalog test lists them by name.
 | `backup_summary()` | Records stale starts as `interrupted`; counts failures new since `last_summary_at` (a changed state or reason); sums `stored_bytes` and reports the 8 GB total only on the first summary above it (`over_limit`); updates `internal.backup_summary_state`. `backup_summary(p_missing, p_as_of)` takes the dispatch's `missing` count and its `as_of` time: the window is contiguous (changes in (`last_summary_at`, `as_of`]; `last_summary_at` moves to `as_of`), 8 GB is 8,000,000,000 bytes, and stale starts are recorded with `as_of` as their change time. A failing or missing account and a total kept above 8 GB alert once, so they never hide a new problem |
 | `backup_account_check(p_user_id)` (Task 257) | The pre-upload check (§Deleting R2 objects): answers whether the account has an `accounts` row and no deletion request (`ok`, `account_missing`, `account_deleting`), since `app` is not exposed to the API. Name and answer shape may be refined by Task 257 |
 | `backup_due_deletions()`, `backup_deletion_done(p_user_id)`, `backup_deletion_failed(p_user_id)` | Reads the `r2_deletions` rows older than one hour (`user_id`, `attempts`, `requested_at`); deletes a row once its objects are gone, or increments `attempts` |
-| `restore_begin(p_user_id, p_restore_id)` (Phase 53) | The restore's first step (flow review W2). Under the `backup_status` row lock, in this order: `account_missing`/`account_deleting` as `backup_begin()`; a reused restore id, or one that another account holds, `invalid_input`; a restore with no result and younger than 180 s, `already_running`; a restore within 10 minutes of the last (an aborted one counts), `rate_limited`. Otherwise it records `restore_started_at` and `restore_id` and inserts the `restore_staging` row with no payload |
-| `restore_stage(p_user_id, p_restore_id, p_payload)` (Phase 53) | Sets the fetched backup as the row's payload, under the row lock and only while the row has neither a payload nor a result; otherwise `not_applied` |
+| `restore_begin(p_user_id, p_restore_id)` (Phase 53) | The restore's first step (flow review W2). In this order, the account checks first as `backup_begin()` does (unlocked) and then the rest under the `backup_status` row lock: `account_missing`/`account_deleting`; a reused restore id, or one that another account holds, `invalid_input`; a restore with no result and younger than 180 s, `already_running`; a restore within 10 minutes of the last (an aborted one counts), `rate_limited`. Otherwise it records `restore_started_at` and `restore_id` and inserts the `restore_staging` row with no payload |
+| `restore_stage(p_user_id, p_restore_id, p_payload)` (Phase 53) | `set statement_timeout = '30s'` (hoisted by REST, for a payload of about 10 MB). Sets the fetched backup as the row's payload, under the row lock and only while the row has neither a payload nor a result; otherwise `not_applied` |
 | `restore_abort(p_user_id, p_restore_id, p_reason)` (Phase 53) | Writes a not-applied result (and clears the payload) when the function stops before `restore_account()` (a failed pre-restore upload or fetch), under the row lock and only while the row has no result |
 
 Names may be refined by the SQL task that writes them, with these rights and
@@ -1441,10 +1441,11 @@ checks the locked rows again after it holds them (S30; user, 2026-10-22):
   then its staging row `for update`, then every Node of the account by id, then every Bit, and only then
   computes the fingerprint again ([Account backup](#account-backup)). Chunk
   writes lock the Bit's parent Node and then the Bit, and `reorder_chunks`
-  the Bit, in the same direction. Before Task 260 is accepted, its `expert`
-  review checks the full lock list over every write function and decides
-  whether `restore_account()` locks the `accounts` row first (as
-  `ensure_account()` and `cancel_account_deletion()` do) or never touches it.
+  the Bit, in the same direction. `restore_account()` never locks the `accounts`
+  row: `ensure_account()` and `delete_my_account()` take L0 first and the
+  `accounts` row second, so locking it first would invert their order. It reads
+  the row after the L0 lock, where a committed deletion request is seen and none
+  can commit while the restore holds L0 (`expert` review, Task 260).
 - **Backup status.** `backup_begin()` and `restore_begin()` lock the
   account's `backup_status` row, which no other function locks; two
   concurrent calls for one account give one `already_running` or

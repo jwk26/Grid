@@ -230,6 +230,20 @@ describe("restore_account()", () => {
     expect(await stagingRow(id)).toMatchObject({ result: null });
   });
 
+  it("inserts every column of the five tables, so a later expand column cannot be dropped silently", async () => {
+    const [{ def }] = await owner<{ def: string }>("select pg_get_functiondef('public.restore_account(uuid, text)'::regprocedure) as def");
+    for (const table of TABLE_KEYS) {
+      const match = new RegExp(`insert into app\\.${table} \\(([^)]*)\\)`).exec(def);
+      expect(match, table).not.toBeNull();
+      const listed = match![1].split(",").map((c) => c.trim().replace(/"/g, "")).sort();
+      const columns = await owner<{ c: string }>(
+        "select column_name as c from information_schema.columns where table_schema = 'app' and table_name = $1 order by 1",
+        [table],
+      );
+      expect(listed, table).toEqual(columns.map((r) => r.c).sort());
+    }
+  });
+
   it("rejects an account with a deletion request and leaves the staging row alone", async () => {
     const { u } = await freshUser("ra-deleting");
     const id = await stageFor(u, JSON.parse(JSON.stringify(await exportOf(u.id))));
@@ -247,7 +261,7 @@ describe("restore_account()", () => {
     });
   });
 
-  it("works through supabase-js .rpc(), where the function's 30 s statement_timeout applies", async () => {
+  it("works through supabase-js .rpc() as a signed-in user", async () => {
     const { u } = await freshUser("ra-rest");
     const payload = JSON.parse(JSON.stringify(await exportOf(u.id)));
     payload.bits[0].title = "From the backup";

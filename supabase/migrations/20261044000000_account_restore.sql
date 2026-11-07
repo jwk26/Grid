@@ -23,7 +23,8 @@
 --       the account ordered by id, then every Bit ordered by id (SCHEMA §Locks, Restore);
 --       restore_begin() locks the account's backup_status row (the one lock under which
 --       already_running and rate_limited are decided); restore_stage() and restore_abort() lock the
---       staging row; no function locks the accounts row here (expert review item);
+--       staging row; restore_account() never locks the accounts row and reads it after the L0 lock
+--       (expert review, Task 260);
 --   (6) result: restore_account() returns the write envelope without `changes` (the whole account
 --       is replaced, so the client reads it again, SCHEMA §Restore); the others return `status`,
 --       `result` and `rejection` as the backup functions do;
@@ -141,7 +142,7 @@ grant execute on function public.restore_begin(uuid, uuid) to service_role;
 -- a payload is never set after a result, and never replaced.
 create function public.restore_stage(p_user_id uuid, p_restore_id uuid, p_payload jsonb)
   returns jsonb
-  language plpgsql security invoker set search_path = ''
+  language plpgsql security invoker set search_path = '' set statement_timeout = '30s'
   as $$
 declare
   v_row app.restore_staging;
@@ -232,6 +233,10 @@ begin
                               'rejection', jsonb_build_object('code', 'invalid_input'));
   end if;
 
+  perform internal.lock_grid(v_user, null);
+
+  -- Read after the L0 lock, never locked: delete_my_account() takes L0 first, so a request that
+  -- committed before this point is seen and none can commit while this holds L0 (expert review).
   select a.deletion_requested_at is not null into v_deleting
     from app.accounts a where a.user_id = v_user;
   if not found then
@@ -242,8 +247,6 @@ begin
     return jsonb_build_object('status', 'rejected', 'result', null,
                               'rejection', jsonb_build_object('code', 'account_deleting'));
   end if;
-
-  perform internal.lock_grid(v_user, null);
 
   select * into v_stage from app.restore_staging s where s.id = p_restore_id and s.user_id = v_user for update;
   if not found then
