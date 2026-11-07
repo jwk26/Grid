@@ -21,14 +21,14 @@ export type Database = {
                   ]
                 },"backup_status": {
                   Row: {
-                    "failing_since": number | null,"failure_changed_at": number | null,"failure_reason": string | null,"last_backup_now_at": number | null,"last_checked_at": number | null,"last_file_at": number | null,"last_file_bytes": number | null,"last_fingerprint": string | null,"last_finished_at": number | null,"last_result": string | null,"manual_finished_at": number | null,"manual_result": string | null,"manual_run_id": string | null,"run_started_at": number | null,"stored_bytes": number,"user_id": string
+                    "failing_since": number | null,"failure_changed_at": number | null,"failure_reason": string | null,"last_backup_now_at": number | null,"last_checked_at": number | null,"last_file_at": number | null,"last_file_bytes": number | null,"last_fingerprint": string | null,"last_finished_at": number | null,"last_result": string | null,"manual_finished_at": number | null,"manual_result": string | null,"manual_run_id": string | null,"restore_id": string | null,"restore_started_at": number | null,"run_started_at": number | null,"stored_bytes": number,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "failing_since"?: number | null,"failure_changed_at"?: number | null,"failure_reason"?: string | null,"last_backup_now_at"?: number | null,"last_checked_at"?: number | null,"last_file_at"?: number | null,"last_file_bytes"?: number | null,"last_fingerprint"?: string | null,"last_finished_at"?: number | null,"last_result"?: string | null,"manual_finished_at"?: number | null,"manual_result"?: string | null,"manual_run_id"?: string | null,"run_started_at"?: number | null,"stored_bytes"?: number,"user_id": string
+                    "failing_since"?: number | null,"failure_changed_at"?: number | null,"failure_reason"?: string | null,"last_backup_now_at"?: number | null,"last_checked_at"?: number | null,"last_file_at"?: number | null,"last_file_bytes"?: number | null,"last_fingerprint"?: string | null,"last_finished_at"?: number | null,"last_result"?: string | null,"manual_finished_at"?: number | null,"manual_result"?: string | null,"manual_run_id"?: string | null,"restore_id"?: string | null,"restore_started_at"?: number | null,"run_started_at"?: number | null,"stored_bytes"?: number,"user_id": string
                   }
                   Update: {
-                    "failing_since"?: number | null,"failure_changed_at"?: number | null,"failure_reason"?: string | null,"last_backup_now_at"?: number | null,"last_checked_at"?: number | null,"last_file_at"?: number | null,"last_file_bytes"?: number | null,"last_fingerprint"?: string | null,"last_finished_at"?: number | null,"last_result"?: string | null,"manual_finished_at"?: number | null,"manual_result"?: string | null,"manual_run_id"?: string | null,"run_started_at"?: number | null,"stored_bytes"?: number,"user_id"?: string
+                    "failing_since"?: number | null,"failure_changed_at"?: number | null,"failure_reason"?: string | null,"last_backup_now_at"?: number | null,"last_checked_at"?: number | null,"last_file_at"?: number | null,"last_file_bytes"?: number | null,"last_fingerprint"?: string | null,"last_finished_at"?: number | null,"last_result"?: string | null,"manual_finished_at"?: number | null,"manual_result"?: string | null,"manual_run_id"?: string | null,"restore_id"?: string | null,"restore_started_at"?: number | null,"run_started_at"?: number | null,"stored_bytes"?: number,"user_id"?: string
                   }
                   Relationships: [
                     
@@ -92,6 +92,20 @@ isOneToOne: false
       referencedRelation: "nodes"
       referencedColumns: ["user_id","id"]
     }
+                  ]
+                },"restore_staging": {
+                  Row: {
+                    "created_at": number,"finished_at": number | null,"id": string,"payload": Json | null,"reason": string | null,"result": string | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at": number,"finished_at"?: number | null,"id": string,"payload"?: Json | null,"reason"?: string | null,"result"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: number,"finished_at"?: number | null,"id"?: string,"payload"?: Json | null,"reason"?: string | null,"result"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"scratch_breakdowns": {
                   Row: {
@@ -287,11 +301,23 @@ isOneToOne: false
 "reorder_chunks":
 { Args: { "p_bit_id": string,"p_chunk_ids": (string)[] }; Returns: Json
                            },
+"restore_abort":
+{ Args: { "p_reason": string,"p_restore_id": string,"p_user_id": string }; Returns: Json
+                           },
+"restore_account":
+{ Args: { "p_expected_fingerprint": string,"p_restore_id": string }; Returns: Json
+                           },
+"restore_begin":
+{ Args: { "p_restore_id": string,"p_user_id": string }; Returns: Json
+                           },
 "restore_bit":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
                            },
 "restore_node":
 { Args: { "p_id": string,"p_reserved_cells"?: Json }; Returns: Json
+                           },
+"restore_stage":
+{ Args: { "p_payload": Json,"p_restore_id": string,"p_user_id": string }; Returns: Json
                            },
 "save_breakdown":
 { Args: { "p_base_content": string,"p_base_order": number,"p_content": string,"p_expected_version": number,"p_id": string,"p_order": number }; Returns: Json

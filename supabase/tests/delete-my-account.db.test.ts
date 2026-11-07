@@ -83,6 +83,7 @@ const CALLS: Record<string, () => string> = {
   reconcile_unstage_candidate: () => `public.reconcile_unstage_candidate(${uuid()}, 1, ${uuid()}, 1)`,
   reorder_chunks: () => `public.reorder_chunks(${uuid()}, '{}'::uuid[])`,
   restore_bit: () => `public.restore_bit(${uuid()}, ${RESERVED})`,
+  restore_account: () => `public.restore_account(${uuid()}, 'x')`,
   restore_node: () => `public.restore_node(${uuid()}, ${RESERVED})`,
   save_breakdown: () => `public.save_breakdown(${uuid()}, 1, 'a', 1, 'b', 1)`,
   save_scratch_title: () => `public.save_scratch_title(${uuid()}, 1, 'a', 'b')`,

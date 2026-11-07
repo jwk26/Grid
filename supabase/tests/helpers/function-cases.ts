@@ -472,4 +472,23 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
     crossAccount: { file: "trash-scratch-commands.db.test.ts", title: "leaves another account's rows untouched and sees nothing of them" },
     changeSet: { file: "trash-scratch-commands.db.test.ts", title: "before + changes equals after for Trash Scratch, its reconcile and their rejections" },
   },
+  restore_begin: {
+    crossAccount: { file: "restore-staging.db.test.ts", title: "refuses a reused restore id with invalid_input, also another account's" },
+  },
+  restore_stage: {
+    crossAccount: { file: "restore-staging.db.test.ts", title: "changes nothing for another account's restore id" },
+  },
+  restore_abort: {
+    crossAccount: { file: "restore-staging.db.test.ts", title: "changes nothing for another account's restore id" },
+  },
+  restore_account: {
+    crossAccount: {
+      file: "restore-account.db.test.ts",
+      title: "reads only the caller's staging row, and a direct call applies only what was staged for it",
+    },
+    changeSet: {
+      file: "restore-account.db.test.ts",
+      title: "replaces the account: a re-export equals the backup except version, and versions are greatest + 1",
+    },
+  },
 };
