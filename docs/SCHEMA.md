@@ -1711,6 +1711,9 @@ scheduled run backs up every account once; this is expected.
   or `{"status":"unconfirmed"}` (the function could not settle it: the client
   reads the verdict). A restore never depends on the stream: a client that
   drops changes nothing and the staging row decides (Task 261 measurement).
+  A stream that ends with no `result` event (the worker was stopped at its
+  wall clock, or the runtime stopped it after the client dropped) is an
+  unknown outcome, the same as `unconfirmed`: the client reads the verdict.
 - The function ends every stop short of `restore_account()` with
   `restore_abort()`, and its answer decides the result: it wrote the result,
   so `not_applied`; a result already existed, so the function reads the

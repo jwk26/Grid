@@ -106,5 +106,40 @@ export async function readExport(key: string): Promise<any> { // eslint-disable-
 /** Deletes every object under the account's prefix and its sub-folders (tests clean up their own keys). */
 export async function removeAccountObjects(userId: string): Promise<void> {
   const names = await listFiles(userId);
-  await removeObjects(names.map((n) => `accounts/${userId}/${n}`));
+  const pre = await listFiles(userId, "/pre-restore");
+  await removeObjects([...names.map((n) => `accounts/${userId}/${n}`), ...pre.map((n) => `accounts/${userId}/pre-restore/${n}`)]);
+}
+
+// ---- Restore (Task 261) ------------------------------------------------------------------------
+
+export type RestoreEventRead = { event: string; data: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/** Splits a `text/event-stream` body into its events. */
+export function parseEvents(text: string): RestoreEventRead[] {
+  return [...text.matchAll(/event: (\w+)\ndata: (.*)\n\n/g)].map((m) => ({ event: m[1], data: JSON.parse(m[2]) }));
+}
+
+/**
+ * Calls the `restore` mode with the user's JWT and reads the whole answer: a stream gives its
+ * events, a JSON refusal its body.
+ */
+export async function callRestore(
+  jwt: string,
+  body: Record<string, unknown>,
+): Promise<{ status: number; contentType: string; events: RestoreEventRead[]; json: any }> { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const res = await fetch(functionUrl(), {
+    method: "POST",
+    headers: { "content-type": "application/json", ...asBearer(jwt) },
+    body: JSON.stringify({ mode: "restore", ...body }),
+  });
+  const contentType = res.headers.get("content-type") ?? "";
+  const text = await res.text();
+  if (contentType.startsWith("text/event-stream")) return { status: res.status, contentType, events: parseEvents(text), json: null };
+  let json: unknown = text;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    // keep the text
+  }
+  return { status: res.status, contentType, events: [], json };
 }
