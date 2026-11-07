@@ -907,7 +907,7 @@ a restore to other devices.
 
 **Task order:** 260 → 261 → 262 → 263 → 264.
 
-### Task 260: [ ] Add restore staging and `restore_account()` in SQL
+### Task 260: [x] Add restore staging and `restore_account()` in SQL
 
 **Files and actions:**
 - First, before the migration is written: the hosted body probe. Task 255
