@@ -1665,7 +1665,11 @@ scheduled run backs up every account once; this is expected.
    the caller's staging row; after the locks it computes the fingerprint
    again, and on a mismatch writes `account_changed` and changes nothing. It
    refuses an unsupported `format_version` with `unsupported_format`.
-   Otherwise it replaces the whole account in one transaction. Either way it
+   Otherwise it replaces the whole account in one transaction. Every restored
+   row takes the caller's user id; the payload's `user_id` values, top-level
+   and per row, are neither used nor checked, because after a recovery into a
+   new project the file holds the old internal id (Task 260 work-plan review,
+   2026-11-07). Either way it
    writes `result` and `finished_at` into the staging row and clears its
    payload in the same transaction.
 

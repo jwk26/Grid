@@ -952,6 +952,8 @@ example by refusing a begin whose id was already judged `not_started`.
 **Observable acceptance:** the hosted body probe's result is in the ledger
 before the migration, and staging follows it; `restore_account()` cannot read another account's
 staging row; a direct browser call applies only what was staged for it; a
+payload whose rows name another user id restores into the caller only and
+leaves that other account unchanged; a
 fingerprint mismatch writes `account_changed` and changes nothing; an
 unsupported `format_version` is refused; after `applied` every restored row's
 version is `greatest(backup, current) + 1` and a re-export equals the backup
