@@ -27,8 +27,8 @@ export type RestoreDeps = {
   exportGzip(userId: string): Promise<ExportAnswer>;
   accountCheck(userId: string): Promise<string>;
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
-  /** The object bytes, or null when it does not exist. */
-  getBytes(key: string): Promise<Uint8Array | null>;
+  /** The object bytes with the ETag of that very response, or null when it does not exist. */
+  getBytes(key: string): Promise<{ bytes: Uint8Array; etag: string | null } | null>;
   list(prefix: string): Promise<ListedObject[]>;
   remove(keys: string[]): Promise<void>;
   /** The decompressed bytes, or null when the file is not a readable gzip. */
@@ -44,7 +44,8 @@ export type RestoreDeps = {
   log(message: string): void;
 };
 
-export type RestoreInput = { userId: string; restoreId: string; file: string };
+/** `etag` is the list entry's ETag (normalized): the file read must be that very version. */
+export type RestoreInput = { userId: string; restoreId: string; file: string; etag: string };
 
 const REASON = /^[a-z][a-z0-9_]{0,63}$/;
 const DEADLOCK = "40P01";
@@ -150,14 +151,18 @@ export async function runRestore(
 
     // 2. The chosen backup, set as the staged payload.
     send({ type: "step", step: "getting" });
-    let packed: Uint8Array | null;
+    let fetched: { bytes: Uint8Array; etag: string | null } | null;
     try {
-      packed = await deps.getBytes(key);
+      fetched = await deps.getBytes(key);
     } catch (error) {
       deps.log(`backup fetch failed: ${logCode(error)}`);
       return await stop("fetch_failed");
     }
-    if (packed === null) return await stop("backup_missing");
+    if (fetched === null) return await stop("backup_missing");
+    // A later run (a scheduled one, or `Back Up Now` in another tab) can overwrite the day's slot
+    // between the list and this read; the user chose the version the list showed.
+    if (fetched.etag === null || fetched.etag !== input.etag) return await stop("backup_changed");
+    const packed = fetched.bytes;
     let payload: Uint8Array | null;
     try {
       payload = await deps.gunzip(packed);

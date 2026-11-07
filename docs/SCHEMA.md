@@ -1689,12 +1689,17 @@ scheduled run backs up every account once; this is expected.
 
 **The function's restore call** (Task 261; user, 2026-11-07).
 
-- Request: `{ "mode": "restore", "restore_id": <uuid>, "file": <list name> }`
-  with the user's JWT. `file` is a name from the backup list, `YYYY-MM-DD` for
+- Request: `{ "mode": "restore", "restore_id": <uuid>, "file": <list name>,
+  "etag": <the list entry's etag> }` with the user's JWT. `file` is a name from the backup list, `YYYY-MM-DD` for
   a date slot or `pre-restore/<UTC time>` (`YYYY-MM-DDTHH-MM-SSZ`) for a
   pre-restore file, never an object key: the function builds the key inside
   the caller's own prefix, so a body naming another account restores only the
-  caller. A `user_id` in the body is ignored.
+  caller. The `etag` is the chosen list entry's: the function compares it with
+  the `ETag` of the very GET that reads the file, and on a difference (a
+  scheduled run, or `Back Up Now` in another tab, overwrote the day's slot
+  after the list was read) stops with `restore_abort("backup_changed")` and
+  reports `not_applied`, so a restore never applies a version the user did not
+  choose (Task 261 finish review, 2026-11-07). A `user_id` in the body is ignored.
 - A refusal before anything is staged (`not_eligible`, `account_missing`,
   `account_deleting`, `invalid_input`, `already_running`, `rate_limited`)
   answers `200` JSON `{ "status": "rejected", "rejection": { "code" } }`, as
@@ -1705,7 +1710,7 @@ scheduled run backs up every account once; this is expected.
   chunk), then one `event: result` whose data is the envelope vocabulary:
   `{"status":"applied"}`, `{"status":"not_applied","reason"?}` (the reason is
   only the function's own `restore_abort()` code, for example `upload_failed`,
-  `backup_missing`, `backup_unreadable`, `restore_failed`),
+  `backup_missing`, `backup_changed`, `backup_unreadable`, `restore_failed`),
   `{"status":"rejected","rejection":{"code"}}` (`account_changed`,
   `unsupported_format`, `account_missing`, `account_deleting`, `invalid_input`)
   or `{"status":"unconfirmed"}` (the function could not settle it: the client
@@ -1726,7 +1731,7 @@ scheduled run backs up every account once; this is expected.
   reads, even when that one is the oldest.
 - `status` with neither `run_id` nor `restore_id` also returns `backups`: the
   list, newest first, `{ "name", "kind": "daily" | "pre_restore", "at": <epoch
-  ms from the object's last-modified time>, "size" }`, or `null` when the
+  ms from the object's last-modified time>, "size", "etag" }`, or `null` when the
   storage listing failed. `status` with `restore_id` returns the verdict
   (`restore_verdict`) and calls no storage, so the way out works while the
   storage is down.

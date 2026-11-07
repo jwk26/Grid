@@ -8,16 +8,16 @@ const p = `accounts/${ID}/`;
 describe("buildBackupList", () => {
   it("lists date slots and pre-restore files newest first by their real time", () => {
     const list = buildBackupList(ID, [
-      { key: `${p}2026-11-05.json.gz`, size: 10, lastModified: Date.parse("2026-11-05T03:00:12Z") },
+      { key: `${p}2026-11-05.json.gz`, size: 10, lastModified: Date.parse("2026-11-05T03:00:12Z"), etag: "e5" },
       { key: `${p}identity.json`, size: 1 },
-      { key: `${p}pre-restore/2026-11-06T09-30-00Z.json.gz`, size: 20, lastModified: Date.parse("2026-11-06T09:30:01Z") },
-      { key: `${p}2026-11-07.json.gz`, size: 30, lastModified: Date.parse("2026-11-07T03:00:00Z") },
+      { key: `${p}pre-restore/2026-11-06T09-30-00Z.json.gz`, size: 20, lastModified: Date.parse("2026-11-06T09:30:01Z"), etag: "e6" },
+      { key: `${p}2026-11-07.json.gz`, size: 30, lastModified: Date.parse("2026-11-07T03:00:00Z"), etag: "e7" },
       { key: `accounts/${OTHER}/2026-11-08.json.gz`, size: 40 },
     ]);
     expect(list).toEqual([
-      { name: "2026-11-07", kind: "daily", at: Date.parse("2026-11-07T03:00:00Z"), size: 30 },
-      { name: "pre-restore/2026-11-06T09-30-00Z", kind: "pre_restore", at: Date.parse("2026-11-06T09:30:01Z"), size: 20 },
-      { name: "2026-11-05", kind: "daily", at: Date.parse("2026-11-05T03:00:12Z"), size: 10 },
+      { name: "2026-11-07", kind: "daily", at: Date.parse("2026-11-07T03:00:00Z"), size: 30, etag: "e7" },
+      { name: "pre-restore/2026-11-06T09-30-00Z", kind: "pre_restore", at: Date.parse("2026-11-06T09:30:01Z"), size: 20, etag: "e6" },
+      { name: "2026-11-05", kind: "daily", at: Date.parse("2026-11-05T03:00:12Z"), size: 10, etag: "e5" },
     ]);
   });
 

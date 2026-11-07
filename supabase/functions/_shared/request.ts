@@ -11,8 +11,10 @@ export type ParsedRequest =
   | { ok: true; mode: "summary"; missing: number; asOf: number }
   | { ok: true; mode: "manual"; runId: string }
   | { ok: true; mode: "status"; runId: string | null; restoreId: string | null }
-  | { ok: true; mode: "restore"; restoreId: string; file: string }
+  | { ok: true; mode: "restore"; restoreId: string; file: string; etag: string }
   | { ok: false; code: string };
+
+const ETAG_PATTERN = /^[A-Za-z0-9_=+\/-]{1,128}$/;
 
 const bad = (code: string): ParsedRequest => ({ ok: false, code });
 
@@ -54,7 +56,11 @@ export function parseRequest(body: unknown): ParsedRequest {
     case "restore":
       if (typeof b.restore_id !== "string" || !UUID_PATTERN.test(b.restore_id)) return bad("bad_restore_id");
       // A list name, never an object key: the function builds the key inside the caller's prefix.
-      return isBackupName(b.file) ? { ok: true, mode, restoreId: b.restore_id, file: b.file } : bad("bad_file");
+      if (!isBackupName(b.file)) return bad("bad_file");
+      // The list entry's ETag: the restore refuses a file that changed since the list was read.
+      return typeof b.etag === "string" && ETAG_PATTERN.test(b.etag)
+        ? { ok: true, mode, restoreId: b.restore_id, file: b.file, etag: b.etag }
+        : bad("bad_etag");
   }
 }
 

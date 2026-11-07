@@ -23,15 +23,18 @@ describe("parseRequest", () => {
     expect(parseRequest({ mode: "manual" })).toEqual({ ok: false, code: "bad_run_id" });
   });
   it("restore takes a restore id and a list name, never an object key", () => {
-    expect(parseRequest({ mode: "restore", restore_id: ID, file: "2026-11-07" })).toEqual({
-      ok: true, mode: "restore", restoreId: ID, file: "2026-11-07",
+    expect(parseRequest({ mode: "restore", restore_id: ID, file: "2026-11-07", etag: "abc123" })).toEqual({
+      ok: true, mode: "restore", restoreId: ID, file: "2026-11-07", etag: "abc123",
     });
-    expect(parseRequest({ mode: "restore", restore_id: ID, file: "pre-restore/2026-11-07T12-30-05Z" })).toMatchObject({ ok: true });
+    expect(parseRequest({ mode: "restore", restore_id: ID, file: "pre-restore/2026-11-07T12-30-05Z", etag: "abc-2" })).toMatchObject({ ok: true });
     for (const file of ["accounts/x/2026-11-07.json.gz", "../2026-11-07", "2026-13-40", "identity.json", "", 5, undefined]) {
-      expect(parseRequest({ mode: "restore", restore_id: ID, file })).toEqual({ ok: false, code: "bad_file" });
+      expect(parseRequest({ mode: "restore", restore_id: ID, file, etag: "abc" })).toEqual({ ok: false, code: "bad_file" });
     }
-    expect(parseRequest({ mode: "restore", restore_id: "nope", file: "2026-11-07" })).toEqual({ ok: false, code: "bad_restore_id" });
-    expect(parseRequest({ mode: "restore", file: "2026-11-07" })).toEqual({ ok: false, code: "bad_restore_id" });
+    for (const etag of [undefined, "", 5, "a b", '"quoted"', "x".repeat(129)]) {
+      expect(parseRequest({ mode: "restore", restore_id: ID, file: "2026-11-07", etag })).toEqual({ ok: false, code: "bad_etag" });
+    }
+    expect(parseRequest({ mode: "restore", restore_id: "nope", file: "2026-11-07", etag: "abc" })).toEqual({ ok: false, code: "bad_restore_id" });
+    expect(parseRequest({ mode: "restore", file: "2026-11-07", etag: "abc" })).toEqual({ ok: false, code: "bad_restore_id" });
   });
 
   it("status takes an optional restore_id beside run_id", () => {

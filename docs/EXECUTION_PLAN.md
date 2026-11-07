@@ -1024,6 +1024,12 @@ review.
   `restore-started` and `restore-ended` with the outcome on every terminal
   outcome; the way-out after `EDGE_REQUEST_TIMEOUT_MS` with the verdict for
   that restore id; drop the snapshot and repeat entry on `applied`.
+- Task 261 carries (finish review, 2026-11-07): the restore request sends the
+  chosen list entry's `etag` beside its `file` (SCHEMA's wire format); and the
+  function calls `restore_account()` with the request's JWT up to about 140 s
+  after the request starts, so the client refreshes the session before a
+  restore when the access token expires within 3 minutes, or an expiry in that
+  window ends the restore as not applied.
 - `backup-dialog.tsx`: `Restore…`, the list, the confirmation.
 - `src/components/layout/restoring-screen.tsx` and test, mounted by the app
   frame over the `inert` app.

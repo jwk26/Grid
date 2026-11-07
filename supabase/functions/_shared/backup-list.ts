@@ -11,9 +11,11 @@ export type BackupEntry = {
   /** Epoch ms: the object's own last-modified time, else the time its name carries. */
   at: number;
   size: number;
+  /** The object's ETag when this list was read; a restore sends it back and refuses a file that changed since. */
+  etag: string | null;
 };
 
-export type ListedFile = { key: string; size: number; lastModified?: number };
+export type ListedFile = { key: string; size: number; lastModified?: number; etag?: string };
 
 const DAILY_NAME = /^\d{4}-\d{2}-\d{2}$/;
 const PRE_RESTORE_NAME = /^pre-restore\/(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z)$/;
@@ -47,13 +49,13 @@ export function buildBackupList(userId: string, listed: ListedFile[]): BackupEnt
   for (const o of listed) {
     const date = parseBackupKey(userId, o.key);
     if (date !== null) {
-      out.push({ name: date, kind: "daily", at: o.lastModified ?? Date.parse(`${date}T00:00:00Z`), size: o.size });
+      out.push({ name: date, kind: "daily", at: o.lastModified ?? Date.parse(`${date}T00:00:00Z`), size: o.size, etag: o.etag ?? null });
       continue;
     }
     const time = parsePreRestoreKey(userId, o.key);
     if (time !== null) {
       const name = o.key.slice(accountPrefix(userId).length, -".json.gz".length);
-      out.push({ name, kind: "pre_restore", at: o.lastModified ?? time, size: o.size });
+      out.push({ name, kind: "pre_restore", at: o.lastModified ?? time, size: o.size, etag: o.etag ?? null });
     }
   }
   return out.sort((a, b) => b.at - a.at || (a.name < b.name ? 1 : -1));

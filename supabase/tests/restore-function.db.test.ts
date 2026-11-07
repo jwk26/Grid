@@ -40,6 +40,16 @@ const stepsOf = (events: { event: string; data: any }[]) => events.filter((e) =>
 const resultOf = (events: { event: string; data: any }[]) => events.filter((e) => e.event === "result").map((e) => e.data); // eslint-disable-line @typescript-eslint/no-explicit-any
 const gz = (value: unknown) => gzipSync(Buffer.from(JSON.stringify(value)));
 
+// The restore request carries the ETag of the list entry the user chose; a file that is not listed
+// (the missing-backup case) sends a placeholder.
+async function etagOf(u: OAuthUser, file: string): Promise<string> {
+  const list = (await status(u)).json.result.backups as { name: string; etag: string | null }[];
+  return list.find((e) => e.name === file)?.etag ?? "not-listed";
+}
+async function rest(u: OAuthUser, body: Record<string, unknown>) {
+  return callRestore(u.jwt, { etag: await etagOf(u, body.file as string), ...body });
+}
+
 async function waitFor<T>(read: () => Promise<T | undefined>, ms = 15_000): Promise<T> {
   const end = Date.now() + ms;
   for (;;) {
@@ -63,7 +73,7 @@ describe("restore", () => {
     const a = await backedUpAndChanged("rsf-a");
     const b = await backedUpAndChanged("rsf-b");
     const id = randomUUID();
-    const r = await callRestore(a.jwt, { restore_id: id, file: today, user_id: b.id });
+    const r = await rest(a, { restore_id: id, file: today, user_id: b.id });
     expect(r.status).toBe(200);
     expect(r.contentType).toContain("text/event-stream");
     expect(stepsOf(r.events)).toEqual(["saving", "getting", "applying"]);
@@ -98,7 +108,7 @@ describe("restore", () => {
     // Pre-restore keys have a one second resolution; the 10 minute limit keeps two restores apart in
     // real use, but the aged clock here would let the second one overwrite the file it reads.
     await new Promise((r) => setTimeout(r, 1100));
-    const undo = await callRestore(a.jwt, { restore_id: randomUUID(), file: list.find((e: { kind: string }) => e.kind === "pre_restore").name });
+    const undo = await rest(a, { restore_id: randomUUID(), file: list.find((e: { kind: string }) => e.kind === "pre_restore").name });
     expect(resultOf(undo.events)).toEqual([{ status: "applied" }]);
     expect(await titles(a)).toEqual([CHANGED]);
   });
@@ -109,13 +119,13 @@ describe("restore", () => {
     });
     const { data } = await anon.auth.signInAnonymously();
     const id = randomUUID();
-    const guest = await callRestore(data.session!.access_token, { restore_id: id, file: today });
+    const guest = await callRestore(data.session!.access_token, { restore_id: id, file: today, etag: "abc" });
     expect(guest.status).toBe(403);
     expect(guest.json).toEqual({ status: "refused", code: "guest" });
     expect(await stagingRow(id)).toBeUndefined();
     // A token whose payload does not decode is a definite 401, not the no-answer 502 (Phase 52 Task 259).
     for (const token of ["a.b.c", "x.!!!.y", "not-a-jwt"]) {
-      const r = await callRestore(token, { restore_id: id, file: today });
+      const r = await callRestore(token, { restore_id: id, file: today, etag: "abc" });
       expect(r.status, token).toBe(401);
       expect(r.json).toEqual({ status: "refused", code: "invalid_token" });
     }
@@ -123,24 +133,25 @@ describe("restore", () => {
 
   it("refuses a body that names an object key, a bad id, or the shared secret", async () => {
     const u = await newUser("rsf-bad");
-    const key = await callRestore(u.jwt, { restore_id: randomUUID(), file: `accounts/${u.id}/${today}.json.gz` });
+    const key = await callRestore(u.jwt, { restore_id: randomUUID(), file: `accounts/${u.id}/${today}.json.gz`, etag: "abc" });
     expect(key.status).toBe(400);
     expect(key.json).toEqual({ status: "refused", code: "bad_file" });
-    expect((await callRestore(u.jwt, { restore_id: "nope", file: today })).json.code).toBe("bad_restore_id");
-    const secret = await callFunction({ body: { mode: "restore", restore_id: randomUUID(), file: today }, headers: { "x-backup-secret": "x" } });
+    expect((await callRestore(u.jwt, { restore_id: "nope", file: today, etag: "abc" })).json.code).toBe("bad_restore_id");
+    expect((await callRestore(u.jwt, { restore_id: randomUUID(), file: today })).json).toEqual({ status: "refused", code: "bad_etag" });
+    const secret = await callFunction({ body: { mode: "restore", restore_id: randomUUID(), file: today, etag: "abc" }, headers: { "x-backup-secret": "x" } });
     expect(secret.status).toBe(401);
   });
 
   it("answers rate_limited for a second restore within 10 minutes, and uploads and prunes nothing", async () => {
     const u = await backedUpAndChanged("rsf-rate");
-    expect(resultOf((await callRestore(u.jwt, { restore_id: randomUUID(), file: today })).events)).toEqual([{ status: "applied" }]);
+    expect(resultOf((await rest(u, { restore_id: randomUUID(), file: today })).events)).toEqual([{ status: "applied" }]);
     // Seven older pre-restore files: a refused restore would prune two of them if it ran the prune.
     const backup = await readObject(`accounts/${u.id}/${today}.json.gz`);
     for (let d = 1; d <= 7; d++) await putObject(`accounts/${u.id}/pre-restore/2026-01-0${d}T10-00-00Z.json.gz`, backup);
     const before = await listFiles(u.id, "/pre-restore");
     expect(before.length).toBe(8);
     const id = randomUUID();
-    const second = await callRestore(u.jwt, { restore_id: id, file: today });
+    const second = await rest(u, { restore_id: id, file: today });
     expect(second.status).toBe(200);
     expect(second.json).toEqual({ status: "rejected", rejection: { code: "rate_limited" } });
     expect(await listFiles(u.id, "/pre-restore")).toEqual(before);
@@ -151,7 +162,7 @@ describe("restore", () => {
     const e = await createOAuthUser(db, "rsf-email", { oauth: false });
     made.push(e);
     const id = randomUUID();
-    const r = await callRestore(e.jwt, { restore_id: id, file: today });
+    const r = await callRestore(e.jwt, { restore_id: id, file: today, etag: "abc" });
     expect(r.json).toEqual({ status: "rejected", rejection: { code: "not_eligible" } });
     expect(await stagingRow(id)).toBeUndefined();
   });
@@ -159,7 +170,7 @@ describe("restore", () => {
   it("a backup that does not exist ends with a recorded not-applied result and the account unchanged", async () => {
     const u = await backedUpAndChanged("rsf-missing");
     const id = randomUUID();
-    const r = await callRestore(u.jwt, { restore_id: id, file: "2026-01-01" });
+    const r = await rest(u, { restore_id: id, file: "2026-01-01" });
     expect(stepsOf(r.events)).toEqual(["saving", "getting"]);
     expect(resultOf(r.events)).toEqual([{ status: "not_applied", reason: "backup_missing" }]);
     expect(await titles(u)).toEqual([CHANGED]);
@@ -169,11 +180,26 @@ describe("restore", () => {
     expect((await listFiles(u.id, "/pre-restore")).length).toBe(1);
   });
 
+  it("refuses a file that changed since the list was read, and changes nothing", async () => {
+    const u = await backedUpAndChanged("rsf-etag");
+    const listedEtag = await etagOf(u, today);
+    expect(listedEtag).not.toBe("not-listed");
+    // Another run (a scheduled one, or Back Up Now in another tab) overwrites the day's slot.
+    await putObject(`accounts/${u.id}/${today}.json.gz`, gz({ bits: [], format_version: 1 }));
+    const id = randomUUID();
+    const r = await callRestore(u.jwt, { restore_id: id, file: today, etag: listedEtag });
+    expect(resultOf(r.events)).toEqual([{ status: "not_applied", reason: "backup_changed" }]);
+    expect(await titles(u)).toEqual([CHANGED]);
+    expect(await stagingRow(id)).toMatchObject({ result: "not_applied", reason: "backup_changed", payload: null });
+    // With the new version's ETag from a fresh list, the same file is accepted (and refused later as unreadable here).
+    expect(await etagOf(u, today)).not.toBe(listedEtag);
+  });
+
   it("an unreadable backup stops before staging, and an unsupported format is rejected with nothing changed", async () => {
     const u = await backedUpAndChanged("rsf-bad-file");
     await putObject(`accounts/${u.id}/2026-01-02.json.gz`, Buffer.from("not a gzip"));
     const bad = randomUUID();
-    const r = await callRestore(u.jwt, { restore_id: bad, file: "2026-01-02" });
+    const r = await rest(u, { restore_id: bad, file: "2026-01-02" });
     expect(resultOf(r.events)).toEqual([{ status: "not_applied", reason: "backup_unreadable" }]);
     expect((await stagingRow(bad)).payload).toBeNull();
 
@@ -183,7 +209,7 @@ describe("restore", () => {
       gz({ bits: [], chunks: [], format_version: 2, nodes: [], scratch_breakdowns: [], staged_candidates: [] }),
     );
     const v2 = randomUUID();
-    const r2 = await callRestore(u.jwt, { restore_id: v2, file: "2026-01-03" });
+    const r2 = await rest(u, { restore_id: v2, file: "2026-01-03" });
     expect(stepsOf(r2.events)).toEqual(["saving", "getting", "applying"]);
     expect(resultOf(r2.events)).toEqual([{ status: "rejected", rejection: { code: "unsupported_format" } }]);
     expect(await titles(u)).toEqual([CHANGED]);
@@ -202,7 +228,7 @@ describe("restore", () => {
     const res = await fetch(`${process.env.SUPABASE_TEST_URL}/functions/v1/backup`, {
       method: "POST",
       headers: { "content-type": "application/json", ...asBearer(u.jwt) },
-      body: JSON.stringify({ mode: "restore", restore_id: id, file: `pre-restore/${times[0]}` }),
+      body: JSON.stringify({ mode: "restore", restore_id: id, file: `pre-restore/${times[0]}`, etag: await etagOf(u, `pre-restore/${times[0]}`) }),
       signal: ac.signal,
     });
     const reader = res.body!.getReader();

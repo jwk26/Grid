@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDeleteBody, parseDeleteErrors, parseListPage } from "./s3-xml.ts";
+import { buildDeleteBody, normalizeEtag, parseDeleteErrors, parseListPage } from "./s3-xml.ts";
 
 describe("s3 xml", () => {
   it("parses a list page with a continuation token", () => {
@@ -32,5 +32,19 @@ describe("parseListPage LastModified", () => {
       { key: "a", size: 5, lastModified: Date.parse("2026-11-07T03:00:12.000Z") },
       { key: "b", size: 6 },
     ]);
+  });
+});
+
+describe("ETag", () => {
+  it("normalizes quotes, escaped quotes and a weak marker so a list entry and a GET header compare equal", () => {
+    expect(normalizeEtag('"abc"')).toBe("abc");
+    expect(normalizeEtag('W/"abc"')).toBe("abc");
+    expect(normalizeEtag("abc")).toBe("abc");
+    expect(normalizeEtag('""')).toBeNull();
+    expect(normalizeEtag(null)).toBeNull();
+  });
+  it("reads the list's ETag, quoted either way", () => {
+    const xml = `<ListBucketResult><Contents><Key>a</Key><ETag>&quot;e1&quot;</ETag><Size>5</Size></Contents><Contents><Key>b</Key><ETag>"e2"</ETag><Size>6</Size></Contents><Contents><Key>c</Key><Size>7</Size></Contents></ListBucketResult>`;
+    expect(parseListPage(xml).objects.map((o) => o.etag)).toEqual(["e1", "e2", undefined]);
   });
 });

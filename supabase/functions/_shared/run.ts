@@ -28,7 +28,7 @@ export type FinishArgs = {
   reason?: string;
 };
 
-export type ListedObject = { key: string; size: number; lastModified?: number };
+export type ListedObject = { key: string; size: number; lastModified?: number; etag?: string };
 
 export type RunDeps = {
   now(): Date;

@@ -100,7 +100,7 @@ function restoreDeps(token: string): RestoreDeps {
  * restore never depends on the stream: a client that drops changes nothing, and the staging row
  * decides what happened.
  */
-async function restore(userId: string, token: string, restoreId: string, file: string): Promise<Response> {
+async function restore(userId: string, token: string, restoreId: string, file: string, etag: string): Promise<Response> {
   const eligible = await loadIdentity(userId);
   if (!eligible.ok) return answer(200, rejectedBody(eligible.code));
   const deps = restoreDeps(token); // a missing storage setting fails here, before anything is recorded
@@ -115,7 +115,7 @@ async function restore(userId: string, token: string, restoreId: string, file: s
         if (open) controller.enqueue(encoder.encode(formatEvent(e)));
       };
       try {
-        await runRestore(deps, { userId, restoreId, file }, (e) => {
+        await runRestore(deps, { userId, restoreId, file, etag }, (e) => {
           try {
             emit(e);
           } catch {
@@ -224,7 +224,7 @@ export async function handle(req: Request): Promise<Response> {
         return answer(200, { status: "applied", result: { ...status, backups } });
       }
       case "restore":
-        return await restore(jwtUserId as string, bearerToken(req.headers.get("authorization")) as string, parsed.restoreId, parsed.file);
+        return await restore(jwtUserId as string, bearerToken(req.headers.get("authorization")) as string, parsed.restoreId, parsed.file, parsed.etag);
       case "summary": {
         // Counts and codes only: no account id, email or reason leaves the function.
         const outcome = await runSummary(summaryDeps(), { missing: parsed.missing, asOf: parsed.asOf });

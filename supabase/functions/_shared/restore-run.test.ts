@@ -8,7 +8,8 @@ const USER = "3f2b8c1e-5a47-4d0e-9b6a-1c2d3e4f5a6b";
 const RID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const FP = "0123456789abcdef0123456789abcdef";
 const P = `accounts/${USER}/`;
-const input = { userId: USER, restoreId: RID, file: "2026-11-05" };
+const ETAG = "etag-listed";
+const input = { userId: USER, restoreId: RID, file: "2026-11-05", etag: ETAG };
 const payload = new TextEncoder().encode('{"bits": [], "nodes": []}');
 
 type Opts = {
@@ -17,7 +18,7 @@ type Opts = {
   put?: () => Promise<void>;
   keys?: string[];
   remove?: () => Promise<void>;
-  bytes?: Uint8Array | null | Error;
+  bytes?: { bytes: Uint8Array; etag: string | null } | null | Error;
   gunzip?: Uint8Array | null | Error;
   stage?: string | Error;
   abort?: string | Error;
@@ -46,7 +47,7 @@ function fake(o: Opts = {}) {
       puts.push(key);
       await (o.put ? o.put() : Promise.resolve());
     },
-    getBytes: async () => (calls.push("get"), val(o.bytes === undefined ? new Uint8Array([1]) : o.bytes)),
+    getBytes: async () => (calls.push("get"), val(o.bytes === undefined ? { bytes: new Uint8Array([1]), etag: ETAG } : o.bytes)),
     list: async () => (calls.push("list"), (o.keys ?? [`${P}pre-restore/2026-11-07T12-30-05Z.json.gz`]).map((key) => ({ key, size: 1 }))),
     remove: async (keys) => {
       calls.push("remove");
@@ -156,6 +157,16 @@ describe("runRestore", () => {
     const r = await run({ keys, remove: () => Promise.reject(new Error("delete_500")) });
     expect(r.result).toEqual({ status: "applied" });
     expect(r.logs.some((l) => l.startsWith("pre-restore prune failed"))).toBe(true);
+  });
+
+  it("stops with backup_changed when the file read is not the version the list showed", async () => {
+    for (const etag of ["etag-other", null]) {
+      const r = await run({ bytes: { bytes: new Uint8Array([1]), etag } });
+      expect(r.aborts).toEqual(["backup_changed"]);
+      expect(r.calls).not.toContain("gunzip");
+      expect(r.calls).not.toContain("stage");
+      expect(r.result).toEqual({ status: "not_applied", reason: "backup_changed" });
+    }
   });
 
   it("stops on a missing, unreadable or non-export backup", async () => {

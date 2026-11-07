@@ -93,7 +93,9 @@ try {
   }, 100);
   const cpu0 = cpuUsec();
   const t0 = performance.now();
-  const res = await call({ mode: "restore", restore_id: randomUUID(), file: today });
+  const listed = await call({ mode: "status" });
+  const entry = (await listed.json()).result.backups.find((e) => e.name === today);
+  const res = await call({ mode: "restore", restore_id: randomUUID(), file: today, etag: entry.etag });
   let text = "";
   const reader = res.body.getReader();
   const dec = new TextDecoder();
