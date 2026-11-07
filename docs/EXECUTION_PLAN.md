@@ -1014,7 +1014,7 @@ review.
 
 **Commit message:** `feat(backup): restore from the Edge Function`.
 
-### Task 262: [ ] Add `Restore…`, the restoring screen and the other-tab follow
+### Task 262: [x] Add `Restore…`, the restoring screen and the other-tab follow
 
 **Files and actions:**
 - Merge `main` first.
