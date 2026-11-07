@@ -22,3 +22,8 @@ Counts and times only. The Task 255 scripts are local only: they refuse any host
   with the page's own session token (read from localStorage, never printed or sent elsewhere), to prove
   the browser's CORS preflight, `getClaims` through the JWKS path and `SUPABASE_ANON_KEY` on hosted.
   `manual` makes the owner's first real backup.
+- `hosted-body-probe.mjs [--local]` (Task 260 stage 1): POSTs a control body, an about 10.5 MB body
+  and an about 21 MB body (record only) to a nonexistent rpc name with the publishable key only.
+  Pass is 404 `PGRST202` naming `p_payload`; 413 is the limit; anything else is inconclusive. Prints
+  statuses and codes only, URL masked; changes nothing. Without `--local` it reads
+  `~/.config/griddo/production.env`.
