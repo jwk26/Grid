@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SafeError } from "../_shared/safe-error.ts";
 import type { DueDeletion, SummaryAnswer } from "../_shared/summary.ts";
 import type { BeginAnswer, FinishArgs, FinishResult, RunKind } from "../_shared/run.ts";
+import type { RestoreAccountAnswer, RestoreBeginAnswer } from "../_shared/restore-run.ts";
 
 // The backup functions through supabase-js `.rpc()` as service_role (SCHEMA §Backup functions).
 // Every call names its account explicitly. An error from the database throws; the run decides.
@@ -62,12 +63,17 @@ export async function finish(userId: string, runToken: number, result: FinishRes
   return r.status === "applied";
 }
 
-export type StatusAnswer = { backup: Record<string, unknown> | null; verdict: string | null };
+export type StatusAnswer = {
+  backup: Record<string, unknown> | null;
+  verdict: string | null;
+  restore_verdict?: string | null;
+};
 
-export async function readStatus(userId: string, runId: string | null): Promise<StatusAnswer> {
+export async function readStatus(userId: string, runId: string | null, restoreId: string | null = null): Promise<StatusAnswer> {
   const r = await rpc<{ status: string; result?: StatusAnswer }>("backup_read_status", {
     p_user_id: userId,
     p_run_id: runId,
+    p_restore_id: restoreId,
   });
   if (r.status !== "applied" || !r.result) throw new SafeError("status_unexpected");
   return r.result;
@@ -92,4 +98,92 @@ export async function deletionDone(userId: string): Promise<void> {
 
 export async function deletionFailed(userId: string): Promise<void> {
   await rpc("backup_deletion_failed", { p_user_id: userId });
+}
+
+// ---- Restore (Phase 53) ---------------------------------------------------------------------------
+
+export async function restoreBegin(userId: string, restoreId: string): Promise<RestoreBeginAnswer> {
+  const r = await rpc<{ status: string; rejection?: { code: string } }>("restore_begin", {
+    p_user_id: userId,
+    p_restore_id: restoreId,
+  });
+  if (r.status === "applied") return { status: "applied" };
+  if (r.status === "rejected" && r.rejection?.code) return { status: "rejected", code: r.rejection.code };
+  throw new SafeError("restore_begin_unexpected");
+}
+
+export async function restoreAbort(userId: string, restoreId: string, reason: string): Promise<string> {
+  const r = await rpc<{ status: string }>("restore_abort", {
+    p_user_id: userId,
+    p_restore_id: restoreId,
+    p_reason: reason,
+  });
+  return r.status;
+}
+
+/** The restore verdict for the id on the server clock (`backup_read_status()`'s `restore_verdict`). */
+export async function restoreVerdict(userId: string, restoreId: string): Promise<string | null> {
+  const status = await readStatus(userId, null, restoreId);
+  return typeof status.restore_verdict === "string" ? status.restore_verdict : null;
+}
+
+/**
+ * `restore_stage()` with the decompressed backup as the rpc body's `p_payload`, joined by
+ * concatenation: the bytes are never parsed or stringified here (Task 261 review item 3). The
+ * database rejects anything that is not JSON.
+ */
+export async function restoreStage(userId: string, restoreId: string, payload: Uint8Array): Promise<string> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
+    console.error(`${!url ? "SUPABASE_URL" : "SUPABASE_SERVICE_ROLE_KEY"} is not set`);
+    throw new SafeError("database_not_configured");
+  }
+  const enc = new TextEncoder();
+  const head = enc.encode(`{"p_user_id":${JSON.stringify(userId)},"p_restore_id":${JSON.stringify(restoreId)},"p_payload":`);
+  const tail = enc.encode("}");
+  const body = new Uint8Array(head.byteLength + payload.byteLength + tail.byteLength);
+  body.set(head, 0);
+  body.set(payload, head.byteLength);
+  body.set(tail, head.byteLength + payload.byteLength);
+  const res = await fetch(`${url}/rest/v1/rpc/restore_stage`, {
+    method: "POST",
+    headers: { apikey: key, authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body,
+  });
+  const text = await res.text();
+  if (!res.ok) throw new SafeError(`rpc_restore_stage_${res.status}`);
+  try {
+    const r = JSON.parse(text) as { status?: string };
+    return typeof r.status === "string" ? r.status : "";
+  } catch {
+    throw new SafeError("restore_stage_unreadable");
+  }
+}
+
+/**
+ * `restore_account()` as the user: their JWT, never the service key (only `authenticated` executes
+ * it, and it reads only that user's staging row under RLS). Never throws; an error carries its
+ * SQLSTATE when the database gave one.
+ */
+export async function restoreAccount(token: string, restoreId: string, expectedFingerprint: string): Promise<RestoreAccountAnswer> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !key) return { kind: "error", sqlstate: null };
+  try {
+    const client = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data, error } = await client.rpc("restore_account", {
+      p_restore_id: restoreId,
+      p_expected_fingerprint: expectedFingerprint,
+    });
+    if (error) return { kind: "error", sqlstate: /^[0-9A-Z]{5}$/.test(error.code ?? "") ? error.code : null };
+    const r = data as { status?: string; rejection?: { code?: string } } | null;
+    if (!r || typeof r.status !== "string") return { kind: "error", sqlstate: null };
+    return { kind: "answer", status: r.status, code: r.rejection?.code };
+  } catch {
+    return { kind: "error", sqlstate: null };
+  }
 }

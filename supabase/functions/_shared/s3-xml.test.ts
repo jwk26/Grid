@@ -24,3 +24,13 @@ describe("s3 xml", () => {
     expect(parseDeleteErrors("<DeleteResult></DeleteResult>")).toEqual([]);
   });
 });
+
+describe("parseListPage LastModified", () => {
+  it("reads the object's last-modified time as epoch ms, and leaves it out when absent", () => {
+    const xml = `<ListBucketResult><Contents><Key>a</Key><LastModified>2026-11-07T03:00:12.000Z</LastModified><Size>5</Size></Contents><Contents><Key>b</Key><Size>6</Size></Contents></ListBucketResult>`;
+    expect(parseListPage(xml).objects).toEqual([
+      { key: "a", size: 5, lastModified: Date.parse("2026-11-07T03:00:12.000Z") },
+      { key: "b", size: 6 },
+    ]);
+  });
+});

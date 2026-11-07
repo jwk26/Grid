@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accountPrefix, backupObjectKey, identityKey, parseBackupKey } from "./object-key.ts";
+import { accountPrefix, backupObjectKey, identityKey, parseBackupKey, parsePreRestoreKey, preRestoreKey } from "./object-key.ts";
 
 const ID = "3f2b8c1e-5a47-4d0e-9b6a-1c2d3e4f5a6b";
 
@@ -47,5 +47,24 @@ describe("account keys", () => {
     expect(parseBackupKey(ID, `accounts/${ID}/pre-restore/2026-11-05.json.gz`)).toBeNull();
     expect(parseBackupKey(ID, `accounts/${ID}/2026-02-30.json.gz`)).toBeNull();
     expect(parseBackupKey(ID, "accounts/11111111-1111-4111-8111-111111111111/2026-11-05.json.gz")).toBeNull();
+  });
+});
+
+describe("pre-restore keys", () => {
+  const ID2 = "3f2b8c1e-5a47-4d0e-9b6a-1c2d3e4f5a6b";
+  it("builds a colon-free UTC key and reads its time back", () => {
+    const at = new Date("2026-11-07T12:30:05.999Z");
+    const key = preRestoreKey(ID2, at);
+    expect(key).toBe(`accounts/${ID2}/pre-restore/2026-11-07T12-30-05Z.json.gz`);
+    expect(parsePreRestoreKey(ID2, key)).toBe(Date.parse("2026-11-07T12:30:05Z"));
+  });
+  it("reads nothing from a date slot, identity.json, another account or an impossible time", () => {
+    expect(parsePreRestoreKey(ID2, `accounts/${ID2}/2026-11-07.json.gz`)).toBeNull();
+    expect(parsePreRestoreKey(ID2, `accounts/${ID2}/identity.json`)).toBeNull();
+    expect(parsePreRestoreKey(ID2, `accounts/${ID2}/pre-restore/2026-11-07T25-00-00Z.json.gz`)).toBeNull();
+    expect(parsePreRestoreKey(ID2, `accounts/11111111-1111-4111-8111-111111111111/pre-restore/2026-11-07T12-30-05Z.json.gz`)).toBeNull();
+  });
+  it("parseBackupKey does not take a pre-restore file for a date slot", () => {
+    expect(parseBackupKey(ID2, `accounts/${ID2}/pre-restore/2026-11-07T12-30-05Z.json.gz`)).toBeNull();
   });
 });

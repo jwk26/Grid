@@ -1687,6 +1687,47 @@ scheduled run backs up every account once; this is expected.
    writes `result` and `finished_at` into the staging row and clears its
    payload in the same transaction.
 
+**The function's restore call** (Task 261; user, 2026-11-07).
+
+- Request: `{ "mode": "restore", "restore_id": <uuid>, "file": <list name> }`
+  with the user's JWT. `file` is a name from the backup list, `YYYY-MM-DD` for
+  a date slot or `pre-restore/<UTC time>` (`YYYY-MM-DDTHH-MM-SSZ`) for a
+  pre-restore file, never an object key: the function builds the key inside
+  the caller's own prefix, so a body naming another account restores only the
+  caller. A `user_id` in the body is ignored.
+- A refusal before anything is staged (`not_eligible`, `account_missing`,
+  `account_deleting`, `invalid_input`, `already_running`, `rate_limited`)
+  answers `200` JSON `{ "status": "rejected", "rejection": { "code" } }`, as
+  `Back Up Now` does. A bad body or token answers 400 or 401, a guest 403.
+- Otherwise `200 text/event-stream`: `event: step` with `data: {"step":
+  "saving" | "getting" | "applying"}` in that order (`saving` goes out right
+  after `restore_begin()`, since the response headers leave with the first
+  chunk), then one `event: result` whose data is the envelope vocabulary:
+  `{"status":"applied"}`, `{"status":"not_applied","reason"?}` (the reason is
+  only the function's own `restore_abort()` code, for example `upload_failed`,
+  `backup_missing`, `backup_unreadable`, `restore_failed`),
+  `{"status":"rejected","rejection":{"code"}}` (`account_changed`,
+  `unsupported_format`, `account_missing`, `account_deleting`, `invalid_input`)
+  or `{"status":"unconfirmed"}` (the function could not settle it: the client
+  reads the verdict). A restore never depends on the stream: a client that
+  drops changes nothing and the staging row decides (Task 261 measurement).
+- The function ends every stop short of `restore_account()` with
+  `restore_abort()`, and its answer decides the result: it wrote the result,
+  so `not_applied`; a result already existed, so the function reads the
+  verdict once and reports it (a call that still committed reports `applied`).
+  `restore_account()` is retried once on SQLSTATE `40P01` and never on another
+  error. The expected fingerprint is the `fingerprint` key of the very export
+  uploaded as the pre-restore file, read while the bytes stream by.
+- The pre-restore file is `accounts/<user_id>/pre-restore/<UTC time>.json.gz`;
+  after the upload the function keeps the 5 latest and the file this restore
+  reads, even when that one is the oldest.
+- `status` with neither `run_id` nor `restore_id` also returns `backups`: the
+  list, newest first, `{ "name", "kind": "daily" | "pre_restore", "at": <epoch
+  ms from the object's last-modified time>, "size" }`, or `null` when the
+  storage listing failed. `status` with `restore_id` returns the verdict
+  (`restore_verdict`) and calls no storage, so the way out works while the
+  storage is down.
+
 - The outcome is read from that row through the operation verdict, never
   from elapsed time on the client: a `result` is the outcome; no `result` 180 s
   after the start (150 s wall clock plus the 30 s statement) is `not_applied`;

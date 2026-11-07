@@ -1,7 +1,7 @@
 // The two XML shapes the function reads and writes for S3-compatible storage (R2 and local Storage).
 // Pure: no network.
 
-export type ListedObject = { key: string; size: number };
+export type ListedObject = { key: string; size: number; lastModified?: number };
 export type ListPage = { objects: ListedObject[]; truncated: boolean; nextToken: string | null };
 
 const unescapeXml = (s: string) =>
@@ -15,7 +15,15 @@ export function parseListPage(xml: string): ListPage {
   for (const m of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
     const key = /<Key>([\s\S]*?)<\/Key>/.exec(m[1]);
     const size = /<Size>(\d+)<\/Size>/.exec(m[1]);
-    if (key && size) objects.push({ key: unescapeXml(key[1]), size: Number(size[1]) });
+    const modified = /<LastModified>([\s\S]*?)<\/LastModified>/.exec(m[1]);
+    const at = modified ? Date.parse(unescapeXml(modified[1])) : NaN;
+    if (key && size) {
+      objects.push({
+        key: unescapeXml(key[1]),
+        size: Number(size[1]),
+        ...(Number.isNaN(at) ? {} : { lastModified: at }),
+      });
+    }
   }
   const truncated = /<IsTruncated>true<\/IsTruncated>/.test(xml);
   const next = /<NextContinuationToken>([\s\S]*?)<\/NextContinuationToken>/.exec(xml);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isoWeek, planPrune } from "./retention.ts";
+import { isoWeek, planPreRestorePrune, planPrune } from "./retention.ts";
 
 const ID = "3f2b8c1e-5a47-4d0e-9b6a-1c2d3e4f5a6b";
 const key = (d: string) => `accounts/${ID}/${d}.json.gz`;
@@ -84,5 +84,42 @@ describe("planPrune", () => {
     const plan = planPrune(ID, keys(d));
     expect(plan.keep[0]).toBe(key(d[d.length - 1]));
     expect(plan.keep.length).toBeLessThanOrEqual(11);
+  });
+});
+
+describe("planPreRestorePrune", () => {
+  const pre = (t: string) => `accounts/${ID}/pre-restore/${t}.json.gz`;
+  const times = (n: number) => Array.from({ length: n }, (_, i) => `2026-11-0${i + 1}T10-00-00Z`);
+
+  it("keeps the 5 latest pre-restore files and removes the older ones", () => {
+    const keys = times(7).map(pre);
+    const plan = planPreRestorePrune(ID, keys, null);
+    expect(plan.keep).toEqual([7, 6, 5, 4, 3].map((d) => pre(`2026-11-0${d}T10-00-00Z`)));
+    expect(plan.remove).toEqual([2, 1].map((d) => pre(`2026-11-0${d}T10-00-00Z`)));
+  });
+
+  it("never removes the chosen file, even when it is the oldest of the six", () => {
+    const keys = times(6).map(pre);
+    const chosen = pre("2026-11-01T10-00-00Z");
+    const plan = planPreRestorePrune(ID, keys, chosen);
+    expect(plan.remove).toEqual([]);
+    expect(plan.keep).toContain(chosen);
+  });
+
+  it("keeps the chosen file and still keeps the 5 latest when more are older", () => {
+    const keys = times(8).map(pre);
+    const chosen = pre("2026-11-02T10-00-00Z");
+    const plan = planPreRestorePrune(ID, keys, chosen);
+    expect(plan.keep.length).toBe(6);
+    expect(plan.remove).toEqual([pre("2026-11-03T10-00-00Z"), pre("2026-11-01T10-00-00Z")]);
+  });
+
+  it("leaves date slots, identity.json and another account's files out of both lists", () => {
+    const keys = [
+      `accounts/${ID}/2026-11-01.json.gz`, `accounts/${ID}/identity.json`,
+      `accounts/11111111-1111-4111-8111-111111111111/pre-restore/2026-11-01T10-00-00Z.json.gz`,
+      pre("2026-11-01T10-00-00Z"),
+    ];
+    expect(planPreRestorePrune(ID, keys, null)).toEqual({ keep: [pre("2026-11-01T10-00-00Z")], remove: [] });
   });
 });
