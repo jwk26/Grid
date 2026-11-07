@@ -116,11 +116,22 @@ describe("compareExports", () => {
     expect(run(e).failures).toEqual(["format_version differs"]);
   });
 
-  it("gives the same hash for the same rows and a different one for different rows", () => {
-    const a = run(restored()).tables.nodes.hash;
-    expect(run(restored()).tables.nodes.hash).toBe(a);
+  it("fails an array key that is not a known table, in either export", () => {
     const e = restored();
-    e.nodes[1].title = "other";
-    expect(run(e).tables.nodes.hash).not.toBe(a);
+    e.widgets = [{ id: "w" }];
+    expect(run(e).failures).toEqual(["widgets: unknown table in the re-export"]);
+    const b = backup();
+    b.widgets = [{ id: "w" }];
+    expect(run(restored(), b).failures).toEqual(["widgets: unknown table in the backup"]);
+  });
+
+  it("hashes the backup rows: the same backup gives the same hash whatever was restored", () => {
+    const a = run(restored()).tables.nodes.hash;
+    const e = restored();
+    e.nodes[0].title = "changed";
+    expect(run(e).tables.nodes.hash).toBe(a);
+    const b = backup();
+    (b.nodes as Doc[])[1].title = "other";
+    expect(run(restored(), b).tables.nodes.hash).not.toBe(a);
   });
 });

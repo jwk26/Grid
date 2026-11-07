@@ -43,6 +43,14 @@ export function compareExports(backup: Export, after: Export, testUserId: string
     failures.push("format_version differs");
   }
 
+  // A table the check does not know: a new array in either export would otherwise go unchecked.
+  const known = new Set<string>(TABLE_KEYS);
+  for (const [name, e] of [["backup", backup], ["re-export", after]] as const) {
+    for (const key of Object.keys(e)) {
+      if (Array.isArray(e[key]) && !known.has(key)) failures.push(`${key}: unknown table in the ${name}`);
+    }
+  }
+
   for (const key of TABLE_KEYS) {
     const backupPresent = Array.isArray(backup[key]);
     const b = rowsOf(backup, key);
@@ -77,7 +85,8 @@ export function compareExports(backup: Export, after: Export, testUserId: string
     }
     for (const [column, n] of wrong) failures.push(`${key}.${column}: differs in ${n} rows`);
 
-    const normalized = [...a].sort((x, y) => (String(x.id) < String(y.id) ? -1 : 1));
+    // The hash covers the backup's rows, so the same backup file gives the same hash every month.
+    const normalized = [...b].sort((x, y) => (String(x.id) < String(y.id) ? -1 : 1));
     tables[key] = { backupRows: b.length, afterRows: a.length, hash: md5(canonical(normalized)) };
   }
 

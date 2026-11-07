@@ -43,6 +43,9 @@ import { compareExports, TABLE_KEYS } from "./compare.ts";
 const RESTORE_WINDOW_MS = 140_000; // restore_account() answers too_late after this (SCHEMA §Restore)
 const LEFTOVER_EMAIL = "^restore-check-[0-9a-f]{8}@example\\.invalid$";
 
+/** An error whose message the script wrote itself (no row content), so it may be printed. */
+class Safe extends Error {}
+
 // ---- Config -----------------------------------------------------------------------------------
 function readEnvFile() {
   const file = process.env.GRIDDO_RESTORE_CHECK_ENV ?? path.join(homedir(), ".config/griddo/restore-check.env");
@@ -85,21 +88,21 @@ async function fetchLatestBackup(env) {
   do {
     const q = new URLSearchParams({ "list-type": "2", prefix, ...(token ? { "continuation-token": token } : {}) });
     const res = await aws.fetch(`${base}?${q}`);
-    if (!res.ok) throw new Error(`listing the bucket failed: HTTP ${res.status}`);
+    if (!res.ok) throw new Safe(`listing the bucket failed: HTTP ${res.status}`);
     const page = parseListPage(await res.text());
     listed.push(...page.objects);
     token = page.truncated ? page.nextToken : null;
   } while (token);
   const daily = buildBackupList(env.OWNER_USER_ID, listed).filter((e) => e.kind === "daily");
   if (daily.length === 0) {
-    throw new Error(`no dated backup under accounts/<OWNER_USER_ID>/ (${listed.length} objects there); after a recovery into a new project the user id changes, so check OWNER_USER_ID`);
+    throw new Safe(`no dated backup under accounts/<OWNER_USER_ID>/ (${listed.length} objects there); after a recovery into a new project the user id changes, so check OWNER_USER_ID`);
   }
   const latest = daily[0];
   const res = await aws.fetch(`${base}/${prefix}${latest.name}.json.gz`);
-  if (!res.ok) throw new Error(`downloading ${latest.name} failed: HTTP ${res.status}`);
+  if (!res.ok) throw new Safe(`downloading ${latest.name} failed: HTTP ${res.status}`);
   const gz = Buffer.from(await res.arrayBuffer());
   const raw = gunzipSync(gz);
-  if (classifyExportHead(raw.subarray(0, EXPORT_HEAD_BYTES)) !== "export") throw new Error(`${latest.name} does not begin like an export`);
+  if (classifyExportHead(raw.subarray(0, EXPORT_HEAD_BYTES)) !== "export") throw new Safe(`${latest.name} does not begin like an export`);
   return { name: latest.name, gzBytes: gz.length, rawBytes: raw.length, backup: JSON.parse(raw.toString("utf8")) };
 }
 
@@ -117,6 +120,8 @@ async function as(db, role, userId, text, params = []) {
   try {
     await db.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify({ role, ...(userId ? { sub: userId } : {}) })]);
     await db.query(`set local role ${role}`);
+    // PostgREST hoists the functions' own 30 s limit; a direct call must set it to be as strict.
+    await db.query("set local statement_timeout = '30s'");
     const res = await db.query(text, params);
     await db.query("commit");
     return res.rows[0]?.r;
@@ -135,7 +140,8 @@ async function residue(db, userId) {
   return out;
 }
 
-const brief = (e) => `${e?.code ?? e?.name ?? "error"}: ${String(e?.message ?? e).split("\n")[0].slice(0, 200)}`;
+// Codes and fixed names only: a database or parse message can quote a fragment of a row.
+const brief = (e) => (e instanceof Safe ? e.message : `${e?.code ?? e?.name ?? "error"}`);
 
 // ---- Run --------------------------------------------------------------------------------------
 let fails = 0;
@@ -151,7 +157,6 @@ console.log(`restore-check ${new Date().toISOString()}: local database, bucket r
 const db = await connect(dbUrl);
 const mainPid = db.processID;
 const userId = randomUUID();
-let userCreated = false;
 let cleaning = null;
 
 function cleanup() {
@@ -160,7 +165,7 @@ function cleanup() {
     const c = await connect(dbUrl);
     try {
       await c.query("select pg_terminate_backend($1)", [mainPid]).catch(() => undefined);
-      if (userCreated) await c.query("delete from auth.users where id = $1", [userId]);
+      await c.query("delete from auth.users where id = $1", [userId]);
       const left = await residue(c, userId);
       const clean = Object.values(left).every((n) => n === 0);
       console.log(`${clean ? "PASS" : "FAIL"} test user deleted, nothing left: ${JSON.stringify(left)}`);
@@ -200,26 +205,25 @@ try {
        '', '', '', '', '', '', '', '')`,
     [userId, `restore-check-${userId.slice(0, 8)}@example.invalid`],
   );
-  userCreated = true;
   await as(db, "authenticated", userId, "select public.ensure_account() as r");
 
   // The fingerprint the Edge Function passes: the pre-restore export's.
   const before = await as(db, "service_role", null, "select public.export_account($1) as r", [userId]);
   const restoreId = randomUUID();
   const begun = await as(db, "service_role", null, "select public.restore_begin($1, $2) as r", [userId, restoreId]);
-  if (begun?.status !== "applied") throw new Error(`restore_begin: ${begun?.status} ${begun?.rejection?.code ?? ""}`);
+  if (begun?.status !== "applied") throw new Safe(`restore_begin: ${begun?.status} ${begun?.rejection?.code ?? ""}`);
   const t0 = Date.now();
   const staged = await as(db, "service_role", null, "select public.restore_stage($1, $2, $3::jsonb) as r", [userId, restoreId, JSON.stringify(got.backup)]);
-  if (staged?.status !== "applied") throw new Error(`restore_stage: ${staged?.status} ${staged?.rejection?.code ?? ""}`);
+  if (staged?.status !== "applied") throw new Safe(`restore_stage: ${staged?.status} ${staged?.rejection?.code ?? ""}`);
   const done = await as(db, "authenticated", userId, "select public.restore_account($1, $2) as r", [restoreId, before.fingerprint]);
   const ms = Date.now() - t0;
-  if (done?.status !== "applied") throw new Error(`restore_account: ${done?.status} ${done?.rejection?.code ?? ""}`);
+  if (done?.status !== "applied") throw new Safe(`restore_account: ${done?.status} ${done?.rejection?.code ?? ""}`);
   console.log(`restore_account applied ${ms} ms after staging began (window ${RESTORE_WINDOW_MS} ms)`);
 
   const after = await as(db, "service_role", null, "select public.export_account($1) as r", [userId]);
   compared = compareExports(got.backup, after, userId);
   for (const [name, t] of Object.entries(compared.tables)) {
-    console.log(`  ${name}: backup ${t.backupRows} rows, restored ${t.afterRows} rows, md5 ${t.hash}`);
+    console.log(`  ${name}: backup ${t.backupRows} rows, restored ${t.afterRows} rows, backup md5 ${t.hash}`);
   }
   if (compared.newColumns.length) console.log(`columns only in the re-export (expand-only, passes): ${compared.newColumns.join(", ")}`);
   if (compared.ok) console.log("PASS every row equal except version (+1) and user_id");

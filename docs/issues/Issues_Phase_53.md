@@ -166,8 +166,8 @@ User preparation: Task 263 done (user, 2026-11-07): an Object Read only R2 accou
 ## Task 263 — Add the monthly restore check
 
 ### Current state
-- Status: In Progress
-- Next: implement, then the Task 263 finish stop
+- Status: Implemented, awaiting acceptance
+- Next: Task 263 acceptance (the user's first real run)
 - Open: mi-1 (Task 260's)
 
 ### Log
@@ -181,3 +181,12 @@ User preparation: Task 263 done (user, 2026-11-07): an Object Read only R2 accou
   - Proposals for you to decide: (a) the default env file path above; (b) `OWNER_USER_ID` as a file value rather than discovering it by listing `accounts/` (a listing cannot tell the owner's account from a guest-free second user later).
 - Review (advisory, 2026-11-08, work plan): approve with changes. Apply: (1) ping only after the cleanup and the zero-residue count pass: compare PASS → delete the test user → count leftovers → ping; a cleanup failure ends FAIL with no ping. (2) Comparison follows the expand rule: every key of a backup row is compared and a key missing from the re-export fails; a key only in the re-export passes and is printed by column name only; a table absent from the backup passes only with zero re-exported rows; top-level `format_version` is compared (only `exported_at`, `user_id`, `fingerprint` are excluded); crafted tests for an extra column (pass) and a missing column (fail). (3) A SIGHUP handler beside SIGINT and SIGTERM, and at start delete any leftover `restore-check-*@example.invalid` user (that pattern only) and print the count, since SIGKILL or power loss skips cleanup and leftover rows keep the backup's ids (`23505` next run). (4) The ping succeeds only when the response body is exactly `OK` (an unknown uuid answers 200 `OK (not found)`, LEARNINGS). (5) Import `parseBackupKey`, the list ordering and `classifyExportHead` from `supabase/functions/_shared/` instead of copying them. (6) Local only through one path: the DB URL from `supabase status`, checked by `assertLocalDatabase()`, not a forced `--local`. Add to the `expert` items: the direct pg path skips the PostgREST body limit, the role statement timeouts and the function's gunzip/etag path (Task 264 covers the hosted path). Not applied: none.
 - Decision: the env file path defaults to `~/.config/griddo/restore-check.env` (mode 600, override `GRIDDO_RESTORE_CHECK_ENV`), and `OWNER_USER_ID` is a file value; when `accounts/<OWNER_USER_ID>/` holds no dated backup the script fails with that reason (a recovery into a new project changes the id) (user, 2026-11-08).
+- Expert review (finish, 2026-11-08): no Critical or High. M1 (direct pg call has no hoisted 30 s limit, so the monthly check could stay green while the hosted restore times out) → `set local statement_timeout = '30s'` in `as()`; M2 (a new export table would go unchecked) → an array key outside the five fails in either export; L1 (signal between insert and flag leaves the user) → the delete always runs; L2 (`brief()` could quote row content) → codes only, messages only for the script's own `Safe` errors; L3 (md5 not reproducible) → hashes the backup rows. Each M/L has a test or a rehearsal. Not covered by design: the hosted body limit, gunzip and etag path (Task 264).
+- Gate (2026-11-08): `git diff --check` pass; `pnpm test` 2951 passed; `pnpm lint` 0 errors (10 warnings, baseline); `pnpm typecheck` pass; `pnpm check:edge` pass; `pnpm build` pass; `pnpm test:db` 1128 passed.
+
+### Checkpoint
+- Changed: `scripts/backup-restore-check/` (`check.mjs`, `compare.ts`, `compare.test.ts`), `vitest.config.ts` (include), `package.json` (`check:restore`).
+- Verified: 14 comparison tests, 8 guards mutation-checked (each fails without its guard); local rehearsal with local Storage as the bucket and a local ping stub: full run PASS, one ping, no test user left; SIGINT mid-run exits 130, no ping, no test user left; gate above.
+- Please check: create `~/.config/griddo/restore-check.env` (`chmod 600`) with `R2_ENDPOINT`, `R2_BUCKET` (production), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (the read-only token), `OWNER_USER_ID` (your production user id), `HEALTHCHECKS_RESTORE_PING_URL` (`grid-restore-monthly`); start local Supabase; run `pnpm check:restore`. Expect `RESULT PASS`, `pinged the 31-day check`, and only counts and md5 in the output.
+- Unresolved: none. Local ids must be free: if the owner's account exists in the local database the run fails with `23505` and a hint.
+- Lesson: a direct pg call skips PostgREST's hoisted function settings (statement timeout), so a script that replays an Edge Function's SQL path must set them itself → check hoisted settings when a script calls SQL functions directly.
