@@ -21,6 +21,23 @@ create function dev.is_fixture_user(p_user uuid) returns boolean
   language sql stable security definer set search_path = ''
   as $$ select exists (select 1 from auth.users u where u.id = p_user and u.email like '%@griddo.test') $$;
 
+-- Task 262: the backup function refuses a user with no OAuth identity, and the fixture user
+-- signs in by password. This gives a fixture user one local `github` identity row so a browser
+-- check can run `Back Up Now` and a restore. postgres owns it (griddo_writer cannot write
+-- auth.identities); it refuses a user outside the fixture email domain; idempotent.
+create function dev.give_oauth_identity(p_user uuid) returns void
+  language plpgsql volatile security definer set search_path = ''
+  as $$
+  begin
+    if not dev.is_fixture_user(p_user) then
+      raise exception 'not a fixture user' using errcode = '42501';
+    end if;
+    insert into auth.identities (id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+    select gen_random_uuid(), 'fixture-gh-' || p_user::text, p_user, jsonb_build_object('sub', 'fixture-gh-' || p_user::text), 'github', now(), now(), now()
+     where not exists (select 1 from auth.identities i where i.user_id = p_user and i.provider = 'github');
+  end
+  $$;
+
 create function dev.reserved_cells() returns jsonb
   language sql immutable security invoker set search_path = ''
   as $$ select '[{"x":0,"y":0},{"x":1,"y":0},{"x":2,"y":0},{"x":0,"y":1},{"x":1,"y":1},{"x":2,"y":1}]'::jsonb $$;
@@ -322,6 +339,8 @@ alter function dev.seed_fixture(uuid, jsonb) owner to griddo_writer;
 
 revoke all on function dev.is_fixture_user(uuid) from public, anon, authenticated, service_role;
 revoke all on function dev.reserved_cells() from public, anon, authenticated, service_role;
+revoke all on function dev.give_oauth_identity(uuid) from public, anon, authenticated;
+grant execute on function dev.give_oauth_identity(uuid) to service_role;
 revoke all on function dev.put_node(uuid, bigint, text, uuid, integer, text, bigint) from public, anon, authenticated, service_role;
 revoke all on function dev.put_bit(uuid, bigint, text, uuid, text, text, bigint, text, bigint, bigint, bigint, bigint) from public, anon, authenticated, service_role;
 revoke all on function dev.put_row(uuid, bigint, uuid, text, integer, boolean) from public, anon, authenticated, service_role;

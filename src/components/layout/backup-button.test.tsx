@@ -16,6 +16,7 @@ function backup(derived: Partial<DerivedBackup> = {}, dialog: Partial<UseBackup[
     close: vi.fn(),
     backUpNow: vi.fn(),
     checkAgain: vi.fn(),
+    refreshList: vi.fn(),
   };
 }
 

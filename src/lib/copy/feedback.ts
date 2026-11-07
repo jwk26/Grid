@@ -176,6 +176,30 @@ export const BACKUP_COPY = {
   notStarted: "The backup didn't start. Try again.",
   privacy:
     "Backups are stored with Cloudflare, outside the main database. We keep your 7 latest backups and one a week for 4 weeks before them. Deleting your account deletes them.",
+  restore: {
+    action: "Restore…",
+    listTitle: "Restore a backup",
+    preRestoreEntry: (time: string) => `Before restore, ${time}`,
+    emptyList: "No backups yet.",
+    listFailed: "Couldn't load the backups.",
+    confirm: (time: string) =>
+      `This replaces everything in this account with the backup from ${time}. The current state is saved first, so you can undo this.`,
+    confirmAction: "Restore",
+    cancel: "Cancel",
+    accountChanged: "This account changed while restoring. Try again.",
+    unsupportedFormat: "This backup comes from an older version of Grid and can't be restored.",
+    notApplied: "The backup wasn't applied. Your data is unchanged.",
+  },
+} as const;
+
+// The restoring screen (SPEC §Account backup, Restore; DESIGN_TOKENS BK-6).
+export const RESTORING_COPY = {
+  title: "Restoring a backup",
+  reason: "Don't close this tab. Grid opens again when it's done.",
+  otherTitle: "A backup is being restored in another tab",
+  otherReason: "Grid opens again with the restored data when it's done.",
+  steps: { saving: "Saving the current state", getting: "Getting the backup", applying: "Applying the backup" },
+  stepsLabel: "Restore steps",
 } as const;
 
 // Toasts (SPEC §Feedback copy, Toasts). A row is one kind of toast: `key` is what the toast helper

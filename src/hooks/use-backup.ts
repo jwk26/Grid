@@ -43,6 +43,9 @@ export function resetBackupRuntimeForTests(): void {
 // setTimeout stores its delay in 32 bits; longer waits fire at once.
 const MAX_TIMER_MS = 2 ** 31 - 1;
 
+const NO_SUBSCRIBE = () => () => undefined;
+const IDLE_RESTORE: RestoreState = { view: { phase: "idle" }, notice: null };
+
 export type UseRestore = {
   state: RestoreState;
   start: (file: string, etag: string) => void;
@@ -52,12 +55,19 @@ export type UseRestore = {
 
 /** The restore flow (SPEC §Account backup, Restore): the dialog starts it, the restoring screen shows it. */
 export function useRestore(injected?: Pick<Runtime, "restore">): UseRestore {
-  const { restore } = injected ?? getRuntime();
-  const state = useSyncExternalStore(restore.subscribe, restore.getState, restore.getState);
+  // The app frame renders on the server too, where there is no session controller: idle there.
+  const restore = injected?.restore ?? (typeof window === "undefined" ? null : getRuntime().restore);
+  const real = useSyncExternalStore(
+    restore?.subscribe ?? NO_SUBSCRIBE,
+    restore?.getState ?? (() => IDLE_RESTORE),
+    () => IDLE_RESTORE,
+  );
+  // The development switch can force a restoring state; always null in production.
+  const state = useForcedBackup()?.restore ?? real;
   const [actions] = useState(() => ({
-    start: (file: string, etag: string) => void restore.start(file, etag),
-    checkAgain: () => void restore.checkAgain(),
-    clearNotice: () => restore.clearNotice(),
+    start: (file: string, etag: string) => void restore?.start(file, etag),
+    checkAgain: () => void restore?.checkAgain(),
+    clearNotice: () => restore?.clearNotice(),
   }));
   return { state, ...actions };
 }
@@ -72,6 +82,8 @@ export type UseBackup = {
   close: () => void;
   backUpNow: () => void;
   checkAgain: () => void;
+  /** One plain read for a fresh restore list (a backup made since the dialog opened). */
+  refreshList: () => void;
 };
 
 export function useBackup(injected?: Pick<Runtime, "slot" | "controller">): UseBackup {
@@ -99,6 +111,7 @@ export function useBackup(injected?: Pick<Runtime, "slot" | "controller">): UseB
     close: () => controller.close(),
     backUpNow: () => void controller.backUpNow(),
     checkAgain: () => void controller.checkAgain(),
+    refreshList: () => void controller.refreshList(),
   }));
 
   return {

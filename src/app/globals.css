@@ -458,6 +458,12 @@
   color: hsl(var(--muted-foreground));
 }
 
+/* Task 262: inside the restoring screen the loader is the step marker the eye must find, so it takes the
+   full text colour (the app's loader elsewhere stays muted). The pending circle beside it is lighter. */
+[data-app-role="restoring-screen"] [data-feedback-role="status-icon"][data-glyph="loader"] {
+  color: hsl(var(--foreground));
+}
+
 [data-feedback-role="status-icon"][data-glyph="loader"] svg {
   width: 100%;
   height: 100%;

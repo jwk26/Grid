@@ -2,7 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BackupDialog, backupLine } from "@/components/layout/backup-dialog";
-import type { UseBackup } from "@/hooks/use-backup";
+import type { UseBackup, UseRestore } from "@/hooks/use-backup";
+import type { BackupEntry } from "@/lib/backup/backup-client";
 import type { DerivedBackup } from "@/lib/backup/backup-slot";
 import { ACCOUNT_MODAL, BACKUP_COPY, formatBackupTime } from "@/lib/copy/feedback";
 
@@ -18,12 +19,22 @@ function backup(derived: Partial<DerivedBackup> = {}, dialog: Partial<UseBackup[
     close: vi.fn(),
     backUpNow: vi.fn(),
     checkAgain: vi.fn(),
+    refreshList: vi.fn(),
   };
 }
 
-function mount(variant: "guest" | "account", b = backup(), c = { signInWithOAuth: vi.fn(async (): Promise<"started" | "failed"> => "started") }) {
-  render(<BackupDialog variant={variant} open onOpenChange={vi.fn()} backup={b} controller={c} />);
-  return { b, c };
+function restoreStub(notice: UseRestore["state"]["notice"] = null): UseRestore {
+  return { state: { view: { phase: "idle" }, notice }, start: vi.fn(), checkAgain: vi.fn(), clearNotice: vi.fn() };
+}
+
+function mount(
+  variant: "guest" | "account",
+  b = backup(),
+  c = { signInWithOAuth: vi.fn(async (): Promise<"started" | "failed"> => "started") },
+  r = restoreStub(),
+) {
+  render(<BackupDialog variant={variant} open onOpenChange={vi.fn()} backup={b} controller={c} restore={r} />);
+  return { b, c, r };
 }
 
 const status = () => screen.getByRole("status");
@@ -58,7 +69,7 @@ describe("BackupDialog, account", () => {
     const actions = document.querySelector('[data-app-role="backup-actions"]')!;
     expect(actions).toContainElement(screen.getByRole("button", { name: BACKUP_COPY.backUpNow }));
     expect(screen.getByText(BACKUP_COPY.privacy)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Restore/ })).toBeNull();
+    expect(actions).toContainElement(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
     fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.backUpNow }));
     expect(b.backUpNow).toHaveBeenCalledTimes(1);
   });
@@ -137,5 +148,97 @@ describe("BackupDialog, account", () => {
     expect(formatBackupTime(FILE_AT, "en-US", "Asia/Seoul")).toMatch(/Nov 6, 2026.*8:30/);
     expect(formatBackupTime(FILE_AT, "en-US", "UTC")).toMatch(/Nov 5, 2026.*11:30/);
     expect(backupLine({ derived: backup().derived, dialog: backup().dialog }).text).toContain(formatBackupTime(FILE_AT));
+  });
+});
+
+// Task 262: Restore…, the list and the confirmation (SPEC §Account backup, Restore).
+describe("BackupDialog, restore", () => {
+  const daily: BackupEntry = { name: "2026-11-07", kind: "daily", at: Date.UTC(2026, 10, 6, 23, 30), size: 1, etag: "e1" };
+  const pre: BackupEntry = { name: "pre-restore/2026-11-06T09-00-00Z", kind: "pre_restore", at: Date.UTC(2026, 10, 6, 9, 0), size: 1, etag: "e2" };
+
+  it("lists the entries newest first as given, daily as the time and pre-restore as Before restore, <time>", () => {
+    mount("account", backup({}, { backups: [daily, pre] }));
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
+    expect(screen.getByRole("alertdialog")).toHaveAccessibleName(BACKUP_COPY.restore.listTitle);
+    const buttons = Array.from(document.querySelectorAll('[data-app-role="restore-list"] button')).map((b) => b.textContent);
+    expect(buttons).toEqual([formatBackupTime(daily.at), BACKUP_COPY.restore.preRestoreEntry(formatBackupTime(pre.at))]);
+  });
+
+  it("shows the local date of an entry across the UTC boundary (Asia/Seoul), not the object name's date", () => {
+    // 2026-11-06 23:30 UTC is 2026-11-07 08:30 in Seoul.
+    expect(formatBackupTime(daily.at, "en-US", "Asia/Seoul")).toContain("Nov 7, 2026");
+    expect(formatBackupTime(daily.at, "en-US", "UTC")).toContain("Nov 6, 2026");
+  });
+
+  it("choosing an entry asks for confirmation; Cancel returns to the list; Restore starts it with the file and etag", () => {
+    const { r } = mount("account", backup({}, { backups: [daily, pre] }));
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
+    fireEvent.click(screen.getByRole("button", { name: formatBackupTime(daily.at) }));
+    expect(screen.getByText(BACKUP_COPY.restore.confirm(formatBackupTime(daily.at)))).toBeInTheDocument();
+    expect(r.start).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.cancel }));
+    expect(document.querySelector('[data-app-role="restore-list"]')).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: formatBackupTime(daily.at) }));
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.confirmAction }));
+    expect(r.start).toHaveBeenCalledWith("2026-11-07", "e1");
+  });
+
+  it("an entry without an etag cannot be chosen", () => {
+    mount("account", backup({}, { backups: [{ ...daily, etag: null }] }));
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
+    expect(screen.getByRole("button", { name: formatBackupTime(daily.at) })).toBeDisabled();
+  });
+
+  it("an empty list, a failed listing (with Check again) and a list not read yet", () => {
+    const empty = mount("account", backup({}, { backups: [] }));
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
+    expect(status()).toHaveTextContent(BACKUP_COPY.restore.emptyList);
+    expect(empty.b.checkAgain).not.toHaveBeenCalled();
+    cleanup();
+    const failed = mount("account", backup({}, { backups: null }));
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
+    expect(status()).toHaveTextContent(BACKUP_COPY.restore.listFailed);
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.checkAgain }));
+    expect(failed.b.checkAgain).toHaveBeenCalledTimes(1);
+    cleanup();
+    mount("account", backup());
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
+    expect(status()).toHaveTextContent(BACKUP_COPY.checking);
+  });
+
+  it("opening the list reads it again, so a backup made since the dialog opened is there", () => {
+    const { b } = mount("account", backup({}, { backups: [] }));
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
+    expect(b.refreshList).toHaveBeenCalledTimes(1);
+  });
+
+  it("Cancel in the list returns to the main view", () => {
+    mount("account", backup({}, { backups: [daily] }));
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.cancel }));
+    expect(screen.getByRole("button", { name: BACKUP_COPY.backUpNow })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["account_changed", BACKUP_COPY.restore.accountChanged],
+    ["unsupported_format", BACKUP_COPY.restore.unsupportedFormat],
+    ["not_applied", BACKUP_COPY.restore.notApplied],
+    ["rate_limited", BACKUP_COPY.rateLimited],
+  ] as const)("a returned %s shows its line", (notice, text) => {
+    mount("account", backup(), undefined, restoreStub(notice));
+    expect(status()).toHaveTextContent(text);
+  });
+
+  it("clears the notice when the user moves on: Back Up Now, Restore…", () => {
+    const { r } = mount("account", backup(), undefined, restoreStub("not_applied"));
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.backUpNow }));
+    expect(r.clearNotice).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
+    expect(r.clearNotice).toHaveBeenCalledTimes(2);
+  });
+
+  it("Restore… waits while the status is being read", () => {
+    mount("account", backup({}, { read: "checking" }));
+    expect(screen.getByRole("button", { name: BACKUP_COPY.restore.action })).toBeDisabled();
   });
 });

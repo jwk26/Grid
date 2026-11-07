@@ -9,6 +9,9 @@
 // arguments, never written in this file), and reload the page so the app reads the new
 // data (the app does not refetch before Task 233). Open the returned `inboxRoute`.
 //
+// Option `oauthIdentity: true` also gives the fixture user a local `github` row in auth.identities
+// (dev.give_oauth_identity), so `Back Up Now` and a restore can run; `db reset` wipes it.
+//
 // What seed() does: signs in as the local fixture user fixture-<label>@griddo.test (created
 // on first use, reusing the browser's stored session while it is valid, so the local limit of
 // 30 password sign-ins per 5 minutes per IP is not spent on every run), calls the local-only
@@ -113,7 +116,7 @@ window.griddoFixture = (() => {
 
   async function seed(options = {}) {
     const {
-      supabaseUrl = DEFAULT_SUPABASE_URL, publishableKey, serviceKey, label = "browser", overflow = false,
+      supabaseUrl = DEFAULT_SUPABASE_URL, publishableKey, serviceKey, label = "browser", overflow = false, oauthIdentity = false,
     } = options;
     if (!publishableKey || !serviceKey) {
       throw new Error("seed needs publishableKey and serviceKey from `supabase status -o env`");
@@ -127,6 +130,15 @@ window.griddoFixture = (() => {
     });
     if (!seeded.ok) {
       throw new Error(`dev.seed_fixture failed (${seeded.status}): ${seeded.text}`);
+    }
+    if (oauthIdentity) {
+      // Local only: the backup function refuses a user with no OAuth identity (Task 262).
+      const given = await call(supabaseUrl, "/rest/v1/rpc/give_oauth_identity", {
+        key: serviceKey,
+        headers: { "Content-Profile": "dev" },
+        body: { p_user: session.user.id },
+      });
+      if (!given.ok) throw new Error(`dev.give_oauth_identity failed (${given.status}): ${given.text}`);
     }
     localStorage.setItem(storageKey(supabaseUrl), JSON.stringify(session));
     for (const key of MARKER_KEYS) localStorage.removeItem(key);

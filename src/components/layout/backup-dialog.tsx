@@ -12,7 +12,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import type { UseBackup } from "@/hooks/use-backup";
+import { useRestore, type UseBackup, type UseRestore } from "@/hooks/use-backup";
+import type { BackupEntry } from "@/lib/backup/backup-client";
+import type { RestoreNotice } from "@/lib/backup/restore-controller";
 import { getSessionController, type SessionController } from "@/lib/auth/session";
 import { ACCOUNT_MODAL, BACKUP_BUTTON_LABEL, BACKUP_COPY, formatBackupTime } from "@/lib/copy/feedback";
 import { cn } from "@/lib/utils";
@@ -34,11 +36,16 @@ const LAMP_TONE: Record<Tone, string> = {
 type Line = { tone: Tone; text: string; detail?: string; checkAgain?: boolean };
 
 /** What the status line says, by the dialog's state first and then the account's. Pure. */
-export function backupLine(backup: Pick<UseBackup, "derived" | "dialog">): Line {
+export function backupLine(backup: Pick<UseBackup, "derived" | "dialog">, notice: RestoreNotice | null = null): Line {
   const { derived, dialog } = backup;
   if (dialog.read === "checking") return { tone: "running", text: BACKUP_COPY.checking };
   if (dialog.read === "failed") return { tone: "error", text: BACKUP_COPY.readFailed, checkAgain: true };
   if (dialog.busy) return { tone: "running", text: BACKUP_COPY.running };
+  // A restore that changed nothing says why (SPEC §Restore, End), until the user moves on.
+  if (notice === "rate_limited") return { tone: "neutral", text: BACKUP_COPY.rateLimited };
+  if (notice === "account_changed") return { tone: "warning", text: BACKUP_COPY.restore.accountChanged };
+  if (notice === "unsupported_format") return { tone: "warning", text: BACKUP_COPY.restore.unsupportedFormat };
+  if (notice === "not_applied") return { tone: "warning", text: BACKUP_COPY.restore.notApplied };
   const time = derived.lastFileAt === null ? "" : formatBackupTime(derived.lastFileAt);
   switch (dialog.inline.kind) {
     case "still_finishing":
@@ -79,10 +86,21 @@ type BackupDialogProps = {
   backup: UseBackup;
   /** Tests inject a controller; the app uses the shared one. */
   controller?: SignIn;
+  /** Tests inject the restore flow; the app uses the shared one. */
+  restore?: UseRestore;
 };
 
-export function BackupDialog({ variant, open, onOpenChange, backup, controller: injected }: BackupDialogProps) {
+type View = { name: "main" } | { name: "list" } | { name: "confirm"; entry: BackupEntry };
+
+const entryLabel = (entry: BackupEntry) =>
+  entry.kind === "pre_restore" ? BACKUP_COPY.restore.preRestoreEntry(formatBackupTime(entry.at)) : formatBackupTime(entry.at);
+
+export function BackupDialog({ variant, open, onOpenChange, backup, controller: injected, restore: injectedRestore }: BackupDialogProps) {
   const [startFailed, setStartFailed] = useState(false);
+  const realRestore = useRestore();
+  const restore = injectedRestore ?? realRestore;
+  const [view, setView] = useState<View>({ name: "main" });
+  const { clearNotice } = restore;
   const account = variant === "account";
 
   // The account dialog reads the status once when it opens; closing it stops no run.
@@ -99,14 +117,18 @@ export function BackupDialog({ variant, open, onOpenChange, backup, controller: 
     if ((await controller.signInWithOAuth(provider)) === "failed") setStartFailed(true);
   }
 
-  const line = account ? backupLine(backup) : null;
+  const line = account ? backupLine(backup, restore.state.notice) : null;
   const busy = backup.dialog.busy;
 
   return (
     <AlertDialog
       open={open}
       onOpenChange={(next) => {
-        if (!next) setStartFailed(false);
+        if (!next) {
+          setStartFailed(false);
+          setView({ name: "main" });
+          clearNotice();
+        }
         onOpenChange(next);
       }}
     >
@@ -122,7 +144,7 @@ export function BackupDialog({ variant, open, onOpenChange, backup, controller: 
           <CloudUpload className="h-5 w-5" />
         </span>
         <div className="scratch-trash-dialog__content grid gap-4">
-          {account && line ? (
+          {account && line && view.name === "main" ? (
             <>
               <AlertDialogHeader>
                 <AlertDialogTitle>{BACKUP_BUTTON_LABEL}</AlertDialogTitle>
@@ -152,12 +174,27 @@ export function BackupDialog({ variant, open, onOpenChange, backup, controller: 
                   </div>
                 ) : null}
               </div>
-              <div className="flex items-center justify-end gap-2 border-t pt-4" data-app-role="backup-actions">
+              <div className="flex items-center justify-between gap-2 border-t pt-4" data-app-role="backup-actions">
+                <Button
+                  disabled={busy || backup.dialog.read === "checking"}
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    clearNotice();
+                    backup.refreshList();
+                    setView({ name: "list" });
+                  }}
+                >
+                  {BACKUP_COPY.restore.action}
+                </Button>
                 <Button
                   disabled={!backup.canBackUpNow || backup.dialog.read === "checking"}
                   type="button"
                   variant="default"
-                  onClick={backup.backUpNow}
+                  onClick={() => {
+                    clearNotice();
+                    backup.backUpNow();
+                  }}
                 >
                   {BACKUP_COPY.backUpNow}
                 </Button>
@@ -169,6 +206,16 @@ export function BackupDialog({ variant, open, onOpenChange, backup, controller: 
                 <AlertDialogCancel>{BACKUP_COPY.close}</AlertDialogCancel>
               </AlertDialogFooter>
             </>
+          ) : account ? (
+            <RestoreView
+              backup={backup}
+              view={view}
+              onView={setView}
+              onRestore={(entry) => {
+                setView({ name: "main" });
+                if (entry.etag !== null) restore.start(entry.name, entry.etag);
+              }}
+            />
           ) : (
             <>
               <AlertDialogHeader>
@@ -202,5 +249,88 @@ export function BackupDialog({ variant, open, onOpenChange, backup, controller: 
         </div>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+// The restore list and the confirmation replace the dialog's body inside the same card (BK-5).
+function RestoreView({
+  backup,
+  view,
+  onView,
+  onRestore,
+}: {
+  backup: UseBackup;
+  view: View;
+  onView: (view: View) => void;
+  onRestore: (entry: BackupEntry) => void;
+}) {
+  const backups = backup.dialog.backups;
+  if (view.name === "confirm") {
+    return (
+      <>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{BACKUP_COPY.restore.listTitle}</AlertDialogTitle>
+        </AlertDialogHeader>
+        <p className="text-sm" data-app-role="restore-confirmation">
+          {BACKUP_COPY.restore.confirm(formatBackupTime(view.entry.at))}
+        </p>
+        <div className="flex items-center justify-end gap-2 border-t pt-4">
+          <Button type="button" variant="outline" onClick={() => onView({ name: "list" })}>
+            {BACKUP_COPY.restore.cancel}
+          </Button>
+          <Button autoFocus type="button" variant="default" onClick={() => onRestore(view.entry)}>
+            {BACKUP_COPY.restore.confirmAction}
+          </Button>
+        </div>
+      </>
+    );
+  }
+  return (
+    <>
+      <AlertDialogHeader>
+        <AlertDialogTitle>{BACKUP_COPY.restore.listTitle}</AlertDialogTitle>
+      </AlertDialogHeader>
+      {backups === undefined ? (
+        <p className="scratch-trash-dialog__state text-sm font-medium" role="status">
+          {BACKUP_COPY.checking}
+        </p>
+      ) : backups === null ? (
+        <div className="grid gap-1">
+          <p className="scratch-trash-dialog__state text-sm font-medium" role="status">
+            {BACKUP_COPY.restore.listFailed}
+          </p>
+          <div>
+            <Button size="sm" type="button" variant="outline" onClick={backup.checkAgain} disabled={backup.dialog.busy}>
+              {BACKUP_COPY.checkAgain}
+            </Button>
+          </div>
+        </div>
+      ) : backups.length === 0 ? (
+        <p className="scratch-trash-dialog__state text-sm font-medium" role="status">
+          {BACKUP_COPY.restore.emptyList}
+        </p>
+      ) : (
+        <ul className="grid max-h-64 gap-1.5 overflow-y-auto" data-app-role="restore-list">
+          {backups.map((entry) => (
+            <li key={entry.name}>
+              <Button
+                className="w-full justify-start"
+                disabled={entry.etag === null}
+                type="button"
+                variant="outline"
+                onClick={() => onView({ name: "confirm", entry })}
+              >
+                {entryLabel(entry)}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex items-center justify-end gap-2 border-t pt-4">
+        <Button type="button" variant="outline" onClick={() => onView({ name: "main" })}>
+          {BACKUP_COPY.restore.cancel}
+        </Button>
+      </div>
+    </>
   );
 }

@@ -121,6 +121,37 @@ describe("dev.seed_fixture: grants", () => {
   });
 });
 
+describe("dev.give_oauth_identity", () => {
+  it("gives a fixture user one github identity, once, and refuses anyone else", async () => {
+    const user = await fixtureUser("oauth");
+    await withCommitted((db) => db.query("select dev.give_oauth_identity($1)", [user.id]));
+    await withCommitted((db) => db.query("select dev.give_oauth_identity($1)", [user.id]));
+    const owner = await connect();
+    try {
+      const { rows } = await owner.query("select provider from auth.identities where user_id = $1 and provider = 'github'", [user.id]);
+      expect(rows).toHaveLength(1);
+    } finally {
+      await owner.end();
+    }
+    const outsider = await fixtureUser("outsider", "test.local");
+    await withCommitted(async (db) => {
+      await db.query("savepoint s");
+      expect(await expectDbError(() => db.query("select dev.give_oauth_identity($1)", [outsider.id]))).toBe("42501");
+      await db.query("rollback to savepoint s");
+    });
+  });
+
+  it("is executable by service_role only", async () => {
+    const [row] = await rows(
+      `select has_function_privilege('authenticated', 'dev.give_oauth_identity(uuid)', 'execute') as a,
+              has_function_privilege('anon', 'dev.give_oauth_identity(uuid)', 'execute') as n,
+              has_function_privilege('service_role', 'dev.give_oauth_identity(uuid)', 'execute') as s`,
+      [],
+    );
+    expect(row).toEqual({ a: false, n: false, s: true });
+  });
+});
+
 describe("dev.seed_fixture: who it seeds", () => {
   it("refuses a user outside the fixture email domain and writes nothing", async () => {
     const outsider = await fixtureUser("outsider", "test.local");

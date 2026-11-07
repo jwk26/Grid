@@ -311,6 +311,28 @@ describe("another tab of the browser", () => {
     expect(t.reenter).not.toHaveBeenCalled();
   });
 
+  it("a late verdict for an earlier restore never shows as this one's", async () => {
+    vi.useFakeTimers();
+    const t = setup();
+    let lateA!: (v: Verdict) => void;
+    t.readRestoreVerdict.mockImplementationOnce(() => new Promise((r) => (lateA = r)));
+    t.receive(started("rid-A"));
+    await vi.advanceTimersByTimeAsync(EDGE_REQUEST_TIMEOUT_MS);
+    expect(t.controller.getState().view).toMatchObject({ phase: "wayout", restoreId: "rid-A", reading: true });
+    // A ends (not applied) while its verdict read is still open; this tab starts B.
+    t.receive(ended("not_applied", "rid-A"));
+    expect(t.controller.getState().view).toEqual({ phase: "idle" });
+    t.onRestore(() => new Promise(() => undefined));
+    void t.controller.start("2026-11-07", "e1");
+    await vi.advanceTimersByTimeAsync(0);
+    const before = t.controller.getState();
+    expect(before.view).toMatchObject({ phase: "restoring", role: "self", restoreId: "rid-1" });
+    lateA({ kind: "ok", verdict: "applied" });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(t.controller.getState()).toEqual(before);
+    expect(t.reenter).not.toHaveBeenCalled();
+  });
+
   it("a sign-out drops the block and its timer", async () => {
     vi.useFakeTimers();
     const t = setup();

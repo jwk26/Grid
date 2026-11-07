@@ -5,10 +5,13 @@ import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore } from 
 import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import { StatusIcon } from "@/components/feedback/status-icon";
+import { RestoringScreen } from "@/components/layout/restoring-screen";
 import { ScreenBlock } from "@/components/layout/screen-block";
 import { Button } from "@/components/ui/button";
 import { setTurnstileHost } from "@/lib/auth/turnstile";
 import { takeHomeReturn } from "@/lib/auth/user-change";
+import { useInertBody } from "@/hooks/use-inert-body";
+import { useRestore } from "@/hooks/use-backup";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useDisplayDelay } from "@/hooks/use-display-delay";
 import { isNarrowWindow, subscribeNarrowWindow } from "@/lib/viewport";
@@ -127,31 +130,6 @@ function NotReadyTitle() {
 // shows, portalled dialogs and the Turnstile host included, so nothing under it can be used and
 // widening the window brings back the same screen. A portal added meanwhile is made inert by the
 // observer; widening removes only what this notice set.
-function useInertBody(noticeRef: React.RefObject<HTMLElement | null>) {
-  useLayoutEffect(() => {
-    const notice = noticeRef.current;
-    const set = new Set<Element>();
-    const previouslyFocused = document.activeElement;
-    const apply = () => {
-      for (const child of document.body.children) {
-        if (child === notice || child.hasAttribute("inert")) continue;
-        child.setAttribute("inert", "");
-        set.add(child);
-      }
-    };
-    apply();
-    const observer = new MutationObserver(apply);
-    observer.observe(document.body, { childList: true });
-    return () => {
-      observer.disconnect();
-      for (const element of set) element.removeAttribute("inert");
-      if (previouslyFocused instanceof HTMLElement && previouslyFocused.isConnected) {
-        previouslyFocused.focus({ preventScroll: true });
-      }
-    };
-  }, [noticeRef]);
-}
-
 function NarrowNotice() {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -168,6 +146,8 @@ function NarrowNotice() {
     <div
       ref={ref}
       data-app-role="narrow-notice"
+      // The narrow notice stays on top of a restoring screen: it must not be made inert by it.
+      data-inert-exempt=""
       className="pointer-events-auto fixed inset-0 z-[500]"
       onPointerDown={stop}
       onMouseDown={stop}
@@ -204,10 +184,23 @@ function NarrowNotice() {
 // reaches the app: Esc would close the Bit popup and Cmd+K open the palette under the notice. It
 // is a layout effect so it is registered before any child's effect, the command palette's capture
 // listener on `window` included.
-function useNarrowKeyBlock() {
+function useNarrowKeyBlock(restoring: boolean) {
+  // The restoring screen blocks keys the same way (work-plan review item 3): it is the same early
+  // layout-effect listener, so it runs before the command palette's capture listener. Keys whose
+  // target is inside the restoring screen itself still reach its `Check again` button; Esc does
+  // nothing there.
+  const restoringRef = useRef(restoring);
+  useLayoutEffect(() => {
+    restoringRef.current = restoring;
+  }, [restoring]);
   useLayoutEffect(() => {
     const block = (event: KeyboardEvent) => {
-      if (isNarrowWindow()) event.stopImmediatePropagation();
+      if (isNarrowWindow()) return void event.stopImmediatePropagation();
+      if (!restoringRef.current) return;
+      const target = event.target instanceof Element ? event.target : null;
+      const inside = target?.closest('[data-app-role="restoring-screen"], [data-inert-exempt]') != null;
+      // Focus sits inside the screen, so a real Cmd+K or Esc targets it: only plain keys pass, for the button.
+      if (!inside || event.key === "Escape" || event.metaKey || event.ctrlKey || event.altKey) event.stopImmediatePropagation();
     };
     window.addEventListener("keydown", block, { capture: true });
     window.addEventListener("keyup", block, { capture: true });
@@ -314,7 +307,9 @@ export function AppFrame({
   const state = useEntryState(controller);
   const router = useRouter();
   const narrow = useSyncExternalStore(subscribeNarrowWindow, isNarrowWindow, () => false);
-  useNarrowKeyBlock();
+  const restore = useRestore();
+  const restoring = restore.state.view.phase !== "idle";
+  useNarrowKeyBlock(restoring);
 
   // A user change leaves the address naming the old user's ids. It goes back to Home through the
   // router while a screen replaces the app, so nothing of the new user mounts on the old route.
@@ -340,6 +335,7 @@ export function AppFrame({
       {/* Not ready: no page is mounted to set the tab title, so the frame sets the app name. */}
       {state.phase !== "ready" ? <NotReadyTitle /> : null}
       <FrameScreen state={state} controller={controller}>{children}</FrameScreen>
+      {restoring ? <RestoringScreen restore={restore} /> : null}
       {narrow ? <NarrowNotice /> : null}
     </>
   );

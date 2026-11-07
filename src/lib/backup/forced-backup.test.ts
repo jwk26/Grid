@@ -40,6 +40,22 @@ describe("forced backup seam", () => {
     expect(states["not-started"].dialog.inline.kind).toBe("not_started");
   });
 
+  it("forces the restoring screen at each step, the other tab, the way-out and each returned line; none posts anything", () => {
+    const view = (n: (typeof BACKUP_SCENARIOS)[number]) => forcedBackupOf(n).restore?.view;
+    expect(view("restoring-saving")).toMatchObject({ phase: "restoring", role: "self", step: "saving" });
+    expect(view("restoring-getting")).toMatchObject({ step: "getting" });
+    expect(view("restoring-applying")).toMatchObject({ step: "applying" });
+    expect(view("restoring-other-tab")).toMatchObject({ phase: "restoring", role: "other" });
+    expect(view("restore-finishing")).toMatchObject({ phase: "wayout", readFailed: false });
+    expect(view("restore-read-failed")).toMatchObject({ phase: "wayout", readFailed: true });
+    expect(forcedBackupOf("restore-account-changed").restore?.notice).toBe("account_changed");
+    expect(forcedBackupOf("restore-unsupported").restore?.notice).toBe("unsupported_format");
+    expect(forcedBackupOf("restore-not-applied").restore?.notice).toBe("not_applied");
+    expect(forcedBackupOf("restore-list").dialog.backups).toHaveLength(3);
+    expect(forcedBackupOf("restore-list-empty").dialog.backups).toEqual([]);
+    expect(forcedBackupOf("restore-list-failed").dialog.backups).toBeNull();
+  });
+
   it("gives no injection without a source", () => {
     expect(takeBackupInjection("manual")).toBeNull();
   });
