@@ -126,10 +126,18 @@ begin
                               'rejection', jsonb_build_object('code', 'rate_limited'));
   end if;
 
+  -- The row is inserted only after every check and before backup_status changes. The primary key
+  -- arbitrates against a verdict read that closed this id meanwhile (backup_read_status(), Phase 52
+  -- mi-2): nothing inserted means the id is held, so nothing changes and no open row is left.
+  insert into app.restore_staging (id, user_id, created_at) values (p_restore_id, p_user_id, v_now)
+    on conflict (id) do nothing;
+  if not found then
+    return jsonb_build_object('status', 'rejected', 'result', null,
+                              'rejection', jsonb_build_object('code', 'invalid_input'));
+  end if;
   update app.backup_status
      set restore_started_at = v_now, restore_id = p_restore_id
    where user_id = p_user_id;
-  insert into app.restore_staging (id, user_id, created_at) values (p_restore_id, p_user_id, v_now);
 
   return jsonb_build_object('status', 'applied', 'result', jsonb_build_object('server_now', v_now));
 end
@@ -256,6 +264,14 @@ begin
     return jsonb_build_object('status', case when v_stage.result = 'applied' then 'already_applied' else 'not_applied' end,
                               'result', null);
   end if;
+  -- Too late: the verdict reads `not_applied` 180 s after the start, so a call at 140 s or more
+  -- (transaction time) writes `not_applied` and changes nothing; any `applied` then commits before
+  -- 180 s (140 s, the REST setup and commit, and at most the 30 s statement; user, 2026-11-07).
+  if v_now - v_stage.created_at >= 140000 then
+    update app.restore_staging set result = 'not_applied', reason = 'too_late', payload = null, finished_at = v_now
+     where id = p_restore_id;
+    return jsonb_build_object('status', 'not_applied', 'result', null);
+  end if;
   v_payload := v_stage.payload;
   if v_payload is null then
     return jsonb_build_object('status', 'not_applied', 'result', null);
@@ -357,7 +373,8 @@ grant execute on function public.restore_account(uuid, text) to authenticated;
 
 -- Same signature as Phase 52, so `create or replace` keeps the owner and the grants. The Phase 52
 -- behaviour is unchanged; with a restore id it also returns `restore_verdict` on the server clock:
---   not_started  another restore id is recorded (or none)
+--   not_started  no staging row of this account for the id and it is not the recorded id: the id is
+--                closed (see below), or its row was closed with reason `not_started`
 --   finishing    no result and the start is younger than 180 s
 --   <result>     applied, account_changed, unsupported_format or not_applied (written by
 --                restore_account() or restore_abort())
@@ -413,19 +430,34 @@ begin
   end if;
 
   if p_restore_id is not null then
-    if v_row.user_id is null or v_row.restore_id is distinct from p_restore_id then
-      v_restore_verdict := 'not_started';
-    else
-      select * into v_stage from app.restore_staging s where s.id = p_restore_id and s.user_id = p_user_id;
-      if not found then
-        v_restore_verdict := 'expired';
-      elsif v_stage.result is not null then
-        v_restore_verdict := v_stage.result;
+    -- This account's staging row for the id decides first, so a later restore never hides an
+    -- earlier one's result (D3). Without a row, `backup_status.restore_id` decides `expired`; an id
+    -- that is neither is `not_started` and is closed with a staging row, so a begin that arrives
+    -- later cannot use it (D1, Phase 52 mi-2). The close is `on conflict do nothing`; when the id
+    -- was taken meanwhile (a begin committed, or another account holds it) the row is read once
+    -- more and judged, never in a loop. Another account's row is never read or changed.
+    select * into v_stage from app.restore_staging s where s.id = p_restore_id and s.user_id = p_user_id;
+    if not found and not (v_row.user_id is not null and v_row.restore_id = p_restore_id) then
+      if exists (select 1 from app.accounts a where a.user_id = p_user_id) then
+        insert into app.restore_staging (id, user_id, created_at, result, reason, finished_at)
+          values (p_restore_id, p_user_id, v_now, 'not_applied', 'not_started', v_now)
+          on conflict (id) do nothing;
+        select * into v_stage from app.restore_staging s where s.id = p_restore_id and s.user_id = p_user_id;
+      end if;
+    end if;
+    if v_stage.id is not null then
+      if v_stage.result is not null then
+        v_restore_verdict := case when v_stage.result = 'not_applied' and v_stage.reason = 'not_started'
+                                  then 'not_started' else v_stage.result end;
       elsif v_stage.created_at > v_now - 180000 then
         v_restore_verdict := 'finishing';
       else
         v_restore_verdict := 'not_applied';
       end if;
+    elsif v_row.user_id is not null and v_row.restore_id = p_restore_id then
+      v_restore_verdict := 'expired';
+    else
+      v_restore_verdict := 'not_started';
     end if;
   end if;
 

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { connect, withActor } from "./helpers/db";
 import {
-  abortRestore, ageRestore, authedUser, beginRestore, owner, stageRestore, stagingRow, verdictOf,
+  abortRestore, ageRestore, authedUser, beginRestore, owner, service, stageRestore, stagingRow, verdictOf,
 } from "./helpers/restore";
 import { seedAccount } from "./helpers/seed";
 import { createTestUser, type TestUser } from "./helpers/users";
@@ -134,8 +134,8 @@ describe("restore_stage() and restore_abort()", () => {
 describe("restore verdicts", () => {
   it("answers not_started, finishing, the result, not_applied by age and expired for the given id", async () => {
     const u = await freshUser("rs-verdict");
+    expect(await verdictOf(u.id, randomUUID())).toBe("not_started"); // no status row at all
     const id = randomUUID();
-    expect(await verdictOf(u.id, id)).toBe("not_started"); // no status row at all
     await beginRestore(u.id, id);
     expect(await verdictOf(u.id, id)).toBe("finishing");
     expect(await verdictOf(u.id, randomUUID())).toBe("not_started"); // another id
@@ -156,7 +156,9 @@ describe("restore verdicts", () => {
     const two = randomUUID();
     await beginRestore(u.id, two);
     expect(await verdictOf(u.id, two)).toBe("finishing");
-    expect(await verdictOf(u.id, one)).toBe("not_started");
+    // The earlier restore keeps its own result (D3): a later restore never hides it.
+    expect(await verdictOf(u.id, one)).toBe("not_applied");
+    expect(await stagingRow(one)).toMatchObject({ reason: "upload_failed" });
   });
 
   it("does not read another account's staging row", async () => {
@@ -165,7 +167,98 @@ describe("restore verdicts", () => {
     const bId = randomUUID();
     await beginRestore(b.id, bId);
     await abortRestore(b.id, bId);
+    const before = await stagingRow(bId);
     expect(await verdictOf(u.id, bId)).toBe("not_started");
+    // Nothing is inserted and the other account's row is unchanged.
+    expect(await stagingRow(bId)).toEqual(before);
+    expect(await owner("select 1 from app.restore_staging where user_id = $1", [u.id])).toEqual([]);
+  });
+
+  it("closes an id it judges not_started, so a later begin is refused and changes nothing", async () => {
+    const u = await freshUser("rs-close");
+    const id = randomUUID();
+    expect(await verdictOf(u.id, id)).toBe("not_started");
+    expect(await stagingRow(id)).toMatchObject({ user_id: u.id, result: "not_applied", reason: "not_started", payload: null });
+    expect(await verdictOf(u.id, id)).toBe("not_started"); // two reads agree
+    expect(await beginRestore(u.id, id)).toMatchObject({ status: "rejected", rejection: { code: "invalid_input" } });
+    expect(await owner("select restore_id, restore_started_at from app.backup_status where user_id = $1", [u.id])).toEqual([
+      { restore_id: null, restore_started_at: null },
+    ]);
+    // A closed id neither blocks another restore nor counts for the rate limit.
+    const next = randomUUID();
+    expect((await beginRestore(u.id, next)).status).toBe("applied");
+  });
+
+  it("inserts nothing for a restore id of an account that has no accounts row", async () => {
+    const ghost = randomUUID();
+    const id = randomUUID();
+    expect(await verdictOf(ghost, id)).toBe("not_started");
+    expect(await stagingRow(id)).toBeUndefined();
+  });
+
+  it("answers finishing, and closes nothing, when the begin comes first", async () => {
+    const u = await freshUser("rs-order");
+    const id = randomUUID();
+    await beginRestore(u.id, id);
+    expect(await verdictOf(u.id, id)).toBe("finishing");
+    expect(await stagingRow(id)).toMatchObject({ result: null, reason: null });
+  });
+
+  it("serialises a verdict read and a begin of one id on the staging primary key, in both orders", async () => {
+    const { becomeActor } = await import("./helpers/db");
+    const { waitForLockWait } = await import("./helpers/lifecycle");
+    const session = async () => {
+      const db = await connect();
+      await db.query("begin");
+      await becomeActor(db, service);
+      return db;
+    };
+    // The read first, uncommitted: the begin waits, then is refused.
+    {
+      const u = await freshUser("rs-race-read");
+      const id = randomUUID();
+      const reader = await session();
+      const beginner = await session();
+      const watcher = await connect();
+      try {
+        const read = (await reader.query("select public.backup_read_status($1, null, $2) as r", [u.id, id])).rows[0].r;
+        expect(read.result.restore_verdict).toBe("not_started");
+        const pending = beginner.query("select public.restore_begin($1, $2) as r", [u.id, id]);
+        await waitForLockWait(watcher, "restore_begin");
+        await reader.query("commit");
+        expect((await pending).rows[0].r).toMatchObject({ status: "rejected", rejection: { code: "invalid_input" } });
+        await beginner.query("commit");
+        expect(await stagingRow(id)).toMatchObject({ reason: "not_started" });
+        expect(await owner("select restore_id, restore_started_at from app.backup_status where user_id = $1", [u.id])).toEqual([
+          { restore_id: null, restore_started_at: null },
+        ]);
+      } finally {
+        await reader.query("rollback").catch(() => undefined);
+        await beginner.query("rollback").catch(() => undefined);
+        await Promise.all([reader.end(), beginner.end(), watcher.end()]);
+      }
+    }
+    // The begin first, uncommitted: the read waits, then judges finishing and closes nothing.
+    {
+      const u = await freshUser("rs-race-begin");
+      const id = randomUUID();
+      const beginner = await session();
+      const reader = await session();
+      const watcher = await connect();
+      try {
+        expect((await beginner.query("select public.restore_begin($1, $2) as r", [u.id, id])).rows[0].r.status).toBe("applied");
+        const pending = reader.query("select public.backup_read_status($1, null, $2) as r", [u.id, id]);
+        await waitForLockWait(watcher, "backup_read_status");
+        await beginner.query("commit");
+        expect((await pending).rows[0].r.result.restore_verdict).toBe("finishing");
+        await reader.query("commit");
+        expect(await stagingRow(id)).toMatchObject({ result: null, reason: null });
+      } finally {
+        await beginner.query("rollback").catch(() => undefined);
+        await reader.query("rollback").catch(() => undefined);
+        await Promise.all([beginner.end(), reader.end(), watcher.end()]);
+      }
+    }
   });
 
   it("keeps the Phase 52 run verdict and adds restore_started_at to the status", async () => {

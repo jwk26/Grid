@@ -127,6 +127,37 @@ describe("restore_account()", () => {
     expect(await stagingRow(id)).toMatchObject({ result: "account_changed" });
   });
 
+  it("refuses a call 140 s or more after the start with not_applied, reason too_late, and changes nothing", async () => {
+    const { u } = await freshUser("ra-late");
+    const payload = JSON.parse(JSON.stringify(await exportOf(u.id)));
+    payload.bits[0].title = "From the backup";
+    const id = await stageFor(u, payload);
+    await owner("update app.restore_staging set created_at = created_at - 141000 where id = $1", [id]);
+    const before = await live(u.id);
+    expect(await restoreAs(u, id, await fingerprintOf(u.id))).toMatchObject({ status: "not_applied" });
+    expect(await live(u.id)).toEqual(before);
+    expect(await stagingRow(id)).toMatchObject({ result: "not_applied", reason: "too_late", payload: null });
+    expect(await verdictOf(u.id, id)).toBe("not_applied");
+  });
+
+  it("applies a call made just before 140 s", async () => {
+    const { u } = await freshUser("ra-notlate");
+    const id = await stageFor(u, JSON.parse(JSON.stringify(await exportOf(u.id))));
+    await owner("update app.restore_staging set created_at = created_at - 130000 where id = $1", [id]);
+    expect((await restoreAs(u, id, await fingerprintOf(u.id))).status).toBe("applied");
+  });
+
+  it("keeps an earlier restore's result readable after a later restore began", async () => {
+    const { u } = await freshUser("ra-earlier");
+    const first = await stageFor(u, JSON.parse(JSON.stringify(await exportOf(u.id))));
+    expect((await restoreAs(u, first, await fingerprintOf(u.id))).status).toBe("applied");
+    await owner("update app.backup_status set restore_started_at = restore_started_at - 601000 where user_id = $1", [u.id]);
+    const second = randomUUID();
+    expect((await beginRestore(u.id, second)).status).toBe("applied");
+    expect(await verdictOf(u.id, first)).toBe("applied");
+    expect(await verdictOf(u.id, second)).toBe("finishing");
+  });
+
   it("treats a missing expected fingerprint as a mismatch", async () => {
     const { u } = await freshUser("ra-null-fp");
     const id = await stageFor(u, JSON.parse(JSON.stringify(await exportOf(u.id))));

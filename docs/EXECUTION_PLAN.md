@@ -993,6 +993,7 @@ earlier restore's result.
   makes `getClaims` throw, and the function answers 502 `unconfirmed`, a
   no-answer status; it answers 401 `invalid_token` instead, with a test
   (Phase 52 Task 259, 2026-11-07).
+- Task 260 carries (expert and advisory reviews, 2026-11-07): when the `restore_account()` call errors, call `restore_abort()` with a reason such as `restore_failed` (the staging-row guard keeps a committed or still-running call's result), so the user does not wait 180 s for a known failure; retry `restore_account()` once on SQLSTATE 40P01 (the rollback is certain, the row has no result, the guard makes the retry safe; the lock order of the `lock_bit_and_node` and `lock_tree` retry paths is the residual risk); `restore_stage()` has its own 30 s `statement_timeout`; `restore_account()` refuses a call 140 s or more after `restore_begin()` (`too_late`), so the function's whole restore must reach it earlier; the verdict read of a `not_started` id closes it (Phase 52 mi-2).
 - `supabase/tests/restore-function.db.test.ts`.
 
 **Dependencies:** Task 260.
@@ -1118,6 +1119,8 @@ an interrupted run leaves no test user; no row content appears in the output.
   alert), the ledger records that the three retirement conditions hold and
   that the first SQL phase after Phase 54 removes the manual dump through its
   `/craft-docs` (B17).
+
+- Task 260 carries (expert review, 2026-11-07): time a limit-sized `restore_account()` on the drill project: it holds L0 and every Node and Bit, so other tabs' writes and `ensure_account()` wait behind it under the 8 s REST limit and fail with 57014 if it runs longer; and record the database-side time of a 10 MB `restore_stage()` on hosted, since the hosted body probe was answered by PostgREST before Postgres ran the call.
 
 **Dependencies:** Task 263; the user's Task 264 preparation.
 
