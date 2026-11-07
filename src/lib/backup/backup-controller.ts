@@ -172,7 +172,13 @@ export function createBackupController(options: {
       const mine = epoch;
       const run = (async () => {
         const status = await client.readStatus(null);
-        if (!current(mine) || status.kind === "failed") return;
+        if (!current(mine)) return;
+        if (status.kind === "failed") {
+          // With no list yet, a failed read must not leave `Checking…` for ever: the list shows its
+          // failure line with `Check again` (Task 262 expert review). A list already held stays.
+          if (state.backups === undefined) set({ backups: null });
+          return;
+        }
         if (status.backup !== undefined) slot.offer(status.backup, mine);
         if (status.backups !== undefined) set({ backups: status.backups });
       })().finally(() => {

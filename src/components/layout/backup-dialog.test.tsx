@@ -199,7 +199,9 @@ describe("BackupDialog, restore", () => {
     fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));
     expect(status()).toHaveTextContent(BACKUP_COPY.restore.listFailed);
     fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.checkAgain }));
-    expect(failed.b.checkAgain).toHaveBeenCalledTimes(1);
+    // The list's own read, never the run verdict read behind `Check again` (expert review L1).
+    expect(failed.b.refreshList).toHaveBeenCalledTimes(2);
+    expect(failed.b.checkAgain).not.toHaveBeenCalled();
     cleanup();
     mount("account", backup());
     fireEvent.click(screen.getByRole("button", { name: BACKUP_COPY.restore.action }));

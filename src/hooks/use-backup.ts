@@ -43,6 +43,7 @@ export function resetBackupRuntimeForTests(): void {
 // setTimeout stores its delay in 32 bits; longer waits fire at once.
 const MAX_TIMER_MS = 2 ** 31 - 1;
 
+const NOTHING = () => undefined;
 const NO_SUBSCRIBE = () => () => undefined;
 const IDLE_RESTORE: RestoreState = { view: { phase: "idle" }, notice: null };
 
@@ -63,13 +64,15 @@ export function useRestore(injected?: Pick<Runtime, "restore">): UseRestore {
     () => IDLE_RESTORE,
   );
   // The development switch can force a restoring state; always null in production.
-  const state = useForcedBackup()?.restore ?? real;
+  const forced = useForcedBackup();
+  const state = forced?.restore ?? real;
   const [actions] = useState(() => ({
     start: (file: string, etag: string) => void restore?.start(file, etag),
     checkAgain: () => void restore?.checkAgain(),
     clearNotice: () => restore?.clearNotice(),
   }));
-  return { state, ...actions };
+  // A forced backup state sends nothing: its list entries are not real files (work-plan review item 8).
+  return { state, ...actions, start: forced ? NOTHING : actions.start };
 }
 
 export type UseBackup = {

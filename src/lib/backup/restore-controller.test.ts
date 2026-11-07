@@ -333,6 +333,39 @@ describe("another tab of the browser", () => {
     expect(t.reenter).not.toHaveBeenCalled();
   });
 
+  it("an applied restore this tab missed, seen while its own restore runs, re-enters when its own ends not applied", async () => {
+    const t = setup();
+    t.onRestore(async () => {
+      // R1 (another tab, missed at its start) ends applied while this tab's R2 is in flight.
+      t.receive(ended("applied", "rid-R1"));
+      return { kind: "rate_limited" };
+    });
+    await t.controller.start("a", "e");
+    expect(t.reenter).toHaveBeenCalledTimes(1);
+    expect(t.controller.getState().view).toEqual({ phase: "idle" });
+  });
+
+  it("the same while blocked on another restore: its not-applied end re-enters; its applied end re-enters once", () => {
+    const t = setup();
+    t.receive(started("rid-R2"));
+    t.receive(ended("applied", "rid-R1"));
+    expect(t.reenter).not.toHaveBeenCalled();
+    t.receive(ended("not_applied", "rid-R2"));
+    expect(t.reenter).toHaveBeenCalledTimes(1);
+    const both = setup();
+    both.receive(started("rid-R2"));
+    both.receive(ended("applied", "rid-R1"));
+    both.receive(ended("applied", "rid-R2"));
+    expect(both.reenter).toHaveBeenCalledTimes(1);
+  });
+
+  it("nothing stale: a not-applied end re-enters nothing", async () => {
+    const t = setup();
+    t.onRestore(async () => ({ kind: "not_applied" }));
+    await t.controller.start("a", "e");
+    expect(t.reenter).not.toHaveBeenCalled();
+  });
+
   it("a sign-out drops the block and its timer", async () => {
     vi.useFakeTimers();
     const t = setup();

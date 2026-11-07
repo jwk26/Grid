@@ -321,4 +321,17 @@ describe("the restore list", () => {
     expect(readStatus).toHaveBeenCalledTimes(1);
     expect(controller.getState()).toMatchObject({ read: "idle", backups: [entry], inline: { kind: "none" } });
   });
+
+  it("a failed refresh with no list yet shows the listing failure instead of Checking… for ever; a list already held stays", async () => {
+    const { controller, readStatus } = setup();
+    readStatus.mockResolvedValue({ kind: "failed" });
+    await controller.refreshList();
+    expect(controller.getState().backups).toBeNull();
+    const held = setup();
+    held.readStatus.mockResolvedValueOnce({ kind: "ok", backup: undefined, verdict: null, backups: [entry] });
+    await held.controller.refreshList();
+    held.readStatus.mockResolvedValueOnce({ kind: "failed" });
+    await held.controller.refreshList();
+    expect(held.controller.getState().backups).toEqual([entry]);
+  });
 });

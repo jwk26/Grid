@@ -300,7 +300,7 @@ function RestoreView({
             {BACKUP_COPY.restore.listFailed}
           </p>
           <div>
-            <Button size="sm" type="button" variant="outline" onClick={backup.checkAgain} disabled={backup.dialog.busy}>
+            <Button size="sm" type="button" variant="outline" onClick={backup.refreshList} disabled={backup.dialog.busy}>
               {BACKUP_COPY.checkAgain}
             </Button>
           </div>

@@ -45,6 +45,9 @@ export function createRestoreController(options: {
   let state: RestoreState = INITIAL;
   let epoch = slot.getEpoch();
   let otherTimer: ReturnType<typeof setTimeout> | null = null;
+  // Another restore applied while this tab was busy with its own flow and missed its start: the
+  // snapshot this tab holds is old, so it re-enters when its own flow ends (Task 262 expert review).
+  let staleSnapshot = false;
   const listeners = new Set<() => void>();
 
   const emit = () => {
@@ -66,6 +69,7 @@ export function createRestoreController(options: {
     if (slot.getEpoch() === epoch) return;
     epoch = slot.getEpoch();
     clearTimer();
+    staleSnapshot = false;
     state = INITIAL;
     emit();
   });
@@ -75,6 +79,7 @@ export function createRestoreController(options: {
   /** Applied here: the other tabs re-enter through the message, this tab through `reenter`. */
   function endApplied(restoreId: string, role: "self" | "other") {
     clearTimer();
+    staleSnapshot = false;
     const id = userId();
     if (role === "self" && id) channel.post({ type: "restore-ended", restoreId, userId: id, outcome: "applied" });
     set({ view: { phase: "idle" }, notice: null });
@@ -92,6 +97,13 @@ export function createRestoreController(options: {
     } else {
       set({ view: { phase: "idle" }, notice: null });
     }
+    reenterIfStale();
+  }
+
+  function reenterIfStale() {
+    if (!staleSnapshot) return;
+    staleSnapshot = false;
+    options.reenter();
   }
 
   /** One verdict read for a restore id. */
@@ -135,8 +147,11 @@ export function createRestoreController(options: {
   channel.subscribe((message: RestoreMessage) => {
     const id = userId();
     if (id === null || message.userId !== id) return;
-    // This tab's own restore decides itself.
-    if (state.view.phase !== "idle" && state.view.role === "self") return;
+    // This tab's own restore decides itself; an applied restore it did not see makes its snapshot old.
+    if (state.view.phase !== "idle" && state.view.role === "self") {
+      if (message.type === "restore-ended" && message.outcome === "applied") staleSnapshot = true;
+      return;
+    }
     if (message.type === "restore-started") {
       if (state.view.phase !== "idle") return;
       const mine = epoch;
@@ -155,9 +170,13 @@ export function createRestoreController(options: {
       if (message.outcome === "applied") return endApplied(message.restoreId, "other");
       clearTimer();
       set({ view: { phase: "idle" }, notice: null });
+      reenterIfStale();
       return;
     }
-    if (message.outcome === "applied" && state.view.phase === "idle") options.reenter();
+    if (message.outcome === "applied") {
+      if (state.view.phase === "idle") options.reenter();
+      else staleSnapshot = true;
+    }
   });
 
   return {
