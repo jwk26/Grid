@@ -973,7 +973,7 @@ earlier restore's result.
 
 **Commit message:** `feat(db): add restore staging and restore_account`.
 
-### Task 261: [ ] Add restore to the Edge Function
+### Task 261: [x] Add restore to the Edge Function
 
 **Files and actions:**
 - First, measure locally and record: whether a streamed response passes the

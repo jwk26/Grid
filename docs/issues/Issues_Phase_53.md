@@ -66,8 +66,8 @@ User preparation: Task 263 done (user, 2026-11-07): an Object Read only R2 accou
 ## Task 261 — Add restore to the Edge Function
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 261 acceptance
+- Status: Accepted
+- Next: Task 262 (`/run-task 262`)
 - Open: mi-1 (Task 260's)
 
 ### Log
@@ -109,3 +109,4 @@ User preparation: Task 263 done (user, 2026-11-07): an Object Read only R2 accou
 - Task 262 note (advisory, 2026-11-07): the function calls `restore_account()` with the request's JWT up to about 140 s after the request starts, so the client refreshes the session before a restore when the access token expires within 3 minutes; otherwise an expiry inside that window ends the restore as not applied. The restore request also sends the chosen list entry's `etag` (Task 261 finish review).
 - Task-finish Review applied (user decisions, 2026-11-07): (1) the same-day slot overwrite is fixed with an ETag check: each list entry carries `etag` (normalized, so the list's `<ETag>` and a GET's header compare equal), the request carries `file` and `etag` (`bad_etag` for a missing or malformed one), the function compares it with the GET's ETag and a difference or a missing header stops with `restore_abort("backup_changed")` and `not_applied`; unit tests (`request`, `backup-list`, `s3-xml`, `restore-run`) and a served-function case that overwrites the slot after the list; SCHEMA's wire format and reason list updated; the carried-to-Task-264 line is superseded, and Task 262's plan entry now holds the `etag` and the JWT-refresh carry (the access token must not expire within 3 minutes of a restore). (2) The background `supabase functions serve` is stopped; with it gone the edge runtime container is gone too, so the next `pnpm test:db` or focused db suite starts its own `functions serve` from this branch (a focused run of `restore-function.db.test.ts` did, 9 passed, and stopped it). `restore-measure.mjs` now reads the list's ETag first; `SCALE` 2 again: CPU 371 ms, memory rise 55 MB, wall 1.9 s.
 - Gates after the ETag change: `git diff --check`, `pnpm lint` (0 errors, 10 warnings), `pnpm typecheck`, `pnpm check:edge`, `pnpm build` pass; `pnpm test` 2840 passed on the second run (the first run failed `triage-workspace.test.tsx` "renders the dedicated DP-VQ01 surface paused…", a button named "Copied", a file this task does not touch; it did not repeat — recorded under mi-1's family of unrepeated failures, the user decides); `pnpm test:db` 1126 passed (48 files).
+- Task 261 accepted (user, 2026-11-07).
