@@ -445,6 +445,8 @@ const BACKUP_INJECTIONS = [
   { value: "unknown-before-send", label: "Back Up Now: request lost (verdict not_started)" },
   { value: "unknown-after-send", label: "Back Up Now: answer lost (verdict from the server)" },
   { value: "status-failed", label: "Next status read fails" },
+  { value: "restore-unknown-before-send", label: "Restore: request lost (verdict not_started)" },
+  { value: "restore-unknown-after-send", label: "Restore: answer lost (verdict from the server)" },
 ] as const;
 
 /** Phase 52: the backup status, forced for a look, and the boundary injections for the real paths. */

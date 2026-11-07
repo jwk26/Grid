@@ -4,6 +4,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { createBackupClient } from "@/lib/backup/backup-client";
 import { takeBackupInjection, useForcedBackup } from "@/lib/backup/forced-backup";
 import { createBackupController, type BackupController, type DialogState } from "@/lib/backup/backup-controller";
+import { createRestoreChannel } from "@/lib/backup/restore-channel";
+import { createRestoreController, type RestoreController, type RestoreState } from "@/lib/backup/restore-controller";
 import { deriveBackup, isPendingOpen, type BackupSlot, type BackupSlotState, type DerivedBackup } from "@/lib/backup/backup-slot";
 import { getSessionController } from "@/lib/auth/session";
 import { getSupabaseClient } from "@/lib/db/supabase-client";
@@ -12,14 +14,24 @@ import { getSupabaseClient } from "@/lib/db/supabase-client";
 // only subscribes: the state lives in the account's backup slot (`SnapshotStore.backup`) and the
 // flows in the controller, so closing the dialog stops neither.
 
-type Runtime = { slot: BackupSlot; controller: BackupController };
+type Runtime = { slot: BackupSlot; controller: BackupController; restore: RestoreController };
 let runtime: Runtime | null = null;
 
 function getRuntime(): Runtime {
   const slot = getSessionController().store.backup;
   if (!runtime || runtime.slot !== slot) {
     const client = createBackupClient({ getClient: getSupabaseClient, takeInjection: takeBackupInjection });
-    runtime = { slot, controller: createBackupController({ client, slot, refetchSnapshot: () => getSessionController().store.refetch() }) };
+    const session = getSessionController();
+    const controller = createBackupController({ client, slot, refetchSnapshot: () => session.store.refetch() });
+    const restore = createRestoreController({
+      client,
+      slot,
+      channel: createRestoreChannel(),
+      getUserId: () => session.getUserId(),
+      reenter: () => session.reenter(),
+      refreshList: () => controller.refreshList(),
+    });
+    runtime = { slot, controller, restore };
   }
   return runtime;
 }
@@ -30,6 +42,25 @@ export function resetBackupRuntimeForTests(): void {
 
 // setTimeout stores its delay in 32 bits; longer waits fire at once.
 const MAX_TIMER_MS = 2 ** 31 - 1;
+
+export type UseRestore = {
+  state: RestoreState;
+  start: (file: string, etag: string) => void;
+  checkAgain: () => void;
+  clearNotice: () => void;
+};
+
+/** The restore flow (SPEC §Account backup, Restore): the dialog starts it, the restoring screen shows it. */
+export function useRestore(injected?: Pick<Runtime, "restore">): UseRestore {
+  const { restore } = injected ?? getRuntime();
+  const state = useSyncExternalStore(restore.subscribe, restore.getState, restore.getState);
+  const [actions] = useState(() => ({
+    start: (file: string, etag: string) => void restore.start(file, etag),
+    checkAgain: () => void restore.checkAgain(),
+    clearNotice: () => restore.clearNotice(),
+  }));
+  return { state, ...actions };
+}
 
 export type UseBackup = {
   derived: DerivedBackup;
@@ -43,7 +74,7 @@ export type UseBackup = {
   checkAgain: () => void;
 };
 
-export function useBackup(injected?: Runtime): UseBackup {
+export function useBackup(injected?: Pick<Runtime, "slot" | "controller">): UseBackup {
   const { slot, controller } = injected ?? getRuntime();
   const slotState = useSyncExternalStore(slot.subscribe, slot.getState, slot.getState);
   const dialog = useSyncExternalStore(controller.subscribe, controller.getState, controller.getState);

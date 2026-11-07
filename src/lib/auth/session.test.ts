@@ -97,6 +97,20 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 describe("session controller entry", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("reenter drops the snapshot, takes the user-change path and loads the account again", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    await t.controller.start();
+    expect(t.controller.getUserId()).toBe("oauth");
+    t.onUserChange.mockClear();
+    t.rpc.mockClear();
+    t.controller.reenter();
+    expect(t.controller.getState()).toEqual({ phase: "entering" });
+    expect(t.onUserChange).toHaveBeenCalledTimes(1);
+    await t.controller.whenReady();
+    expect(t.rpc.mock.calls.map(([name]) => name)).toEqual(["ensure_account", "get_snapshot"]);
+    expect(t.controller.getUserId()).toBe("oauth");
+  });
+
   it("signs in anonymously once, prepares the account and loads the snapshot", async () => {
     const t = setup();
     await t.controller.start();

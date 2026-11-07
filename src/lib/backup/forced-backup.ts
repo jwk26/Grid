@@ -77,7 +77,7 @@ export function forcedBackupOf(scenario: BackupScenario): ForcedBackup {
 
 const listeners = new Set<() => void>();
 let forced: ForcedBackup | null = null;
-let injectionSource: ((operation: "manual" | "status") => BackupInjection | null) | null = null;
+let injectionSource: ((operation: "manual" | "status" | "restore") => BackupInjection | null) | null = null;
 
 /** Called by the development panel only. */
 export function registerForcedBackup(scenario: BackupScenario | null): void {
@@ -91,7 +91,7 @@ export function registerBackupInjectionSource(source: typeof injectionSource): v
 }
 
 /** The injection for the next call of `operation`, consumed once; always null in production. */
-export function takeBackupInjection(operation: "manual" | "status"): BackupInjection | null {
+export function takeBackupInjection(operation: "manual" | "status" | "restore"): BackupInjection | null {
   return injectionSource?.(operation) ?? null;
 }
 

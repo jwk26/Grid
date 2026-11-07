@@ -295,3 +295,30 @@ describe("sign-out", () => {
     expect(controller.getState().inline).toEqual({ kind: "none" });
   });
 });
+
+describe("the restore list", () => {
+  const entry = { name: "2026-11-07", kind: "daily" as const, at: 5, size: 9, etag: "e" };
+
+  it("the dialog's read keeps the list; a failed listing is null; a read without one keeps the last", async () => {
+    const { controller, readStatus } = setup();
+    expect(controller.getState().backups).toBeUndefined();
+    readStatus.mockResolvedValueOnce({ kind: "ok", backup: undefined, verdict: null, backups: [entry] });
+    await controller.open();
+    expect(controller.getState().backups).toEqual([entry]);
+    controller.close();
+    readStatus.mockResolvedValueOnce({ kind: "ok", backup: undefined, verdict: null, backups: null });
+    await controller.open();
+    expect(controller.getState().backups).toBeNull();
+    readStatus.mockResolvedValueOnce({ kind: "failed" });
+    await controller.checkAgain();
+    expect(controller.getState().backups).toBeNull();
+  });
+
+  it("refreshList reads once without a dialog line and replaces the list", async () => {
+    const { controller, readStatus } = setup();
+    readStatus.mockResolvedValue({ kind: "ok", backup: undefined, verdict: null, backups: [entry] });
+    await Promise.all([controller.refreshList(), controller.refreshList()]);
+    expect(readStatus).toHaveBeenCalledTimes(1);
+    expect(controller.getState()).toMatchObject({ read: "idle", backups: [entry], inline: { kind: "none" } });
+  });
+});
