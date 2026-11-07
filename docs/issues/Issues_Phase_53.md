@@ -68,7 +68,7 @@ User preparation: Task 263 done (user, 2026-11-07): an Object Read only R2 accou
 ### Current state
 - Status: Implemented, awaiting acceptance
 - Next: Task 261 acceptance
-- Open: mi-1 (Task 260's), mi-2
+- Open: mi-1 (Task 260's)
 
 ### Log
 - Work plan: Learnings read: Supabase / Postgres, Edge Functions and Monitoring, Testing (Vitest).
