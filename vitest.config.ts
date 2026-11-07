@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       "src/**/*.test.{ts,tsx}",
       "supabase/functions/_shared/**/*.test.ts",
+      "scripts/backup-restore-check/**/*.test.ts",
     ],
     passWithNoTests: true,
   },
