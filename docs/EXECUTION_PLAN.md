@@ -930,6 +930,12 @@ and the new copy. Leaves behind protection from a mistaken deletion.
   `ensure_account()`'s `account_deleting` rejection adds
   `deletion_requested_at` and `server_now`.
 - `src/lib/db/database.types.ts`; `supabase/tests/account-deletion-*.db.test.ts`.
+- `supabase/tests/guest-cleanup.db.test.ts`: its test "deletes an account
+  with a deletion request on the next run, whatever its age" asserts the
+  pre-grace rule and fails once the grace period lands; it backdates the
+  request beyond 24 hours, and a request younger than 24 hours is checked to
+  survive (Phase 54 start drift, 2026-11-09). `backup-cleanup.db.test.ts`
+  already uses `deletion_requested_at = 1` and needs no change.
 
 **Dependencies:** Phase 53 closed.
 
@@ -958,6 +964,15 @@ them.
   `account_deleting` came from `get_snapshot()` or a write (flow review G4);
   after a cancel, repeat entry and post the other-tab message on Task 262's
   channel.
+- `src/lib/backup/restore-channel.ts` and its listener
+  (`src/lib/backup/restore-controller.ts`, or a new subscriber): today the
+  message union and `isMessage` accept only `restore-started` and
+  `restore-ended` and drop anything else, so the cancel message needs its own
+  type and a listener that repeats entry (Phase 54 start drift, 2026-11-09).
+  Confirm two things in a tab that shows the dialog: the listener is actually
+  mounted there (today it is the restore controller that `app-frame.tsx`'s
+  `useRestore()` creates), and `getUserId()` returns the user's id there,
+  since the listener ignores a message when it returns `null`.
 - `src/components/layout/deletion-grace-dialog.tsx` and test, in place of the
   account-being-deleted screen in `app-frame.tsx`.
 - `src/lib/copy/feedback.ts`: the confirmation, toast and dialog copy.
