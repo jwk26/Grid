@@ -1091,7 +1091,7 @@ an interrupted run leaves no test user; no row content appears in the output.
 
 **Commit message:** `feat(backup): add the monthly restore check`.
 
-### Task 264: [ ] Run the recovery drill and close Phase 53 on production
+### Task 264: [x] Run the recovery drill and close Phase 53 on production
 
 **Files and actions:**
 - `scripts/backup-ops/copy-account` (Mac): finds an account's old key by
