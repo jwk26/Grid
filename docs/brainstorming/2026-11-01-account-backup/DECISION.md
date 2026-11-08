@@ -4,7 +4,8 @@
 
 - Created: 2026-11-01
 - Updated: 2026-11-04 (decision session: runner, export, restore, concurrency,
-  format, retention, modal, alerts, recovery drill, restore check)
+  format, retention, modal, alerts, recovery drill, restore check); 2026-11-08
+  (Task 264: the restore pass case, [Measurement and acceptance](#measurement-and-acceptance))
 - Readiness: code-ready
 - Promoted: 2026-11-05 through [`PROMOTION_MAP.md`](PROMOTION_MAP.md) into
   Phases 52–54; its B4, B5, B8, B13, B15 and B16 and the Phases 52–54 flow
@@ -87,7 +88,9 @@ interim dump and the phase split. Discarded alternatives are in `NOTES.md`.
    [Modal and copy](#modal-and-copy), [Limits](#limits)).
 9. **Acceptance:** the largest account the app still opens is the pass case,
    measured locally for CPU and memory and on production at phase close for
-   time ([Measurement and acceptance](#measurement-and-acceptance)).
+   time ([Measurement and acceptance](#measurement-and-acceptance)); for the
+   restore's production time, the current real-account limits (user,
+   2026-11-08).
 10. **Deploy order:** Edge Functions deploy between the migrations and the
     merge; the rule text goes into `CLAUDE.md` §Production through this
     topic's `/craft-docs` ([Deploy order](#deploy-order)).
@@ -562,6 +565,20 @@ Added 2026-11-04 (user): the app cannot be used while a restore runs.
   inside 30 s, which also confirms that hosted REST applies the 30 s setting.
   The script deletes the account, its staging rows and its R2 objects on
   SIGINT and SIGTERM too (PLANNING_STANDARD §6, Task 240).
+- **Restore pass case, amended (user, 2026-11-08, Phase 53 Task 264 MI-6):**
+  the restore's production runs are judged at the current real-account limits
+  (SCHEMA §Limits: nodes 500, bits 2,500, chunks 5,000, breakdowns 2,500;
+  the fixture adds 625 candidates; about 5 MB of export text), since a create
+  past them is rejected and production held no account above them (largest per table 87, 267, 85, 21
+  and 3 on 2026-11-08); the 37.5 s and 30 s lines are unchanged. Result there:
+  wall 13.4 / 12.6 / 13.0 s, `restore_account()` 2.9–3.3 s, `restore_stage()`
+  3.5–4.2 s of its own 30 s timeout. At the old caps the restore stays a known
+  limit, not the pass case: wall 27.9 and 41.7 s (the third run not made),
+  `restore_account()` 6.3 and 5.0 s, `restore_stage()` 9.4 and 18.1 s, the
+  growth in the one-row 10 MB staging write (cause not proven); if accounts
+  can exceed the current limits again or `restore_stage()` grows toward its
+  timeout, staging moves to rows per table (the fallback above). The export
+  keeps the old-caps pass case, which it passed (Phase 52 Task 259).
 - **Tests prove refusals** (vitest database suites, through supabase-js
   `.rpc()` where REST behavior matters, as `snapshot-load.db.test.ts`):
   `anon` and `authenticated` calling `export_account` get `permission denied`;

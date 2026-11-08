@@ -1118,7 +1118,9 @@ an interrupted run leaves no test user; no row content appears in the output.
   working on them), function, then the merge; on
   production, three restore runs of the limit-sized fixture under a test
   account (`restore_account()` inside 30 s, the worst run under 37.5 s wall
-  clock), which also confirm that the hosted API accepts the limit-sized
+  clock; judged at the current real-account limits, the old caps recorded as
+  a known limit: DECISION §Measurement and acceptance, amended by MI-6, user,
+  2026-11-08), which also confirm that the hosted API accepts the limit-sized
   `restore_stage()` body (Phase 52 Task 255 carry; Task 260's probe checked
   it first), and a check that the streamed steps arrive unbuffered; the
   script cleans up on SIGINT and SIGTERM.
@@ -1136,8 +1138,9 @@ key; B16; CLAUDE.md §Production, §Backup.
 
 **Observable acceptance:** the drill restores the owner's account in the new
 project with matching counts and hashes; the drill project never touched the
-production bucket; the production measurement passes; the steps stream on
-production; the retirement record is written or its missing condition named.
+production bucket; the production measurement passes at the current
+real-account limits; the steps stream on production; the retirement record is
+written or its missing condition named.
 
 **Verification:** the ledger record; `git diff --check`.
 
