@@ -1062,7 +1062,7 @@ light and dark, in the prepared window.
 
 **Commit message:** `feat(backup): add restore and the restoring screen`.
 
-### Task 263: [ ] Add the monthly restore check
+### Task 263: [x] Add the monthly restore check
 
 **Files and actions:**
 - `scripts/backup-restore-check/` (run on the owner's Mac): with the

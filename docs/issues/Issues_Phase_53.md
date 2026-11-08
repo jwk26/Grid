@@ -166,8 +166,8 @@ User preparation: Task 263 done (user, 2026-11-07): an Object Read only R2 accou
 ## Task 263 — Add the monthly restore check
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 263 acceptance, after the advisory final review (user, 2026-11-08)
+- Status: Accepted
+- Next: Task 264 (`/run-task 264`)
 - Open: mi-1 (Task 260's)
 
 ### Log
@@ -185,6 +185,9 @@ User preparation: Task 263 done (user, 2026-11-07): an Object Read only R2 accou
 - Gate (2026-11-08): `git diff --check` pass; `pnpm test` 2951 passed; `pnpm lint` 0 errors (10 warnings, baseline); `pnpm typecheck` pass; `pnpm check:edge` pass; `pnpm build` pass; `pnpm test:db` 1128 passed.
 - First real run (user, 2026-11-08): `pnpm check:restore` against the production bucket's latest backup (2026-11-07) passed: rows nodes 6, bits 1, chunks 0, scratch_breakdowns 4, staged_candidates 0, all equal after the restore; `restore_account` applied in 58 ms; nothing left (all counts 0); `RESULT PASS`, the 31-day check pinged. The Healthchecks dashboard shows `grid-restore-monthly` up, last ping a minute ago, period 31 days, grace 1 day; `grid-backup-daily` unaffected. The interrupted-run criterion was proven in the local rehearsal (SIGINT: exit 130, no ping, no test user), not on production. Side note: the user's screenshot showed both checks' ping URLs in the chat only (not in Git); the user decides about regenerating them (the daily one also lives in the function secrets).
 - The user takes the advisory session's final review first, then accepts.
+- Review (advisory, 2026-11-08, task finish): approve. Confirmed: work-plan review items 1–6 are applied (ping after the cleanup and zero-residue count; the expand rule in `compare.ts`; SIGHUP and the anchored leftover sweep at start; an exact `OK` ping body; `buildBackupList`, `classifyExportHead` and `parseListPage` imported from `_shared`; the DB URL from `supabase status` through `assertLocalDatabase()`), expert M1 (`statement_timeout` set in `as()`), and the acceptance (first real run PASS and pinged; interrupted run proven on the same local database; counts and hashes only). Apply: (1) record the ping URL side note as a Decision; (2) the Task 264 note below. Not applied: none.
+- Decision: the two Healthchecks.io ping URLs shown in the chat screenshot are not regenerated: a holder could only send false up or `/fail` pings, with no data access, and the transcript is private (user, 2026-11-08).
+- Task 264 note (advisory, 2026-11-08): the read-only production token is in `~/.config/griddo/restore-check.env` (`R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; mode 600), so `copy-account` can read the source bucket from it; the listing path (aws4fetch + `parseListPage` + `buildBackupList`) is in `check.mjs`; the drill's "compare counts and hashes with the source" can reuse `compareExports()` with the drill account's new user id; a script that calls SQL functions directly sets the hoisted `statement_timeout` itself (Task 263 lesson); dump retirement condition 3 is met by the first run on 2026-11-08.
 
 ### Checkpoint
 - Changed: `scripts/backup-restore-check/` (`check.mjs`, `compare.ts`, `compare.test.ts`), `vitest.config.ts` (include), `package.json` (`check:restore`).
@@ -192,3 +195,4 @@ User preparation: Task 263 done (user, 2026-11-07): an Object Read only R2 accou
 - Please check: create `~/.config/griddo/restore-check.env` (`chmod 600`) with `R2_ENDPOINT`, `R2_BUCKET` (production), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (the read-only token), `OWNER_USER_ID` (your production user id), `HEALTHCHECKS_RESTORE_PING_URL` (`grid-restore-monthly`); start local Supabase; run `pnpm check:restore`. Expect `RESULT PASS`, `pinged the 31-day check`, and only counts and md5 in the output.
 - Unresolved: none. Local ids must be free: if the owner's account exists in the local database the run fails with `23505` and a hint.
 - Lesson: a direct pg call skips PostgREST's hoisted function settings (statement timeout), so a script that replays an Edge Function's SQL path must set them itself → check hoisted settings when a script calls SQL functions directly.
+- Task 263 accepted (user, 2026-11-08), with the advisory final review, its Decision and the Task 264 note.
