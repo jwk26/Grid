@@ -48,6 +48,7 @@ const SCALE = Number(process.env.SCALE ?? 2);
 const RUNS = 3;
 const WALL_LIMIT_MS = 37_500;
 const DB_LIMIT_MS = 30_000;
+const STAGE_TIMEOUT_MS = 30_000; // restore_stage()'s own statement_timeout; past it the restore fails cleanly
 
 function parseEnv(file) {
   if (statSync(file).mode & 0o077) throw new Error(`${file} is readable by others; run chmod 600 on it`);
@@ -309,7 +310,7 @@ try {
     console.log(
       `${ok ? "PASS" : "FAIL"} restore ${i + 1}: ${res.status} ${res.headers.get("content-type")}; events ${events.map((e) => `${e.name}@${e.at.toFixed(0)}ms/read${e.read}`).join(", ")}; applied ${applied}; wall ${wall.toFixed(0)} ms (limit ${WALL_LIMIT_MS}); unbuffered ${streamed}; ` +
         (dbt.kind === "measured"
-          ? `db restore_stage ${dbt.stageMs.toFixed(0)} ms, restore_account ${dbt.acctMs.toFixed(0)} ms (limit ${DB_LIMIT_MS})`
+          ? `db restore_stage ${dbt.stageMs.toFixed(0)} ms of its ${STAGE_TIMEOUT_MS} ms timeout (${((dbt.stageMs / STAGE_TIMEOUT_MS) * 100).toFixed(0)}%), restore_account ${dbt.acctMs.toFixed(0)} ms (limit ${DB_LIMIT_MS})`
           : `db time unproven (${dbt.reason === "unreadable" ? "pg_stat_statements not readable" : "no restore call counted"})${dbt.ok ? ", allowed locally" : ""}`),
     );
     if (overWall) {
