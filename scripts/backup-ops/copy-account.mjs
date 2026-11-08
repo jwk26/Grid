@@ -30,6 +30,9 @@
 // as 501 would stop the run with its status and write nothing.
 // In a real recovery press no `Back Up Now` in the new account before this copy: a backup of the new account
 // in the old account's newest date slot makes the plan clash with it, and the copy refuses the whole run.
+// After the copy the Restore… list shows every copied file at the copy time (its object time), not its date, and
+// the new account's own backup sorts above them: tell the files apart by the date names this script prints
+// (Phase 53 mi-3, in Issues_Deferred.md).
 import { AwsClient } from "aws4fetch";
 import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
