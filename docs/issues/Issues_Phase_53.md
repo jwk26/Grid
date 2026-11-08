@@ -167,7 +167,7 @@ User preparation: Task 263 done (user, 2026-11-07): an Object Read only R2 accou
 
 ### Current state
 - Status: Implemented, awaiting acceptance
-- Next: Task 263 acceptance (the user's first real run)
+- Next: Task 263 acceptance, after the advisory final review (user, 2026-11-08)
 - Open: mi-1 (Task 260's)
 
 ### Log
@@ -183,6 +183,8 @@ User preparation: Task 263 done (user, 2026-11-07): an Object Read only R2 accou
 - Decision: the env file path defaults to `~/.config/griddo/restore-check.env` (mode 600, override `GRIDDO_RESTORE_CHECK_ENV`), and `OWNER_USER_ID` is a file value; when `accounts/<OWNER_USER_ID>/` holds no dated backup the script fails with that reason (a recovery into a new project changes the id) (user, 2026-11-08).
 - Expert review (finish, 2026-11-08): no Critical or High. M1 (direct pg call has no hoisted 30 s limit, so the monthly check could stay green while the hosted restore times out) → `set local statement_timeout = '30s'` in `as()`; M2 (a new export table would go unchecked) → an array key outside the five fails in either export; L1 (signal between insert and flag leaves the user) → the delete always runs; L2 (`brief()` could quote row content) → codes only, messages only for the script's own `Safe` errors; L3 (md5 not reproducible) → hashes the backup rows. Each M/L has a test or a rehearsal. Not covered by design: the hosted body limit, gunzip and etag path (Task 264).
 - Gate (2026-11-08): `git diff --check` pass; `pnpm test` 2951 passed; `pnpm lint` 0 errors (10 warnings, baseline); `pnpm typecheck` pass; `pnpm check:edge` pass; `pnpm build` pass; `pnpm test:db` 1128 passed.
+- First real run (user, 2026-11-08): `pnpm check:restore` against the production bucket's latest backup (2026-11-07) passed: rows nodes 6, bits 1, chunks 0, scratch_breakdowns 4, staged_candidates 0, all equal after the restore; `restore_account` applied in 58 ms; nothing left (all counts 0); `RESULT PASS`, the 31-day check pinged. The Healthchecks dashboard shows `grid-restore-monthly` up, last ping a minute ago, period 31 days, grace 1 day; `grid-backup-daily` unaffected. The interrupted-run criterion was proven in the local rehearsal (SIGINT: exit 130, no ping, no test user), not on production. Side note: the user's screenshot showed both checks' ping URLs in the chat only (not in Git); the user decides about regenerating them (the daily one also lives in the function secrets).
+- The user takes the advisory session's final review first, then accepts.
 
 ### Checkpoint
 - Changed: `scripts/backup-restore-check/` (`check.mjs`, `compare.ts`, `compare.test.ts`), `vitest.config.ts` (include), `package.json` (`check:restore`).
