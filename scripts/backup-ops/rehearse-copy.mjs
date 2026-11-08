@@ -64,9 +64,9 @@ const envFile = (name, bucket) => {
   writeFileSync(f, `R2_ENDPOINT=${S3}\nR2_BUCKET=${bucket}\nR2_ACCESS_KEY_ID=${kv.S3_PROTOCOL_ACCESS_KEY_ID}\nR2_SECRET_ACCESS_KEY=${kv.S3_PROTOCOL_ACCESS_KEY_SECRET}\nR2_REGION=${kv.S3_PROTOCOL_REGION ?? "local"}\n`, { mode: 0o600 });
   return f;
 };
-const idFile = (name, provider, id) => {
+const idFile = (name, provider, id, userId) => {
   const f = path.join(dir, name);
-  writeFileSync(f, JSON.stringify([{ provider, id }]), { mode: 0o600 });
+  writeFileSync(f, JSON.stringify([{ provider, id, user_id: userId }]), { mode: 0o600 });
   return f;
 };
 const copy = (...a) => {
@@ -112,7 +112,7 @@ try {
   users.push(newA); // only for cleanup of objects
   const srcEnv = envFile("src.env", SRC);
   const drillEnv = envFile("drill.env", DRILL);
-  const id = idFile("id.json", "github", providerId);
+  const id = idFile("id.json", "github", providerId, newA);
   const base = ["--source-env", srcEnv, "--identity-file", id, "--new-user-id", newA];
 
   let r = copy(...base, "--target-env", drillEnv);
@@ -135,20 +135,33 @@ try {
 
   const newB = randomUUID();
   users.push(newB);
-  r = copy("--source-env", srcEnv, "--identity-file", id, "--new-user-id", newB, "--target-env", srcEnv, "--include-pre-restore", "--run", "--expect-target-bucket", SRC);
+  r = copy("--source-env", srcEnv, "--identity-file", idFile("idB.json", "github", providerId, newB), "--new-user-id", newB, "--target-env", srcEnv, "--include-pre-restore", "--run", "--expect-target-bucket", SRC);
   const same = await listKeys(SRC, `accounts/${newB}/`);
   check(r.code === 0 && /one bucket \(CopyObject\)/.test(r.out) && /PASS copied 3\/3/.test(r.out) && same.length === 3 && same.some((k) => k.includes("pre-restore")), `same-bucket CopyObject with --include-pre-restore: 3 files (${same.length} keys)`);
 
-  r = copy("--source-env", srcEnv, "--identity-file", idFile("none.json", "github", "no-such-id"), "--new-user-id", randomUUID(), "--target-env", drillEnv);
+  const noMatch = randomUUID();
+  r = copy("--source-env", srcEnv, "--identity-file", idFile("none.json", "github", "no-such-id", noMatch), "--new-user-id", noMatch, "--target-env", drillEnv);
   check(r.code !== 0 && /found 0/.test(r.out), "no matching provider user id refuses");
+
+  // The old id given as the new id: no other old prefix matches, so the run refuses at the owner count (before any twin exists).
+  r = copy("--source-env", srcEnv, "--identity-file", idFile("same.json", "github", providerId, oldId), "--new-user-id", oldId, "--target-env", drillEnv);
+  check(r.code !== 0 && /found 0/.test(r.out), "the old id as the new id refuses (no other prefix matches)");
+
+  // An identity row of another user than --new-user-id refuses before anything is read.
+  r = copy("--source-env", srcEnv, "--identity-file", idFile("other.json", "github", providerId, oldId), "--new-user-id", randomUUID(), "--target-env", drillEnv);
+  check(r.code !== 0 && /another user/.test(r.out), "an identity row of another user refuses");
+  // An identity file readable by others refuses.
+  const loose = idFile("loose.json", "github", providerId, newA);
+  execFileSync("chmod", ["644", loose]);
+  r = copy("--source-env", srcEnv, "--identity-file", loose, "--new-user-id", newA, "--target-env", drillEnv);
+  check(r.code !== 0 && /readable by others/.test(r.out), "an identity file readable by others refuses");
 
   const twin = await makeOldUser(providerId + "-twin");
   await aws.fetch(`${S3}/${SRC}/accounts/${twin}/identity.json`, { method: "PUT", body: JSON.stringify({ user_id: twin, providers: [{ provider: "github", provider_user_id: providerId }] }), headers: { "content-type": "application/json" } });
-  r = copy(...base.slice(0, 4), "--new-user-id", randomUUID(), "--target-env", drillEnv);
+  const newC = randomUUID();
+  r = copy("--source-env", srcEnv, "--identity-file", idFile("idC.json", "github", providerId, newC), "--new-user-id", newC, "--target-env", drillEnv);
   check(r.code !== 0 && /found 2/.test(r.out), "two matching old prefixes refuse (count only)");
 
-  r = copy("--source-env", srcEnv, "--identity-file", id, "--new-user-id", oldId, "--target-env", drillEnv);
-  check(r.code !== 0, "the old id as the new id refuses");
 } catch (e) {
   console.log(`FAIL ${e.message}`);
   fails++;

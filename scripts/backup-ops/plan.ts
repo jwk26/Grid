@@ -9,6 +9,24 @@ export type ProviderIdentity = { provider: string; id: string };
 export type IdentityObject = { key: string; text: string };
 export type KeyPair = { from: string; to: string };
 
+/**
+ * The rows of the `--identity-file`: [{ provider, id, user_id }] from the NEW user's `auth.identities`. Every row
+ * must name the `--new-user-id`, so an identity pasted from another user (or a wrong id) cannot make the copy put
+ * one account's backups under another account's prefix (Task 264 expert review, item 7).
+ */
+export function parseIdentityRows(raw: unknown, newUserId: string): ProviderIdentity[] {
+  if (!Array.isArray(raw) || raw.length === 0) throw new Error("the identity file must hold a non-empty JSON array");
+  const rows: ProviderIdentity[] = [];
+  for (const r of raw as { provider?: unknown; id?: unknown; user_id?: unknown }[]) {
+    if (typeof r?.provider !== "string" || typeof r?.id !== "string" || typeof r?.user_id !== "string") {
+      throw new Error("every identity row needs provider, id and user_id");
+    }
+    if (r.user_id !== newUserId) throw new Error("an identity row belongs to another user than --new-user-id");
+    rows.push({ provider: r.provider, id: r.id });
+  }
+  return rows;
+}
+
 const IDENTITY_KEY = /^accounts\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/identity\.json$/;
 
 /**

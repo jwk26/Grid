@@ -19,18 +19,22 @@
 //   source env and target env:  R2_ENDPOINT, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
 //     (the source is ~/.config/griddo/restore-check.env's read-only token; the target is its own file;
 //      R2_REGION is optional and defaults to auto)
-//   identity file:  JSON [{"provider":"google","id":"<provider user id>"}], the new user's rows of
-//     auth.identities (provider, provider_id) from the new project. Delete it after the run.
+//   identity file (mode 600 too):  JSON [{"provider":"google","id":"<provider user id>","user_id":"<new user id>"}],
+//     the new user's rows of auth.identities (provider, provider_id, user_id) from the new project; every row's
+//     user_id must equal --new-user-id. Delete it after the run.
 //
 // For a real recovery: restore before the next 17:00 UTC daily run, since the new account's own daily backup
 // takes that date slot and retention may prune older copied files.
+// A cross-bucket PUT carries `If-None-Match: *` and every target key is checked with HEAD right before its write; the
+// header is proven on local Storage only (R2's answer is not yet seen): a refusal such as 501 stops the run with its
+// status and writes nothing.
 // In a real recovery press no `Back Up Now` in the new account before this copy: a backup of the new account
 // in the old account's newest date slot makes the plan clash with it, and the copy refuses the whole run.
 import { AwsClient } from "aws4fetch";
 import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { parseListPage } from "../../supabase/functions/_shared/s3-xml.ts";
-import { findCollisions, findOldOwners, pickOldOwner, planCopy, sameBucket } from "./plan.ts";
+import { findCollisions, findOldOwners, parseIdentityRows, pickOldOwner, planCopy, sameBucket } from "./plan.ts";
 
 const args = process.argv.slice(2);
 const flag = (n) => args.includes(n);
@@ -72,6 +76,7 @@ async function list(s, prefix) {
     if (!res.ok) throw new Error(`listing failed: HTTP ${res.status}`);
     const page = parseListPage(await res.text());
     out.push(...page.objects);
+    if (page.truncated && !page.nextToken) throw new Error("listing is truncated without a continuation token");
     token = page.truncated ? page.nextToken : null;
   } while (token);
   return out;
@@ -86,10 +91,10 @@ const get = async (s, key) => {
 try {
   const newUserId = val("--new-user-id");
   if (!newUserId || !UUID.test(newUserId)) throw new Error("--new-user-id must be a lowercase UUID");
-  const wanted = JSON.parse(readFileSync(val("--identity-file") ?? "", "utf8"));
-  if (!Array.isArray(wanted) || wanted.length === 0 || wanted.some((w) => typeof w?.provider !== "string" || typeof w?.id !== "string")) {
-    throw new Error("--identity-file must hold a JSON array of {provider, id}");
-  }
+  const idFile = val("--identity-file");
+  if (!idFile) throw new Error("--identity-file is required");
+  if (statSync(idFile).mode & 0o077) throw new Error("the identity file is readable by others; run chmod 600 on it");
+  const wanted = parseIdentityRows(JSON.parse(readFileSync(idFile, "utf8")), newUserId);
   const src = side(readEnv(val("--source-env"), "source"));
   const dst = side(readEnv(val("--target-env"), "target"));
   const same = sameBucket(src, dst);
@@ -120,14 +125,19 @@ try {
   }
   if (val("--expect-target-bucket") !== dst.bucket) throw new Error("--run needs --expect-target-bucket <the target bucket name>, and it must match");
 
+  // A copy never overwrites: besides the listing above, each target key is checked again right before its write,
+  // and a cross-bucket PUT carries `If-None-Match: *`, so an object that appeared meanwhile (for example a daily
+  // backup of the new account) stops the run instead of being replaced.
   let copied = 0;
   for (const p of plan) {
+    const head = await dst.aws.fetch(dst.url(p.to), { method: "HEAD" });
+    if (head.status !== 404) throw new Error(`refusing: a target key appeared or could not be checked before its write (HTTP ${head.status})`);
     if (same) {
       const res = await dst.aws.fetch(dst.url(p.to), { method: "PUT", headers: { "x-amz-copy-source": `/${src.bucket}/${p.from.split("/").map(encodeURIComponent).join("/")}` } });
       if (!res.ok) throw new Error(`CopyObject failed: HTTP ${res.status}`);
     } else {
       const body = await get(src, p.from);
-      const res = await dst.aws.fetch(dst.url(p.to), { method: "PUT", body, headers: { "content-type": "application/gzip" } });
+      const res = await dst.aws.fetch(dst.url(p.to), { method: "PUT", body, headers: { "content-type": "application/gzip", "if-none-match": "*" } });
       if (!res.ok) throw new Error(`PUT failed: HTTP ${res.status}`);
       // A second read of what the target now holds must equal what was read from the source.
       const back = await get(dst, p.to);

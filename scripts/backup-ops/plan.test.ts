@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findCollisions, findOldOwners, pickOldOwner, planCopy, sameBucket } from "./plan";
+import { findCollisions, findOldOwners, parseIdentityRows, pickOldOwner, planCopy, sameBucket } from "./plan";
 
 const OLD = "11111111-1111-4111-8111-111111111111";
 const OLD2 = "33333333-3333-4333-8333-333333333333";
@@ -97,5 +97,23 @@ describe("sameBucket", () => {
   it("is false for another bucket or another host", () => {
     expect(sameBucket(a, { ...a, bucket: "drill" })).toBe(false);
     expect(sameBucket(a, { ...a, endpoint: "https://other.r2.cloudflarestorage.com" })).toBe(false);
+  });
+});
+
+describe("parseIdentityRows", () => {
+  const row = { provider: "google", id: "g-1", user_id: NEW };
+  it("returns the provider and id of rows that name the new user", () => {
+    expect(parseIdentityRows([row], NEW)).toEqual([{ provider: "google", id: "g-1" }]);
+  });
+  it("refuses a row of another user, even among good rows", () => {
+    expect(() => parseIdentityRows([row, { ...row, user_id: OLD }], NEW)).toThrow("another user");
+  });
+  it("refuses a row without a user_id, a provider or an id", () => {
+    expect(() => parseIdentityRows([{ provider: "google", id: "g-1" }], NEW)).toThrow("needs provider, id and user_id");
+    expect(() => parseIdentityRows([{ ...row, id: 1 }], NEW)).toThrow("needs provider");
+  });
+  it("refuses a file that is not a non-empty array", () => {
+    expect(() => parseIdentityRows([], NEW)).toThrow("non-empty");
+    expect(() => parseIdentityRows({ ...row }, NEW)).toThrow("non-empty");
   });
 });

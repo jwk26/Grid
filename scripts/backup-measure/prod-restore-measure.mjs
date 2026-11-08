@@ -37,6 +37,7 @@ import { readFileSync, statSync } from "node:fs";
 import { parseListPage } from "../../supabase/functions/_shared/s3-xml.ts";
 import { buildLimitSizedAccount } from "../../supabase/tests/fixtures/limit-sized-account.ts";
 import { connectDb, isLocal, target } from "../verify/lib.mjs";
+import { measureWindowProblem } from "./cron-window.ts";
 import { judgeDbTime } from "./db-time.ts";
 
 const arg = (n) => {
@@ -103,19 +104,10 @@ async function listKeys(prefix) {
     if (!res.ok) throw new Error(`list failed: ${res.status}`);
     const page = parseListPage(await res.text());
     keys.push(...page.objects.map((o) => o.key));
+    if (page.truncated && !page.nextToken) throw new Error("listing is truncated without a continuation token");
     token = page.truncated ? page.nextToken : null;
   } while (token);
   return keys;
-}
-
-function cronWindowProblem(now = new Date()) {
-  const m = now.getUTCHours() * 60 + now.getUTCMinutes();
-  for (const [label, w] of [["backup-dispatch 17:00", 1020], ["backup-summary-dispatch 19:00", 1140], ["cleanup-guests 03:17", 197]]) {
-    const ahead = (w - m + 1440) % 1440;
-    const behind = (m - w + 1440) % 1440;
-    if (ahead <= 25 || behind <= 8) return `${label} UTC is ${ahead <= 25 ? `${ahead} min away` : `${behind} min behind`}`;
-  }
-  return null;
 }
 
 // ---- Run --------------------------------------------------------------------------------------
@@ -129,9 +121,11 @@ const priv = await db.query(`select has_table_privilege(current_user, 'auth.user
   has_table_privilege(current_user, 'auth.users', 'DELETE') as users_delete,
   has_table_privilege(current_user, 'auth.identities', 'INSERT') as identities_insert,
   pg_has_role(current_user, 'pg_read_all_stats', 'MEMBER') as read_stats,
+  (select count(*) from cron.job where active) as cron_active,
   (select count(*) from pg_extension where extname = 'pg_stat_statements') as stat_ext`);
 const p = priv.rows[0];
-const problem = isLocal || process.argv.includes("--skip-cron-window") ? null : cronWindowProblem();
+// --skip-cron-window is for a project whose cron jobs are unscheduled (the drill); with an active job it is refused.
+const problem = measureWindowProblem({ isLocal, skipWindow: process.argv.includes("--skip-cron-window"), cronActive: Number(p.cron_active) });
 console.log(`checks: ${JSON.stringify(p)}; cron window: ${problem ?? (isLocal ? "n/a (local)" : "skipped or clear")}`);
 console.log(`plan: ${RUNS} restores of one backup of a ${SCALE}x account through ${fnUrl.replace(t.apiUrl, "<api>")}; judged: ends applied, wall < ${WALL_LIMIT_MS} ms, restore_account() db time < ${DB_LIMIT_MS} ms, steps unbuffered`);
 const blocked = !(p.users_insert && p.users_delete && p.identities_insert) || problem;
@@ -142,7 +136,9 @@ if (!RUN || blocked) {
 }
 
 const userId = randomUUID();
-const mainPid = db.processID;
+// The pooler may report its own process id, so ask the server for the backend's (Task 264 expert review, item 3).
+const mainPid = (await db.query("select pg_backend_pid() as pid")).rows[0].pid;
+const flight = { n: 0 }; // function calls in flight (a signal waits for them before the last deletion)
 let cleaning = null;
 function cleanup() {
   cleaning ??= (async () => {
@@ -151,6 +147,11 @@ function cleanup() {
     c.on("error", () => undefined);
     await c.query("select pg_terminate_backend($1)", [mainPid]).catch(() => undefined);
     await c.query("delete from auth.users where id = $1", [userId]).catch(() => console.log("FAIL cleanup user"));
+    if (flight.n > 0) {
+      // A function run past its account check can still upload; it stops at its next check once the user is gone.
+      console.log("waiting up to 60 s for the function run in flight");
+      for (let waited = 0; flight.n > 0 && waited < 60_000; waited += 1000) await new Promise((r) => setTimeout(r, 1000));
+    }
     try {
       // A function run past its account check can still upload, so delete three times, two seconds apart.
       for (let pass = 0; pass < 3; pass++) {
@@ -248,12 +249,24 @@ try {
   console.log("PASS session for the test user obtained by generateLink + verifyOtp");
   const call = (body) => fetch(fnUrl, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${jwt}` }, body: JSON.stringify(body), signal: AbortSignal.timeout(170_000) });
 
-  const backup = await call({ mode: "manual", run_id: randomUUID() });
-  const bb = await backup.json().catch(() => null);
+  flight.n++;
+  let backup;
+  let bb;
+  try {
+    backup = await call({ mode: "manual", run_id: randomUUID() });
+    bb = await backup.json().catch(() => null);
+  } finally {
+    flight.n--;
+  }
   const wrote = backup.status === 200 && bb?.result?.result === "written";
   console.log(`${wrote ? "PASS" : "FAIL"} Back Up Now: ${backup.status} ${bb?.result?.result ?? bb?.status}`);
   if (!wrote) throw new Error("no backup to restore");
   const today = new Date().toISOString().slice(0, 10);
+  // Positive control: the bucket named by GRIDDO_MEASURE_S3_ENV must hold the backup the function just wrote, or the
+  // residue count below would look at the wrong bucket and read 0 (Task 264 expert review, item 1).
+  const written = await listKeys(`accounts/${userId}/`);
+  if (!written.includes(`accounts/${userId}/${today}.json.gz`)) throw new Error("the backup object is not in the bucket of GRIDDO_MEASURE_S3_ENV (wrong bucket settings?)");
+  console.log(`PASS the function's backup is in the bucket the cleanup watches (${written.length} objects under the test account)`);
 
   const walls = [];
   for (let i = 0; i < RUNS; i++) {
@@ -270,11 +283,13 @@ try {
     console.log(`run ${i + 1} n_dead_tup before: ${dead.rows.map((r) => `${r.relname} ${r.n_dead_tup}`).join(", ")}`);
     const before = await stats();
     const t0 = performance.now();
+    flight.n++;
     const res = await call({ mode: "restore", restore_id: randomUUID(), file: today, etag: entry.etag });
     if (!(res.headers.get("content-type") ?? "").includes("text/event-stream")) {
       const refused = await res.json().catch(() => null);
       console.log(`FAIL restore ${i + 1}: answered ${res.status} ${res.headers.get("content-type")}, not a stream: ${refused?.status ?? "?"} ${refused?.rejection?.code ?? refused?.reason ?? ""}`);
       fails++;
+      flight.n--;
       continue;
     }
     const reader = res.body.getReader();
@@ -294,6 +309,7 @@ try {
         buf = buf.slice(idx + 2);
       }
     }
+    flight.n--;
     const wall = performance.now() - t0;
     walls.push(wall);
     const after = await stats();
