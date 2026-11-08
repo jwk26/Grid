@@ -50,6 +50,10 @@
 
 **A shared `Esc` decision needs a registry and an earlier phase, not `defaultPrevented`.** An owner on `document` capture lost to child listeners registered first (children's effects run before the parent's), so it read a layer as open or closed depending on order. Layers register while open (`useEscapeLayer`, a layout effect) and the owner listens on `window` capture; a new `Esc`-handling surface registers and gets a test that fails when its registration is removed. *(Phase 51, Task 253)*
 
+**A client module that reads `window` must not run during the server render.** `AppFrame` called `useRestore()`, whose session controller read `window`, and `/` answered HTTP 500; jsdom tests have a `window` and passed. Load the route in a real browser before the first checkpoint, and test a server-guarded hook with `window` stubbed away. *(Phase 53, Task 262 MI-1)*
+
+**A key block that lets keys inside a layer through also lets global shortcuts through.** With focus inside the restoring screen, Cmd+K reached the command palette's `window` capture listener; block modifier keys and Esc there too. *(Phase 53, Task 262 MI-2)*
+
 ---
 
 ## Radix UI
@@ -152,6 +156,8 @@ Theme-specific values in these entries are examples. Never carry a number, color
 
 **Database tests read the database clock and commit through the owner when another connection must see the rows.** The Docker VM's clock can differ from the host's, so a test that compares a database time with one it passes in reads `now()` from the database. `withActor` rolls back, so rows that an HTTP call to the function must read are written through the owner connection and deleted afterwards. *(Phase 52, Task 257)*
 
+**A focused database test runs against the database as it was last reset.** After a migration was edited, new tests failed against the old function until `supabase db reset`; run `pnpm test:db` (it resets) or reset before a focused vitest run. When a read starts writing (a verdict read that closes an unknown id), every earlier test that reads an id before beginning it needs a fresh id. *(Phase 53, Task 260)*
+
 ---
 
 ## Supabase / Postgres
@@ -168,6 +174,12 @@ Theme-specific values in these entries are examples. Never carry a number, color
 
 **A row lock clause needs `UPDATE` on the table.** `for key share` cannot be taken by a role that only reads, so check the privilege a lock needs before designing a test seam on it. *(Phase 52, Task 257)*
 
+**A direct `pg` call skips PostgREST's hoisted function settings.** A script that replays an Edge Function's SQL path through `pg` runs without the function's `statement_timeout`, so it must set it itself. *(Phase 53, Task 263)*
+
+**Read which tables a slow step writes before naming its cause.** Dead tuples were named for a slower `restore_stage()`, which writes only the one staging row's payload and none of the five tables; a disk-bound 10 MB write is the likelier cause (unconfirmed). *(Phase 53, Task 264 MI-6)*
+
+**`timestamp without time zone` read through `pg` in Node comes out in the Mac's local time.** `cron.job_run_details` times read 9 hours early (KST); compare cron windows in UTC. *(Phase 53, Task 264)*
+
 ---
 
 ## Edge Functions and Monitoring
@@ -175,6 +187,10 @@ Theme-specific values in these entries are examples. Never carry a number, color
 **An unknown Healthchecks.io ping uuid answers HTTP 200** (`OK (not found)`), so it cannot stand for "an invalid ping URL" in a drill or a test; a host that does not resolve gives the fetch error instead. *(Phase 52, Task 259)*
 
 **Drill a Healthchecks.io down alert right after a fresh ping.** Shortening the period while the last ping was hours old flipped the check down and sent no email; the same change two minutes after a success ping sent the down email at once. *(Phase 52, Task 259 step 7)*
+
+**A Node-side test of a Deno module proves its logic, not its runtime.** The vitest of modules using `TextDecoder("latin1")` and `node:zlib` options ran under Node, not Deno; only the real restore through the served function showed the runtime behaviour, so run the served-function check for any Edge change. A key with one-second resolution collides when a test ages a rate-limit clock. *(Phase 53, Task 261)*
+
+**Read a function's rejection rules before designing a repeated measurement.** The product allows one restore per account every 10 minutes, so three runs under one test account need a seam that clears the rate-limit clock between them (recorded in the ledger). *(Phase 53, Task 264 MI-4)*
 
 ---
 
@@ -189,6 +205,8 @@ Theme-specific values in these entries are examples. Never carry a number, color
 **A regression task returns behavior defects through a bounded repair task.** When the final regression task finds a shared component or hook defect that predates the phase, an Opus session plans a separate repair task with its own scope review, and the regression task waits for its acceptance. The regression task never fixes it in place. *(Phase 34, Tasks 171A and 172)*
 
 **Check a framework premise in the production build before writing it into documents.** A decision that `history.replaceState` syncs with `useSearchParams` went into SPEC and DECISION, then failed on a cold-loaded static route in `next build`; the amendment was reverted. Run the premise in the build that ships before committing it. *(Phase 51, Task 252 mi-2)*
+
+**Settle a contract's pass case before measuring it, and measure both sizes in one close.** The restore contract was written for the old caps, a size the product no longer allows; it missed there and passed with a wide margin at the current limits, and the pass case had to be moved during the close. *(Phase 53, Task 264 MI-6)*
 
 ---
 
@@ -209,3 +227,5 @@ Theme-specific values in these entries are examples. Never carry a number, color
 **Before deleting a reference implementation, freeze its parity test as expected values.** `supabase-store.test.ts` compared the snapshot store's reads against the Dexie store; it was the only test of those reads, so deleting Dexie would have deleted the coverage with it. Task 230 first wrote the Dexie store's current output (ids and order over the same fixture) into explicit expected values, then removed Dexie. When a mapping table pairs old tests with new ones, a parity block is not a counterpart of itself. *(Phase 46, Task 230)*
 
 **For content judged by feel, settle the intent before the numbers.** The demo seed went through four rounds of counts per Grid, and each passed its tests and failed the look. The round that passed named the feel first ("peeking at a real user's account") and tested properties, not fixed counts. *(Phase 48, Task 237)*
+
+**Check what an operator sees before a recovery runbook relies on it.** The restore list shows copied files by their copy time, so on the drill the user could tell the backups apart only with the agent's explanation. *(Phase 53, Task 264 mi-3)*

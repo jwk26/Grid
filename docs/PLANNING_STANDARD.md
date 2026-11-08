@@ -629,12 +629,27 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   instead (Phase 45, Task 228).
 - [ ] **Migrations and production (S21, S34):** the schema changes only
   through `supabase/migrations/`; a phase that changes SQL closes with no new
-  Security Advisor warning in the dashboard list, which `supabase db advisors`
-  does not reproduce (Phase 43 close), and follows the CLAUDE.md Production
-  order; no secret key in Git or client code. A security setting is proven by
+  class of Security Advisor warning beyond the accepted list in SCHEMA
+  §Database tests, and follows the CLAUDE.md Production order; a new instance
+  of an accepted class (for example a new client write function's
+  `authenticated_security_definer_function_executable`) is recorded in the
+  ledger with its reason, and anything else is shown to the user, who accepts
+  it there or has it fixed (user, Phase 53 Task 264). The CLI count is
+  compared only with a baseline read the same way: `supabase db advisors
+  --linked --project-ref <ref>` from a directory without `.env.local`;
+  `--db-url` runs a smaller lint set whose count is not comparable (Phase 53
+  Task 264). In Phase 43 the CLI did not report the definer lint, while in
+  Phase 53 the `--linked` read did; whether its count equals the dashboard
+  list is unchecked, so the dashboard list stays the authority. No secret key
+  in Git or client code. A security setting is proven by
   a request it refuses, since a check that reads the same with the setting on
   and off proves nothing (Phase 48, Task 240). A script that creates rows on
-  production also cleans up on SIGINT and SIGTERM (Phase 48, Task 240). A
+  production also cleans up on SIGINT and SIGTERM (Phase 48, Task 240), and
+  its zero-residue count has a positive control that shows the place it
+  watches held what the run wrote (Phase 53, Task 264 expert M1). `supabase
+  secrets set` runs from a directory without `.env.local`, since the CLI also
+  loads that file, and the names and sha256 digests are checked right after
+  (Phase 53, Task 264 MI-5). A
   production `supabase db push` runs with `--skip-vault`, and the committed
   `config.toml` holds no section that a production deploy or push sends to the
   target with local values (`db push` upserts `[db.vault]`); a CLI upgrade

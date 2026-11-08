@@ -1827,7 +1827,10 @@ and `auth_leaked_password_protection`, since Email sign-in is off and no
 password exists (user, 2026-11-02). A warning that the backup phases add
 (for example on `backup_status`, `restore_staging`, `internal.r2_deletions`
 or the `net` schema of `pg_net`) is new: the close shows it to the user, who
-accepts it here or has it fixed.
+accepts it here or has it fixed. Accepted at the Phase 53 close (user,
+2026-11-08): `unused_index` (INFO, in the `--db-url` lint set) on
+`app.restore_staging`'s `idx_restore_staging_user`, a table that is empty
+between restores.
 
 ---
 
