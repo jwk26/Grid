@@ -26,8 +26,8 @@
 // For a real recovery: restore before the next 17:00 UTC daily run, since the new account's own daily backup
 // takes that date slot and retention may prune older copied files.
 // A cross-bucket PUT carries `If-None-Match: *` and every target key is checked with HEAD right before its write; the
-// header is proven on local Storage only (R2's answer is not yet seen): a refusal such as 501 stops the run with its
-// status and writes nothing.
+// header is proven on local Storage and on a development R2 bucket (a second PUT of a key answers 412); a refusal such
+// as 501 would stop the run with its status and write nothing.
 // In a real recovery press no `Back Up Now` in the new account before this copy: a backup of the new account
 // in the old account's newest date slot makes the plan clash with it, and the copy refuses the whole run.
 import { AwsClient } from "aws4fetch";
