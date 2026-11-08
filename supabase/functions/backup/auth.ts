@@ -11,7 +11,7 @@ export function checkSharedSecret(req: Request): boolean {
 }
 
 /**
- * The manual and status modes: verifies the bearer JWT in the function (`verify_jwt` is off at the
+ * The manual, status and restore modes: verifies the bearer JWT in the function (`verify_jwt` is off at the
  * gateway) with supabase-js `getClaims`, which checks HS256 locally and asymmetric signing keys
  * through the project's JWKS, then judges the claims.
  */
@@ -25,7 +25,13 @@ export async function authenticateUser(req: Request): Promise<ClaimsVerdict> {
     return { ok: false, status: 401, code: "invalid_token" };
   }
   const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await client.auth.getClaims(token);
-  if (error || !data) return { ok: false, status: 401, code: "invalid_token" };
-  return judgeClaims(data.claims as Record<string, unknown>);
+  // A token whose payload does not decode makes getClaims throw instead of returning an error; that
+  // is a definite refusal (401), never the no-answer 502 the wrapper would answer (Task 259 finding).
+  try {
+    const { data, error } = await client.auth.getClaims(token);
+    if (error || !data) return { ok: false, status: 401, code: "invalid_token" };
+    return judgeClaims(data.claims as Record<string, unknown>);
+  } catch {
+    return { ok: false, status: 401, code: "invalid_token" };
+  }
 }

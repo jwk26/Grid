@@ -454,6 +454,13 @@ export function createSessionController(options: SessionControllerOptions) {
   return {
     store,
     getState: (): EntryState => state,
+    /** The signed-in user's id, or null before entry or after an expiry (restore messages carry it). */
+    getUserId: (): string | null => currentUserId,
+    /**
+     * Drops the snapshot and enters again, the user-change path (app-session reset, back to Home):
+     * after a restore replaced the whole account, in this tab and in the user's other tabs.
+     */
+    reenter: (): void => dropAndEnter(),
     /** The kind of the last signed-in user (the account icon's glyph). */
     getVariant: (): SessionVariant => lastKind(),
     /** The signed-in account's name for the modal title; null for a guest or a nameless account. */

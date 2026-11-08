@@ -1,7 +1,7 @@
 // Retention and pruning (SCHEMA §Account backup, Retention). Pure: it plans from a list of keys and
 // touches nothing. Pruning runs only right after a new file is written and counts files, not days.
 
-import { parseBackupKey } from "./object-key.ts";
+import { parseBackupKey, parsePreRestoreKey } from "./object-key.ts";
 
 export const KEEP_LATEST_FILES = 7;
 export const KEEP_EARLIER_WEEKS = 4;
@@ -49,4 +49,24 @@ export function planPrune(userId: string, keys: string[]): PrunePlan {
   const remove: string[] = [];
   for (const date of dates) (keepDates.has(date) ? keep : remove).push(dated.get(date)!);
   return { keep, remove };
+}
+
+export const KEEP_PRE_RESTORE_FILES = 5;
+
+/**
+ * Of the account's pre-restore files keeps the 5 latest by their time, plus `chosenKey` when it is
+ * one of them: the file a restore is about to read is never removed, even when it is the oldest.
+ * Only pre-restore keys of this account are planned; date slots and identity.json are untouched.
+ */
+export function planPreRestorePrune(userId: string, keys: string[], chosenKey: string | null): PrunePlan {
+  const files = keys
+    .map((key) => ({ key, at: parsePreRestoreKey(userId, key) }))
+    .filter((f): f is { key: string; at: number } => f.at !== null)
+    .sort((a, b) => b.at - a.at);
+  const keep = new Set(files.slice(0, KEEP_PRE_RESTORE_FILES).map((f) => f.key));
+  if (chosenKey !== null && files.some((f) => f.key === chosenKey)) keep.add(chosenKey);
+  return {
+    keep: files.filter((f) => keep.has(f.key)).map((f) => f.key),
+    remove: files.filter((f) => !keep.has(f.key)).map((f) => f.key),
+  };
 }

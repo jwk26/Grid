@@ -1,6 +1,7 @@
 import { createGzip } from "node:zlib";
 import { classifyExportHead, EXPORT_HEAD_BYTES } from "../_shared/export-head.ts";
 import { classifyExportFailure } from "../_shared/export-failure.ts";
+import { FingerprintScanner } from "../_shared/fingerprint-scan.ts";
 import type { ExportAnswer } from "../_shared/run.ts";
 
 function concat(parts: Uint8Array[]): Uint8Array {
@@ -17,9 +18,10 @@ function concat(parts: Uint8Array[]): Uint8Array {
  * Streams `export_account()` from PostgREST into gzip level 1 (`node:zlib`; the web CompressionStream
  * takes no level) without parsing it. The compressed chunks are joined once, so memory stays near
  * the compressed size twice at the join. Only a body that begins with its `bits` key is compressed;
- * a rejection ends the run, anything else is `export_unreadable`.
+ * a rejection ends the run, anything else is `export_unreadable`. With `scanFingerprint` it also returns the
+ * export's own `fingerprint` key (null unless exactly one is found).
  */
-export async function exportGzip(userId: string): Promise<ExportAnswer> {
+export async function exportGzip(userId: string, opts: { scanFingerprint?: boolean } = {}): Promise<ExportAnswer> {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) {
@@ -78,15 +80,23 @@ export async function exportGzip(userId: string): Promise<ExportAnswer> {
     const write = (chunk: Uint8Array) =>
       gzip.write(chunk) ? Promise.resolve() : new Promise<void>((resolve) => gzip.once("drain", resolve));
 
-    for (const chunk of first) await write(chunk);
+    // The export's own `fingerprint` key, read while the bytes pass (a restore compares against it).
+    // Only a restore asks for it: a backup run does not pay for the scan.
+    const scanner = opts.scanFingerprint ? new FingerprintScanner() : null;
+    for (const chunk of first) {
+      scanner?.push(chunk);
+      await write(chunk);
+    }
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
+      scanner?.push(value);
       await write(value);
     }
     gzip.end();
     await finished;
-    return { kind: "ok", body: concat(out) };
+    const scan = scanner?.result();
+    return { kind: "ok", body: concat(out), fingerprint: scan?.kind === "ok" ? scan.fingerprint : null };
   } catch {
     try {
       await reader.cancel();

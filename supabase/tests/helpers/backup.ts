@@ -2,7 +2,7 @@ import type { Client } from "pg";
 
 // The backup functions of SCHEMA §Backup functions that exist from Phase 52: the only `public`
 // functions that are not client functions. `security invoker`, owned by postgres, executable by
-// service_role alone. Phase 53 adds restore_begin, restore_stage and restore_abort.
+// service_role alone. Phase 53 (Task 260) adds restore_begin, restore_stage and restore_abort.
 export const BACKUP_FUNCTIONS = [
   "export_account",
   "backup_fingerprint",
@@ -14,6 +14,9 @@ export const BACKUP_FUNCTIONS = [
   "backup_due_deletions",
   "backup_deletion_done",
   "backup_deletion_failed",
+  "restore_begin",
+  "restore_stage",
+  "restore_abort",
 ] as const;
 
 export const MIN = 60_000;

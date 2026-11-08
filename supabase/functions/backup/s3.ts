@@ -1,5 +1,5 @@
 import { AwsClient } from "aws4fetch";
-import { buildDeleteBody, parseDeleteErrors, parseListPage } from "../_shared/s3-xml.ts";
+import { buildDeleteBody, normalizeEtag, parseDeleteErrors, parseListPage } from "../_shared/s3-xml.ts";
 import type { ListedObject } from "../_shared/run.ts";
 import { SafeError } from "../_shared/safe-error.ts";
 
@@ -9,6 +9,8 @@ import { SafeError } from "../_shared/safe-error.ts";
 export type ObjectStore = {
   put(key: string, body: Uint8Array | string, contentType: string): Promise<void>;
   getText(key: string): Promise<string | null>;
+  /** The object bytes with the ETag of that very response, or null when it does not exist. */
+  getBytes(key: string): Promise<{ bytes: Uint8Array; etag: string | null } | null>;
   list(prefix: string): Promise<ListedObject[]>;
   remove(keys: string[]): Promise<void>;
 };
@@ -53,6 +55,14 @@ export function createObjectStore(): ObjectStore {
       const text = await res.text();
       if (!res.ok) throw new SafeError(`get_${res.status}`);
       return text;
+    },
+
+    async getBytes(key) {
+      const res = await aws.fetch(objectUrl(key));
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (res.status === 404) return null;
+      if (!res.ok) throw new SafeError(`get_${res.status}`);
+      return { bytes, etag: normalizeEtag(res.headers.get("etag")) };
     },
 
     async list(prefix) {

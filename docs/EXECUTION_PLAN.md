@@ -28,7 +28,8 @@ Execution plan mode: scaled
 > (2026-10-30); Tasks 245–250 and repair Task 245A are accepted `[x]` and
 > Phase 50 is closed (2026-10-31); Tasks 251–254 are accepted `[x]` and Phase
 > 51 is closed (2026-11-05); Tasks 255–259 are accepted `[x]` and Phase 52 is
-> closed (2026-11-07); Tasks 180–208 and Phases 36–40 are retired as
+> closed (2026-11-07); Tasks 260–264 are accepted `[x]` and Phase 53 is
+> closed (2026-11-09); Tasks 180–208 and Phases 36–40 are retired as
 > superseded (feedback F28, promotion ②), their text in
 > [the retired-phases archive](execution-plan/archive/phases-36-40-retired.md).
 > Phases 32–33 remain reserved.
@@ -48,8 +49,8 @@ Execution plan mode: scaled
 > from the [account-backup DECISION](brainstorming/2026-11-01-account-backup/DECISION.md)
 > and the [deletion-grace DECISION](brainstorming/2026-10-31-account-deletion-grace-period/DECISION.md)
 > under the backup [PROMOTION_MAP](brainstorming/2026-11-01-account-backup/PROMOTION_MAP.md).
-> Phase 52 closed on 2026-11-07; 53 waits for 52 and 54
-> for 53. See [Account Backup — Phases 52–54](#account-backup--phases-5254).
+> Phase 52 closed on 2026-11-07 and Phase 53 on 2026-11-09; 54 waits for
+> 53. See [Account Backup — Phases 52–54](#account-backup--phases-5254).
 > **Phase 41 hotfix (2026-10-15):** Scratch Trash and post-Phase-34 Inbox
 > corrections, Tasks 209–212, from
 > [DECISION](brainstorming/2026-10-15-scratch-trash-hotfix/DECISION.md). It
@@ -160,7 +161,7 @@ do not rebuild eight isolated production trees. No new storage is required.
 | Area | Current status | Smallest blocker / next condition |
 |---|---|---|
 | Document approval | `ACCEPTED` | Six exact-artifact receipts accept the promotion map, design, plan, planning standard, workflow and flow review. |
-| Execution lifecycle | Phases 48, 50, 51 and 52 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30); Phase 47 (SaaS lane, part 6) closed through `/end-phase 47` (2026-10-30); Phase 50 (feedback lane, part 2) closed through `/end-phase 50` (2026-10-31); Phase 48 (SaaS lane, part 7) closed through `/end-phase 48` (2026-11-02); Phase 51 (stabilization) closed through `/end-phase 51` (2026-11-05); Phase 52 (account backup) closed through `/end-phase 52` (2026-11-07). The SaaS and feedback lanes are finished. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 closed in Task 248, MI-14 in Task 250 and MI-21 in Tasks 245–246; MI-19 closed in Task 229 and MI-23 in Task 234; Phase 45 MI-24 goes to the theme stage; its mi-1 closed in Task 245, mi-2 in Task 246 and mi-3 in Task 249. |
+| Execution lifecycle | Phases 48, 50, 51, 52 and 53 closed | The Phase 31 publication/sync result is in Final_Close_Phase_31.json. Phase 34 closed through `/end-phase 34` (2026-10-15); Phase 41 (hotfix) closed through `/end-phase 41` (2026-10-16); Phase 35 closed through `/end-phase 35` (2026-10-20); Phase 49 (feedback lane, part 1) closed through `/end-phase 49` (2026-10-24); Phase 42 (SaaS lane, part 1) closed through `/end-phase 42` (2026-10-25); Phase 43 (SaaS lane, part 2) closed through `/end-phase 43` (2026-10-25); Phase 44 (SaaS lane, part 3) closed through `/end-phase 44` (2026-10-26); Phase 45 (SaaS lane, part 4) closed through `/end-phase 45` (2026-10-29); Phase 46 (SaaS lane, part 5) closed through `/end-phase 46` (2026-10-30); Phase 47 (SaaS lane, part 6) closed through `/end-phase 47` (2026-10-30); Phase 50 (feedback lane, part 2) closed through `/end-phase 50` (2026-10-31); Phase 48 (SaaS lane, part 7) closed through `/end-phase 48` (2026-11-02); Phase 51 (stabilization) closed through `/end-phase 51` (2026-11-05); Phase 52 (account backup) closed through `/end-phase 52` (2026-11-07); Phase 53 (account restore) closed through `/end-phase 53` (2026-11-09). The SaaS and feedback lanes are finished. Phases 36–40 are retired (feedback F28). MI-13 and ISSUE-20-01 were resolved in Task 241; Phase 49 mi-1, mi-2 and mi-3 closed in Task 248, MI-14 in Task 250 and MI-21 in Tasks 245–246; MI-19 closed in Task 229 and MI-23 in Task 234; Phase 45 MI-24 goes to the theme stage; its mi-1 closed in Task 245, mi-2 in Task 246 and mi-3 in Task 249. |
 | SaaS conversion | `COMPLETED` | Phases 42 (Tasks 213–218) and 43 (Tasks 219–220) closed and archived (2026-10-25), Phase 44 (Tasks 221–224) on 2026-10-26, Phase 45 (Tasks 225–229) on 2026-10-29, Phase 46 (Task 230) and Phase 47 (Tasks 231–234) on 2026-10-30, Phase 48 (Tasks 235–240 and 238A) on 2026-11-02; every migration is on production; Dexie is removed; MI-8 is closed. The URL is announced after the production smoke (Phase 48 ledger). |
 | Stabilization | `COMPLETED` | Phase 51 (Tasks 251–254, app lane) closed and archived (2026-11-05); no migration. What it left is in `Issues_Deferred.md`. |
 | Feedback lane | `COMPLETED` | Phase 49 (Tasks 241–244) closed and archived (2026-10-24); Phase 50 (Tasks 245–250 and 245A) closed and archived (2026-10-31). What it left is in `Issues_Deferred.md`. The theme stage follows. |
@@ -242,7 +243,7 @@ Stabilization (app lane):
 
 Account backup (db lane):
   255→256→257→258→259  Phase 52 (completed 2026-11-07)
-  →260→261→262→263→264  Phase 53
+  →260→261→262→263→264  Phase 53 (completed 2026-11-09)
   →265→266  Phase 54
 
 Retired Tasks 164/165 and 180–208 are not dependency nodes.
@@ -284,7 +285,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phases 36–40 | — | Retired (feedback F28, 2026-10-22) | [Terminal, Claymorphism + Origami, GridDO + Tiny Desk, Graphite, and the Task 208 campaign gate](execution-plan/archive/phases-36-40-retired.md) | 180–208 | Retired as superseded; never runnable. Numbers are not reused. |
 | Phase 51 | app | Completed | [Stabilization: small fixes, unavailable Grid, Inbox `Esc` and focus, Inbox lock recovery](execution-plan/archive/phase-51.md) | 251–254 | Accepted and archived (2026-11-05); no migration; ISSUE-16-03, ISSUE-20-03, ISSUE-20-04, Phase 48 mi-7, Phase 50 mi-6, mi-8 and the Tasks 245A/246 residual closed; mi-1, mi-3, mi-4 and mi-6 carried in `Issues_Deferred.md`. |
 | Phase 52 | db | Completed | [Account backup: toolchain, SQL, Edge Function, sidebar button, production close](execution-plan/archive/phase-52.md) | 255–259 | Accepted and archived (2026-11-07); three migrations, the function and its secrets on production in Task 259; mi-2, the undecodable-token 502, the Task 260 note and the post-merge smoke carried in `Issues_Deferred.md`. Phase 53 may start. |
-| Phase 53 | db | Planned | [Account restore: SQL, Edge restore, restoring screen, monthly check, recovery drill](#phase-53--account-restore) | 260–264 | Waits for Phase 52. Flow review: [Phases 52–54](reviews/phase-52-54-flow-review.md). |
+| Phase 53 | db | Completed | [Account restore: SQL, Edge restore, restoring screen, monthly check, recovery drill](execution-plan/archive/phase-53.md) | 260–264 | Accepted and archived (2026-11-09); one migration and the function (version 4) on production in Task 264; Phase 52 mi-2 (restore by D1; the `Back Up Now` remainder accepted), the undecodable-token 502 and the Task 260 note closed; mi-3, mi-4 and mi-5 (with mi-1) carried in `Issues_Deferred.md`. Phase 54 may start. |
 | Phase 54 | db | Planned | [Account deletion grace period and cancel](#phase-54--account-deletion-grace-period) | 265–266 | Waits for Phase 53 (reuses its other-tab follow and dialog frame). Flow review: [Phases 52–54](reviews/phase-52-54-flow-review.md). |
 
 ## Theme Realization Task Sets
@@ -836,8 +837,11 @@ deletion.
   follows the SQL function checklist in PLANNING_STANDARD §6, adds the
   cross-account and concurrency tests SCHEMA names for it, and gets an
   `expert` review before acceptance. A backup function returns no envelope, so
-  the change-set test does not apply to it; `restore_account()` and
-  `cancel_account_deletion()` keep it.
+  the change-set test does not apply to it; `cancel_account_deletion()` keeps
+  it. `restore_account()` returns the envelope without `changes`, since the
+  restoring tab drops its snapshot and repeats entry (SPEC §Account backup,
+  End), so the change-set test does not apply to it either (user,
+  2026-11-07).
 - **Edge Function:** every task that changes `supabase/functions/` gets an
   `expert` review before acceptance; its refusal tests send the refused
   request (a body naming another account, a missing or wrong shared secret, an
@@ -895,215 +899,21 @@ migrations, the function, its secrets and the Vault entries are on production
 `expert` review, the undecodable-token 502 to Task 261, the Task 260 note,
 and the post-merge smoke with the close dump deletion by 2026-11-13.
 
-## Phase 53 — Account restore
+## Phase 53 — Completed / Archived
 
-Scope: restore with concurrency protection, `Restore…` and the restoring
-screen, the monthly restore check and the recovery drill. Leaves behind the
-manual dump's retirement once its three conditions hold. Out of scope: pushing
-a restore to other devices.
-
-**Task order:** 260 → 261 → 262 → 263 → 264.
-
-### Task 260: [ ] Add restore staging and `restore_account()` in SQL
-
-**Files and actions:**
-- A migration: `app.restore_staging` with RLS, `griddo_writer` select and
-  update policies and the `service_role` grants (`select`, `insert`,
-  `update`); `restore_begin()` (first step, no payload), `restore_stage()`,
-  `restore_abort()`; `restore_account()`; `backup_read_status()` with the
-  restore verdict by id; the hourly `postgres` `pg_cron` job that deletes
-  staging rows older than one hour.
-- If Task 255 found the body limit too small, staging takes rows per table.
-- `src/lib/db/database.types.ts`; `supabase/tests/restore-*.db.test.ts`.
-
-**Dependencies:** Phase 52 closed.
-
-**Authority:** SCHEMA §Account backup (Restore, Format versions), §Locks; B4,
-B5; DECISION §Restore, §Concurrent writes and other tabs.
-
-**`expert` review items:** the full lock list over every write function and
-the restore's order; whether `restore_account()` locks the `accounts` row
-first or never touches it; the result in the staging row against a result in
-`backup_status` (B5); the restore verdicts on the server clock; no deadlock
-with Chunk writes and Node moves; Phase 52 `mi-2` (a verdict read sent after a
-connection reset can overtake the begin call and answer `not_started` for an
-operation that then starts): decide whether the restore verdict closes it, for
-example by refusing a begin whose id was already judged `not_started`.
-
-**Observable acceptance:** `restore_account()` cannot read another account's
-staging row; a direct browser call applies only what was staged for it; a
-fingerprint mismatch writes `account_changed` and changes nothing; an
-unsupported `format_version` is refused; after `applied` every restored row's
-version is `greatest(backup, current) + 1` and a re-export equals the backup
-except `version`; a restore above the row limits keeps every row; the staging
-row holds the result and no payload; a restore beside concurrent Chunk writes
-and Node moves ends without a deadlock error; `restore_begin()` refuses a
-second restore within 10 minutes before anything is staged; a payload missing
-a column key restores with the column default (the expand rule); a verdict
-read returns `finishing`, the result, `not_applied`, `expired` (row gone,
-id still recorded) or `not_started` for the given restore id and never an
-earlier restore's result.
-
-**Verification:** gate; database suites including concurrency.
-
-**Commit message:** `feat(db): add restore staging and restore_account`.
-
-### Task 261: [ ] Add restore to the Edge Function
-
-**Files and actions:**
-- First, measure locally and record: whether a streamed response passes the
-  local gateway unbuffered; and what the database does when the function's
-  connection drops while `restore_account()` runs (it commits or rolls back;
-  either way the staging row decides).
-- `supabase/functions/backup/`: the `restore` mode (JWT verified in the
-  function, guests refused), in SCHEMA's order: `restore_begin()` with the
-  client's restore id (rate check, staging row); the pre-restore export and
-  upload (on failure `restore_abort()`; keep the 5 latest); fetch and unzip
-  the chosen file, then `restore_stage()`; call `restore_account()` with the
-  user's JWT; stream each step and the result as `text/event-stream`; the
-  `status` mode's backup list and verdict by id.
-- `supabase/functions/_shared/`: list ordering, pre-restore pruning.
-- `supabase/functions/backup/auth.ts`: a token whose payload does not decode
-  makes `getClaims` throw, and the function answers 502 `unconfirmed`, a
-  no-answer status; it answers 401 `invalid_token` instead, with a test
-  (Phase 52 Task 259, 2026-11-07).
-- `supabase/tests/restore-function.db.test.ts`.
-
-**Dependencies:** Task 260.
-
-**Authority:** SCHEMA §Account backup; SPEC §Account backup (Restore); B3–B5.
-
-**Observable acceptance:** a restore body naming another account restores
-only the caller; a guest JWT is refused; a rate-limited restore uploads and
-prunes nothing; a failed pre-restore upload stops the restore with nothing
-changed and a recorded not-applied result; the stream carries the three steps in order and the result; a
-dropped connection leaves a staging row whose result, or its absence after
-180 s, matches the account's real state; pre-restore files keep the 5 latest;
-the list shows date slots and pre-restore entries.
-
-**Verification:** gate with `pnpm check:edge`; integration suites; `expert`
-review.
-
-**Commit message:** `feat(backup): restore from the Edge Function`.
-
-### Task 262: [ ] Add `Restore…`, the restoring screen and the other-tab follow
-
-**Files and actions:**
-- Merge `main` first.
-- `src/lib/backup/backup-client.ts`, `src/hooks/use-backup.ts` and tests: a
-  client-generated restore id; the `text/event-stream` restore read under the
-  client's own deadline from the request start; `BroadcastChannel`
-  `restore-started` and `restore-ended` with the outcome on every terminal
-  outcome; the way-out after `EDGE_REQUEST_TIMEOUT_MS` with the verdict for
-  that restore id; drop the snapshot and repeat entry on `applied`.
-- `backup-dialog.tsx`: `Restore…`, the list, the confirmation.
-- `src/components/layout/restoring-screen.tsx` and test, mounted by the app
-  frame over the `inert` app.
-- `src/lib/copy/feedback.ts`, `src/lib/dev/state-switch.ts`.
-
-**Dependencies:** Task 261.
-
-**Authority:** SPEC §Account backup (Restore), §Feedback copy; DESIGN_TOKENS
-BK-5, BK-6; B4, B5.
-
-**Observable acceptance:** a restore shows the three steps as the stream
-reaches them and opens the restored account behind the loading frame; a
-second tab of the browser blocks on `restore-started`, re-enters on
-`restore-ended` after `applied` and unblocks with nothing changed after any
-other outcome; `account_changed`, `rate_limited` and `unsupported_format`
-return to the dialog with their line and nothing changed; a stalled stream
-ends at the client's deadline and goes to the way-out; in `Asia/Seoul` a
-backup taken across the UTC date boundary is listed with the local date, not
-its object name's UTC date; a forced unknown
-outcome reads the verdict once and shows `Still finishing…`, then not applied
-or the restored account, and never resends; a verdict for an earlier restore
-never shows as this one's; a way-out read two hours later (a sleeping laptop)
-gets `expired` and re-enters, never the not-applied line; the second tab's way-out reads
-once after `EDGE_REQUEST_TIMEOUT_MS`.
-
-**Verification:** gate; tests; the agent's browser checks with two tabs and
-every forced state, reduced motion, and the three other themes, light and
-dark; **Please check** by the user: the restoring screen mid-step in `griddo`,
-light and dark, in the prepared window.
-
-**Commit message:** `feat(backup): add restore and the restoring screen`.
-
-### Task 263: [ ] Add the monthly restore check
-
-**Files and actions:**
-- `scripts/backup-restore-check/` (run on the owner's Mac): with the
-  read-only token, download the latest backup of the owner's account; create
-  a dedicated local test user (not the fixture user); stage and call
-  `restore_account()` through the same SQL path; export again and compare
-  every row (equal except `version`, one higher); delete the test user and its
-  rows at the end and on SIGINT and SIGTERM; print counts and hashes only;
-  ping the 31-day Healthchecks.io check on success. No database reset.
-- Its header documents usage; the token file path comes from an environment
-  variable.
-- Note, not a step: this task has no alert drill. If the 31-day check's
-  missing-ping alert is ever drilled, send one success ping right before
-  shortening the period, so the check is up with a recent ping when it goes
-  down (Task 259 step 7: a down flip made with a stale last ping sent no
-  email, one two minutes after a fresh ping did).
-
-**Dependencies:** Task 262; the user's Task 263 preparation.
-
-**Authority:** DECISION §Periodic restore check; SCHEMA §Account backup.
-
-**Observable acceptance:** the user's first run passes and pings the check;
-an interrupted run leaves no test user; no row content appears in the output.
-
-**Verification:** gate; a test of the comparison on a crafted mismatch.
-
-**Commit message:** `feat(backup): add the monthly restore check`.
-
-### Task 264: [ ] Run the recovery drill and close Phase 53 on production
-
-**Files and actions:**
-- `scripts/backup-ops/copy-account` (Mac): finds an account's old key by
-  provider user id and copies its objects to the new key in a **target
-  bucket given as an argument** (B16): the drill bucket now, the production
-  bucket in a real recovery. Across buckets it reads with the read-only
-  production token (Task 263) and writes with the target's token (GET and
-  PUT); within one bucket it uses CopyObject.
-- The drill, recorded in the ledger: a new Supabase project; the migrations
-  from Git; unschedule its cron jobs at once; the read-only catalog listing
-  (`scripts/verify/catalog.sql`, Task 259) on the drill project compared with
-  production, every difference explained (Phase 52 Task 259 MI-2: a hosted project's
-  default privileges are unproven); set none of the Healthchecks.io
-  URLs, the shared secret or the production token; deploy the function with
-  the drill bucket's token; enter the auth settings and the redirect
-  allow-list; run the phase branch locally against the drill project's URL and
-  publishable key and sign in with Google (development client with the drill
-  callback); copy the owner's objects into
-  the drill bucket under the new key; restore through the dialog; compare
-  counts and hashes with the source; delete the project, the drill bucket and
-  the callback.
-- The Phase 53 close steps in the CLAUDE.md §Production order (flow review
-  G3): dump, migrations (expand, so the deployed Phase 52 function keeps
-  working on them), function, then the merge; on
-  production, three restore runs of the limit-sized fixture under a test
-  account (`restore_account()` inside 30 s, the worst run under 37.5 s wall
-  clock) and a check that the streamed steps arrive unbuffered; the script
-  cleans up on SIGINT and SIGTERM.
-- If the drill passed and Task 263's first run passed (Task 259 proved the
-  alert), the ledger records that the three retirement conditions hold and
-  that the first SQL phase after Phase 54 removes the manual dump through its
-  `/craft-docs` (B17).
-
-**Dependencies:** Task 263; the user's Task 264 preparation.
-
-**Authority:** DECISION §Recovery drill, §Retiring the manual dump, §Object
-key; B16; CLAUDE.md §Production, §Backup.
-
-**Observable acceptance:** the drill restores the owner's account in the new
-project with matching counts and hashes; the drill project never touched the
-production bucket; the production measurement passes; the steps stream on
-production; the retirement record is written or its missing condition named.
-
-**Verification:** the ledger record; `git diff --check`.
-
-**Commit message:** `docs(phase-53): record the recovery drill and the production close`.
+Account restore Tasks 260–264 are accepted. Their task contracts and
+completion-time scope are in
+[the Phase 53 archive](execution-plan/archive/phase-53.md). `Restore…` in the
+`Backup` dialog restores the account from a chosen backup after saving a
+pre-restore file, the restoring screen streams the steps and other tabs follow
+it, the monthly `pnpm check:restore` proves the latest production backup
+restores, and the recovery drill rebuilt the owner's account in a new project.
+The migration and the function (version 4) are on production (Task 264,
+2026-11-08); the retirement record of the manual dump holds (B17). Carried
+items are in [Issues_Deferred.md](issues/Issues_Deferred.md): mi-3 (the
+restore list shows a copied file's copy time), mi-4 (restore staging at the
+old caps) and the load-dependent `triage-workspace.test.tsx` failure (mi-5,
+with mi-1).
 
 ## Phase 54 — Account deletion grace period
 
@@ -1302,15 +1112,15 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 53 / Task 260 onward (account restore, db lane); Phases 51 (2026-11-05) and 52 (2026-11-07) are closed. The theme stage (`2026-10-17-theme-scope-replan`) comes through `/craft-docs`. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next planned implementation phase/task:** Phase 54 / Task 265 onward (account deletion grace period, db lane); Phases 51 (2026-11-05), 52 (2026-11-07) and 53 (2026-11-09) are closed. The theme stage (`2026-10-17-theme-scope-replan`) comes through `/craft-docs`. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
 - **Next unallocated numbers:** Phase 55 / Task 267. Planned Phases 42–54 and
   Tasks 213–266 are allocated; retired Phases 36–40 and Tasks 180–208 keep
   their numbers; none may be reused for another meaning.
-- Graph reconciliation: 134 accepted tasks (101–163 plus 105A, 166–172, 171A,
+- Graph reconciliation: 139 accepted tasks (101–163 plus 105A, 166–172, 171A,
   173–179 plus 176A and 179A, 209–212, 213–240 plus 238A, 241–244, 245–250
-  plus 245A, 251–254 and 255–259), twenty-three completed archives (Phases
-  23–31, 34, 35 and 41–52), two historical unaccepted transfer records
+  plus 245A, 251–254, 255–259 and 260–264), twenty-four completed archives
+  (Phases 23–31, 34, 35 and 41–53), two historical unaccepted transfer records
   (164/165), 29 retired tasks (180–208) in retired Phases 36–40, two reserved
-  phases (32–33), and seven planned tasks (260–266) in Phases 53–54.
+  phases (32–33), and two planned tasks (265–266) in Phase 54.
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

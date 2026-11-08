@@ -4,7 +4,7 @@ import { CloudUpload } from "lucide-react";
 import { useState } from "react";
 import { BackupDialog } from "@/components/layout/backup-dialog";
 import { SidebarIconButton } from "@/components/layout/sidebar-icon-button";
-import { useBackup, type UseBackup } from "@/hooks/use-backup";
+import { useBackup, useRestore, type UseBackup } from "@/hooks/use-backup";
 import { BACKUP_BUTTON_LABEL } from "@/lib/copy/feedback";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 export function BackupButton({ variant, backup: injected }: { variant: "guest" | "account"; backup?: UseBackup }) {
   const real = useBackup();
   const backup = injected ?? real;
+  const restore = useRestore();
   const [open, setOpen] = useState(false);
   const account = variant === "account";
   const dot = account ? backup.derived.dot : null;
@@ -50,7 +51,14 @@ export function BackupButton({ variant, backup: injected }: { variant: "guest" |
           />
         ) : null}
       </SidebarIconButton>
-      <BackupDialog backup={backup} open={open} variant={variant} onOpenChange={setOpen} />
+      {/* The dialog steps aside while the restoring screen covers the app, and returns with the reason. */}
+      <BackupDialog
+        backup={backup}
+        open={open && restore.state.view.phase === "idle"}
+        restore={restore}
+        variant={variant}
+        onOpenChange={setOpen}
+      />
     </>
   );
 }

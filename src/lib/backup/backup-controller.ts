@@ -1,4 +1,4 @@
-import type { BackupClient, StatusOutcome } from "@/lib/backup/backup-client";
+import type { BackupClient, BackupEntry, StatusOutcome } from "@/lib/backup/backup-client";
 import { isPendingOpen, type BackupSlot } from "@/lib/backup/backup-slot";
 
 // The backup flows that outlive the dialog (SPEC §Account backup): the dialog's single status read,
@@ -23,6 +23,8 @@ export type DialogState = {
   inline: Inline;
   /** A `Back Up Now` request or its verdict read is in flight. */
   busy: boolean;
+  /** The restore list from the last plain read: `null` when the listing failed, `undefined` before any read. */
+  backups?: BackupEntry[] | null;
 };
 
 const INITIAL: DialogState = { read: "idle", inline: { kind: "none" }, busy: false };
@@ -120,7 +122,7 @@ export function createBackupController(options: {
         return;
       }
       if (status.backup !== undefined) slot.offer(status.backup, mine);
-      set({ read: "idle" });
+      set({ read: "idle", ...(status.backups !== undefined ? { backups: status.backups } : {}) });
     })().finally(() => {
       if (current(mine)) statusRead = null;
     });
@@ -159,6 +161,31 @@ export function createBackupController(options: {
 
     close(): void {
       opened = false;
+    },
+
+    /**
+     * One more plain read for the list, with no dialog line: after a restore that did not apply, its
+     * etag may be stale (`backup_changed`). A read in flight is shared.
+     */
+    async refreshList(): Promise<void> {
+      if (statusRead) return statusRead;
+      const mine = epoch;
+      const run = (async () => {
+        const status = await client.readStatus(null);
+        if (!current(mine)) return;
+        if (status.kind === "failed") {
+          // With no list yet, a failed read must not leave `Checking…` for ever: the list shows its
+          // failure line with `Check again` (Task 262 expert review). A list already held stays.
+          if (state.backups === undefined) set({ backups: null });
+          return;
+        }
+        if (status.backup !== undefined) slot.offer(status.backup, mine);
+        if (status.backups !== undefined) set({ backups: status.backups });
+      })().finally(() => {
+        if (current(mine)) statusRead = null;
+      });
+      statusRead = run;
+      return run;
     },
 
     async backUpNow(): Promise<void> {

@@ -34,7 +34,7 @@ describe("protocol refusals", () => {
   });
   it("refuses a body that is not JSON and an unknown mode with 400", async () => {
     expect((await callFunction({ body: "{not json", headers: asSecret() })).status).toBe(400);
-    expect((await callFunction({ body: { mode: "restore" }, headers: asSecret() })).status).toBe(400);
+    expect((await callFunction({ body: { mode: "nope" }, headers: asSecret() })).status).toBe(400);
     expect((await callFunction({ body: [] , headers: asSecret() })).status).toBe(400);
   });
   it("refuses a malformed body of a known mode with 400 after authentication", async () => {

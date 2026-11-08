@@ -16,7 +16,7 @@ export type BeginAnswer =
   | { status: "rejected"; code: string };
 
 export type ExportAnswer =
-  | { kind: "ok"; body: Uint8Array } // the gzip of a verified export
+  | { kind: "ok"; body: Uint8Array; fingerprint?: string | null } // the gzip of a verified export
   | { kind: "rejection" } // the export itself refused: deleted or under a deletion request
   | { kind: "failed"; reason: string };
 
@@ -28,7 +28,7 @@ export type FinishArgs = {
   reason?: string;
 };
 
-export type ListedObject = { key: string; size: number };
+export type ListedObject = { key: string; size: number; lastModified?: number; etag?: string };
 
 export type RunDeps = {
   now(): Date;

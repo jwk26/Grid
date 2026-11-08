@@ -1565,7 +1565,11 @@ paid plan the value changes with the wall clock (SCHEMA §Account backup).
 
 - `Restore…` opens the backup list in the dialog, each entry in the user's
   time zone, pre-restore entries as `Before restore, <time>`. Choosing one
-  asks for confirmation in the dialog.
+  asks for confirmation in the dialog. Opening the list reads it again, so a
+  backup made since the dialog opened is there. An entry with no `etag` cannot
+  be chosen. The dialog steps aside while the restoring screen shows and
+  returns with the reason when nothing changed; every such return reads the
+  list again, since `backup_changed` means its `etag` is stale (Task 262).
 - **Restoring screen.** On confirmation the tab generates a restore id and
   shows a blocking dialog over the blurred, `inert` app with three steps,
   `Saving the current state`, `Getting the backup`, `Applying the backup`,
@@ -1580,9 +1584,13 @@ paid plan the value changes with the wall clock (SCHEMA §Account backup).
   through `BroadcastChannel` and show the same blocking dialog with the
   other-tab text. The restoring tab posts `restore-ended` with the outcome on
   every terminal outcome: on `applied` the other tabs drop the snapshot and
-  repeat entry; otherwise they unblock with nothing changed (flow review W5).
+  repeat entry; otherwise they unblock with nothing changed (flow review W5). Every message carries the user id and a tab ignores another user's; an
+  `applied` `restore-ended` re-enters any tab of that user, even one that never saw
+  `restore-started` (a tab opened mid-restore read the old snapshot). A restoring
+  screen blocks the keyboard: Esc and Cmd+K reach nothing under it.
 - **End.** On `applied` the restoring tab drops its snapshot, repeats entry
-  behind the loading frame and posts `restore-ended`. On `account_changed`,
+  behind the loading frame (the user-change path: the Inbox app-session resets
+  and the app returns to Home) and posts `restore-ended`. On `account_changed`,
   `rate_limited`, `unsupported_format` or a not-applied verdict, the dialog
   returns with the inline reason and
   nothing changed.
@@ -1921,6 +1929,9 @@ writes shows one counted toast (S28).
 | Restoring screen title, this tab (Phase 53) | `Restoring a backup` / `Don't close this tab. Grid opens again when it's done.` |
 | Restoring screen, another tab (Phase 53) | `A backup is being restored in another tab` / `Grid opens again with the restored data when it's done.` |
 | Restoring steps (Phase 53) | `Saving the current state`, `Getting the backup`, `Applying the backup` |
+| Restore list title, daily entry (Phase 53) | `Restore a backup`; a daily entry is `<time>` in the status line's format, in the user's time zone |
+| Restore list, empty / read failed (Phase 53) | `No backups yet.` / `Couldn't load the backups.` with `Check again` |
+| Restore confirmation buttons (Phase 53) | `Restore`, `Cancel` |
 
 **Deletion grace** (Phase 54; draft copy from the deletion-grace `DECISION.md`)
 

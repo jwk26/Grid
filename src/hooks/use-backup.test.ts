@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useBackup } from "@/hooks/use-backup";
+import { useBackup, useRestore } from "@/hooks/use-backup";
+import { registerForcedBackup } from "@/lib/backup/forced-backup";
 import type { BackupClient } from "@/lib/backup/backup-client";
 import { createBackupController } from "@/lib/backup/backup-controller";
 import { BackupSlot, type BackupValue } from "@/lib/backup/backup-slot";
@@ -90,5 +91,21 @@ describe("useBackup", () => {
     rerender();
     expect(client.readStatus).toHaveBeenCalledTimes(1);
     expect(result.current.dialog.read).toBe("idle");
+  });
+});
+
+describe("useRestore under a forced state", () => {
+  it("sends nothing: a forced list's entries are not real files", () => {
+    const idle = { view: { phase: "idle" as const }, notice: null };
+    const restore = { subscribe: () => () => undefined, getState: () => idle, start: vi.fn(), checkAgain: vi.fn(), clearNotice: vi.fn() };
+    const { result } = renderHook(() => useRestore({ restore: restore as never }));
+    result.current.start("2026-11-07", "e");
+    expect(restore.start).toHaveBeenCalledTimes(1);
+    act(() => registerForcedBackup("restore-list"));
+    result.current.start("2026-11-07", "forced");
+    expect(restore.start).toHaveBeenCalledTimes(1);
+    act(() => registerForcedBackup(null));
+    result.current.start("2026-11-07", "e");
+    expect(restore.start).toHaveBeenCalledTimes(2);
   });
 });

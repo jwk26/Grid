@@ -67,10 +67,13 @@ function openPanel() {
 
 describe("StateSwitchPanel", () => {
   it("is collapsed to one button and carries the dev-only marker", () => {
-    const { container } = render(<StateSwitchPanel />);
+    render(<StateSwitchPanel />);
     expect(screen.getByRole("button", { name: "State switch" })).toBeInTheDocument();
     expect(screen.queryByRole("region")).toBeNull();
-    expect(container.querySelector(`[data-state-switch="${STATE_SWITCH_MARKER}"]`)).not.toBeNull();
+    // A direct child of body, exempt from the restoring screen's `inert` (Task 262).
+    const root = document.querySelector(`[data-state-switch="${STATE_SWITCH_MARKER}"]`);
+    expect(root?.parentElement).toBe(document.body);
+    expect(root).toHaveAttribute("data-inert-exempt");
   });
 
   it("shows every primitive in every state", () => {

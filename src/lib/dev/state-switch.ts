@@ -277,7 +277,9 @@ export type QueueInjectionInput = Readonly<{
 const MAX_INJECTION_COUNT = 9;
 const MAX_INJECTION_DELAY_MS = 60_000;
 
-export const BACKUP_INJECTION_OPERATION: Record<BackupInjection, "manual" | "status"> = {
+export const BACKUP_INJECTION_OPERATION: Record<BackupInjection, "manual" | "status" | "restore"> = {
+  "restore-unknown-before-send": "restore",
+  "restore-unknown-after-send": "restore",
   "unknown-before-send": "manual",
   "unknown-after-send": "manual",
   "status-failed": "status",
@@ -291,7 +293,7 @@ type StateSwitchState = {
   backupInjections: readonly BackupInjection[];
   queueBackupInjection: (injection: BackupInjection) => void;
   clearBackupInjections: () => void;
-  takeBackupInjection: (operation: "manual" | "status") => BackupInjection | null;
+  takeBackupInjection: (operation: "manual" | "status" | "restore") => BackupInjection | null;
   /** Forced presentation state per item key (see `forcedItemKeys`). */
   forced: Record<string, ForcedState>;
   /** Queued boundary injections, in the order they were queued. */

@@ -63,6 +63,9 @@ describe("backup function rights", () => {
       backup_due_deletions: "select public.backup_due_deletions()",
       backup_deletion_done: "select public.backup_deletion_done($1)",
       backup_deletion_failed: "select public.backup_deletion_failed($1)",
+      restore_begin: "select public.restore_begin($1, gen_random_uuid())",
+      restore_stage: "select public.restore_stage($1, gen_random_uuid(), '{}'::jsonb)",
+      restore_abort: "select public.restore_abort($1, gen_random_uuid(), 'x')",
     };
     for (const role of ["anon", "authenticated"] as const) {
       for (const name of BACKUP_FUNCTIONS) {
@@ -356,7 +359,7 @@ describe("backup_read_status() verdicts", () => {
   it("returns a null backup for an account with no status row", async () => {
     await withActor(service, async (db) => {
       const fresh = await createTestUser("bk-fresh");
-      expect((await readStatus(db, fresh.id)).result).toEqual({ backup: null, verdict: null });
+      expect((await readStatus(db, fresh.id)).result).toEqual({ backup: null, verdict: null, restore_verdict: null });
     });
   });
 });

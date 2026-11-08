@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import {
   StatusIcon,
@@ -445,6 +446,8 @@ const BACKUP_INJECTIONS = [
   { value: "unknown-before-send", label: "Back Up Now: request lost (verdict not_started)" },
   { value: "unknown-after-send", label: "Back Up Now: answer lost (verdict from the server)" },
   { value: "status-failed", label: "Next status read fails" },
+  { value: "restore-unknown-before-send", label: "Restore: request lost (verdict not_started)" },
+  { value: "restore-unknown-after-send", label: "Restore: answer lost (verdict from the server)" },
 ] as const;
 
 /** Phase 52: the backup status, forced for a look, and the boundary injections for the real paths. */
@@ -530,10 +533,13 @@ export function StateSwitchPanel() {
     };
   }, []);
 
-  return (
+  // A direct child of `body`, so the restoring screen can leave it out of `inert` (data-inert-exempt).
+  return createPortal(
     <div
       data-state-switch={STATE_SWITCH_MARKER}
-      className="fixed right-3 bottom-3 z-40 text-xs"
+      // Above the restoring screen (z-450) and exempt from its `inert`, so a forced restoring state can be changed.
+      data-inert-exempt=""
+      className="fixed right-3 bottom-3 z-[460] text-xs"
     >
       {open ? (
         <div
@@ -609,6 +615,7 @@ export function StateSwitchPanel() {
           State switch
         </button>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
