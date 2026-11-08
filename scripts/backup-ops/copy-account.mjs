@@ -24,6 +24,8 @@
 //
 // For a real recovery: restore before the next 17:00 UTC daily run, since the new account's own daily backup
 // takes that date slot and retention may prune older copied files.
+// In a real recovery press no `Back Up Now` in the new account before this copy: a backup of the new account
+// in the old account's newest date slot makes the plan clash with it, and the copy refuses the whole run.
 import { AwsClient } from "aws4fetch";
 import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";

@@ -264,6 +264,9 @@ try {
     const listed = await (await call({ mode: "status" })).json();
     const entry = listed?.result?.backups?.find((e) => e.name === today);
     if (!entry) throw new Error("the backup is not in the list");
+    // Read-only: dead tuples of the five tables before the run (the cause to test for a rising wall time).
+    const dead = await db.query("select relname, n_dead_tup from pg_stat_user_tables where schemaname = 'app' and relname = any($1) order by relname", [["nodes", "bits", "chunks", "scratch_breakdowns", "staged_candidates"]]);
+    console.log(`run ${i + 1} n_dead_tup before: ${dead.rows.map((r) => `${r.relname} ${r.n_dead_tup}`).join(", ")}`);
     const before = await stats();
     const t0 = performance.now();
     const res = await call({ mode: "restore", restore_id: randomUUID(), file: today, etag: entry.etag });
@@ -302,12 +305,17 @@ try {
     const dbOk = dbt.ok;
     const ok = applied && wall < WALL_LIMIT_MS && streamed && dbOk;
     if (!ok) fails++;
+    const overWall = wall >= WALL_LIMIT_MS;
     console.log(
       `${ok ? "PASS" : "FAIL"} restore ${i + 1}: ${res.status} ${res.headers.get("content-type")}; events ${events.map((e) => `${e.name}@${e.at.toFixed(0)}ms/read${e.read}`).join(", ")}; applied ${applied}; wall ${wall.toFixed(0)} ms (limit ${WALL_LIMIT_MS}); unbuffered ${streamed}; ` +
         (dbt.kind === "measured"
           ? `db restore_stage ${dbt.stageMs.toFixed(0)} ms, restore_account ${dbt.acctMs.toFixed(0)} ms (limit ${DB_LIMIT_MS})`
           : `db time unproven (${dbt.reason === "unreadable" ? "pg_stat_statements not readable" : "no restore call counted"})${dbt.ok ? ", allowed locally" : ""}`),
     );
+    if (overWall) {
+      console.log(`STOP: run ${i + 1} took ${wall.toFixed(0)} ms, over ${WALL_LIMIT_MS}; no further run (the measurement ends here for a decision)`);
+      break;
+    }
   }
   console.log(`worst wall ${Math.max(...walls).toFixed(0)} ms`);
   const rows = await db.query("select (select count(*) from app.nodes where user_id = $1) nodes, (select count(*) from app.bits where user_id = $1) bits, (select count(*) from app.chunks where user_id = $1) chunks", [userId]);
