@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:db": "supabase db reset && node scripts/backup-vault.mjs && vitest run --config vitest.db.config.ts",
     "check:restore": "node scripts/backup-restore-check/check.mjs",
+    "copy:account": "node scripts/backup-ops/copy-account.mjs",
     "check:edge": "deno check --config supabase/functions/backup/deno.json supabase/functions/backup/index.ts && deno lint supabase/functions/",
     "db:types": "supabase gen types typescript --local --schema app --schema public"
   },
