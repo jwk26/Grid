@@ -208,6 +208,8 @@ Theme-specific values in these entries are examples. Never carry a number, color
 
 **Settle a contract's pass case before measuring it, and measure both sizes in one close.** The restore contract was written for the old caps, a size the product no longer allows; it missed there and passed with a wide margin at the current limits, and the pass case had to be moved during the close. *(Phase 53, Task 264 MI-6)*
 
+**Check a new server-confirmed command against SPEC §Write feel itself, not a feature section's summary of it.** SPEC §Deletion-grace dialog shortened the unknown-outcome rule to "one `ensure_account()` read decides it"; the work plan and its advisory review followed the shortening, and the read went out at the 15 s timeout while the cancel could still commit (Phase 47 MI-1 again). The `expert` review caught it. *(Phase 54, Task 266 mi-3)*
+
 ---
 
 ## Workflow / Process
