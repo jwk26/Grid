@@ -7,6 +7,10 @@ Carried over (`Issues_Deferred.md`):
 - Phase 53 mi-5 (with Phase 51 mi-1): load-dependent `triage-workspace.test.tsx` and `datastore.live-read.test.ts` failures; a recurrence in a gate is checked against these first.
 - Outside the phase: deletion of the Phase 53 close dump `~/griddo-dumps/2026-11-08-close/` by 2026-11-15.
 
+Workflow trial (claude-workflow `FINDINGS.md`, Open; each result is written under its FINDINGS entry at this phase's close):
+- Phase 52 MI numbering (2026-11-07 entry): before a session opens a ledger item it reads the highest `MI-n`/`mi-n` of that kind in this ledger and takes the next number. Close result: whether every item opened in this phase followed that order, with any that did not.
+- Phase 53 `.env.local` carry (2026-11-09 entry): at the start, after the copy, compare the names in `.env.local` with `.env.local.example` and name what is missing; at the close, before the worktree is removed, carry new local-only names and values into the integration worktree's `.env.local` without printing them. Start result (2026-11-09): done; missing only `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `SUPABASE_AUTH_CAPTCHA_SECRET` (Environment at start, below). Close result: pending.
+
 Plan fixes at start (user-approved, 2026-11-09):
 1. Task 265 Files: `supabase/tests/guest-cleanup.db.test.ts` "deletes an account with a deletion request on the next run, whatever its age" asserts the pre-grace rule; it backdates the request beyond 24 hours and adds a younger-request survival check. `backup-cleanup.db.test.ts` uses `deletion_requested_at = 1` and needs no change.
 2. Task 266 Files: `src/lib/backup/restore-channel.ts` accepts only `restore-started` and `restore-ended` (`isMessage` drops anything else), so the cancel message needs its own type and a listener (`restore-controller.ts` or a new subscriber) that repeats entry. In a tab that shows the dialog, confirm that the listener is actually mounted (today the restore controller created by `app-frame.tsx`'s `useRestore()`) and that `getUserId()` returns the user's id, since the listener ignores a message when it returns `null` (control tower addition, user-approved).
