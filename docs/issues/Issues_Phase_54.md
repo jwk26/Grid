@@ -24,8 +24,8 @@ Environment at start: `.env.local` was copied from the integration worktree (git
 ## Task 265 — Add the grace period and `cancel_account_deletion()` in SQL
 
 ### Current state
-- Status: Implemented, awaiting acceptance
-- Next: Task 265 acceptance
+- Status: Accepted
+- Next: Task 266 (`/run-task 266`)
 - Open: mi-1
 
 ### Log
@@ -36,7 +36,7 @@ Environment at start: `.env.local` was copied from the integration worktree (git
 
 ### Checkpoint
 - Changed: `supabase/migrations/20261045000000_account_deletion_grace.sql` (cleanup 24 h rule in the target query and the locked recheck; `cancel_account_deletion()`; `ensure_account()` rejection with `deletion_requested_at` and `server_now`); `src/lib/db/database.types.ts`; new `supabase/tests/account-deletion-grace.db.test.ts`; edits to `delete-my-account`, `guest-cleanup` tests and `helpers/function-cases.ts`; SCHEMA §Locks and §Grace period (the cancel takes L0 first).
-- Verified: `git diff --check`, `pnpm lint` (0 errors, 10 warnings), `pnpm typecheck`, `pnpm build`, `pnpm check:edge`, `pnpm test:db` 1143 passed (49 files, after the review fixes), `pnpm test` 2983 passed on rerun (one run showed 1 load-dependent failure, not reproduced twice; mi-5 family). The migration was written before its tests, so no red run was seen. "The current client ignores the added fields": `callWrite` in `supabase-calls.ts` casts without a schema and `session.ts:378-380` reads only `rejection.code`.
+- Verified: `git diff --check`, `pnpm lint` (0 errors, 10 warnings), `pnpm typecheck`, `pnpm build`, `pnpm check:edge`, `pnpm test:db` 1143 passed (49 files, after the review fixes), `pnpm test` 2983 passed on rerun (one run showed 1 failed test, not reproduced in two reruns; see mi-1). The migration was written before its tests, so no red run was seen. "The current client ignores the added fields": `callWrite` in `supabase-calls.ts` casts without a schema and `session.ts:378-380` reads only `rejection.code`.
 - Please check: the migration's three parts and the SCHEMA lock wording.
 - Unresolved: mi-1 (one load-dependent `pnpm test` failure, file not recorded).
 - Lesson: none.

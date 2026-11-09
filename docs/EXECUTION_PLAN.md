@@ -922,7 +922,7 @@ and the new copy. Leaves behind protection from a mistaken deletion.
 
 **Task order:** 265 → 266.
 
-### Task 265: [ ] Add the grace period and `cancel_account_deletion()` in SQL
+### Task 265: [x] Add the grace period and `cancel_account_deletion()` in SQL
 
 **Files and actions:**
 - A migration: `internal.cleanup_guests()` deletes only requests older than
