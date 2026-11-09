@@ -53,6 +53,9 @@ export async function callWrite(
 export const callEnsureAccount = (client: GriddoSupabaseClient) =>
   callWrite(client, "ensure_account", {} satisfies Args<"ensure_account">);
 
+export const callCancelAccountDeletion = (client: GriddoSupabaseClient) =>
+  callWrite(client, "cancel_account_deletion", {});
+
 export const callDeleteMyAccount = (client: GriddoSupabaseClient) => callWrite(client, "delete_my_account", {});
 
 export const callUpdateNode = (client: GriddoSupabaseClient, id: string, patch: NodePatch) =>

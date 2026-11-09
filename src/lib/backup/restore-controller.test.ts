@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RestoreOutcome, RestoreRequest } from "@/lib/backup/backup-client";
 import { BackupSlot } from "@/lib/backup/backup-slot";
-import type { RestoreChannel, RestoreMessage } from "@/lib/backup/restore-channel";
+import type { ChannelMessage, RestoreChannel, RestoreMessage } from "@/lib/backup/restore-channel";
 import { createRestoreController } from "@/lib/backup/restore-controller";
 import { EDGE_REQUEST_TIMEOUT_MS } from "@/lib/constants";
 
@@ -20,8 +20,8 @@ function setup(opts: { userId?: string | null } = {}) {
     return restoreImpl(r);
   });
   const readRestoreVerdict = vi.fn<(id: string) => Promise<Verdict>>(async () => ({ kind: "ok", verdict: "applied" }));
-  const posted: RestoreMessage[] = [];
-  let listener: ((m: RestoreMessage) => void) | null = null;
+  const posted: ChannelMessage[] = [];
+  let listener: ((m: ChannelMessage) => void) | null = null;
   const channel: RestoreChannel = {
     post: (m) => {
       calls.push(`post:${m.type}`);
@@ -55,11 +55,20 @@ function setup(opts: { userId?: string | null } = {}) {
     readRestoreVerdict,
     ensureFreshSession,
     onRestore: (impl: typeof restoreImpl) => (restoreImpl = impl),
-    receive: (m: RestoreMessage) => listener?.(m),
+    receive: (m: ChannelMessage) => listener?.(m),
   };
 }
 
 afterEach(() => vi.useRealTimers());
+
+describe("the deletion-cancel message", () => {
+  it("is the session controller's: the restore controller neither follows nor re-enters on it", () => {
+    const t = setup();
+    t.receive({ type: "deletion-cancelled", userId: U });
+    expect(t.reenter).not.toHaveBeenCalled();
+    expect(t.controller.getState().view).toEqual({ phase: "idle" });
+  });
+});
 
 describe("this tab's restore", () => {
   it("refreshes the session, posts restore-started, then sends, in that order", async () => {

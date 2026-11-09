@@ -1,6 +1,6 @@
 import type { BackupClient, RestoreOutcome, RestoreStep } from "@/lib/backup/backup-client";
 import type { BackupSlot } from "@/lib/backup/backup-slot";
-import type { RestoreChannel, RestoreMessage } from "@/lib/backup/restore-channel";
+import type { ChannelMessage, RestoreChannel } from "@/lib/backup/restore-channel";
 import { EDGE_REQUEST_TIMEOUT_MS } from "@/lib/constants";
 
 // A restore and its follow (SPEC §Account backup, Restore). The state lives here, outside the
@@ -144,7 +144,9 @@ export function createRestoreController(options: {
     }
   }
 
-  channel.subscribe((message: RestoreMessage) => {
+  channel.subscribe((message: ChannelMessage) => {
+    // The deletion-cancel message is the session controller's, not a restore's.
+    if (message.type === "deletion-cancelled") return;
     const id = userId();
     if (id === null || message.userId !== id) return;
     // This tab's own restore decides itself; an applied restore it did not see makes its snapshot old.

@@ -40,7 +40,15 @@ type Entities = {
 export type AccountView = { [K in TableKey]: ReadonlyMap<string, Entities[K]> };
 type MutableView = { [K in TableKey]: Map<string, Entities[K]> };
 
-export type Rejection = { code: string; table?: string; limit?: number };
+// `deletion_requested_at` and `server_now` (epoch milliseconds) ride on `ensure_account()`'s
+// `account_deleting` rejection (SCHEMA §Account deletion).
+export type Rejection = {
+  code: string;
+  table?: string;
+  limit?: number;
+  deletion_requested_at?: number;
+  server_now?: number;
+};
 export type ChangeRow = Record<string, unknown> & { id: string };
 export type Changes = Partial<Record<ChangeTable, { upserted: ChangeRow[]; deleted: string[] }>>;
 export type Envelope<Result = unknown> = {

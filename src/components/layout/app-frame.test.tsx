@@ -257,9 +257,11 @@ describe("AppFrame", () => {
   });
 });
 
+const DELETING = { phase: "account-deleting", requestedAt: 0, serverNow: 0, receivedMono: 0, receivedWall: 0 } as const;
+
 describe("AppFrame account-state screens (Task 235)", () => {
   it.each([
-    [{ phase: "account-deleting" } as const, "This account is being deleted.", "Deletion finishes within 24 hours. After that you can sign up again with the same account."],
+    [DELETING, "This account is being deleted.", "Deletion finishes within 24 hours. After that you can sign up again with the same account."],
     [{ phase: "account-deleted" } as const, "This account was deleted.", "Its data is gone. You can continue as a guest."],
   ])("shows the %o screen with Continue as guest only, and never the app", (phase, title, reason) => {
     const { controller, spies } = fakeController(phase);
@@ -286,7 +288,7 @@ describe("AppFrame account-state screens (Task 235)", () => {
       </AppFrame>,
     );
     expect(screen.getByTestId("app")).toBeInTheDocument();
-    fake.set({ phase: "account-deleting" });
+    fake.set(DELETING);
     expect(screen.queryByTestId("app")).toBeNull();
     expect(screen.getByTestId("app-frame-screen")).toBeInTheDocument();
   });
