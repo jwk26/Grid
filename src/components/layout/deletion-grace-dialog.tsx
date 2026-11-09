@@ -45,6 +45,9 @@ export function DeletionGraceDialog({ clock, controller }: Props) {
   const deadlineId = useId();
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  // The cancel got no answer within the request timeout and is still open: `Continue as guest` is
+  // safe again whichever way it lands, and `Cancel deletion` stays busy.
+  const [unsettled, setUnsettled] = useState(false);
   const remaining = useRemaining(clock);
   // The loader appears only after the display delay; it never decides the outcome.
   const showLoader = useDisplayDelay(pending ? "cancel" : null);
@@ -62,9 +65,10 @@ export function DeletionGraceDialog({ clock, controller }: Props) {
     if (pending || !controller) return;
     setPending(true);
     setFailed(false);
-    const result = await controller.cancelAccountDeletion();
+    const result = await controller.cancelAccountDeletion(() => setUnsettled(true));
     // On `entered` and `deleted` the frame moves on and this dialog unmounts.
     setPending(false);
+    setUnsettled(false);
     if (result === "failed") setFailed(true);
   }
 
@@ -139,7 +143,7 @@ export function DeletionGraceDialog({ clock, controller }: Props) {
                   {DELETION_GRACE.cancel}
                 </Button>
                 <Button
-                  disabled={pending}
+                  disabled={pending && !unsettled}
                   type="button"
                   variant="outline"
                   onClick={() => void controller?.continueAsGuest()}

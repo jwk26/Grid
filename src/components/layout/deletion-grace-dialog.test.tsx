@@ -25,7 +25,7 @@ const clockOf = (agoMs: number): DeletionClock => ({
   receivedWall: Date.now(),
 });
 
-function controllerOf(cancel: () => Promise<"entered" | "failed" | "deleted"> = async () => "entered") {
+function controllerOf(cancel: (onUnsettled?: () => void) => Promise<"entered" | "failed" | "deleted"> = async () => "entered") {
   return { cancelAccountDeletion: vi.fn(cancel), continueAsGuest: vi.fn(async () => undefined) };
 }
 
@@ -98,6 +98,23 @@ describe("DeletionGraceDialog", () => {
     expect(document.querySelector('[data-feedback-role="status-icon"]')).toBeNull();
     act(() => void vi.advanceTimersByTime(300));
     expect(document.querySelector('[data-glyph="loader"]')).not.toBeNull();
+    await act(async () => finish("entered"));
+  });
+
+  it("when the cancel is unsettled after the timeout, Continue as guest is enabled again and Cancel deletion stays busy", async () => {
+    let tell!: () => void;
+    let finish!: (value: "entered") => void;
+    const controller = controllerOf((onUnsettled) => {
+      tell = onUnsettled!;
+      return new Promise((resolve) => (finish = resolve));
+    });
+    render(<DeletionGraceDialog clock={clockOf(60_000)} controller={controller} />);
+    fireEvent.click(screen.getByRole("button", { name: DELETION_GRACE.cancel }));
+    expect(screen.getByRole("button", { name: DELETION_GRACE.continueAsGuest })).toBeDisabled();
+    act(() => tell());
+    expect(screen.getByRole("button", { name: DELETION_GRACE.continueAsGuest })).toBeEnabled();
+    expect(screen.getByRole("button", { name: DELETION_GRACE.cancel })).toBeDisabled();
+    expect(screen.getByRole("status")).not.toHaveTextContent(DELETION_GRACE.cancelFailed);
     await act(async () => finish("entered"));
   });
 

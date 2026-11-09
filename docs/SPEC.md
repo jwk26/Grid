@@ -1637,8 +1637,14 @@ From the deletion-grace `DECISION.md` Decisions 6, 8 and 10.
   restore. Another browser's dialog also offers `Cancel deletion`, which
   succeeds on an account already cancelled and so enters it. A cancel that
   meets a deleted account gets `account_missing` and shows the account-deleted
-  screen. An unknown outcome is never resent; one `ensure_account()` read
-  decides it.
+  screen. An unknown outcome is never resent. A request that ends without an
+  answer is decided by one `ensure_account()` read; at the request timeout the
+  request is still open, so the cancel stays unsettled (no failure line, no
+  read) and `Continue as guest` is enabled again, and a late answer settles it.
+- A sign-out the visitor did not choose, arriving while the dialog shows, shows
+  the account-deleted screen: every sign-out in the app is `local` scope, so
+  during the grace period a refused session means the cleanup deleted the auth
+  user. If it was something else, the next sign-in shows the dialog again.
 - `Continue as guest` starts a new guest; the guest from step 2 is not
   restored (it is cleaned up after 7 days).
 

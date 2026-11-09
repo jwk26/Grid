@@ -1037,23 +1037,78 @@ describe("deletion grace dialog state (Task 266)", () => {
         }
       });
 
-      it("no answer within the request timeout counts as unknown", async () => {
-        vi.useFakeTimers();
-        try {
+      describe("no answer within the request timeout (SPEC §Write feel: no read while the request is open)", () => {
+        const open = async () => {
+          vi.useFakeTimers();
           const t = await deletingTab();
+          let answer!: (value: never) => void;
           t.rpc.mockImplementation((name: string) =>
             name === "cancel_account_deletion"
-              ? new Promise(() => undefined)
+              ? new Promise<never>((resolve) => (answer = resolve))
               : Promise.resolve(name === "ensure_account" ? deletingAnswer : { data: emptySnapshot, error: null, status: 200 }),
           );
-          const result = t.controller.cancelAccountDeletion();
+          const onUnsettled = vi.fn();
+          const result = t.controller.cancelAccountDeletion(onUnsettled);
           await vi.advanceTimersByTimeAsync(15_001);
-          expect(await result).toBe("failed");
-          expect(calls(t, "cancel_account_deletion")).toBe(1);
-          expect(calls(t, "ensure_account")).toBe(2); // entry + the deciding read
-        } finally {
-          vi.useRealTimers();
-        }
+          return { t, result, onUnsettled, answer: (v: unknown) => answer(v as never) };
+        };
+
+        it("stays unsettled: the dialog is told, no read and no resend are sent", async () => {
+          try {
+            const { t, onUnsettled } = await open();
+            expect(onUnsettled).toHaveBeenCalledTimes(1);
+            expect(calls(t, "ensure_account")).toBe(1); // the entry only
+            expect(calls(t, "cancel_account_deletion")).toBe(1);
+            expect(t.controller.getState().phase).toBe("account-deleting");
+          } finally {
+            vi.useRealTimers();
+          }
+        });
+
+        it("a late `applied` settles on that answer and enters", async () => {
+          try {
+            const { t, result, answer } = await open();
+            t.rpc.mockImplementation(async (name: string) =>
+              name === "get_snapshot" ? { data: emptySnapshot, error: null, status: 200 } : OK,
+            );
+            answer(OK);
+            expect(await result).toBe("entered");
+            expect(t.posted).toEqual([{ type: "deletion-cancelled", userId: "oauth" }]);
+            await t.controller.whenReady();
+            expect(calls(t, "ensure_account")).toBe(2); // entry + the repeated entry, no deciding read
+          } finally {
+            vi.useRealTimers();
+          }
+        });
+
+        it("a request that later ends without an answer gets the one deciding read", async () => {
+          try {
+            const { t, result, answer } = await open();
+            answer({ data: null, error: { message: "network" }, status: 0 });
+            expect(await result).toBe("failed");
+            expect(calls(t, "ensure_account")).toBe(2); // entry + the deciding read
+            expect(calls(t, "cancel_account_deletion")).toBe(1);
+          } finally {
+            vi.useRealTimers();
+          }
+        });
+
+        it("Continue as guest still works while unsettled, and the late answer changes nothing", async () => {
+          try {
+            const { t, result, answer } = await open();
+            t.rpc.mockImplementation(async (name: string) =>
+              name === "get_snapshot" ? { data: emptySnapshot, error: null, status: 200 } : OK,
+            );
+            await t.controller.continueAsGuest();
+            answer(OK);
+            expect(await result).toBe("failed");
+            expect(t.posted).toEqual([]);
+            expect(t.controller.getState()).toEqual({ phase: "ready" });
+            expect(t.controller.getVariant()).toBe("guest");
+          } finally {
+            vi.useRealTimers();
+          }
+        });
       });
     });
 
@@ -1075,6 +1130,24 @@ describe("deletion grace dialog state (Task 266)", () => {
       expect(await first).toBe("entered");
       expect(calls(t, "cancel_account_deletion")).toBe(1);
     });
+  });
+
+  it("an unchosen SIGNED_OUT while the dialog shows is the account-deleted screen, never the expired one", async () => {
+    const t = await deletingTab();
+    t.setSession(null);
+    t.emit("SIGNED_OUT", null);
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+  });
+
+  it("a chosen sign-out on the dialog still starts a new guest", async () => {
+    const t = await deletingTab();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "get_snapshot" ? { data: emptySnapshot, error: null, status: 200 } : OK,
+    );
+    await t.controller.continueAsGuest();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
   });
 
   describe("the other tabs follow a cancel", () => {

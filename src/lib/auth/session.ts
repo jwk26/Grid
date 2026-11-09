@@ -499,8 +499,15 @@ export function createSessionController(options: SessionControllerOptions) {
         dropAndEnter(true);
         return;
       }
+      // The deletion-grace dialog (SPEC §Deletion-grace dialog): every sign-out in the app is `local`
+      // scope, so during the grace period an unchosen sign-out means the cleanup deleted the auth user.
+      // The account-deleted screen says so; if it was something else, the next sign-in shows the dialog.
+      if (state.phase === "account-deleting") {
+        showAccountState("account_missing");
+        return;
+      }
       // An account screen stays: the account is gone, which is why the refresh was refused.
-      if (state.phase === "account-deleting" || state.phase === "account-deleted") return;
+      if (state.phase === "account-deleted") return;
       generation += 1;
       store.reset();
       expire(lastKind());
@@ -532,9 +539,13 @@ export function createSessionController(options: SessionControllerOptions) {
   }
 
   // `cancel_account_deletion()` is server-confirmed and never resent (SPEC §Deletion-grace dialog).
-  // A second press while one is in flight does nothing.
+  // A second press while one is in flight does nothing. At the request timeout the outcome stays
+  // unsettled (`onUnsettled` tells the dialog): no read is sent while the request is still open, since
+  // that could show a slow commit as not applied (SPEC §Write feel, Unknown outcome; Phase 47 MI-1).
+  // A request that later ends with an answer settles on it; one that ends without an answer gets one
+  // `ensure_account()` read.
   let cancelling = false;
-  async function cancelAccountDeletion(): Promise<AccountDeletionCancelResult> {
+  async function cancelAccountDeletion(onUnsettled?: () => void): Promise<AccountDeletionCancelResult> {
     if (state.phase !== "account-deleting" || cancelling || currentUserId === null) return "failed";
     const userId = currentUserId;
     const mine = generation;
@@ -545,27 +556,28 @@ export function createSessionController(options: SessionControllerOptions) {
       dropAndEnter();
       return "entered";
     };
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      options.connection?.report("unreachable");
+      if (mine === generation) onUnsettled?.();
+    }, REQUEST_TIMEOUT_MS);
     try {
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      let answer: Awaited<ReturnType<typeof callCancelAccountDeletion>> | "timeout";
+      let answer: Awaited<ReturnType<typeof callCancelAccountDeletion>> | null;
       try {
-        const timedOut = new Promise<"timeout">((resolve) => {
-          timer = setTimeout(() => resolve("timeout"), REQUEST_TIMEOUT_MS);
-        });
-        answer = await Promise.race([callCancelAccountDeletion(getClient()), timedOut]);
+        answer = await callCancelAccountDeletion(getClient());
       } catch (error) {
         if (!(error instanceof UnknownOutcomeError)) {
-          options.connection?.report("reachable");
+          if (!timedOut) options.connection?.report("reachable");
           return "failed";
         }
-        answer = "timeout";
-      } finally {
-        clearTimeout(timer);
+        answer = null;
       }
+      clearTimeout(timer);
       if (mine !== generation) return "failed";
-      if (answer === "timeout") {
-        options.connection?.report("unreachable");
-        // Unknown outcome: one `ensure_account()` read decides, and the cancel is not sent again.
+      if (answer === null) {
+        if (!timedOut) options.connection?.report("unreachable");
+        // The request ended without an answer: one `ensure_account()` read decides, never a resend.
         let read: Awaited<ReturnType<typeof callEnsureAccount>> | "timeout";
         try {
           read = await ensureWithTimeout();
@@ -584,7 +596,7 @@ export function createSessionController(options: SessionControllerOptions) {
         }
         return "failed";
       }
-      options.connection?.report("reachable");
+      if (!timedOut) options.connection?.report("reachable");
       if (answer.status === "applied" || answer.status === "already_applied") return finish();
       if (answer.rejection?.code === "account_missing") {
         showAccountState("account_missing");
@@ -592,6 +604,7 @@ export function createSessionController(options: SessionControllerOptions) {
       }
       return "failed";
     } finally {
+      clearTimeout(timer);
       cancelling = false;
     }
   }
