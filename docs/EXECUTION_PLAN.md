@@ -955,7 +955,7 @@ them.
 
 **Commit message:** `feat(db): add the account deletion grace period and cancel`.
 
-### Task 266: [ ] Add the deletion-grace dialog and copy
+### Task 266: [x] Add the deletion-grace dialog and copy
 
 **Files and actions:**
 - Merge `main` first.
