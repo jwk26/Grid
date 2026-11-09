@@ -102,13 +102,6 @@ export const SESSION_EXPIRED = {
   continueAsGuest: "Continue as guest",
 } as const;
 
-// Account-state screens (SPEC §App-level screens, §Feedback copy).
-export const ACCOUNT_BEING_DELETED = {
-  title: "This account is being deleted.",
-  reason: "Deletion finishes within 24 hours. After that you can sign up again with the same account.",
-  continueAsGuest: "Continue as guest",
-} as const;
-
 // The deletion-grace dialog (SPEC §Deletion-grace dialog, §Feedback copy; DESIGN_TOKENS BK-7).
 export const DELETION_GRACE = {
   title: "This account will be deleted",

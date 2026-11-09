@@ -261,7 +261,6 @@ const DELETING = { phase: "account-deleting", requestedAt: 0, serverNow: 0, rece
 
 describe("AppFrame account-state screens (Task 235)", () => {
   it.each([
-    [DELETING, "This account is being deleted.", "Deletion finishes within 24 hours. After that you can sign up again with the same account."],
     [{ phase: "account-deleted" } as const, "This account was deleted.", "Its data is gone. You can continue as a guest."],
   ])("shows the %o screen with Continue as guest only, and never the app", (phase, title, reason) => {
     const { controller, spies } = fakeController(phase);
@@ -278,6 +277,42 @@ describe("AppFrame account-state screens (Task 235)", () => {
     expect(buttons[0]).toHaveFocus();
     fireEvent.click(buttons[0]);
     expect(spies.continueAsGuest).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the deletion-grace dialog for account-deleting, never the app, with Cancel deletion first", () => {
+    const { controller, spies } = fakeController(DELETING);
+    (controller as unknown as { cancelAccountDeletion: unknown }).cancelAccountDeletion = vi.fn(async () => "entered");
+    render(
+      <AppFrame controller={controller}>
+        <App />
+      </AppFrame>,
+    );
+    expect(screen.getByRole("alertdialog")).toHaveAccessibleName("This account will be deleted");
+    expect(screen.queryByTestId("app")).toBeNull();
+    const buttons = screen.getAllByRole("button");
+    expect(buttons.map((b) => b.textContent)).toEqual(["Cancel deletion", "Continue as guest"]);
+    expect(buttons[0]).toHaveFocus();
+    fireEvent.click(buttons[1]);
+    expect(spies.continueAsGuest).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks Esc and Cmd+K while the dialog shows, and lets a plain key reach its buttons", () => {
+    const { controller } = fakeController(DELETING);
+    const reached = vi.fn();
+    window.addEventListener("keydown", reached);
+    render(
+      <AppFrame controller={controller}>
+        <App />
+      </AppFrame>,
+    );
+    const button = screen.getByRole("button", { name: "Cancel deletion" });
+    fireEvent.keyDown(button, { key: "Escape" });
+    fireEvent.keyDown(button, { key: "k", metaKey: true });
+    fireEvent.keyDown(document.body, { key: "k" });
+    expect(reached).not.toHaveBeenCalled();
+    fireEvent.keyDown(button, { key: "Enter" });
+    expect(reached).toHaveBeenCalledTimes(1);
+    window.removeEventListener("keydown", reached);
   });
 
   it("replaces a ready app when a write answers with an account rejection", () => {

@@ -5,10 +5,12 @@ import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore } from 
 import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import { StatusIcon } from "@/components/feedback/status-icon";
+import { DeletionGraceDialog } from "@/components/layout/deletion-grace-dialog";
 import { RestoringScreen } from "@/components/layout/restoring-screen";
 import { ScreenBlock } from "@/components/layout/screen-block";
 import { Button } from "@/components/ui/button";
 import { setTurnstileHost } from "@/lib/auth/turnstile";
+import { useForcedDeletionGrace } from "@/lib/auth/forced-deletion-grace";
 import { takeHomeReturn } from "@/lib/auth/user-change";
 import { useInertBody } from "@/hooks/use-inert-body";
 import { useRestore } from "@/hooks/use-backup";
@@ -21,7 +23,6 @@ import {
   type SessionController,
 } from "@/lib/auth/session";
 import {
-  ACCOUNT_BEING_DELETED,
   ACCOUNT_DELETED,
   ACCOUNT_MODAL,
   GUEST_CREATION_FAILURE,
@@ -185,6 +186,7 @@ function NarrowNotice() {
 // is a layout effect so it is registered before any child's effect, the command palette's capture
 // listener on `window` included.
 function useNarrowKeyBlock(restoring: boolean) {
+  // `restoring` also stands for the deletion-grace dialog, which blocks keys the same way.
   // The restoring screen blocks keys the same way (work-plan review item 3): it is the same early
   // layout-effect listener, so it runs before the command palette's capture listener. Keys whose
   // target is inside the restoring screen itself still reach its `Check again` button; Esc does
@@ -198,7 +200,7 @@ function useNarrowKeyBlock(restoring: boolean) {
       if (isNarrowWindow()) return void event.stopImmediatePropagation();
       if (!restoringRef.current) return;
       const target = event.target instanceof Element ? event.target : null;
-      const inside = target?.closest('[data-app-role="restoring-screen"], [data-inert-exempt]') != null;
+      const inside = target?.closest('[data-app-role="restoring-screen"], [data-app-role="deletion-grace-dialog"], [data-inert-exempt]') != null;
       // Focus sits inside the screen, so a real Cmd+K or Esc targets it: only plain keys pass, for the button.
       if (!inside || event.key === "Escape" || event.metaKey || event.ctrlKey || event.altKey) event.stopImmediatePropagation();
     };
@@ -266,18 +268,7 @@ function FrameScreen({
         />
       );
     case "account-deleting":
-      return (
-        <Screen
-          key={state.phase}
-          title={ACCOUNT_BEING_DELETED.title}
-          reason={ACCOUNT_BEING_DELETED.reason}
-          actions={
-            <Button onClick={() => void controller?.continueAsGuest()}>
-              {ACCOUNT_BEING_DELETED.continueAsGuest}
-            </Button>
-          }
-        />
-      );
+      return <DeletionGraceDialog key={state.phase} clock={state} controller={controller} />;
     case "account-deleted":
       return (
         <Screen
@@ -304,12 +295,16 @@ export function AppFrame({
 }) {
   // The shared controller reads `localStorage`, so it exists only in the browser.
   const controller = injected ?? (typeof window === "undefined" ? null : getSessionController());
-  const state = useEntryState(controller);
+  const realState = useEntryState(controller);
+  // The development switch can force the deletion-grace dialog; always null in production. A forced
+  // dialog replaces the entry state, so the app unmounts as it does for the real one, and sends nothing.
+  const forcedClock = useForcedDeletionGrace();
+  const state: EntryState = forcedClock ? { phase: "account-deleting", ...forcedClock } : realState;
   const router = useRouter();
   const narrow = useSyncExternalStore(subscribeNarrowWindow, isNarrowWindow, () => false);
   const restore = useRestore();
   const restoring = restore.state.view.phase !== "idle";
-  useNarrowKeyBlock(restoring);
+  useNarrowKeyBlock(restoring || state.phase === "account-deleting");
 
   // A user change leaves the address naming the old user's ids. It goes back to Home through the
   // router while a screen replaces the app, so nothing of the new user mounts on the old route.
@@ -334,7 +329,7 @@ export function AppFrame({
     <>
       {/* Not ready: no page is mounted to set the tab title, so the frame sets the app name. */}
       {state.phase !== "ready" ? <NotReadyTitle /> : null}
-      <FrameScreen state={state} controller={controller}>{children}</FrameScreen>
+      <FrameScreen state={state} controller={forcedClock ? null : controller}>{children}</FrameScreen>
       {restoring ? <RestoringScreen restore={restore} /> : null}
       {narrow ? <NarrowNotice /> : null}
     </>

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { BackupInjection } from "@/lib/backup/backup-client";
+import type { DeletionGraceScenario } from "@/lib/auth/forced-deletion-grace";
 import type { BackupScenario } from "@/lib/backup/forced-backup";
 import type { ConnectionState } from "@/lib/db/connection-monitor";
 import type { DataStore } from "@/lib/db/datastore";
@@ -289,6 +290,9 @@ type StateSwitchState = {
   /** A forced backup status (Task 258), or null for the real one. */
   backupScenario: BackupScenario | null;
   setBackupScenario: (scenario: BackupScenario | null) => void;
+  /** A forced deletion-grace dialog (Task 266), or null for the real state. */
+  deletionGraceScenario: DeletionGraceScenario | null;
+  setDeletionGraceScenario: (scenario: DeletionGraceScenario | null) => void;
   /** Queued backup boundary injections; each is consumed by the next call of its operation. */
   backupInjections: readonly BackupInjection[];
   queueBackupInjection: (injection: BackupInjection) => void;
@@ -319,6 +323,8 @@ export const useStateSwitchStore = create<StateSwitchState>()((set, get) => ({
   network: null,
   backupScenario: null,
   setBackupScenario: (backupScenario) => set({ backupScenario }),
+  deletionGraceScenario: null,
+  setDeletionGraceScenario: (deletionGraceScenario) => set({ deletionGraceScenario }),
   backupInjections: [],
   queueBackupInjection: (injection) => set((c) => ({ backupInjections: [...c.backupInjections, injection] })),
   clearBackupInjections: () => set({ backupInjections: [] }),
@@ -373,7 +379,7 @@ export const useStateSwitchStore = create<StateSwitchState>()((set, get) => ({
     }));
     return found;
   },
-  reset: () => set({ forced: {}, injections: [], network: null, backupScenario: null, backupInjections: [] }),
+  reset: () => set({ forced: {}, injections: [], network: null, backupScenario: null, deletionGraceScenario: null, backupInjections: [] }),
 }));
 
 // --- The DataStore wrapper --------------------------------------------------
