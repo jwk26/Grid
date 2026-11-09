@@ -10,6 +10,7 @@ import {
 import { StatusTooltip } from "@/components/feedback/status-tooltip";
 import { useScratchBreakdowns } from "@/hooks/use-scratch-breakdowns";
 import { useStagedCandidates } from "@/hooks/use-staged-candidates";
+import { DELETION_GRACE_SCENARIOS, registerForcedDeletionGrace } from "@/lib/auth/forced-deletion-grace";
 import {
   BACKUP_SCENARIOS,
   registerBackupInjectionSource,
@@ -450,6 +451,32 @@ const BACKUP_INJECTIONS = [
   { value: "restore-unknown-after-send", label: "Restore: answer lost (verdict from the server)" },
 ] as const;
 
+/** Phase 54: the deletion-grace dialog, forced for a look. Its buttons send nothing. */
+function DeletionGraceSection() {
+  const scenario = useStateSwitchStore((state) => state.deletionGraceScenario);
+  const setScenario = useStateSwitchStore((state) => state.setDeletionGraceScenario);
+  return (
+    <section aria-labelledby="state-switch-deletion-grace-heading" className="space-y-1.5">
+      <h3 id="state-switch-deletion-grace-heading" className="font-semibold">
+        Deletion grace
+      </h3>
+      <div className="flex flex-wrap gap-1">
+        {DELETION_GRACE_SCENARIOS.map((name) => (
+          <button
+            key={name}
+            type="button"
+            aria-pressed={scenario === name}
+            className="rounded border border-border px-2 py-0.5 aria-pressed:bg-accent"
+            onClick={() => setScenario(scenario === name ? null : name)}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /** Phase 52: the backup status, forced for a look, and the boundary injections for the real paths. */
 function BackupSection() {
   const scenario = useStateSwitchStore((state) => state.backupScenario);
@@ -525,6 +552,11 @@ export function StateSwitchPanel() {
   useEffect(() => {
     registerForcedBackup(backupScenario);
   }, [backupScenario]);
+  const deletionGraceScenario = useStateSwitchStore((state) => state.deletionGraceScenario);
+  useEffect(() => {
+    registerForcedDeletionGrace(deletionGraceScenario);
+  }, [deletionGraceScenario]);
+  useEffect(() => () => registerForcedDeletionGrace(null), []);
   useEffect(() => {
     registerBackupInjectionSource((operation) => useStateSwitchStore.getState().takeBackupInjection(operation));
     return () => {
@@ -570,6 +602,7 @@ export function StateSwitchPanel() {
           <NetworkSection />
 
           <BackupSection />
+          <DeletionGraceSection />
 
           <section aria-labelledby="state-switch-primitives-heading" className="space-y-1.5">
             <div className="flex items-center justify-between">

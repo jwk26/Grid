@@ -88,6 +88,16 @@ export const FUNCTION_CASES: Record<string, FunctionCases> = {
       title: "before + changes equals after for a request, a repeat and a rejection",
     },
   },
+  cancel_account_deletion: {
+    crossAccount: {
+      file: "account-deletion-grace.db.test.ts",
+      title: "never touches another account's request or rows",
+    },
+    changeSet: {
+      file: "account-deletion-grace.db.test.ts",
+      title: "before + changes equals after for a cancel, a repeat and a rejection",
+    },
+  },
   update_node: {
     crossAccount: {
       file: "update-node.db.test.ts",

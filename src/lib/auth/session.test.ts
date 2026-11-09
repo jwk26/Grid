@@ -2,6 +2,7 @@ import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSessionController, SESSION_EXPIRED_KEY, SIGN_IN_STARTED_KEY } from "@/lib/auth/session";
 import { CaptchaError, type CaptchaProvider } from "@/lib/auth/turnstile";
+import type { ChannelMessage } from "@/lib/backup/restore-channel";
 
 type AuthEvent = "SIGNED_IN" | "SIGNED_OUT" | "TOKEN_REFRESHED" | "INITIAL_SESSION";
 type Listener = (event: AuthEvent, session: { user: { id: string; is_anonymous?: boolean } } | null) => void;
@@ -69,10 +70,20 @@ function setup(
   const client = { auth, rpc } as never;
   const storage = memoryStorage();
   const onUserChange = vi.fn();
+  const posted: ChannelMessage[] = [];
+  let channelListener: ((m: ChannelMessage) => void) | null = null;
+  const channel = {
+    post: vi.fn((m: ChannelMessage) => void posted.push(m)),
+    subscribe: (l: (m: ChannelMessage) => void) => {
+      channelListener = l;
+      return () => undefined;
+    },
+  };
   const controller = createSessionController({
     getClient: () => client,
     storage,
     onUserChange,
+    channel,
     runExclusive: (_name, task) => task(),
     // Tests drive auth events directly, so the handler runs in the same tick.
     defer: (task) => task(),
@@ -81,6 +92,8 @@ function setup(
     auth,
     rpc,
     onUserChange,
+    posted,
+    receive: (m: ChannelMessage) => channelListener?.(m),
     storage,
     store: controller.store,
     controller,
@@ -488,6 +501,19 @@ describe("a snapshot read that never answers (Task 233)", () => {
 });
 
 const OK = { data: { status: "applied", result: null, changes: {} }, error: null, status: 200 };
+const REQUESTED = 1_800_000_000_000;
+const SERVER_NOW = REQUESTED + 60_000;
+const deletingAnswer = {
+  data: {
+    status: "rejected",
+    result: null,
+    changes: {},
+    rejection: { code: "account_deleting", deletion_requested_at: REQUESTED, server_now: SERVER_NOW },
+  },
+  error: null,
+  status: 200,
+};
+const missingAnswer = { data: { status: "rejected", result: null, changes: {}, rejection: { code: "account_missing" } }, error: null, status: 200 };
 const rejection = (code: string) => ({ data: { rejection: { code } }, error: null, status: 200 });
 
 describe("account-state screens (Task 235)", () => {
@@ -500,11 +526,17 @@ describe("account-state screens (Task 235)", () => {
     expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
   });
 
-  it("a snapshot rejected with account_deleting is the account-being-deleted screen", async () => {
+  it("a snapshot rejected with account_deleting reads the request time once, then shows the dialog", async () => {
     const t = setup({ session: { id: "g" } });
-    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_deleting")));
+    let ensures = 0;
+    t.rpc.mockImplementation(async (name: string) => {
+      if (name !== "ensure_account") return rejection("account_deleting");
+      ensures += 1;
+      return ensures === 1 ? OK : deletingAnswer;
+    });
     await t.controller.start();
-    expect(t.controller.getState()).toEqual({ phase: "account-deleting" });
+    expect(t.controller.getState()).toMatchObject({ phase: "account-deleting", requestedAt: REQUESTED, serverNow: SERVER_NOW });
+    expect(ensures).toBe(2);
   });
 
   it("ensure_account rejected with either code shows the matching screen and reads no snapshot", async () => {
@@ -514,12 +546,15 @@ describe("account-state screens (Task 235)", () => {
     ] as const) {
       const t = setup({ session: { id: "oauth", anon: false } });
       t.rpc.mockImplementation(async (name: string) => ({
-        data: name === "ensure_account" ? { status: "rejected", result: null, changes: {}, rejection: { code } } : emptySnapshot,
+        data:
+          name === "ensure_account"
+            ? { status: "rejected", result: null, changes: {}, rejection: { code, deletion_requested_at: REQUESTED, server_now: SERVER_NOW } }
+            : emptySnapshot,
         error: null,
         status: 200,
       }));
       await t.controller.start();
-      expect(t.controller.getState(), code).toEqual({ phase });
+      expect(t.controller.getState().phase, code).toBe(phase);
       expect(t.rpc.mock.calls.map(([name]) => name), code).toEqual(["ensure_account"]);
     }
   });
@@ -527,17 +562,19 @@ describe("account-state screens (Task 235)", () => {
   it("a write answered with account_deleting moves a ready tab to the screen and drops the snapshot", async () => {
     const t = setup({ session: { id: "oauth", anon: false } });
     await t.controller.start();
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? deletingAnswer : OK));
     await t.controller.store.command({
       key: "k",
       send: async () => ({ status: "rejected", result: null, changes: {}, rejection: { code: "account_deleting" } }),
     });
-    expect(t.controller.getState()).toEqual({ phase: "account-deleting" });
+    await settle();
+    expect(t.controller.getState()).toMatchObject({ phase: "account-deleting", requestedAt: REQUESTED });
     expect(t.controller.store.getState().status.phase).toBe("empty");
   });
 
   it("Continue as guest on the screen signs out and starts a new guest", async () => {
     const t = setup({ session: { id: "oauth", anon: false } });
-    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_deleting")));
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? deletingAnswer : rejection("account_deleting")));
     await t.controller.start();
     t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : { data: emptySnapshot, error: null, status: 200 }));
     await t.controller.continueAsGuest();
@@ -550,7 +587,7 @@ describe("account-state screens (Task 235)", () => {
 
   it("a tab on the screen follows the new guest another tab started by signing out", async () => {
     const t = setup({ session: { id: "oauth", anon: false } });
-    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : rejection("account_deleting")));
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? deletingAnswer : rejection("account_deleting")));
     await t.controller.start();
     t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? OK : { data: emptySnapshot, error: null, status: 200 }));
     // The other tab's deliberate sign-out, then the guest it created.
@@ -730,11 +767,11 @@ describe("expert review of Task 235", () => {
         ? { data: null, error: { message: "network" }, status: 0 }
         : name === "get_snapshot"
           ? rejection("account_deleting")
-          : OK,
+          : deletingAnswer,
     );
     expect(await t.controller.requestAccountDeletion()).toBe("unknown");
     await settle();
-    expect(t.controller.getState()).toEqual({ phase: "account-deleting" });
+    expect(t.controller.getState().phase).toBe("account-deleting");
   });
 
   it("an expiry event keeps an account-state screen instead of replacing it with the session-expired one", async () => {
@@ -746,6 +783,408 @@ describe("expert review of Task 235", () => {
     await settle();
     expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
     expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+  });
+});
+
+describe("deletion grace dialog state (Task 266)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const deletingTab = async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? deletingAnswer : rejection("account_deleting")));
+    await t.controller.start();
+    return t;
+  };
+  const ready = (t: Awaited<ReturnType<typeof deletingTab>>) =>
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "get_snapshot" ? { data: emptySnapshot, error: null, status: 200 } : OK,
+    );
+  const calls = (t: Awaited<ReturnType<typeof deletingTab>>, fn: string) => t.rpc.mock.calls.filter(([name]) => name === fn).length;
+
+  it("entry takes the request time and the server time from the rejection, with when it arrived", async () => {
+    const t = await deletingTab();
+    const state = t.controller.getState();
+    expect(state).toMatchObject({ phase: "account-deleting", requestedAt: REQUESTED, serverNow: SERVER_NOW });
+    expect(state).toEqual(expect.objectContaining({ receivedMono: expect.any(Number), receivedWall: expect.any(Number) }));
+    expect(t.controller.getUserId()).toBe("oauth");
+  });
+
+  it("an entry rejection without the fields is a load failure with Retry, never a dialog without a deadline", async () => {
+    const t = setup({ session: { id: "oauth", anon: false } });
+    t.rpc.mockImplementation(async (name: string) => (name === "ensure_account" ? { ...OK, data: { status: "rejected", result: null, changes: {}, rejection: { code: "account_deleting" } } } : rejection("account_deleting")));
+    await t.controller.start();
+    expect(t.controller.getState()).toEqual({ phase: "load-failure", reason: "other" });
+  });
+
+  describe("an account_deleting from a read or a write (flow review G4)", () => {
+    const readyThenReject = async (ensureAfter: unknown) => {
+      const t = setup({ session: { id: "oauth", anon: false } });
+      await t.controller.start();
+      t.rpc.mockImplementation(async (name: string) => {
+        if (name === "ensure_account") return ensureAfter as never;
+        // Cancelled elsewhere meanwhile: the repeated entry finds a readable account.
+        if (ensureAfter === OK && name === "get_snapshot" && t.rpc.mock.calls.some(([n]) => n === "ensure_account")) {
+          return { data: emptySnapshot, error: null, status: 200 };
+        }
+        return rejection("account_deleting");
+      });
+      return t;
+    };
+    const reject = (t: Awaited<ReturnType<typeof readyThenReject>>) =>
+      t.controller.store.command({
+        key: "k",
+        send: async () => ({ status: "rejected", result: null, changes: {}, rejection: { code: "account_deleting" } }),
+      });
+
+    it("shows entering while it reads, then the dialog; one ensure_account call even when more rejections arrive", async () => {
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      const t = await readyThenReject(null);
+      t.rpc.mockImplementation(async (name: string) => {
+        if (name !== "ensure_account") return rejection("account_deleting");
+        await gate;
+        return deletingAnswer;
+      });
+      await reject(t);
+      expect(t.controller.getState()).toEqual({ phase: "entering" });
+      await reject(t);
+      void t.controller.store.refetch();
+      release();
+      await settle();
+      await settle();
+      expect(t.controller.getState()).toMatchObject({ phase: "account-deleting", requestedAt: REQUESTED });
+      expect(t.rpc.mock.calls.filter(([n]) => n === "ensure_account")).toHaveLength(2); // entry + the one read
+      await reject(t);
+      expect(t.rpc.mock.calls.filter(([n]) => n === "ensure_account")).toHaveLength(2);
+    });
+
+    it("cancelled elsewhere meanwhile (applied) repeats entry", async () => {
+      const t = await readyThenReject(OK);
+      await reject(t);
+      await settle();
+      await t.controller.whenReady();
+      expect(t.controller.getState()).toEqual({ phase: "ready" });
+    });
+
+    it("deleted meanwhile (account_missing) shows the account-deleted screen", async () => {
+      const t = await readyThenReject(missingAnswer);
+      await reject(t);
+      await settle();
+      expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+    });
+
+    it("a read superseded by an expiry does not block a later fieldless rejection", async () => {
+      const t = await readyThenReject(null);
+      let first = true;
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      t.rpc.mockImplementation(async (name: string) => {
+        if (name !== "ensure_account") return rejection("account_deleting");
+        if (first) {
+          first = false;
+          await gate;
+          return deletingAnswer;
+        }
+        return deletingAnswer;
+      });
+      await reject(t);
+      expect(t.controller.getState()).toEqual({ phase: "entering" });
+      // The session is lost while the read is open.
+      t.emit("SIGNED_OUT", null);
+      await settle();
+      release();
+      await settle();
+      const before = t.rpc.mock.calls.filter(([n]) => n === "ensure_account").length;
+      t.setSession({ user: { id: "oauth", is_anonymous: false } });
+      await t.controller.store.command({
+        key: "k2",
+        send: async () => ({ status: "rejected", result: null, changes: {}, rejection: { code: "account_deleting" } }),
+      });
+      await settle();
+      expect(t.rpc.mock.calls.filter(([n]) => n === "ensure_account").length).toBe(before + 1);
+    });
+
+    it("a read that never answers ends as a load failure with Retry after the request timeout", async () => {
+      vi.useFakeTimers();
+      try {
+        const t = await readyThenReject(null);
+        t.rpc.mockImplementation((name: string) =>
+          name === "ensure_account" ? new Promise(() => undefined) : Promise.resolve(rejection("account_deleting")),
+        );
+        await reject(t);
+        expect(t.controller.getState()).toEqual({ phase: "entering" });
+        await vi.advanceTimersByTimeAsync(15_001);
+        expect(t.controller.getState()).toEqual({ phase: "load-failure", reason: "unreachable" });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("a failed read or one without the fields is a load failure with Retry", async () => {
+      const failed = await readyThenReject({ data: null, error: { message: "network" }, status: 0 });
+      await reject(failed);
+      await settle();
+      expect(failed.controller.getState()).toEqual({ phase: "load-failure", reason: "unreachable" });
+      const bare = await readyThenReject({ data: { status: "rejected", result: null, changes: {}, rejection: { code: "account_deleting" } }, error: null, status: 200 });
+      await reject(bare);
+      await settle();
+      expect(bare.controller.getState()).toEqual({ phase: "load-failure", reason: "other" });
+    });
+  });
+
+  describe("Cancel deletion", () => {
+    it("an applied cancel posts the message with the user id, repeats entry and enters the account", async () => {
+      const t = await deletingTab();
+      t.rpc.mockImplementation(async (name: string) =>
+        name === "get_snapshot" ? { data: emptySnapshot, error: null, status: 200 } : OK,
+      );
+      expect(await t.controller.cancelAccountDeletion()).toBe("entered");
+      expect(t.posted).toEqual([{ type: "deletion-cancelled", userId: "oauth" }]);
+      await t.controller.whenReady();
+      expect(t.controller.getState()).toEqual({ phase: "ready" });
+      expect(calls(t, "cancel_account_deletion")).toBe(1);
+      expect(t.onUserChange).toHaveBeenCalled();
+    });
+
+    it("already_applied (cancelled in another browser) enters the same way", async () => {
+      const t = await deletingTab();
+      t.rpc.mockImplementation(async (name: string) =>
+        name === "cancel_account_deletion"
+          ? { data: { status: "already_applied", result: null, changes: {} }, error: null, status: 200 }
+          : name === "get_snapshot"
+            ? { data: emptySnapshot, error: null, status: 200 }
+            : OK,
+      );
+      expect(await t.controller.cancelAccountDeletion()).toBe("entered");
+    });
+
+    it("account_missing shows the account-deleted screen and posts nothing", async () => {
+      const t = await deletingTab();
+      t.rpc.mockImplementation(async (name: string) =>
+        name === "cancel_account_deletion" ? { data: { status: "rejected", result: null, changes: {}, rejection: { code: "account_missing" } }, error: null, status: 200 } : OK,
+      );
+      expect(await t.controller.cancelAccountDeletion()).toBe("deleted");
+      expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+      expect(t.posted).toEqual([]);
+    });
+
+    it("a refused or failed cancel is `failed`; the dialog stays and nothing is posted", async () => {
+      const t = await deletingTab();
+      t.rpc.mockImplementation(async (name: string) =>
+        name === "cancel_account_deletion" ? { data: null, error: { message: "boom" }, status: 400 } : OK,
+      );
+      expect(await t.controller.cancelAccountDeletion()).toBe("failed");
+      expect(t.controller.getState().phase).toBe("account-deleting");
+      expect(t.posted).toEqual([]);
+    });
+
+    describe("an unknown outcome is never resent; one ensure_account read decides", () => {
+      const lost = { data: null, error: { message: "network" }, status: 0 };
+      const withRead = (read: unknown) => async (name: string) =>
+        name === "cancel_account_deletion" ? lost : name === "ensure_account" ? (read as never) : { data: emptySnapshot, error: null, status: 200 };
+
+      it("the read says applied: posts the message and continues entry", async () => {
+        const t = await deletingTab();
+        t.rpc.mockImplementation(withRead(OK));
+        expect(await t.controller.cancelAccountDeletion()).toBe("entered");
+        expect(t.posted).toEqual([{ type: "deletion-cancelled", userId: "oauth" }]);
+        expect(calls(t, "cancel_account_deletion")).toBe(1);
+      });
+
+      it("the read says account_deleting: failed, the dialog stays, no resend", async () => {
+        const t = await deletingTab();
+        t.rpc.mockImplementation(withRead(deletingAnswer));
+        expect(await t.controller.cancelAccountDeletion()).toBe("failed");
+        expect(t.controller.getState().phase).toBe("account-deleting");
+        expect(calls(t, "cancel_account_deletion")).toBe(1);
+      });
+
+      it("the read says account_missing: the account-deleted screen", async () => {
+        const t = await deletingTab();
+        t.rpc.mockImplementation(withRead(missingAnswer));
+        expect(await t.controller.cancelAccountDeletion()).toBe("deleted");
+        expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+      });
+
+      it("the read fails too: failed, Cancel deletion kept, and a new press is a new command", async () => {
+        const t = await deletingTab();
+        t.rpc.mockImplementation(withRead(lost));
+        expect(await t.controller.cancelAccountDeletion()).toBe("failed");
+        expect(t.controller.getState().phase).toBe("account-deleting");
+        expect(calls(t, "cancel_account_deletion")).toBe(1);
+        expect(await t.controller.cancelAccountDeletion()).toBe("failed");
+        expect(calls(t, "cancel_account_deletion")).toBe(2);
+      });
+
+      it("a deciding read that never answers is `failed` after the request timeout, with no resend", async () => {
+        vi.useFakeTimers();
+        try {
+          const t = await deletingTab();
+          t.rpc.mockImplementation((name: string) =>
+            name === "cancel_account_deletion"
+              ? Promise.resolve(lost)
+              : name === "ensure_account"
+                ? new Promise(() => undefined)
+                : Promise.resolve({ data: emptySnapshot, error: null, status: 200 }),
+          );
+          const result = t.controller.cancelAccountDeletion();
+          await vi.advanceTimersByTimeAsync(15_001);
+          expect(await result).toBe("failed");
+          expect(t.controller.getState().phase).toBe("account-deleting");
+          expect(calls(t, "cancel_account_deletion")).toBe(1);
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+
+      describe("no answer within the request timeout (SPEC §Write feel: no read while the request is open)", () => {
+        const open = async () => {
+          vi.useFakeTimers();
+          const t = await deletingTab();
+          let answer!: (value: never) => void;
+          t.rpc.mockImplementation((name: string) =>
+            name === "cancel_account_deletion"
+              ? new Promise<never>((resolve) => (answer = resolve))
+              : Promise.resolve(name === "ensure_account" ? deletingAnswer : { data: emptySnapshot, error: null, status: 200 }),
+          );
+          const onUnsettled = vi.fn();
+          const result = t.controller.cancelAccountDeletion(onUnsettled);
+          await vi.advanceTimersByTimeAsync(15_001);
+          return { t, result, onUnsettled, answer: (v: unknown) => answer(v as never) };
+        };
+
+        it("stays unsettled: the dialog is told, no read and no resend are sent", async () => {
+          try {
+            const { t, onUnsettled } = await open();
+            expect(onUnsettled).toHaveBeenCalledTimes(1);
+            expect(calls(t, "ensure_account")).toBe(1); // the entry only
+            expect(calls(t, "cancel_account_deletion")).toBe(1);
+            expect(t.controller.getState().phase).toBe("account-deleting");
+          } finally {
+            vi.useRealTimers();
+          }
+        });
+
+        it("a late `applied` settles on that answer and enters", async () => {
+          try {
+            const { t, result, answer } = await open();
+            t.rpc.mockImplementation(async (name: string) =>
+              name === "get_snapshot" ? { data: emptySnapshot, error: null, status: 200 } : OK,
+            );
+            answer(OK);
+            expect(await result).toBe("entered");
+            expect(t.posted).toEqual([{ type: "deletion-cancelled", userId: "oauth" }]);
+            await t.controller.whenReady();
+            expect(calls(t, "ensure_account")).toBe(2); // entry + the repeated entry, no deciding read
+          } finally {
+            vi.useRealTimers();
+          }
+        });
+
+        it("a request that later ends without an answer gets the one deciding read", async () => {
+          try {
+            const { t, result, answer } = await open();
+            answer({ data: null, error: { message: "network" }, status: 0 });
+            expect(await result).toBe("failed");
+            expect(calls(t, "ensure_account")).toBe(2); // entry + the deciding read
+            expect(calls(t, "cancel_account_deletion")).toBe(1);
+          } finally {
+            vi.useRealTimers();
+          }
+        });
+
+        it("Continue as guest still works while unsettled, and the late answer changes nothing", async () => {
+          try {
+            const { t, result, answer } = await open();
+            t.rpc.mockImplementation(async (name: string) =>
+              name === "get_snapshot" ? { data: emptySnapshot, error: null, status: 200 } : OK,
+            );
+            await t.controller.continueAsGuest();
+            answer(OK);
+            expect(await result).toBe("failed");
+            expect(t.posted).toEqual([]);
+            expect(t.controller.getState()).toEqual({ phase: "ready" });
+            expect(t.controller.getVariant()).toBe("guest");
+          } finally {
+            vi.useRealTimers();
+          }
+        });
+      });
+    });
+
+    it("does nothing off the dialog, and a second press while one is in flight is ignored", async () => {
+      const ok = setup({ session: { id: "oauth", anon: false } });
+      await ok.controller.start();
+      expect(await ok.controller.cancelAccountDeletion()).toBe("failed");
+      expect(calls(ok, "cancel_account_deletion")).toBe(0);
+      const t = await deletingTab();
+      let release!: () => void;
+      t.rpc.mockImplementation(async (name: string) => {
+        if (name === "cancel_account_deletion") await new Promise<void>((r) => (release = r));
+        return name === "get_snapshot" ? { data: emptySnapshot, error: null, status: 200 } : OK;
+      });
+      const first = t.controller.cancelAccountDeletion();
+      expect(await t.controller.cancelAccountDeletion()).toBe("failed");
+      await settle();
+      release();
+      expect(await first).toBe("entered");
+      expect(calls(t, "cancel_account_deletion")).toBe(1);
+    });
+  });
+
+  it("an unchosen SIGNED_OUT while the dialog shows is the account-deleted screen, never the expired one", async () => {
+    const t = await deletingTab();
+    t.setSession(null);
+    t.emit("SIGNED_OUT", null);
+    await settle();
+    expect(t.controller.getState()).toEqual({ phase: "account-deleted" });
+    expect(t.storage.getItem(SESSION_EXPIRED_KEY)).toBeNull();
+  });
+
+  it("a chosen sign-out on the dialog still starts a new guest", async () => {
+    const t = await deletingTab();
+    t.rpc.mockImplementation(async (name: string) =>
+      name === "get_snapshot" ? { data: emptySnapshot, error: null, status: 200 } : OK,
+    );
+    await t.controller.continueAsGuest();
+    expect(t.controller.getState()).toEqual({ phase: "ready" });
+  });
+
+  describe("the other tabs follow a cancel", () => {
+    it("a deletion-cancelled message for this user repeats entry on the dialog", async () => {
+      const t = await deletingTab();
+      ready(t);
+      t.receive({ type: "deletion-cancelled", userId: "oauth" });
+      await t.controller.whenReady();
+      expect(t.controller.getState()).toEqual({ phase: "ready" });
+      expect(t.onUserChange).toHaveBeenCalled();
+    });
+
+    it("ignores another user's message, any other message, and a tab that does not show the dialog", async () => {
+      const t = await deletingTab();
+      ready(t);
+      t.receive({ type: "deletion-cancelled", userId: "someone-else" });
+      t.receive({ type: "restore-started", restoreId: "r", userId: "oauth" });
+      await settle();
+      expect(t.controller.getState().phase).toBe("account-deleting");
+      const live = setup({ session: { id: "oauth", anon: false } });
+      await live.controller.start();
+      live.onUserChange.mockClear();
+      live.receive({ type: "deletion-cancelled", userId: "oauth" });
+      await settle();
+      expect(live.onUserChange).not.toHaveBeenCalled();
+    });
+
+    it("the cancelling tab does not follow its own message", async () => {
+      const t = await deletingTab();
+      ready(t);
+      await t.controller.cancelAccountDeletion();
+      await t.controller.whenReady();
+      t.onUserChange.mockClear();
+      t.receive(t.posted[0]);
+      await settle();
+      expect(t.onUserChange).not.toHaveBeenCalled();
+    });
   });
 });
 

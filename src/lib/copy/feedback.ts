@@ -102,11 +102,16 @@ export const SESSION_EXPIRED = {
   continueAsGuest: "Continue as guest",
 } as const;
 
-// Account-state screens (SPEC §App-level screens, §Feedback copy).
-export const ACCOUNT_BEING_DELETED = {
-  title: "This account is being deleted.",
-  reason: "Deletion finishes within 24 hours. After that you can sign up again with the same account.",
+// The deletion-grace dialog (SPEC §Deletion-grace dialog, §Feedback copy; DESIGN_TOKENS BK-7).
+export const DELETION_GRACE = {
+  title: "This account will be deleted",
+  /** `<time>` is the request plus 24 hours, in the user's time zone and locale. */
+  deadline: (time: string) => `You can cancel until ${time}.`,
+  countdownLabel: "left to cancel",
+  zero: "The deletion can start at any time now.",
+  cancel: "Cancel deletion",
   continueAsGuest: "Continue as guest",
+  cancelFailed: "Couldn't cancel the deletion. Try again.",
 } as const;
 
 // The narrow-window notice (SPEC §Account entry step 1, §Feedback copy; S42 (4)).
@@ -137,7 +142,7 @@ export const ACCOUNT_MODAL = {
   account: { signOut: "Sign out", deleteAccount: "Delete account" },
   confirm: {
     title: "Delete your account?",
-    body: "Your tasks and all other data are deleted permanently. This can't be undone.",
+    body: "You can cancel within 24 hours by signing in again. After that, your account, its data and its backups are deleted.",
     delete: "Delete account",
     cancel: "Cancel",
     deleteFailed: "Couldn't delete your account. Try again.",
@@ -352,14 +357,9 @@ export const toastCopy = {
     tone: "failure",
     single: (title: string) => `Couldn't restore “${title}”. It's still in Archive.`,
   },
-  accountDeleted: {
-    key: "account-deleted",
-    tone: "success",
-    single: () => "Your account and its data were deleted.",
-  },
   accountDeletionScheduled: {
     key: "account-deleted",
     tone: "success",
-    single: () => "Your account will be deleted within 24 hours.",
+    single: () => "Your account will be deleted after 24 hours. Sign in again to cancel.",
   },
 } as const satisfies Record<string, ToastRow<never[]>>;

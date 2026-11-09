@@ -2,9 +2,12 @@ import { REQUEST_TIMEOUT_MS } from "@/lib/constants";
 import { AuthApiError, isAuthRetryableFetchError } from "@supabase/supabase-js";
 import type { RequestResult } from "@/lib/db/connection-monitor";
 import { bindConnectionEntry, getConnectionMonitor } from "@/lib/db/connection";
-import { callDeleteMyAccount, callEnsureAccount } from "@/lib/db/supabase-calls";
+import { callCancelAccountDeletion, callDeleteMyAccount, callEnsureAccount } from "@/lib/db/supabase-calls";
+import { deletionFieldsOf, type DeletionClock } from "@/lib/auth/deletion-grace";
+import type { RestoreChannel } from "@/lib/backup/restore-channel";
+import { createRestoreChannel } from "@/lib/backup/restore-channel";
 import { getSupabaseClient, type GriddoSupabaseClient } from "@/lib/db/supabase-client";
-import { SnapshotStore, UnknownOutcomeError, type AccountRejectionCode } from "@/lib/db/snapshot-store";
+import { SnapshotStore, UnknownOutcomeError, type AccountRejectionCode, type Rejection } from "@/lib/db/snapshot-store";
 import { resetAppForUserChange } from "@/lib/auth/user-change";
 import { CaptchaError, getAppTurnstile, type CaptchaProvider } from "@/lib/auth/turnstile";
 import { browserViewport } from "@/lib/viewport";
@@ -25,10 +28,13 @@ export type EntryState =
   // Turnstile needs an interactive check; the app-level frame shows its widget (SPEC §Account entry).
   | { phase: "security-check" }
   | { phase: "session-expired"; variant: SessionVariant }
-  // A function answered `account_deleting` (the deletion was requested, its rows go within 24
-  // hours) or `account_missing` (the account is gone). Both replace the app (SPEC §App-level screens).
-  | { phase: "account-deleting" }
+  // A function answered `account_deleting` (the deletion was requested; the deletion-grace dialog
+  // shows its deadline, SPEC §Deletion-grace dialog) or `account_missing` (the account is gone).
+  // Both replace the app (SPEC §App-level screens).
+  | ({ phase: "account-deleting" } & DeletionClock)
   | { phase: "account-deleted" };
+
+export type AccountDeletionCancelResult = "entered" | "failed" | "deleted";
 
 export type OAuthProvider = "github" | "google";
 
@@ -93,6 +99,11 @@ export type SessionControllerOptions = {
    * Read when a guest is about to be created, never earlier; none means always wide.
    */
   viewport?: { isNarrow: () => boolean; subscribe: (listener: () => void) => () => void };
+  /**
+   * The browser's channel for a cancelled deletion: the cancelling tab posts, the tabs that show
+   * the dialog repeat entry. None means no other tab is told (tests, a server render).
+   */
+  channel?: RestoreChannel;
   /** Told how each request to the server ended (SPEC §Connection states). */
   connection?: { report: (result: RequestResult, detail?: { snapshotRead?: boolean }) => void };
 };
@@ -256,10 +267,78 @@ export function createSessionController(options: SessionControllerOptions) {
   // A read or write was answered with an account rejection: the snapshot goes, and so does any
   // entry in flight. The user stays known, so another account signing in from another tab still
   // repeats entry.
-  function showAccountState(code: AccountRejectionCode) {
+  // `rejection` carries the request time when the answer is `ensure_account()`'s; a read or a write
+  // answers `account_deleting` without it, and one `ensure_account()` call then gets it (flow review
+  // G4). Only one such read runs at a time, and none while the dialog shows.
+  function showAccountState(code: AccountRejectionCode, rejection?: Rejection) {
+    if (code === "account_deleting") {
+      const fields = deletionFieldsOf(rejection);
+      if (fields) return showDeleting(fields);
+      if (state.phase === "account-deleting" || deletionReadActive()) return;
+      return void readDeletionRequest();
+    }
+    if (deletionReadActive()) return;
     generation += 1;
     store.reset();
-    setState({ phase: code === "account_deleting" ? "account-deleting" : "account-deleted" });
+    setState({ phase: "account-deleted" });
+  }
+
+  function showDeleting(fields: { requestedAt: number; serverNow: number }) {
+    generation += 1;
+    store.reset();
+    setState({
+      phase: "account-deleting",
+      ...fields,
+      receivedMono: performance.now(),
+      receivedWall: Date.now(),
+    });
+  }
+
+  // The read belongs to the generation it started: any change of generation (an expiry, another
+  // user, a sign-out) ends it, so a later fieldless rejection reads again.
+  let deletionReadGeneration = -1;
+  const deletionReadActive = () => deletionReadGeneration === generation;
+
+  // One `ensure_account()` call that gives up after the request timeout: "timeout" means no answer.
+  async function ensureWithTimeout(): Promise<Awaited<ReturnType<typeof callEnsureAccount>> | "timeout"> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<"timeout">((resolve) => {
+      timer = setTimeout(() => resolve("timeout"), REQUEST_TIMEOUT_MS);
+    });
+    try {
+      return await Promise.race([callEnsureAccount(getClient()), timedOut]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function readDeletionRequest(): Promise<void> {
+    const mine = ++generation;
+    deletionReadGeneration = mine;
+    store.reset();
+    setState({ phase: "entering" });
+    try {
+      const ensured = await ensureWithTimeout();
+      if (mine !== generation) return;
+      deletionReadGeneration = -1;
+      if (ensured === "timeout") {
+        options.connection?.report("unreachable");
+        return setState({ phase: "load-failure", reason: "unreachable" });
+      }
+      if (ensured.status === "applied" || ensured.status === "already_applied") {
+        // Cancelled in another browser meanwhile: enter the account.
+        return dropAndEnter();
+      }
+      const code = ensured.rejection?.code;
+      const fields = code === "account_deleting" ? deletionFieldsOf(ensured.rejection) : null;
+      if (fields) return showDeleting(fields);
+      if (code === "account_missing") return showAccountState(code);
+      setState({ phase: "load-failure", reason: "other" });
+    } catch (error) {
+      if (mine !== generation) return;
+      deletionReadGeneration = -1;
+      setState({ phase: "load-failure", reason: isUnreachable(error) ? "unreachable" : "other" });
+    }
   }
 
   const expire = (variant: SessionVariant) => {
@@ -377,7 +456,12 @@ export function createSessionController(options: SessionControllerOptions) {
       if (stale()) return;
       if (ensured.status !== "applied" && ensured.status !== "already_applied") {
         const code = ensured.rejection?.code;
-        if (code === "account_missing" || code === "account_deleting") return showAccountState(code);
+        if (code === "account_missing") return showAccountState(code);
+        if (code === "account_deleting") {
+          // Without the added fields there is no deadline to show: a failed load, not a bare dialog.
+          const fields = deletionFieldsOf(ensured.rejection);
+          if (fields) return showDeleting(fields);
+        }
         return setState({ phase: "load-failure", reason: "other" });
       }
     } catch (error) {
@@ -415,8 +499,15 @@ export function createSessionController(options: SessionControllerOptions) {
         dropAndEnter(true);
         return;
       }
+      // The deletion-grace dialog (SPEC §Deletion-grace dialog): every sign-out in the app is `local`
+      // scope, so during the grace period an unchosen sign-out means the cleanup deleted the auth user.
+      // The account-deleted screen says so; if it was something else, the next sign-in shows the dialog.
+      if (state.phase === "account-deleting") {
+        showAccountState("account_missing");
+        return;
+      }
       // An account screen stays: the account is gone, which is why the refresh was refused.
-      if (state.phase === "account-deleting" || state.phase === "account-deleted") return;
+      if (state.phase === "account-deleted") return;
       generation += 1;
       store.reset();
       expire(lastKind());
@@ -445,6 +536,77 @@ export function createSessionController(options: SessionControllerOptions) {
     // account-being-deleted screen (SPEC §Account icon and modal; user, 2026-10-30).
     await getClient().auth.signOut({ scope: "local" });
     await enter(true);
+  }
+
+  // `cancel_account_deletion()` is server-confirmed and never resent (SPEC §Deletion-grace dialog).
+  // A second press while one is in flight does nothing. At the request timeout the outcome stays
+  // unsettled (`onUnsettled` tells the dialog): no read is sent while the request is still open, since
+  // that could show a slow commit as not applied (SPEC §Write feel, Unknown outcome; Phase 47 MI-1).
+  // A request that later ends with an answer settles on it; one that ends without an answer gets one
+  // `ensure_account()` read.
+  let cancelling = false;
+  async function cancelAccountDeletion(onUnsettled?: () => void): Promise<AccountDeletionCancelResult> {
+    if (state.phase !== "account-deleting" || cancelling || currentUserId === null) return "failed";
+    const userId = currentUserId;
+    const mine = generation;
+    cancelling = true;
+    const finish = (): AccountDeletionCancelResult => {
+      // The id is taken before entry starts; a BroadcastChannel instance does not hear its own post.
+      options.channel?.post({ type: "deletion-cancelled", userId });
+      dropAndEnter();
+      return "entered";
+    };
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      options.connection?.report("unreachable");
+      if (mine === generation) onUnsettled?.();
+    }, REQUEST_TIMEOUT_MS);
+    try {
+      let answer: Awaited<ReturnType<typeof callCancelAccountDeletion>> | null;
+      try {
+        answer = await callCancelAccountDeletion(getClient());
+      } catch (error) {
+        if (!(error instanceof UnknownOutcomeError)) {
+          if (!timedOut) options.connection?.report("reachable");
+          return "failed";
+        }
+        answer = null;
+      }
+      clearTimeout(timer);
+      if (mine !== generation) return "failed";
+      if (answer === null) {
+        if (!timedOut) options.connection?.report("unreachable");
+        // The request ended without an answer: one `ensure_account()` read decides, never a resend.
+        let read: Awaited<ReturnType<typeof callEnsureAccount>> | "timeout";
+        try {
+          read = await ensureWithTimeout();
+        } catch {
+          return "failed";
+        }
+        if (mine !== generation) return "failed";
+        if (read === "timeout") {
+          options.connection?.report("unreachable");
+          return "failed";
+        }
+        if (read.status === "applied" || read.status === "already_applied") return finish();
+        if (read.rejection?.code === "account_missing") {
+          showAccountState("account_missing");
+          return "deleted";
+        }
+        return "failed";
+      }
+      if (!timedOut) options.connection?.report("reachable");
+      if (answer.status === "applied" || answer.status === "already_applied") return finish();
+      if (answer.rejection?.code === "account_missing") {
+        showAccountState("account_missing");
+        return "deleted";
+      }
+      return "failed";
+    } finally {
+      clearTimeout(timer);
+      cancelling = false;
+    }
   }
 
   const retryIfFailed = () => {
@@ -513,6 +675,12 @@ export function createSessionController(options: SessionControllerOptions) {
         if (event === "SIGNED_OUT" && !isDeliberateSignOut()) onAuthEvent(event, user);
         else defer(() => onAuthEvent(event, user));
       });
+      // A cancel in another tab of this browser: a tab that shows the dialog for the same user enters.
+      options.channel?.subscribe((message) => {
+        if (message.type !== "deletion-cancelled") return;
+        if (state.phase !== "account-deleting" || currentUserId === null || message.userId !== currentUserId) return;
+        dropAndEnter();
+      });
       if (typeof window !== "undefined") {
         window.addEventListener("online", retryIfFailed);
         // The browser restored this page from its back-forward cache: no entry runs again, so a
@@ -531,6 +699,8 @@ export function createSessionController(options: SessionControllerOptions) {
     retry(): Promise<void> {
       return enter();
     },
+    /** `Cancel deletion` in the deletion-grace dialog. */
+    cancelAccountDeletion,
     /** Session-expired and account-state screens: sign out, then start a new guest. */
     continueAsGuest: signOutToGuest,
     /** The account modal's Sign out: the same user change, chosen. */
@@ -598,6 +768,7 @@ export function getSessionController(): SessionController {
       connection,
       viewport: browserViewport,
       captcha: getAppTurnstile(),
+      channel: createRestoreChannel(),
       onUserChange: resetAppForUserChange,
     });
     const created = controller;

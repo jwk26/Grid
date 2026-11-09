@@ -214,6 +214,9 @@ isOneToOne: false
 "backup_summary":
 { Args: { "p_as_of": number,"p_missing": number }; Returns: Json
                            },
+"cancel_account_deletion":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "classify_archive_scratch_recovery":
 { Args: { "p_expected_version": number,"p_scratch_id": string,"p_started_at": number }; Returns: Json
                            },

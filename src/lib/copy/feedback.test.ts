@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACCOUNT_BEING_DELETED, ACCOUNT_DELETED, createDialogNoEmptyCell, toastCopy } from "./feedback";
+import { ACCOUNT_DELETED, ACCOUNT_MODAL, createDialogNoEmptyCell, DELETION_GRACE, toastCopy } from "./feedback";
 
 describe("createDialogNoEmptyCell", () => {
   it("names the target Node in the SPEC create-dialog sentence", () => {
@@ -48,9 +48,8 @@ describe("toastCopy", () => {
     expect(toastCopy.promoteFailed.single("A")).toBe("Couldn't promote “A”. It's still a Bit.");
     expect(toastCopy.stepDeleteFailed.single("A")).toBe("Couldn't delete “A”. It's still there.");
     expect(toastCopy.archiveRestoreFailed.single("A")).toBe("Couldn't restore “A”. It's still in Archive.");
-    expect(toastCopy.accountDeleted.single()).toBe("Your account and its data were deleted.");
     expect(toastCopy.accountDeletionScheduled.single()).toBe(
-      "Your account will be deleted within 24 hours.",
+      "Your account will be deleted after 24 hours. Sign in again to cancel.",
     );
   });
 
@@ -73,8 +72,7 @@ describe("toastCopy", () => {
 
     const others = Object.entries(toastCopy).filter(([name]) => !name.startsWith("rolledBack"));
     const keys = others.map(([, row]) => row.key);
-    // The two account-deleted sentences are one kind.
-    expect(new Set(keys).size).toBe(keys.length - 1);
+    expect(new Set(keys).size).toBe(keys.length);
     expect(keys).not.toContain(rolledBack[0][1].key);
   });
 
@@ -92,15 +90,23 @@ describe("toastCopy", () => {
 
 describe("account-state screens", () => {
   it("state the SPEC titles and bodies", () => {
-    expect(ACCOUNT_BEING_DELETED.title).toBe("This account is being deleted.");
-    expect(ACCOUNT_BEING_DELETED.reason).toBe(
-      "Deletion finishes within 24 hours. After that you can sign up again with the same account.",
-    );
     expect(ACCOUNT_DELETED.title).toBe("This account was deleted.");
     expect(ACCOUNT_DELETED.reason).toBe("Its data is gone. You can continue as a guest.");
   });
 
-  it("states the fallback deletion toast", () => {
-    expect(toastCopy.accountDeletionScheduled.single()).toBe("Your account will be deleted within 24 hours.");
+  it("states the deletion toast and the deletion-grace dialog copy", () => {
+    expect(toastCopy.accountDeletionScheduled.single()).toBe(
+      "Your account will be deleted after 24 hours. Sign in again to cancel.",
+    );
+    expect(ACCOUNT_MODAL.confirm.body).toBe(
+      "You can cancel within 24 hours by signing in again. After that, your account, its data and its backups are deleted.",
+    );
+    expect(DELETION_GRACE.title).toBe("This account will be deleted");
+    expect(DELETION_GRACE.deadline("Nov 10, 2026, 3:00 PM")).toBe("You can cancel until Nov 10, 2026, 3:00 PM.");
+    expect(DELETION_GRACE.countdownLabel).toBe("left to cancel");
+    expect(DELETION_GRACE.zero).toBe("The deletion can start at any time now.");
+    expect(DELETION_GRACE.cancel).toBe("Cancel deletion");
+    expect(DELETION_GRACE.continueAsGuest).toBe("Continue as guest");
+    expect(DELETION_GRACE.cancelFailed).toBe("Couldn't cancel the deletion. Try again.");
   });
 });

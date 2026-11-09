@@ -244,7 +244,7 @@ Stabilization (app lane):
 Account backup (db lane):
   255→256→257→258→259  Phase 52 (completed 2026-11-07)
   →260→261→262→263→264  Phase 53 (completed 2026-11-09)
-  →265→266  Phase 54
+  →265→266  Phase 54 (completed 2026-11-09)
 
 Retired Tasks 164/165 and 180–208 are not dependency nodes.
 Cross-phase arrows also require the preceding phase's actual Final Close/main
@@ -286,7 +286,7 @@ sync; 166 additionally requires the post-Phase-31 workflow audit disposition.
 | Phase 51 | app | Completed | [Stabilization: small fixes, unavailable Grid, Inbox `Esc` and focus, Inbox lock recovery](execution-plan/archive/phase-51.md) | 251–254 | Accepted and archived (2026-11-05); no migration; ISSUE-16-03, ISSUE-20-03, ISSUE-20-04, Phase 48 mi-7, Phase 50 mi-6, mi-8 and the Tasks 245A/246 residual closed; mi-1, mi-3, mi-4 and mi-6 carried in `Issues_Deferred.md`. |
 | Phase 52 | db | Completed | [Account backup: toolchain, SQL, Edge Function, sidebar button, production close](execution-plan/archive/phase-52.md) | 255–259 | Accepted and archived (2026-11-07); three migrations, the function and its secrets on production in Task 259; mi-2, the undecodable-token 502, the Task 260 note and the post-merge smoke carried in `Issues_Deferred.md`. Phase 53 may start. |
 | Phase 53 | db | Completed | [Account restore: SQL, Edge restore, restoring screen, monthly check, recovery drill](execution-plan/archive/phase-53.md) | 260–264 | Accepted and archived (2026-11-09); one migration and the function (version 4) on production in Task 264; Phase 52 mi-2 (restore by D1; the `Back Up Now` remainder accepted), the undecodable-token 502 and the Task 260 note closed; mi-3, mi-4 and mi-5 (with mi-1) carried in `Issues_Deferred.md`. Phase 54 may start. |
-| Phase 54 | db | Planned | [Account deletion grace period and cancel](#phase-54--account-deletion-grace-period) | 265–266 | Waits for Phase 53 (reuses its other-tab follow and dialog frame). Flow review: [Phases 52–54](reviews/phase-52-54-flow-review.md). |
+| Phase 54 | db | Completed | [Account deletion grace period and cancel](execution-plan/archive/phase-54.md) | 265–266 | Accepted and archived (2026-11-09); one migration on production at the close, after the manual dump and the `internal.dispatch_backups()` rehearsal; mi-1, mi-2 and mi-3 closed; nothing new deferred. |
 
 ## Theme Realization Task Sets
 
@@ -915,93 +915,18 @@ restore list shows a copied file's copy time), mi-4 (restore staging at the
 old caps) and the load-dependent `triage-workspace.test.tsx` failure (mi-5,
 with mi-1).
 
-## Phase 54 — Account deletion grace period
+## Phase 54 — Completed / Archived
 
-Scope: a 24-hour grace period with `Cancel deletion`, the countdown dialog
-and the new copy. Leaves behind protection from a mistaken deletion.
-
-**Task order:** 265 → 266.
-
-### Task 265: [ ] Add the grace period and `cancel_account_deletion()` in SQL
-
-**Files and actions:**
-- A migration: `internal.cleanup_guests()` deletes only requests older than
-  24 hours, keeping Task 256's lock-then-recheck; `public.cancel_account_deletion()`;
-  `ensure_account()`'s `account_deleting` rejection adds
-  `deletion_requested_at` and `server_now`.
-- `src/lib/db/database.types.ts`; `supabase/tests/account-deletion-*.db.test.ts`.
-
-**Dependencies:** Phase 53 closed.
-
-**Authority:** SCHEMA §Account deletion (Grace period and cancel), §Guest
-cleanup; deletion-grace Decisions 1–4, 7, 9.
-
-**Observable acceptance:** a request younger than 24 hours survives the
-cleanup and an older one does not; a cancel clears only the caller's request
-and succeeds with no request; a cancel that locks first leaves nothing to
-delete, and one that waits behind the cleanup gets `account_missing`; a
-deleted account's backups are listed in `r2_deletions`, a cancelled one's are
-not; the rejection carries both added fields and the current client ignores
-them.
-
-**Verification:** gate; database suites with both concurrency orders;
-`expert` review.
-
-**Commit message:** `feat(db): add the account deletion grace period and cancel`.
-
-### Task 266: [ ] Add the deletion-grace dialog and copy
-
-**Files and actions:**
-- Merge `main` first.
-- `src/lib/auth/session.ts` and test: `cancel_account_deletion()`; read the
-  rejection's added fields, through one `ensure_account()` call when the
-  `account_deleting` came from `get_snapshot()` or a write (flow review G4);
-  after a cancel, repeat entry and post the other-tab message on Task 262's
-  channel.
-- `src/components/layout/deletion-grace-dialog.tsx` and test, in place of the
-  account-being-deleted screen in `app-frame.tsx`.
-- `src/lib/copy/feedback.ts`: the confirmation, toast and dialog copy.
-- `src/lib/dev/state-switch.ts`: the dialog with the countdown near and at
-  zero.
-
-**Dependencies:** Task 265.
-
-**Authority:** SPEC Deletion-grace dialog, §Feedback copy; DESIGN_TOKENS
-BK-7; deletion-grace Decisions 6, 8, 10.
-
-**Observable acceptance:** after `Delete account` and a new sign-in to the
-same account, the blurred empty frame shows the dialog with the deadline in
-the user's time zone and a countdown that follows the server's time even with
-a wrong device clock; at zero the line changes and `Cancel deletion` stays;
-screen readers read the deadline line, not the countdown; `Cancel deletion`
-enters the account and the browser's other tabs follow; another browser's
-cancel on an already cancelled account enters it; `Continue as guest` starts
-a new guest; a forced unknown outcome is decided by one `ensure_account()`
-read and never resent; a browser that was already signed in when another
-browser deleted the account shows the same dialog with the deadline after its
-next refetch; a cancel that meets a deleted account shows the account-deleted
-screen; a refused cancel shows `Couldn't cancel the deletion. Try again.`
-
-**Verification:** gate; tests; the agent's browser checks with a shifted
-device clock, two tabs and the three other themes, light and dark; **Please
-check** by the user: the dialog in `griddo`, light and dark, in the prepared
-window.
-
-**Commit message:** `feat(account): add the deletion grace dialog`.
-
-The Phase 54 close: dump, migrations, then the merge (no function change).
-The manual dump stays for Phase 54 (user, 2026-11-05, flow review W11); the
-first SQL phase after Phase 54 whose `/craft-docs` finds the three retirement
-conditions met replaces it.
-
-Before its migrations, the Phase 54 close also rehearses that replacement
-once, beside the dump and without blocking the close (control tower, user
-2026-11-05): with the user's approval it calls `internal.dispatch_backups()`
-once on production, waits for the calls to finish, and reads with one
-read-only query how many dispatched accounts have a successful check after the
-rehearsal's start and how many failed. The ledger records the counts only. A
-failure is recorded as input to the retirement decision, not as a close
-blocker.
+Account deletion grace period Tasks 265–266 are accepted. Their task
+contracts and completion-time scope are in
+[the Phase 54 archive](execution-plan/archive/phase-54.md). A deletion request
+now waits 24 hours before the cleanup deletes the account;
+`cancel_account_deletion()` clears it, and a new sign-in to the account shows
+the deletion-grace dialog with the deadline, a countdown from the server's
+time and `Cancel deletion`, which the browser's other tabs follow. The
+migration reached production at the close, after the manual dump and the
+`internal.dispatch_backups()` rehearsal (ledger, Close). Nothing new is
+deferred.
 
 
 ## Phases 36–40 — Retired
@@ -1112,15 +1037,15 @@ This register covers every implementation/test path declared by two or more task
 
 ## Next Numbers
 
-- **Next planned implementation phase/task:** Phase 54 / Task 265 onward (account deletion grace period, db lane); Phases 51 (2026-11-05), 52 (2026-11-07) and 53 (2026-11-09) are closed. The theme stage (`2026-10-17-theme-scope-replan`) comes through `/craft-docs`. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
-- **Next unallocated numbers:** Phase 55 / Task 267. Planned Phases 42–54 and
+- **Next planned implementation phase/task:** none planned; Phases 51 (2026-11-05), 52 (2026-11-07), 53 and 54 (2026-11-09) are closed. The FE/Visual pass, the first SQL phase after Phase 54 (which retires the manual dump, B17) and the theme stage (`2026-10-17-theme-scope-replan`) come through `/craft-docs`. Phases 36–40 are retired. Phases 32 and 33 remain reserved with no tasks.
+- **Next unallocated numbers:** Phase 55 / Task 267. Phases 42–54 and
   Tasks 213–266 are allocated; retired Phases 36–40 and Tasks 180–208 keep
   their numbers; none may be reused for another meaning.
-- Graph reconciliation: 139 accepted tasks (101–163 plus 105A, 166–172, 171A,
+- Graph reconciliation: 141 accepted tasks (101–163 plus 105A, 166–172, 171A,
   173–179 plus 176A and 179A, 209–212, 213–240 plus 238A, 241–244, 245–250
-  plus 245A, 251–254, 255–259 and 260–264), twenty-four completed archives
-  (Phases 23–31, 34, 35 and 41–53), two historical unaccepted transfer records
-  (164/165), 29 retired tasks (180–208) in retired Phases 36–40, two reserved
-  phases (32–33), and two planned tasks (265–266) in Phase 54.
+  plus 245A, 251–254, 255–259, 260–264 and 265–266), twenty-five completed archives
+  (Phases 23–31, 34, 35 and 41–54), two historical unaccepted transfer records
+  (164/165), 29 retired tasks (180–208) in retired Phases 36–40, and two reserved
+  phases (32–33).
 - This amendment and C05/C06/flow review are accepted under their exact-artifact
   receipts. They approve planning, not task acceptance.

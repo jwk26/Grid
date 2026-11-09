@@ -6,7 +6,7 @@ import { createTestUser, type TestUser } from "./helpers/users";
 
 // Task 238, Stage 1: internal.cleanup_guests() (SCHEMA §Guest cleanup). It deletes anonymous auth
 // users 7 days after `accounts.last_visit_at` (or `auth.users.created_at` when no accounts row
-// exists) and every account with a deletion request; the `user_id` cascade removes the rows. It
+// exists) and every account whose deletion request is older than 24 hours; the `user_id` cascade removes the rows. It
 // is owned by postgres and run by pg_cron, so no client role, and not even griddo_writer, can run it.
 
 const DAY = 86_400_000;
@@ -105,19 +105,37 @@ describe("cleanup_guests()", () => {
     expect((await rowCounts(db, openTab)).accounts).toBe(1);
   });
 
-  it("deletes an account with a deletion request on the next run, whatever its age, with all its rows", async () => {
-    const real = await createTestUser("gcreal");
-    await commitEnsure(db, real, false);
-    const before = await rowCounts(db, real);
+  async function requestDeletionAged(real: TestUser, hoursAgo: number): Promise<void> {
     await db.query("begin");
     await becomeActor(db, { role: "authenticated", userId: real.id });
     await db.query("select public.delete_my_account()");
     await db.query("commit");
     await db.query("reset role");
+    await db.query(
+      "update app.accounts set deletion_requested_at = (extract(epoch from now()) * 1000)::bigint - $2::bigint where user_id = $1",
+      [real.id, Math.round(hoursAgo * 3_600_000)],
+    );
+  }
+
+  it("deletes an account whose deletion request is older than 24 hours on the next run, with all its rows", async () => {
+    const real = await createTestUser("gcreal");
+    await commitEnsure(db, real, false);
+    const before = await rowCounts(db, real);
+    await requestDeletionAged(real, 25);
     expect(before.nodes).toBeGreaterThan(0); // the system Nodes
     await cleanup(db);
     expect(await authUserExists(db, real)).toBe(false);
     expect(await rowCounts(db, real)).toEqual(Object.fromEntries(APP_TABLES.map((t) => [t, 0])));
+  });
+
+  it("keeps an account whose deletion request is younger than 24 hours, with all its rows", async () => {
+    const real = await createTestUser("gcyoung");
+    await commitEnsure(db, real, false);
+    const before = await rowCounts(db, real);
+    await requestDeletionAged(real, 23);
+    await cleanup(db);
+    expect(await authUserExists(db, real)).toBe(true);
+    expect(await rowCounts(db, real)).toEqual(before);
   });
 
   it("never deletes a real account that has no deletion request, however long since its last visit", async () => {

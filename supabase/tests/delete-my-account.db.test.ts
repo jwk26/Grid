@@ -9,7 +9,7 @@ import { adminClient, createTestUser, type TestUser } from "./helpers/users";
 // records the request for the caller only; from then on every client-callable function rejects the
 // account with `account_deleting`.
 
-type Envelope = { status: string; result: unknown; changes: Record<string, unknown>; rejection?: { code: string } };
+type Envelope = { status: string; result: unknown; changes: Record<string, unknown>; rejection?: { code: string; [key: string]: unknown } };
 
 let user: TestUser;
 let other: TestUser;
@@ -101,6 +101,8 @@ const CALLS: Record<string, () => string> = {
   update_node: () => `public.update_node(${uuid()}, '{}'::jsonb, ${RESERVED})`,
 };
 
+// cancel_account_deletion is excluded: it is the one function that accepts an account with a
+// request (Task 265); its `applied` on such an account is proved in account-deletion-grace.db.test.ts.
 async function clientCallable(db: Client): Promise<string[]> {
   await becomeActor(db, { role: "owner" });
   const { rows } = await db.query(
@@ -108,6 +110,7 @@ async function clientCallable(db: Client): Promise<string[]> {
       where p.pronamespace = 'public'::regnamespace and p.prokind = 'f'
         and has_function_privilege('authenticated', p.oid, 'execute')
         and p.proname <> 'delete_my_account'
+        and p.proname <> 'cancel_account_deletion'
         and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
       order by 1`,
   );
@@ -281,7 +284,12 @@ describe("a marked account", () => {
       expect(rows[0].s).toEqual({ rejection: { code: "account_deleting" } });
       const before = await requestedAt(db, user.id);
       await becomeActor(db, as(user));
-      expect(await ensure(db)).toEqual({ status: "rejected", result: null, changes: {}, rejection: { code: "account_deleting" } });
+      const rejected = await ensure(db);
+      expect(rejected).toEqual({
+        status: "rejected", result: null, changes: {},
+        rejection: { code: "account_deleting", deletion_requested_at: before, server_now: expect.any(Number) },
+      });
+      expect(rejected.rejection?.server_now as number).toBeGreaterThanOrEqual(before as number);
       expect(await requestedAt(db, user.id)).toBe(before);
     });
   });
@@ -348,7 +356,7 @@ describe("concurrency", () => {
         await b.end();
       }
       await withActor(as(racer), async (db) => {
-        expect((await ensure(db)).rejection).toEqual({ code: "account_deleting" });
+        expect((await ensure(db)).rejection).toMatchObject({ code: "account_deleting" });
       });
     }
   });
