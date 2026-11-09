@@ -14,10 +14,15 @@ cancel and its unknown-outcome rule, the other-tab follow on the
 `griddo.restore` channel (`deletion-cancelled`), the new confirmation and toast
 copy, and the forced `near-zero` and `zero` states (266).
 
-Production close: recorded in the ledger's Close section (the manual dump,
-the `internal.dispatch_backups()` rehearsal, migration
-`20261045000000_account_deletion_grace.sql` pushed with `--skip-vault`, then
-the merge; no function change).
+Production close (user approval, 2026-11-09; ledger, Close): the close dump
+`~/griddo-dumps/2026-11-09-close/` (delete by 2026-11-16); the
+`internal.dispatch_backups()` rehearsal (1 target, 1 successful check, 0
+failed); migration `20261045000000_account_deletion_grace.sql` pushed with
+`--skip-vault`; Security Advisor 49 → 50 by `--linked --project-ref`
+(`--type security --level info`), the one new
+`authenticated_security_definer_function_executable` on
+`public.cancel_account_deletion()` an instance of the accepted class; then the
+merge. No function change.
 
 Carried in: the Phase 53 Task 265 note (read at the start and the close;
 nothing to carry in `.env.local`), the manual dump retirement (this close
