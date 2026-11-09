@@ -636,9 +636,10 @@ Violations of core architectural invariants. **Must be fixed before close-out / 
   ledger with its reason, and anything else is shown to the user, who accepts
   it there or has it fixed (user, Phase 53 Task 264). The CLI count is
   compared only with a baseline read the same way: `supabase db advisors
-  --linked --project-ref <ref>` from a directory without `.env.local`;
-  `--db-url` runs a smaller lint set whose count is not comparable (Phase 53
-  Task 264). In Phase 43 the CLI did not report the definer lint, while in
+  --linked --project-ref <ref> --type security --level info` from a
+  directory without `.env.local`, recorded with its flags; `--db-url` runs a
+  smaller lint set whose count is not comparable (Phase 53 Task 264), and the
+  default level drops the INFO results (Phase 54 close). In Phase 43 the CLI did not report the definer lint, while in
   Phase 53 the `--linked` read did; whether its count equals the dashboard
   list is unchecked, so the dashboard list stays the authority. No secret key
   in Git or client code. A security setting is proven by
