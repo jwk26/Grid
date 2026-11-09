@@ -1425,7 +1425,7 @@ checks the locked rows again after it holds them (S30; user, 2026-10-22):
   where there is no parent row to lock, it alone keeps two creates out of one
   cell.
 - **Inbox.** Inbox commands lock their Scratch Bit row `for update`.
-- **Account.** `ensure_account()` locks the account row. Its demo seed step (Task 237) takes
+- **Account.** `ensure_account()` locks the account row (`delete_my_account()` and `cancel_account_deletion()` too, each after the L0 Grid lock). Its demo seed step (Task 237) takes
   the Inbox Grid advisory lock after that row lock, and only for a guest that
   looks empty, so a capture into an Inbox committed by an earlier call cannot
   land in a seed cell. This is the one place an advisory lock follows a row
@@ -1442,7 +1442,7 @@ checks the locked rows again after it holds them (S30; user, 2026-10-22):
   computes the fingerprint again ([Account backup](#account-backup)). Chunk
   writes lock the Bit's parent Node and then the Bit, and `reorder_chunks`
   the Bit, in the same direction. `restore_account()` never locks the `accounts`
-  row: `ensure_account()` and `delete_my_account()` take L0 first and the
+  row: `ensure_account()`, `delete_my_account()` and `cancel_account_deletion()` take L0 first and the
   `accounts` row second, so locking it first would invert their order. It reads
   the row after the L0 lock, where a committed deletion request is seen and none
   can commit while the restore holds L0 (`expert` review, Task 260).
@@ -1530,7 +1530,10 @@ user, 2026-11-04). From Phase 54 the request is no longer final:
   only the guaranteed time, the request plus 24 hours.
 - `public.cancel_account_deletion()`: `security definer`, owned by
   `griddo_writer`, EXECUTE for `authenticated`. It is the one write function
-  that accepts an account with a deletion request. It locks the caller's
+  that accepts an account with a deletion request. It takes the L0 Grid lock
+  first, as `delete_my_account()` does (`ensure_account()` reads the request
+  unlocked under L0, so a cancel serialized on L0 keeps the value it returns
+  consistent), then locks the caller's
   `accounts` row `for update` and clears `deletion_requested_at`; with no
   request it changes nothing and returns `applied`. A caller whose account the
   cleanup has already deleted gets `account_missing`.
