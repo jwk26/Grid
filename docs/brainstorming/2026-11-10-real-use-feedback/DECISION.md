@@ -34,12 +34,12 @@ theme-stage look; **Config** = production configuration.
 
 | ID | Item | Kind | Lane | State |
 |---|---|---|---|---|
-| R1 | Sidebar zones and order; Backup into Account; theme and dark mode into Settings | IA | app | decided, gap: edit mode |
+| R1 | Sidebar zones and order; Backup into Account; theme and dark mode into Settings | IA | app | decided; edit mode retired (P2-1) |
 | R2 | Sidebar hide | — | — | **dropped** (user) |
-| R3 | Drag time: no icon swap; unusable sidebar icons dim | Interaction | app | decided, conflict with R6 |
+| R3 | Drag time: no icon swap; unusable sidebar icons dim | Interaction | app | decided; zone B rule below |
 | R4 | Inbox and Archive in one place (Grid by default, or the sidebar) | IA | app | decided |
 | R5 | Calendar becomes a system Node | IA | **db** | decided (direction) |
-| R6 | Favorites: one concept, sidebar slots, drawer | IA | **db** | decided, details open |
+| R6 | Favorites: one concept, sidebar slots, drawer | IA | **db** | decided (Sidebar zone B); flag storage open |
 | R7 | Settings button | IA | app | decided |
 | R8 | Right-click option menu on Node and Bit | Interaction | app | decided |
 | R9 | Replace the top-right `...` with another visible entry | Interaction | app | decided, UI open |
@@ -105,14 +105,9 @@ theme-stage look; **Config** = production configuration.
 
 ## Open questions
 
-- **R1 edit mode:** the zone list has no Pencil. Edit mode today gives jiggle,
-  dashed cell outlines, `+` on empty cells and delete buttons (SPEC). Keep it
-  (where?) or retire it once R8 covers Edit and Delete.
-- **R3 vs R6:** if Nodes can be dragged into zone B, zone B is a drop target
-  during a Node drag and cannot dim with the rest.
-- **R6:** whether the 5 slots are shared between system Nodes and Favorites;
-  when the dotted placeholders show and how many; the order of entries; where
-  the favorite flag is stored.
+- **R6 storage (DB):** where the Favorite flag and the Favorites order live (a
+  column on `nodes` or a table).
+
 - **R9:** the replacement UI (to be shown as a rendered option sheet).
 - **R17:** whether Restore needs a confirmation (control tower view in
   `NOTES.md`); what each of the two columns holds; whether a child can be
@@ -204,7 +199,7 @@ Homes: **L1-Pn** part, **L2** surface, **L3** skin, **DB** side line,
 
 | Row | Home | Note |
 |---|---|---|
-| R1 | L1-P5 | edit-mode question open |
+| R1 | L1-P5 | edit mode retired (P2-1) |
 | R2 | Dropped | user |
 | R3 | L1-P5 | with R6 drop target |
 | R4 | L1-P5 | rule on `hiddenFromGrid` |
@@ -312,8 +307,8 @@ Every layer, the concept/mockup session included, follows these:
 
 - The portfolio link is published only after every feature under discussion
   here is implemented, **the `retro-mac`, `neumorphism` and `claymorphism`
-  skins included** (user, 2026-11-10). Whether the After rows of the coverage
-  matrix count is open; see Open questions.
+  skins included** (user, 2026-11-10). The After rows wait for after the link
+  (below).
 - **R18:** Archive's purpose and UI are settled in the new default theme's
   concept/mockup session (`2026-11-10-default-theme-concept`), not here; this
   topic waits for that result.
@@ -339,6 +334,92 @@ Every layer, the concept/mockup session included, follows these:
   `src/lib/utils/aging.ts` (the gap in `NOTES.md` §Aging check).
 - The draft revision in `2026-04-28-node-rollup-focus-aging` §Aging Revision is
   input to the rules, separate from the rollup (After).
+
+## P2 option menu
+
+- **P2-1 edit mode (user, 2026-11-10):** edit mode and its sidebar Pencil are
+  retired. The option menu takes Edit and Delete; creating in an empty cell
+  moves to an empty-cell context menu (New Node here / New Bit here) plus a
+  faint `+` on an empty cell under the pointer. The ghost hints of P48 mi-4 are
+  settled in the same place. Zone A stays Home, Add, Search. (Closes the R1
+  edit-mode question.)
+
+- **P2-2 menu items (user, 2026-11-10):** a menu is chosen by the item's kind
+  and state, never by the surface, so a live Bit has the same menu on the
+  Grid, the Calendar, the sidebar and in search results. Frequent actions
+  first; irreversible ones last, below a separator.
+
+  | Item (state) | Menu |
+  |---|---|
+  | Node (live) | Open · Edit · Add to Favorites / Remove from Favorites ─ Archive · Move to Trash |
+  | Bit (live) | Open · Edit · Mark as complete / Mark as active · Promote to Node (only when allowed today) ─ Archive · Move to Trash |
+  | System Node (Inbox, Archive, Calendar) | Open · Add to sidebar / Move to Grid |
+  | Empty cell in a Node's Grid | New Node here · New Bit here |
+  | Empty cell on L0 | New Node here (a Bit always needs a parent) |
+  | Trashed item | Restore ─ Delete permanently (with confirmation) |
+  | Archived item | settled with R18 in the concept/mockup session |
+
+  Sidebar entries use the menu of what they are (a Favorite uses the Node
+  menu). Chunks and Scratch get no option menu; they are edited inside their
+  own surfaces.
+
+- **P2-3 (closed by P2-2):** the same menu opens wherever the item appears.
+- **P2-4 opening the menu (user, 2026-11-10):** click opens the item as today
+  (a Node's Grid, a Bit's detail); right-click opens the menu at the pointer;
+  the visible entry (R9, look in the concept/mockup session) opens the same
+  menu next to the card; from the keyboard, the context-menu key or
+  `Shift+F10` opens it, `Enter` opens the item and `Delete` moves it to Trash,
+  with the shortcuts shown faintly in the menu; a long press opens it on touch
+  screens at 1024px or wider (to confirm in the chosen menu primitive). The
+  Grid is one Tab stop with arrow-key movement inside it (roving focus), empty
+  cells included, so the empty-cell menu is reachable from the keyboard. Code
+  check to do first: Bit cards take focus (`tabIndex`), Node cards show no
+  focus hook in `node-card.tsx`.
+
+- **P2-5 Trash confirmation (user, 2026-11-10):** Move to Trash has no
+  confirmation dialog. It hides the item at once, as today, and shows a toast
+  "Moved to Trash · Undo" (with the count for a Node with children, for example
+  "Moved 'Work' and 12 items to Trash · Undo"). Undo is a Restore: it is
+  server-confirmed, shows a short pending state, and a Node whose cell was
+  taken meanwhile returns to the nearest free cell, which the toast says. After
+  the toast, Restore in Trash does the same. Confirmation dialogs stay only for
+  irreversible actions: Delete permanently and Empty Trash. The edit-mode delete
+  dialog goes with edit mode (P2-1).
+
+## Sidebar zone B (user, 2026-11-10)
+
+- Zone B has two parts with a thin divider: the **system part** (Inbox,
+  Calendar, Archive, fixed order, 0–3 slots) and the **Favorites part**.
+- A system Node in the sidebar is **moved** there (it leaves the Grid, R4,
+  stored as `hiddenFromGrid`). A Favorite is a **shortcut** (the Node stays in
+  its Grid; a new per-account flag, DB). A system Node never becomes a
+  Favorite.
+- Zone B shows at most 5 entries in all; system Nodes take their slots first
+  and Favorites fill the rest. Only Favorites overflow into the drawer, so the
+  Inbox badge is never hidden.
+- Drags: a system Node dropped anywhere in zone B goes to its fixed place in
+  the system part (a Favorite pushed past the limit moves to the drawer); an
+  ordinary Node adds a Favorite; a Bit is not accepted and zone B dims with the
+  rest (R3); a system Node dragged from the sidebar onto an empty Grid cell
+  moves there; a Favorite dragged out of the sidebar removes only the
+  shortcut. Only Favorites can be reordered.
+- During a Node drag only the part that will take it lights up, with a short
+  label ("Move to sidebar" for a system Node, "Add to Favorites" for an
+  ordinary Node); the label's look belongs to the concept/mockup session.
+- The dotted placeholders show only in the Favorites part, only while it has
+  free slots (at most 2).
+
+## System Nodes in the first-run guide (user, 2026-11-10)
+
+- Users will not easily see why Inbox, Archive and Calendar are treated
+  differently; the Welcome/first-run guide explains it.
+- Control tower proposal: explain them as **tools over your work, not
+  containers of it** (Inbox collects what is not placed yet, Archive keeps what
+  is done, Calendar shows deadlines by date), which is why they cannot be
+  renamed, archived or trashed and why they move instead of being bookmarked.
+  Following shared rule 3, the card should also say it by itself: a distinct
+  tool-card variant in P1 (concept/mockup session), with the guide's one step
+  on top.
 
 ## Discussion order (user agreed, 2026-11-10)
 
