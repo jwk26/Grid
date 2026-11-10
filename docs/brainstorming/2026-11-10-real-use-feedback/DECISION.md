@@ -1,9 +1,19 @@
 # Real-Use Feedback (2026-11-10) — Classification and Index
 
+## Table of Contents
+
+- [Metadata](#metadata) · [Summary](#summary) · [Items](#items) · [Decisions](#decisions-user-2026-11-10) · [Open questions](#open-questions)
+- [Frame](#frame-user-agreed-2026-11-10) · [Coverage matrix](#coverage-matrix-homes-follow-the-decisions-below-superseded-rows-say-so) · [Shared rules](#shared-rules-user-2026-11-10) · [Publish line](#publish-line-user-2026-11-10) · [Aging](#aging-user-2026-11-10)
+- [P2 option menu](#p2-option-menu) · [P3 command input](#p3-command-input-user-2026-11-10) · [P4 Add/Edit dialog](#p4-addedit-dialog) · [Sidebar zone B](#sidebar-zone-b-user-2026-11-10) · [System Nodes in the guide](#system-nodes-in-the-first-run-guide-user-2026-11-10)
+- [P1 card family](#p1-card-family) · [P5 sidebar](#p5-sidebar) · [P7 and P8](#p7-and-p8-user-2026-11-11) · [Trash](#trash-user-2026-11-11-r17-completed) · [Phases](#phases-user-2026-11-11) · [Discussion order](#discussion-order-user-agreed-2026-11-10)
+
+Later sections amend earlier ones where they differ (for example P5-1 withdraws
+R7 and changes zone C).
+
 ## Metadata
 
 - Created: 2026-11-10
-- Updated: 2026-11-10 (first review round with the user)
+- Updated: 2026-11-11 (control tower discussion closed: shared rules, publish line, P1–P5, P7–P8, Trash, phases)
 - Readiness: draft
 - Category: planning index
 - Source project: GridDO
@@ -40,7 +50,7 @@ theme-stage look; **Config** = production configuration.
 | R4 | Inbox and Archive in one place (Grid by default, or the sidebar) | IA | app | decided |
 | R5 | Calendar becomes a system Node | IA | **db** | decided (direction) |
 | R6 | Favorites: one concept, sidebar slots, drawer | IA | **db** | decided (Sidebar zone B); flag storage open |
-| R7 | Settings button | IA | app | decided |
+| R7 | Settings button | — | — | **withdrawn** (user, 2026-11-11; P5-1) |
 | R8 | Right-click option menu on Node and Bit | Interaction | app | decided |
 | R9 | Replace the top-right `...` with another visible entry | Interaction | app | decided, UI open |
 | R10 | Limit the Bit by the drop-zone size | IA | **db** | decided (in `2026-10-31-grid-bit-card-footprint`) |
@@ -62,7 +72,9 @@ theme-stage look; **Config** = production configuration.
 ## Decisions (user, 2026-11-10)
 
 - **R1:** the sidebar has three internal zones, top to bottom: **A** Home, Add,
-  Search; **B** system Nodes and Favorites; **C** Trash, Settings, Account.
+  Search; **B** system Nodes and Favorites; **C** Trash, Settings, Account
+  (amended 2026-11-11 by P5-1: no Settings; C is Trash, Appearance, Account,
+  with light/dark/system inside Appearance).
   Users never see the zone names; dividers separate the zones. Color theme and
   dark/light move into Settings; Backup moves into Account.
 - **R2:** dropped. Hiding a 48px sidebar gains too little.
@@ -77,8 +89,8 @@ theme-stage look; **Config** = production configuration.
   Favorites); beyond that a drawer button opens the rest. Dotted Node
   placeholders in zone B signal that a Node can be dragged there. The favorites
   UI is new, not the qc prototype's.
-- **R7:** a Settings button. Settings holds this device's display settings;
-  Account holds account-level actions (sign-in, Backup, deletion).
+- **R7:** a Settings button — **withdrawn 2026-11-11** (P5-1). Account still
+  holds account-level actions (sign-in, Backup, deletion).
 - **R8:** a right-click option menu on Node and Bit cards (Open, Edit, Archive,
   Move to Trash), reachable from the keyboard too.
 - **R9:** a visible entry to the same menu stays, but not the current top-right
@@ -108,18 +120,14 @@ theme-stage look; **Config** = production configuration.
 ## Open questions
 
 - **R6 storage (DB):** where the Favorite flag and the Favorites order live (a
-  column on `nodes` or a table).
-
-- **R9:** the replacement UI (to be shown as a rendered option sheet).
-- **R17:** whether Restore needs a confirmation (control tower view in
-  `NOTES.md`); what each of the two columns holds; whether a child can be
-  restored alone.
-- **R19:** Scratch is not in `searchAll()` today (Nodes, Bits, Chunks only);
-  what opening a Scratch result does.
+  column on `nodes` or a table); Phase 56 `/craft-docs`.
+- **R9:** the replacement UI for the top-right `...`: concept/mockup session.
+- **R18:** Archive's function and UI: concept/mockup session.
 - **R22:** which option, if any; decided last, right before the link.
-- **Aging rules:** levels, thresholds, which items (Inbox Scratch?), completed
-  and urgent items; settled with P1 (see Aging below and `NOTES.md` §Aging
-  check).
+- **First-run guide:** where "seen" is stored (account or device) and its steps
+  (`2026-10-31-first-run-grid-tour`); at the guide's phase.
+- Look-level questions handed to the concept/mockup session are listed in its
+  handoff, not here.
 
 ## Frame (user agreed, 2026-11-10)
 
@@ -188,7 +196,7 @@ up.
   theme phase's completeness check. The catalog and the tier-0 tokens come
   first.
 
-## Coverage matrix (draft, control tower proposal; homes to be confirmed)
+## Coverage matrix (homes follow the decisions below; superseded rows say so)
 
 Homes: **L1-Pn** part, **L2** surface, **L3** skin, **DB** side line,
 **Basket**, **After** (after the link is published), **Dropped**, **Policy**
@@ -204,7 +212,7 @@ Homes: **L1-Pn** part, **L2** surface, **L3** skin, **DB** side line,
 | R4 | L1-P5 | rule on `hiddenFromGrid` |
 | R5 | DB + L1-P2 | "Add to sidebar" in the menu |
 | R6 | DB + L1-P5 | favorites UI new |
-| R7 | L2 Settings | device vs account rule |
+| R7 | Withdrawn | no Settings button (P5-1) |
 | R8 | L1-P2 | keyboard path |
 | R9 | L1-P2 | = ISSUE-19-01 |
 | R10 | DB | footprint topic, after P1 |
@@ -556,6 +564,104 @@ sidebar Search button open it.
 - Following shared rule 3, the card says it by itself: a distinct built-in
   card variant in P1 (look in the concept/mockup session), with the guide's
   one step on top.
+
+## P1 card family
+
+- **P1-1 aging rules (user, 2026-11-11):**
+  - a. A Node's age is the most recent edit of the Node or anything inside it
+    (any depth), computed at render time from the snapshot (Architecture Rule
+    4; no DB change). Today the cascade reaches one parent only, so an L0 Node
+    whose work happens deeper fades on Home.
+  - b. A completed Bit, and a Node whose Bits are all complete, do not fade;
+    the completed look shows alone.
+  - c. A Bit or Node at urgency level 1–3 or past its deadline does not fade;
+    the deadline signal wins (answers the concept session's question).
+  - d. Three levels on a weekly scale: Fresh 0–6 days, Stagnant 7–13,
+    Neglected 14+ (replaces 0–5 / 6–11 / 12+; the four-level draft is not
+    taken).
+  - e. Grid cards only (not Calendar, search or Trash). System Nodes never age.
+    Moving or opening an item does not reset its age.
+  - f. Scratch aging in the Inbox waits for after the link.
+  - The look (only the surface fades, text keeps its contrast, through theme
+    tokens) belongs to the concept/mockup session.
+
+## P5 sidebar
+
+- **P5-1 Settings and Appearance (user, 2026-11-11):**
+  - The light/dark toggle gains **System** (follows the OS; next-themes
+    supports it).
+  - **No Settings button** (R7 is withdrawn: nothing to put in it). Zone C
+    keeps Trash, Appearance and Account.
+  - The theme picker stays on the sidebar as an **Appearance** button and opens
+    its own theme selection surface with a **preview of each theme**. Themes are
+    the work the user most wants a portfolio reader to see. Unfinished themes
+    stay hidden (shared rule 4). Its look: concept/mockup session.
+  - The light/dark/system choice lives **inside the Appearance surface** (a
+    three-way choice above the theme previews, so each theme can be shown in
+    both modes); zone C is Trash · Appearance · Account.
+  - Keyboard shortcuts and Replay guide become **Cmd+K actions** ("short",
+    "?", "guide" find them); `?` outside a text field opens the shortcuts sheet
+    directly. These are two actions, not the deferred feature search (R19).
+
+## P7 and P8 (user, 2026-11-11)
+
+- The app-state screens (P7: loading, load failure, guest creation failure,
+  security check, session expired, account being deleted, account deleted,
+  narrow window, restoring, Grid unavailable) and the breadcrumb and Home (P8)
+  keep their SPEC behavior; only their look goes to the concept/mockup
+  session, with P45 MI-24, P48 mi-1 and mi-2 for the theme phases.
+- The narrow-window notice is treated as an introduction screen, since it is
+  all a phone visitor sees: one line on what Grid is, and a request to open it
+  on a desktop (wording: concept/mockup session).
+
+## Trash (user, 2026-11-11; R17 completed)
+
+- **T-1:** Restore has no confirmation. It restores at once and shows a toast
+  that names where the item went, with Open and Undo ("Restored 'Work' to Home
+  · Open · Undo"; a different cell than the original is stated). Undo sends it
+  back to Trash. Confirmations stay only for Delete permanently and Empty Trash
+  (P2-5).
+- **T-2 two columns:** the left column holds search, sort (Newest / Oldest),
+  Empty trash and the list of trashed items (Staging cards, days left); the
+  right column shows the selected item: where it was (path), when it was
+  deleted, days left, Restore / Delete permanently, and its whole tree at every
+  depth (expand and collapse). This replaces the one-level "show children".
+- **T-3:** every row of the right column's tree has its own Restore. Restoring
+  an inner item restores its trashed ancestors with it (today's parent-chain
+  rule), not its siblings; the toast names the ancestors that came back.
+  Whether the server functions do this as is: check at implementation.
+- Search covers titles at every depth; a match inside a trashed Node selects
+  that Node's row and marks the match in the tree. The list moves by `↑↓`; the
+  menu key opens the trashed-item menu (P2-2).
+
+## Phases (user, 2026-11-11)
+
+**Now (independent of the mockup):**
+
+- **Phase 55 (app):** the small-fix basket and the rule changes that leave the
+  look as it is. R23 first, R24 interim inside-scroll, R11, the R14 Pool
+  alignment, P53 mi-5, P51 mi-6, P51 mi-3, P53 mi-3; aging rules a–e (P1-1),
+  the Promote Chunk condition (P2), the half-Grid placement (P4-5). Its
+  `/craft-docs` also does H1 and H2 on GridDO `CLAUDE.md` (the MI numbering
+  sentence; trimming the Workflow section).
+- **Phase 56 (db), alongside:** Supabase CLI v3, the Favorites storage (R6;
+  additive, unused until the sidebar phase), and the manual dump retirement
+  (this becomes the first SQL phase after Phase 54, B17).
+
+**After the concept/mockup session (order fixed; numbers, contents and merges
+of phases decided at their `/craft-docs` once the mockup exists):** tier-0
+tokens and the parts catalog (the production default stays `griddo` until the
+switch) → P2 menu, Grid roving focus, edit-mode removal, Trash Undo → P3
+command input and P4 dialog → P1 card family and the aging look → R5 Calendar
+Node, R6 Favorites and P5 sidebar with Appearance (db + app; the client learns
+the `calendar` role before the server creates it, per expand) → R10 Bit
+footprint (db, measured on the P1 card) → surfaces (Calendar with quarterly
+and date create, Trash, Archive) → P7, P8, first-run guide and the switch of
+the default theme → `retro-mac`, `neumorphism`, `claymorphism` skins, one phase
+each → R22 → publish the link.
+
+Rough size from past pace: about 14 phases and 55–70 tasks, about 6–8 weeks
+after the mockup; the three skins are the largest variable.
 
 ## Discussion order (user agreed, 2026-11-10)
 
