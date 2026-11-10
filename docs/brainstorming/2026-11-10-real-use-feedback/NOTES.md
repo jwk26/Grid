@@ -147,3 +147,29 @@ user directions and open questions live in `DECISION.md`.
   opacity with a 0.6 floor and a contrast check, no animation, an urgency
   override (overdue items skip aging) and aging for Inbox Scratch. SCHEMA
   still has the three-level rule.
+
+## R23 and R24 code check (control tower, `main` `ae8a0b6`, 2026-11-10)
+
+- **R23 cause:** the Inbox page is the route `/grid/<Inbox id>`, and
+  `src/components/layout/grid-runtime.tsx` treats the routed Node as the
+  parent for every create: `createNode({ parentId: nodeId, level:
+  displayLevel })` and `CreateBitDialog defaultParentId={nodeId}` with
+  `requireParent={nodeId === null}`. `create_node()`
+  (`supabase/migrations/20261027000000_node_bit_writes.sql`) returns
+  `invalid_target` for a system-Node parent, which the client reports as the
+  generic "Couldn't create … Try again." (retrying cannot help). `create_bit()`
+  accepts an Inbox parent because a Bit under the Inbox is how a Scratch is
+  stored, so the Bit becomes a Scratch; its icon, priority and deadline are
+  written but the Scratch surfaces do not show them. The Archive page
+  (`archive_view`) goes through the same runtime; `create_bit()` and
+  `create_node()` both refuse an Archive parent, so both would fail there (not
+  checked in the browser). Separately, `parent-node-selector.tsx` filters only
+  `deletedAt`, and the user's screenshot shows Inbox and Archive offered as
+  parents at L0.
+- **Direction already decided:** P4 treats the Inbox, Archive and Calendar as
+  "outside a Grid": a Node goes to L0 and a Bit needs a picked parent, and the
+  picker leaves out system Nodes (P4-4 proposal).
+- **R24:** the user's 1920×1080 screenshot shows the Bit dialog taller than the
+  window (parent list, title, description, a four-row icon grid with a visible
+  scrollbar, priority, deadline, buttons). The FHD content area is 968px tall
+  (GridDO `CLAUDE.md` Test data).

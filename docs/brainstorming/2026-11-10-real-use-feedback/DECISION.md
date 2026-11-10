@@ -55,6 +55,8 @@ theme-stage look; **Config** = production configuration.
 | R19 | Search placeholder and scope | Rule | app | decided, Scratch search is new scope |
 | R20 | Replace "Fixed Menu" with an `esc` hint | Fix (copy) | app | decided |
 | R21 | One search input; create targets; Add Node / Add Bit; `+` menu | IA | app | decided, `+` header open |
+| R23 | **Production defect:** `+` on the Inbox page offers Node and Bit; Node fails with "Couldn't create … Try again.", Bit silently becomes a Scratch; the parent list offers Inbox and Archive | Fix | app | found 2026-11-10; the user confirmed on the Archive page too (Node and Bit both fail); basket, first (user) |
+| R24 | The create dialogs do not fit a 1920×1080 window (cut at top and bottom; usable only at 90% zoom) | Fix | app | found 2026-11-10; basket, first (user) |
 | R22 | Google sign-in shows the Supabase project domain and no logo | Config (+ app) | — | last, right before the link (user); options in `NOTES.md` |
 
 ## Decisions (user, 2026-11-10)
@@ -114,9 +116,6 @@ theme-stage look; **Config** = production configuration.
   restored alone.
 - **R19:** Scratch is not in `searchAll()` today (Nodes, Bits, Chunks only);
   what opening a Scratch result does.
-- **R21:** the `+` menu: one "New Item" header with Scratch, Node, Bit (user
-  proposal) or the two groups kept with a line each (control tower view in
-  `NOTES.md`).
 - **R22:** which option, if any; decided last, right before the link.
 - **Aging rules:** levels, thresholds, which items (Inbox Scratch?), completed
   and urgent items; settled with P1 (see Aging below and `NOTES.md` §Aging
@@ -138,7 +137,7 @@ bottom:
   Archive, Inbox/Triage, Settings, Account, breadcrumb and Home, app-state
   screens and dialogs (loading, failure, expiry, restoring, narrow window,
   backup, deletion grace), first-visit guidance (Welcome, tour, ghost hints).
-- **Layer 3 – skins:** Paper first, as the first skin of the new parts (no
+- **Layer 3 – skins:** the new default theme first, as the first skin of the new parts (no
   repaint in `griddo`), then `retro-mac`, `neumorphism`, `claymorphism`.
 - **Side lines:** DB (data changes the parts need); a small-fix basket
   (fixes and tests unrelated to the layers).
@@ -150,18 +149,18 @@ Done means every row of the coverage matrix has a home.
 - Every part gets its theme hook (a class or data attribute that the
   `.theme-*` CSS targets) when it is built in Layer 1; components never branch
   on the theme id (Architecture Rule 8).
-- Paper is painted when a part is built. The other themes follow in one phase
+- The new default theme is painted when a part is built. The other themes follow in one phase
   per theme, after the parts are stable.
 - Each part's option sheet shows all four themes in rough form, so the
-  structure fits every theme; only Paper is built then.
+  structure fits every theme; only the new default theme is built then.
 - A theme whose skin is unfinished is hidden from the theme list until its
   phase closes. Whether `retro-mac` or `neumorphism` are finished before the
   link is published is a publish-line question.
-- The Paper UI made so far (`prototype/default-theme`) is discarded; Paper is
-  designed again from the start. The branch itself stays as it is.
+- The Paper UI made so far (`prototype/default-theme`) is discarded; the default
+  theme is designed again from the start. The branch itself stays as it is.
 - The Paper concept (cream paper, ink, serif) is discarded too. A new default
   theme concept is made from a few reference images (view-only: mood and
-  direction, never copied). Its name and theme id may change with it. Kept from
+  direction, never copied). Its name and theme id are open; "Paper" and `paper` in this entry and in SPEC (SaaS S40) are not a decision for the new theme. Kept from
   the old topic: its measured contrast results and its list of structural
   changes and conflicts, as a checklist the new theme must answer.
 
@@ -226,7 +225,7 @@ Homes: **L1-Pn** part, **L2** surface, **L3** skin, **DB** side line,
 
 | Row | Home | Note |
 |---|---|---|
-| ① Paper (`prototype/default-theme`) | L3 (first skin) | the prototype UI is discarded (user, 2026-11-10); Paper is designed again |
+| ① new default theme (was Paper, `prototype/default-theme`) | L3 (first skin) | the Paper UI and concept are discarded (user, 2026-11-10); the new theme's name and id are not decided |
 | ② card look per theme (`2026-10-20-grid-card-theme-alignment`) | L1-P1 → L3 | before ③ (user, 10-31) |
 | ③ Bit card footprint (`2026-10-31-grid-bit-card-footprint`) | DB | measured on the P1 card |
 | ④ Claymorphism (`2026-10-20-claymorphism-polish`) | L3 | hide or finish: decided at the publish line |
@@ -354,7 +353,8 @@ Every layer, the concept/mockup session included, follows these:
   | Node (live) | Open · Edit · Add to Favorites / Remove from Favorites ─ Archive · Move to Trash |
   | Bit (live) | Open · Edit · Mark as complete / Mark as active · Promote to Node (only when allowed today) ─ Archive · Move to Trash |
   | System Node (Inbox, Archive, Calendar) | Open · Add to sidebar / Move to Grid |
-  | Empty cell in a Node's Grid | New Node here · New Bit here |
+  | Empty cell in a level 0 or 1 Node's Grid | New Node here · New Bit here |
+  | Empty cell in a level 2 Node's Grid | New Bit here (no Node below level 2; control tower correction, 2026-11-10) |
   | Empty cell on L0 | New Node here (a Bit always needs a parent) |
   | Trashed item | Restore ─ Delete permanently (with confirmation) |
   | Archived item | settled with R18 in the concept/mockup session |
@@ -363,6 +363,18 @@ Every layer, the concept/mockup session included, follows these:
   menu). Chunks and Scratch get no option menu; they are edited inside their
   own surfaces.
 
+- **Unavailable actions (user, 2026-11-10):** an action the item's kind never
+  supports is left out of the menu (for example Move to Trash on a system
+  Node); an action that is unavailable only now stays in place, dimmed, with a
+  short reason (for example Promote to Node). Shared rule 4 hides unfinished
+  features, not actions that are unavailable at the moment.
+- **Promote to Node (user, 2026-11-10):** the client condition "the Bit has
+  Chunks" is dropped (SCHEMA §9 never required it); a Bit without Chunks
+  becomes an empty Node in the same cell. The remaining conditions show as a
+  dimmed item with a reason: a title over 100 characters ("Shorten the title to
+  100 characters") and a parent at level 2 ("Already at the deepest level").
+  The Inbox condition never shows, since Scratch has no option menu. Server
+  failures (account limits, `grid_full`) report through the failure toast.
 - **P2-3 (closed by P2-2):** the same menu opens wherever the item appears.
 - **P2-4 opening the menu (user, 2026-11-10):** click opens the item as today
   (a Node's Grid, a Bit's detail); right-click opens the menu at the pointer;
@@ -385,6 +397,127 @@ Every layer, the concept/mockup session included, follows these:
   the toast, Restore in Trash does the same. Confirmation dialogs stay only for
   irreversible actions: Delete permanently and Empty Trash. The edit-mode delete
   dialog goes with edit mode (P2-1).
+
+## P3 command input (user, 2026-11-10)
+
+One input replaces the Search overlay and the current palette; Cmd+K and the
+sidebar Search button open it.
+
+- **P3-1 empty input:** Actions (Add Scratch, Add Node, Add Bit; Add Scratch
+  selected) and the 5 most recently edited items, sorted by `mtime` (no
+  browser storage; Architecture Rule 1).
+- **P3-2 typing:** results grouped Actions → Node → Bit → Chunk → Scratch, up
+  to 5 per group with "more"; titles that start with the query first, then
+  titles that contain it, ties by most recent `mtime`; each row shows its path.
+- **P3-3 fallback rows:** the list always ends with "Add '<query>' as Scratch /
+  Node / Bit", the query becoming the title.
+- **P3-4 opening a result:** a Node opens its Grid; a Bit opens its parent's
+  Grid with the Bit's detail; a Chunk opens its Bit's detail with the step
+  marked; a Scratch opens the Inbox with that Scratch focused (new: Scratch is
+  not in `searchAll()` today).
+- **P3-5 keys:** `↑↓`, `Enter`, `Esc` (with the `esc` hint, R20). The number
+  keys `1` and `2` are removed, since digits are search text now; Cmd+K then
+  `Enter` adds a Scratch (Add Scratch is preselected). SPEC §Command Palette
+  changes with it at `/craft-docs`.
+- **P3-6 Tab into an action (Raycast-style):** with an action row selected,
+  `Tab` puts a chip such as "[Add Bit]" before the input and the typed text
+  becomes the title; with a result row selected, `Tab` does nothing; on an
+  empty input `Backspace` or `Esc` removes the chip. `Enter` creates at once:
+  a Scratch; a Node in the current Grid (or L0) at the first free cell; a Bit
+  under the current Node, or else after a second chip "Parent:" where a Node is
+  searched and picked. `⌘Enter` from any chip opens the P4 dialog with the
+  title filled. P3-3 and P3-6 both stay (text first, or action first).
+
+## P4 Add/Edit dialog
+
+- **P4-1 `+` menu (user, 2026-11-10):** two groups, each with one line, in the
+  order Scratch → Node → Bit: **Scratch** "write it now, place it later" and
+  **Node · Bit** "create it in place". No "New Item" header (the word was
+  dropped with R13). Wording and look: concept/mockup session. Closes the R21
+  `+` question.
+
+- **P4-2 one dialog with a Node/Bit toggle (user, 2026-11-10):** it opens on
+  the type of the entry used (Add Node, New Node here → Node; Add Bit, New Bit
+  here → Bit). Switching keeps the shared fields (title, icon, deadline) and
+  remembers the type-only fields while the dialog is open (Node: color; Bit:
+  parent, description, priority); nothing is stored after it closes. Where no
+  Node can be made (a level 2 Grid) the Node side is dimmed with "Already at
+  the deepest level". A title too long for the chosen type (Node 100, Bit 200)
+  is never cut: a count warning shows and Create stays disabled until it fits.
+  Editing opens the same dialog as "Edit Node" / "Edit Bit" without the toggle
+  (the only type change is Promote, Bit to Node). The toggle is one Tab stop
+  with `←→` (radio-group behavior), the same rule as the icon picker, which
+  closes deferred P3 Issue 5.
+
+- **P4-3 fields (user, 2026-11-10):** Node: title (required, 100), icon,
+  color, deadline with all-day. Bit: parent (required), title (required, 200),
+  description (multi-line), icon, priority, deadline with all-day. A parent
+  implied by the Grid shows as one line ("in Projects · Change"); otherwise the
+  selector is open. Icon and color have defaults. A deadline later than the
+  parent Node's opens the existing deadline-conflict dialog. All fields show
+  at once (the quick path is P3-6). No status field (a new Bit starts active)
+  and no Chunks (added in the Bit detail). Keys: focus starts in the title;
+  `Enter` in the title creates; `⌘Enter` creates from anywhere; `Esc` closes,
+  asking first only when something was typed (an irreversible loss). Layout and
+  look: concept/mockup session.
+
+- **Calendar create (user, 2026-11-10):** the Calendar uses the same `+` menu
+  (Scratch included; missing today), the same dialog and the same Cmd+K. The
+  Node the Pool is drilled into is the implied parent for a Bit (today's
+  behavior made a rule).
+- **P4-7 create from a date (user, 2026-11-10):** an empty area of a Calendar
+  date opens, by right-click or a faint `+` under the pointer, a menu whose
+  items prefill the deadline: a day in the weekly or monthly view offers "New
+  Bit on <date>" and "New Node on <date>" (that day, all-day); a quarter column
+  offers "New Node in Q<n>" (the quarter's last day, all-day; Nodes only).
+  Date cells move by arrow keys and open the menu by the menu key (shared rule
+  2; check today's Calendar keyboard behavior at implementation). Whether a
+  weekly time slot also prefills a time depends on the weekly view's slots:
+  concept/mockup session.
+
+- **P4-4 parent selector (user, 2026-11-10):** search first, browsing kept.
+  Typing finds Nodes at every level, each row with its path, ordered as in P3-2;
+  an empty input shows the 3 most recently edited Nodes, then today's
+  drill-down browsing. Only live ordinary Nodes (levels 0–2) are listed:
+  system Nodes and trashed or archived Nodes are left out (kind), a Node whose
+  Grid is full is dimmed with "Grid is full" (now). Keys: `↑↓`, `Enter`, `→`
+  into a Node, `←` back out. The dialog's Parent field and the Cmd+K
+  "Parent:" chip are the same part. Hidden scrollbar with the overflow cue
+  (R16).
+- **Dialogs fit the window (user, 2026-11-10; R24):** every dialog keeps its
+  title and buttons visible at 1024px wide and on a short laptop height; when
+  its content is taller, only the inside scrolls (hidden scrollbar, overflow
+  cue). The icon picker becomes one button that opens a small grid instead of
+  four inline rows; the description field has no resize handle and grows to a
+  maximum height. **User preference for the layout:** a wide dialog in two or
+  three columns rather than a tall single column; the concept/mockup session
+  decides the layout (check that it still works at 1024px wide).
+- **P4-5 placement (user, 2026-11-10):** the Grid is read as two halves of 9
+  columns. A new Node starts at the left half's top-left cell (column 1, row
+  1); a new Bit starts at the right half's top-left cell (column 10, row 1).
+  Each takes the first free cell in reading order (left to right, top to
+  bottom) inside its own half, and only when that half is full the other half.
+  This replaces today's nearest-cell search from (3,3) for a Node and (16,3) for
+  a Bit and applies to `+`, Cmd+K and the Calendar date menu; the empty-cell
+  menu still uses its cell, and server placement (restore, unarchive,
+  promotion, system Nodes) is unchanged. It also eases R10, since new Bits
+  start mid-Grid. A Node in the top-left cell may sit under the revealed
+  breadcrumb for a moment, which F26 already accepts. After creating, a new
+  card on the current Grid is briefly marked (look: concept/mockup session);
+  one created elsewhere gets a toast "Created '<title>' in <Node> · Open". A
+  full Grid dims Add Node / Add Bit with "This Grid is full". The dialogs'
+  "nearest available cell" line changes with it.
+- **P4-6 Scratch (user, 2026-11-10):** the quick Scratch window (title only)
+  stays; `+` → Scratch and Cmd+K → Add Scratch open it, and the P3-6 chip
+  creates without it. ISSUE-16-02 (its focus trap) closes when it is rebuilt.
+- **Small-fix basket now (user, 2026-11-10):** R23 and R24 go first in the
+  small-fix basket, and the basket phase (app lane) may open now, without
+  waiting for the rest of this discussion. R23 is fixed in the decided
+  direction (the Inbox, Archive and Calendar pages count as outside a Grid:
+  a Node goes to L0, a Bit needs a picked parent, the picker leaves out system
+  Nodes; the refusal message no longer says "Try again" for a refusal that a
+  retry cannot fix). R24 gets the interim inside-scroll only; the redesign
+  waits for the mockup.
 
 ## Sidebar zone B (user, 2026-11-10)
 
@@ -413,13 +546,16 @@ Every layer, the concept/mockup session included, follows these:
 
 - Users will not easily see why Inbox, Archive and Calendar are treated
   differently; the Welcome/first-run guide explains it.
-- Control tower proposal: explain them as **tools over your work, not
-  containers of it** (Inbox collects what is not placed yet, Archive keeps what
-  is done, Calendar shows deadlines by date), which is why they cannot be
-  renamed, archived or trashed and why they move instead of being bookmarked.
-  Following shared rule 3, the card should also say it by itself: a distinct
-  tool-card variant in P1 (concept/mockup session), with the guide's one step
-  on top.
+- **Wording (user, 2026-11-10):** they are **built into Grid** (the concept
+  session's correction: "not containers" was wrong, since Inbox and Archive do
+  hold items). Built in is why they cannot be renamed, archived or trashed and
+  why they move instead of becoming Favorites. Each one's role follows: Inbox
+  collects what has no place yet, Archive keeps what is done, Calendar shows
+  deadlines by date. Image: the user's Nodes are trays the user put on the
+  desk; the system Nodes are the drawers built into it.
+- Following shared rule 3, the card says it by itself: a distinct built-in
+  card variant in P1 (look in the concept/mockup session), with the guide's
+  one step on top.
 
 ## Discussion order (user agreed, 2026-11-10)
 
