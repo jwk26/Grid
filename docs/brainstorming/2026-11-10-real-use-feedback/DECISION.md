@@ -51,11 +51,11 @@ theme-stage look; **Config** = production configuration.
 | R15 | Calendar Node/Bit cards use the Inbox Explorer cards | Visual | app | decided |
 | R16 | Hidden scrollbars with an overflow cue; Calendar first | Rule | app | decided |
 | R17 | Trash: depth, search, sort, layout, cards | Function + Visual | app | decided, restore confirm open |
-| R18 | Archive purpose and UI | Function + Visual | app | **waiting for the user** |
+| R18 | Archive purpose and UI | Function + Visual | app | **settled in the concept/mockup session** (user) |
 | R19 | Search placeholder and scope | Rule | app | decided, Scratch search is new scope |
 | R20 | Replace "Fixed Menu" with an `esc` hint | Fix (copy) | app | decided |
 | R21 | One search input; create targets; Add Node / Add Bit; `+` menu | IA | app | decided, `+` header open |
-| R22 | Google sign-in shows the Supabase project domain and no logo | Config (+ app) | — | question, options in `NOTES.md` |
+| R22 | Google sign-in shows the Supabase project domain and no logo | Config (+ app) | — | last, right before the link (user); options in `NOTES.md` |
 
 ## Decisions (user, 2026-11-10)
 
@@ -92,7 +92,7 @@ theme-stage look; **Config** = production configuration.
 - **R17:** Trash shows the whole depth of a trashed Node (today only one level
   through "show children"); search; sort by newest and oldest; a confirmation
   before Restore; a two-column layout; the Inbox Staging Node/Bit cards.
-- **R18:** the user explores Archive and reports back.
+- **R18:** the user explores Archive; the result is settled in the concept/mockup session (see Publish line).
 - **R19:** Chunk search stays. Placeholder: "Search Scratch, Node, Bit,
   Chunks..". Searching app features (for example dark mode, profile) is
   deferred.
@@ -122,7 +122,10 @@ theme-stage look; **Config** = production configuration.
 - **R21:** the `+` menu: one "New Item" header with Scratch, Node, Bit (user
   proposal) or the two groups kept with a line each (control tower view in
   `NOTES.md`).
-- **R22:** which option, if any, before the link is published.
+- **R22:** which option, if any; decided last, right before the link.
+- **Aging rules:** levels, thresholds, which items (Inbox Scratch?), completed
+  and urgent items; settled with P1 (see Aging below and `NOTES.md` §Aging
+  check).
 
 ## Frame (user agreed, 2026-11-10)
 
@@ -218,11 +221,11 @@ Homes: **L1-Pn** part, **L2** surface, **L3** skin, **DB** side line,
 | R15 | L1-P1 → L2 Calendar | wide Explorer card |
 | R16 | L1-P6 | Calendar first, then Inbox |
 | R17 | L2 Trash | uses P1 Staging card, P3 search |
-| R18 | L2 Archive | waiting for the user |
+| R18 | L2 Archive | concept/mockup session |
 | R19 | L1-P3 | Scratch search is new scope |
 | R20 | L1-P3 | |
 | R21 | L1-P3 + L1-P4 | |
-| R22 | Policy | before the link: option A/B/C or none |
+| R22 | Policy | last, right before the link (user) |
 
 ### Earlier FE/Visual map
 
@@ -239,12 +242,12 @@ Homes: **L1-Pn** part, **L2** surface, **L3** skin, **DB** side line,
 | ⑤ create modal (`2026-05-26-create-modal-design`) | L1-P4 | |
 | ⑥ small fixes and tests | Basket | rows below |
 | ⑦ Favorites (`2026-05-18-favorites`) | DB + L1-P5 | = R6 |
-| ⑦ Review Mode (`2026-04-28-review-mode`) | After | proposal |
-| ⑦ quarterly calendar (`2026-05-26-quarterly-calendar-view`) | After | proposal |
-| ⑦ Triage scheduling (`2026-04-28-triage-scheduling`) | After | proposal |
+| ⑦ Review Mode (`2026-04-28-review-mode`) | After | user |
+| ⑦ quarterly calendar (`2026-05-26-quarterly-calendar-view`) | L2 Calendar | in scope; designed in the concept/mockup session (user) |
+| ⑦ Triage scheduling (`2026-04-28-triage-scheduling`) | After | user |
 | ⑦ Archive auto-cleanup (`2026-05-26-archive-auto-cleanup`) | L2 Archive | decided with R18 |
-| ⑦ rollup (`2026-04-28-node-rollup-focus-aging`) | After | proposal |
-| ⑦ visual archive (`2026-05-18-visual-archive-app`) | After | proposal |
+| ⑦ rollup and focus (`2026-04-28-node-rollup-focus-aging`) | After | user; its aging revision is discussed now (aging is a P1 card state) |
+| ⑦ visual archive (`2026-05-18-visual-archive-app`) | Out of Grid scope | user; a workflow idea |
 | ⑧ stale brainstorming docs (about 5) | Basket (docs) | status marks only (1st control tower D7) |
 
 ### Deferred ledger (`Issues_Deferred.md`, all 30 active rows)
@@ -304,6 +307,38 @@ Every layer, the concept/mockup session included, follows these:
    before a new confirmation, placeholder or hint is added.
 4. **Visible means finished.** What a visitor can see is finished; what is not
    finished is hidden (for example an unfinished theme leaves the theme list).
+
+## Publish line (user, 2026-11-10)
+
+- The portfolio link is published only after every feature under discussion
+  here is implemented, **the `retro-mac`, `neumorphism` and `claymorphism`
+  skins included** (user, 2026-11-10). Whether the After rows of the coverage
+  matrix count is open; see Open questions.
+- **R18:** Archive's purpose and UI are settled in the new default theme's
+  concept/mockup session (`2026-11-10-default-theme-concept`), not here; this
+  topic waits for that result.
+- **R22:** the sign-in branding comes last, right before the link is
+  published.
+- **After the link** (user, 2026-11-10): Review Mode, Triage scheduling, the
+  Node rollup and focus overlay, the visual idea archive app (a cross-project
+  workflow idea, not a Grid feature; the parts catalog covers part of its
+  need), feature search, the Calendar `toSorted()` note.
+- **Quarterly calendar is in scope** (user, 2026-11-10): designed in the
+  concept/mockup session and implemented before the link
+  (`2026-05-26-quarterly-calendar-view`; Nodes only, a drop sets the deadline
+  to the quarter's last day; app lane, no new column).
+
+## Aging (user, 2026-11-10)
+
+- Aging is a P1 card state. Its **rules** (levels, thresholds, which items,
+  completed and urgent items) are settled here with P1; its **look** per theme
+  (saturation, opacity, texture or another device) is settled in the
+  concept/mockup session.
+- Every theme must be able to change the aging look, so the aging values go
+  through theme tokens instead of the hard-coded filter strings in
+  `src/lib/utils/aging.ts` (the gap in `NOTES.md` §Aging check).
+- The draft revision in `2026-04-28-node-rollup-focus-aging` §Aging Revision is
+  input to the rules, separate from the rollup (After).
 
 ## Discussion order (user agreed, 2026-11-10)
 

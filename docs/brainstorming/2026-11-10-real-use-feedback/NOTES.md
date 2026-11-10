@@ -114,3 +114,36 @@ user directions and open questions live in `DECISION.md`.
   SPEC S23 change); (C) Google brand verification for the app name and logo,
   which needs a domain the owner controls. GitHub shows the OAuth App's name and
   logo, set in the GitHub OAuth App settings without verification.
+
+## Aging check (control tower, `main` `ae8a0b6`, 2026-11-10)
+
+- **Rule today (SCHEMA Hook table "Aging state"):** days since `mtime`; 0–5
+  Fresh, 6–11 Stagnant, 12+ Neglected (`AGING_FRESH_DAYS = 5`,
+  `AGING_STAGNANT_DAYS = 11`). Any logical edit resets `mtime`; Chunk activity
+  resets the parent Bit's. Grid-visible Nodes and Bits only; system Nodes have
+  no aging (ST09). The demo seed stores times relative to the copy, so aging
+  looks alive for a guest.
+- **Look today:** `getAgingFilter()` in `src/lib/utils/aging.ts` returns a CSS
+  `filter` that `node-card.tsx` and `bit-card.tsx` put on the whole card:
+  Stagnant `saturate(0.5) brightness(0.9)`, Neglected `saturate(0.2)
+  brightness(0.75)`.
+- **Observations:**
+  1. No theme hook: `globals.css` defines `--aging-*-filter` and
+     `--aging-dust-opacity`, but the components use the hard-coded strings, so
+     no theme can change the aging look (the same kind of gap as ISSUE-20-02).
+  2. Desaturation does little in monochrome `retro-mac` and grey
+     `neumorphism`; mostly the brightness step remains (reasoning, not yet
+     checked on screen).
+  3. The filter darkens the text too; Neglected may fall below the contrast
+     target.
+  4. It stacks with other states: a completed Bit is already at 50% opacity
+     and struck through; an urgent or overdue Bit fades as it ages, which
+     weakens the urgency signal.
+- **Plans on record:** the old PRD (non-authoritative) wanted a dust/noise
+  texture on Neglected (deferred in `OMISSION_AUDIT.md`; only the unused
+  `--aging-dust-opacity` remains). The draft revision in
+  `2026-04-28-node-rollup-focus-aging` §Aging Revision proposes four levels
+  (Fresh 0–3, Cooling 3–7, Stagnant 7–14, Neglected 14+), saturation plus
+  opacity with a 0.6 floor and a contrast check, no animation, an urgency
+  override (overdue items skip aging) and aging for Inbox Scratch. SCHEMA
+  still has the three-level rule.
