@@ -663,6 +663,28 @@ each → R22 → publish the link.
 Rough size from past pace: about 14 phases and 55–70 tasks, about 6–8 weeks
 after the mockup; the three skins are the largest variable.
 
+## Gaps closed after the audit (user, 2026-11-11)
+
+An audit of this discussion against this entry found three points that were
+lost or dropped unanswered; the user settled them:
+
+- **Keyboard-first flow in the first-run guide:** the flow the user has in mind
+  is to add Nodes, Bits and Scratch quickly with Cmd+K rather than by clicking
+  the sidebar, and to keep the screen for the work itself; the Welcome/first-run
+  guide introduces that flow and leads users into it (from the raw R2 text).
+  Only the sidebar hide of R2 is dropped; this direction stands, and P3
+  (command input, Tab chips) serves it.
+- **Existing accounts and the R4 rule:** no one-time move. The rule "a system
+  Node in the sidebar is hidden from the Grid" applies as it is; if an existing
+  account's Inbox or Archive ends up somewhere odd, the user rearranges it.
+- **R5 Calendar Node details:** it follows the Archive View pattern (a system
+  Node without children whose surface is the view). The urgency dot is not
+  moved to the card: system Node cards on the Grid show no badge or dot (R4),
+  and the dot stays on the sidebar Calendar entry, so while Calendar sits on
+  the Grid no dot shows. Whether its view lives at `/grid/<id>` like the
+  Archive or keeps the `/calendar/*` routes is settled at that phase's
+  `/craft-docs`.
+
 ## Discussion order (user agreed, 2026-11-10)
 
 1. Shared rules (the same item has the same menu everywhere; keyboard parity;
